@@ -2352,6 +2352,16 @@ app.delete('/api/account', authenticateToken, async (req, res) => {
   }
 });
 
+// Ensure Google Search Console verification succeeds for both root and
+// accidental URL-prefix checks under /sitemap.xml/.
+app.get('/google1e7a24f124416c47.html', (_req, res) => {
+  return res.type('text/plain').send('google-site-verification: google1e7a24f124416c47.html');
+});
+
+app.get('/sitemap.xml/google1e7a24f124416c47.html', (_req, res) => {
+  return res.type('text/plain').send('google-site-verification: google1e7a24f124416c47.html');
+});
+
 app.get('/{*path}', (req, res) => {
   return res.sendFile(path.join(__dirname, '../frontend/index.html'));
 });
