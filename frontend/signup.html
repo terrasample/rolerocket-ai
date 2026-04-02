@@ -113,11 +113,14 @@
     // Warn if running from wrong origin (file://, VS Code preview, etc.)
     (function showOriginWarning() {
       const protocol = window.location.protocol;
+      const hostname = window.location.hostname;
       const port = window.location.port;
-      const isCorrect =
-        (protocol === 'http:' || protocol === 'https:') &&
-        (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') &&
+      const isTrustedProtocol = protocol === 'http:' || protocol === 'https:';
+      const isLocalDev =
+        (hostname === 'localhost' || hostname === '127.0.0.1') &&
         (port === '5000' || port === '');
+      const isProduction = hostname === 'www.rolerocketai.com' || hostname === 'rolerocketai.com';
+      const isCorrect = isTrustedProtocol && (isLocalDev || isProduction);
       const apiTarget = typeof getApiBase === 'function' ? getApiBase() : '(unknown)';
       if (!isCorrect) {
         const bar = document.createElement('div');
