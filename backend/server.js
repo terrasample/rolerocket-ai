@@ -798,6 +798,73 @@ app.post('/api/career-coach', authenticateToken, async (req, res) => {
   }
 });
 
+// ─── Interview Assist ────────────────────────────────────────────────────────
+app.post('/api/interview-assist', authenticateToken, async (req, res) => {
+  try {
+    const { question, role, resume, history } = req.body || {};
+
+    if (!question || !String(question).trim()) {
+      return res.status(400).json({ error: 'question is required' });
+    }
+
+    const user = await User.findById(req.user.userId);
+    if (!hasRequiredPlan(user, 'elite')) {
+      return res.status(403).json({ error: 'Upgrade to Elite to use Interview Assist.' });
+    }
+
+    const systemPrompt = `You are a live interview coach helping a candidate answer questions in real-time during an actual job interview.
+
+Return ONLY a valid JSON object with this exact structure:
+{
+  "type": "behavioral|situational|general",
+  "answer": "A strong, concise answer (max 180 words). Behavioral: use STAR format. Situational: direct confident structure. General: clear and impactful.",
+  "bullets": ["key point to hit 1", "key point to hit 2", "key point to hit 3"],
+  "tip": "One short coaching note for delivery (max 15 words)"
+}
+
+Rules:
+- Answer must be under 180 words — this is used live during an interview
+- Write in first person, naturally, confidently
+- Behavioral questions (tell me about a time, describe a situation, give an example) → STAR format
+- Situational / hypothetical → direct structured response
+- Return only valid JSON, no markdown fences`;
+
+    const contextParts = [];
+    if (role) contextParts.push(`Target role: ${role}`);
+    if (resume) contextParts.push(`Candidate background:\n${String(resume).slice(0, 1200)}`);
+
+    if (Array.isArray(history) && history.length > 0) {
+      const recent = history.slice(-3).map((h) => `Q: ${h.question}\nA: ${h.answer}`).join('\n\n');
+      contextParts.push(`Prior questions in this interview session:\n${recent}`);
+    }
+
+    const userContent = contextParts.length
+      ? `${contextParts.join('\n\n')}\n\nInterview question: ${question}`
+      : `Interview question: ${question}`;
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userContent }
+      ],
+      response_format: { type: 'json_object' }
+    });
+
+    const parsed = JSON.parse(completion.choices[0].message.content || '{}');
+
+    return res.json({
+      type: parsed.type || 'general',
+      answer: parsed.answer || '',
+      bullets: Array.isArray(parsed.bullets) ? parsed.bullets.slice(0, 4) : [],
+      tip: parsed.tip || ''
+    });
+  } catch (err) {
+    console.error('Interview assist error:', err);
+    return res.status(500).json({ error: 'Interview assist failed' });
+  }
+});
+
 app.post('/api/jobs/find', authenticateToken, async (req, res) => {
   try {
     const { title, location, resume } = req.body;

@@ -349,6 +349,73 @@
           <pre id="careerCoachResult"></pre>
         </div>
 
+        <!-- ─── Interview Assist Mode ──────────────────────────────────── -->
+        <div class="card elite lockable premium-preview-card ia-card" data-plan="elite" style="grid-column: 1 / -1;">
+          <div class="lock-badge">🔒 ELITE</div>
+          <h3>🎙️ Interview Assist Mode <span class="ia-live-badge">● LIVE</span></h3>
+          <p>Type any interview question and get a real-time, coach-crafted answer you can use on the spot.</p>
+
+          <div class="locked-preview-shell">
+            <div class="blur-preview">
+              <div class="preview-result-card">
+                <strong>Q: Tell me about a time you handled a conflict at work.</strong>
+                <p><strong>Type:</strong> Behavioral · STAR Format</p>
+                <p>In my previous role, a cross-functional disagreement was stalling a product launch. I requested a 1:1 with the stakeholder, mapped out the shared goal, proposed a compromise on the disputed scope, and we launched on time — with both teams aligned on the revised roadmap.</p>
+              </div>
+              <div class="preview-result-card">
+                <strong>Key points to hit</strong>
+                <p>· Identify the conflict clearly &nbsp;· Show ownership &nbsp;· Quantify the outcome</p>
+              </div>
+              <div class="preview-result-card">
+                <strong>Coach tip</strong>
+                <p>Pause briefly before answering — it signals composure, not hesitation.</p>
+              </div>
+            </div>
+            <div class="locked-overlay">
+              <div class="locked-message">
+                <strong>Unlock real-time interview coaching</strong>
+                <p class="lock-proof">Elite members walk into every interview with an AI coach on standby.</p>
+                <button class="unlock-btn" onclick="upgrade('price_1THMraKtQrGDcYVPytIyvklx')">Unlock Interview Assist</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Live UI (shown when unlocked) -->
+          <div class="ia-live-ui">
+
+            <div class="ia-setup-toggle">
+              <button id="iaSetupToggle" class="secondary-btn ia-toggle-btn">⚙️ Set Context (Role + Resume)</button>
+            </div>
+
+            <div id="iaSetupPanel" class="ia-setup" style="display:none;">
+              <input id="iaRole" placeholder="Your target role (e.g. Senior Product Manager)" />
+              <textarea id="iaResume" placeholder="Paste résumé here for personalised answers (optional)" rows="4"></textarea>
+              <button id="iaSaveContext" class="secondary-btn">Save Context</button>
+              <span id="iaContextSaved" class="ia-context-saved" style="display:none;">✓ Context saved</span>
+            </div>
+
+            <div class="ia-question-area">
+              <textarea id="iaQuestion" placeholder="Type the interview question here…" rows="3"></textarea>
+              <button id="iaSubmitBtn" class="ia-submit-btn">Get Answer ↵</button>
+            </div>
+
+            <div id="iaResponse" class="ia-response" style="display:none;">
+              <div class="ia-response-header">
+                <span id="iaTypeBadge" class="ia-type-badge">behavioral</span>
+                <button id="iaCopyBtn" class="ia-copy-btn" title="Copy answer">Copy</button>
+              </div>
+              <p id="iaAnswer" class="ia-answer-text"></p>
+              <div id="iaBullets" class="ia-bullets"></div>
+              <div id="iaTip" class="ia-tip"></div>
+            </div>
+
+            <div id="iaHistory" class="ia-history" style="display:none;">
+              <h4 class="ia-history-title">Session History</h4>
+              <div id="iaHistoryList"></div>
+            </div>
+          </div>
+        </div>
+
         <div class="card">
           <h3>🎁 Invite & Earn</h3>
           <p>Your referral link:</p>

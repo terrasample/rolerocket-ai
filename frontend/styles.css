@@ -1245,3 +1245,258 @@ pre {
 .site-footer a:hover {
   text-decoration: underline;
 }
+
+/* ─── Interview Assist Mode ─────────────────────────────────────────────────── */
+.ia-card {
+  position: relative;
+}
+
+.ia-live-badge {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #ef4444;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 20px;
+  padding: 2px 8px;
+  vertical-align: middle;
+  margin-left: 8px;
+  animation: ia-pulse 2s infinite;
+}
+
+@keyframes ia-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+.ia-live-ui {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 8px;
+}
+
+.ia-toggle-btn {
+  font-size: 0.85rem;
+  padding: 8px 14px;
+}
+
+.ia-setup {
+  background: #f8faff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ia-setup input,
+.ia-setup textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.ia-context-saved {
+  color: #16a34a;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-left: 8px;
+}
+
+.ia-question-area {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.ia-question-area textarea {
+  flex: 1;
+  padding: 12px 14px;
+  border: 2px solid #7c3aed;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-family: inherit;
+  resize: none;
+  line-height: 1.5;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+
+.ia-question-area textarea:focus {
+  outline: none;
+  border-color: #5b21b6;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+}
+
+.ia-submit-btn {
+  background: linear-gradient(135deg, #7c3aed, #5b21b6);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 22px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.2s, transform 0.15s;
+}
+
+.ia-submit-btn:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.ia-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ia-response {
+  background: #f5f3ff;
+  border: 1px solid #ddd6fe;
+  border-radius: 14px;
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ia-response-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ia-type-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: #ede9fe;
+  color: #5b21b6;
+  border: 1px solid #c4b5fd;
+}
+
+.ia-type-behavioral {
+  background: #ecfdf5;
+  color: #065f46;
+  border-color: #6ee7b7;
+}
+
+.ia-type-situational {
+  background: #eff6ff;
+  color: #1e40af;
+  border-color: #93c5fd;
+}
+
+.ia-type-general {
+  background: #ede9fe;
+  color: #5b21b6;
+  border-color: #c4b5fd;
+}
+
+.ia-copy-btn {
+  background: none;
+  border: 1px solid #c4b5fd;
+  color: #7c3aed;
+  border-radius: 8px;
+  padding: 4px 12px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.ia-copy-btn:hover {
+  background: #ede9fe;
+}
+
+.ia-answer-text {
+  margin: 0;
+  font-size: 0.97rem;
+  line-height: 1.7;
+  color: #1f1f2e;
+  white-space: pre-wrap;
+}
+
+.ia-bullets {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ia-bullet {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #4c1d95;
+  padding: 6px 12px;
+  background: #ede9fe;
+  border-radius: 8px;
+}
+
+.ia-tip {
+  font-size: 0.85rem;
+  color: #92400e;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+.ia-history {
+  border-top: 1px solid #e5e7eb;
+  padding-top: 14px;
+}
+
+.ia-history-title {
+  font-size: 0.85rem;
+  color: #6b7280;
+  margin: 0 0 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.ia-history-item {
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  background: #f9fafb;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+}
+
+.ia-history-q {
+  font-size: 0.83rem;
+  font-weight: 700;
+  color: #374151;
+  margin-bottom: 4px;
+}
+
+.ia-history-a {
+  font-size: 0.82rem;
+  color: #6b7280;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 700px) {
+  .ia-question-area {
+    flex-direction: column;
+  }
+
+  .ia-submit-btn {
+    width: 100%;
+    text-align: center;
+  }
+}

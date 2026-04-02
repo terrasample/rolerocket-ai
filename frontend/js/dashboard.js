@@ -683,6 +683,131 @@ document.getElementById('accountBtn')?.addEventListener('click', () => {
   window.location.href = 'account.html';
 });
 
+// ─── Interview Assist Mode ────────────────────────────────────────────────────
+(function () {
+  const iaHistory = [];    // session history: [{question, type, answer, bullets, tip}]
+  let iaContext = { role: '', resume: '' };
+
+  const setupToggleBtn  = document.getElementById('iaSetupToggle');
+  const setupPanel      = document.getElementById('iaSetupPanel');
+  const iaSaveCtxBtn    = document.getElementById('iaSaveContext');
+  const iaContextSaved  = document.getElementById('iaContextSaved');
+  const iaRoleInput     = document.getElementById('iaRole');
+  const iaResumeInput   = document.getElementById('iaResume');
+  const iaQuestionInput = document.getElementById('iaQuestion');
+  const iaSubmitBtn     = document.getElementById('iaSubmitBtn');
+  const iaResponse      = document.getElementById('iaResponse');
+  const iaTypeBadge     = document.getElementById('iaTypeBadge');
+  const iaAnswer        = document.getElementById('iaAnswer');
+  const iaBullets       = document.getElementById('iaBullets');
+  const iaTip           = document.getElementById('iaTip');
+  const iaCopyBtn       = document.getElementById('iaCopyBtn');
+  const iaHistoryEl     = document.getElementById('iaHistory');
+  const iaHistoryList   = document.getElementById('iaHistoryList');
+
+  if (!iaSubmitBtn) return; // card not present or not unlocked yet
+
+  setupToggleBtn?.addEventListener('click', () => {
+    const open = setupPanel.style.display !== 'none';
+    setupPanel.style.display = open ? 'none' : 'block';
+    setupToggleBtn.textContent = open ? '⚙️ Set Context (Role + Resume)' : '⚙️ Hide Context';
+  });
+
+  iaSaveCtxBtn?.addEventListener('click', () => {
+    iaContext.role   = (iaRoleInput?.value   || '').trim();
+    iaContext.resume = (iaResumeInput?.value || '').trim();
+    if (iaContextSaved) {
+      iaContextSaved.style.display = 'inline';
+      setTimeout(() => { iaContextSaved.style.display = 'none'; }, 2000);
+    }
+  });
+
+  // Submit on Ctrl+Enter / Cmd+Enter inside textarea
+  iaQuestionInput?.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      iaSubmitBtn.click();
+    }
+  });
+
+  iaSubmitBtn?.addEventListener('click', async () => {
+    const question = (iaQuestionInput?.value || '').trim();
+    if (!question) return;
+
+    setButtonLoading(iaSubmitBtn, 'Thinking…');
+    iaResponse.style.display = 'none';
+
+    try {
+      const payload = {
+        question,
+        role:    iaContext.role   || undefined,
+        resume:  iaContext.resume || undefined,
+        history: iaHistory.slice(-4).map(h => ({ question: h.question, answer: h.answer }))
+      };
+
+      const data = await api('/api/interview-assist', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+
+      // Render response
+      const typeLabel = data.type || 'general';
+      iaTypeBadge.textContent = typeLabel;
+      iaTypeBadge.className = `ia-type-badge ia-type-${typeLabel}`;
+      iaAnswer.textContent = data.answer || '';
+
+      iaBullets.innerHTML = '';
+      if (Array.isArray(data.bullets) && data.bullets.length) {
+        data.bullets.forEach(b => {
+          const el = document.createElement('div');
+          el.className = 'ia-bullet';
+          el.textContent = `· ${b}`;
+          iaBullets.appendChild(el);
+        });
+      }
+
+      iaTip.textContent = data.tip ? `💡 ${data.tip}` : '';
+      iaTip.style.display = data.tip ? 'block' : 'none';
+
+      iaResponse.style.display = 'block';
+
+      // Add to session history
+      iaHistory.push({ question, type: typeLabel, answer: data.answer || '', bullets: data.bullets || [], tip: data.tip || '' });
+      renderHistory();
+
+      iaQuestionInput.value = '';
+      iaQuestionInput.focus();
+    } catch (err) {
+      alert(err.message || 'Interview Assist failed');
+    } finally {
+      clearButtonLoading(iaSubmitBtn);
+    }
+  });
+
+  iaCopyBtn?.addEventListener('click', () => {
+    const text = iaAnswer?.textContent || '';
+    navigator.clipboard?.writeText(text).then(() => {
+      iaCopyBtn.textContent = 'Copied ✓';
+      setTimeout(() => { iaCopyBtn.textContent = 'Copy'; }, 2000);
+    });
+  });
+
+  function renderHistory() {
+    if (!iaHistoryList || !iaHistoryEl) return;
+    iaHistoryEl.style.display = iaHistory.length ? 'block' : 'none';
+    iaHistoryList.innerHTML = iaHistory.slice().reverse().map((h, i) => `
+      <div class="ia-history-item">
+        <div class="ia-history-q">Q${iaHistory.length - i}: ${escapeHtml(h.question)}</div>
+        <div class="ia-history-a">${escapeHtml(h.answer)}</div>
+      </div>
+    `).join('');
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+})();
+
 async function loadTracker() {
   if (!savedJobsEl || !readyJobsEl || !appliedJobsEl || !interviewJobsEl || !offerJobsEl || !rejectedJobsEl) {
     return;
