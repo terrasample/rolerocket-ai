@@ -3,6 +3,6 @@ services:
     name: rolerocket-ai
     runtime: node
     rootDir: backend
-    buildCommand: npm install
-    startCommand: npm start
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && npm start
     autoDeploy: true
