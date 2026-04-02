@@ -1,0 +1,9 @@
+{
+  "appId": "com.rolerocket.ai",
+  "appName": "RoleRocket AI",
+  "webDir": "frontend",
+  "server": {
+    "url": "https://www.rolerocketai.com",
+    "cleartext": false
+  }
+}
