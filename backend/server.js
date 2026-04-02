@@ -116,7 +116,16 @@ const authenticateToken = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
+
+    req.user = {
+      ...decoded,
+      userId: decoded.userId || decoded.id || decoded._id || decoded.sub || null
+    };
+
+    if (!req.user.userId) {
+      return res.status(403).json({ error: 'Invalid token payload' });
+    }
+
     return next();
   } catch {
     return res.status(403).json({ error: 'Invalid token' });
@@ -971,13 +980,19 @@ app.get('/api/resume/latest', authenticateToken, async (req, res) => {
 
 app.post('/api/create-checkout-session', authenticateToken, async (req, res) => {
   try {
-    const { plan } = req.body;
+    const { plan, priceId: requestedPriceId } = req.body || {};
+    const userId = String(req.user?.userId || '').trim();
 
-    if (!plan) {
-      return res.status(400).json({ error: 'plan is required' });
+    const normalizedPlan = plan ? String(plan).toLowerCase().trim() : '';
+    const normalizedPriceId = requestedPriceId ? String(requestedPriceId).trim() : '';
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Authenticated user ID is missing' });
     }
 
-    const normalizedPlan = String(plan).toLowerCase().trim();
+    if (!normalizedPlan && !normalizedPriceId) {
+      return res.status(400).json({ error: 'plan or priceId is required' });
+    }
 
     const planToPriceMap = {
       pro: PRO_PRICE_ID,
@@ -985,7 +1000,7 @@ app.post('/api/create-checkout-session', authenticateToken, async (req, res) => 
       elite: ELITE_PRICE_ID
     };
 
-    const priceId = planToPriceMap[normalizedPlan];
+    const priceId = normalizedPriceId || planToPriceMap[normalizedPlan];
 
     if (!priceId) {
       return res.status(400).json({ error: 'Unknown plan. Check your .env Stripe price IDs.' });
@@ -998,21 +1013,37 @@ app.post('/api/create-checkout-session', authenticateToken, async (req, res) => 
       success_url: `${process.env.CLIENT_URL}/dashboard.html?success=true`,
       cancel_url: `${process.env.CLIENT_URL}/dashboard.html`,
       metadata: {
-        userId: req.user.userId,
-        plan: normalizedPlan
+        userId,
+        plan: normalizedPlan || 'custom'
       },
       subscription_data: {
         metadata: {
-          userId: req.user.userId,
-          plan: normalizedPlan
+          userId,
+          plan: normalizedPlan || 'custom'
         }
       }
     });
 
-    return res.json({ url: session.url });
+    let checkoutUrl = session.url;
+
+    if (!checkoutUrl && session.id) {
+      const refreshed = await stripe.checkout.sessions.retrieve(session.id);
+      checkoutUrl = refreshed?.url;
+    }
+
+    if (!checkoutUrl) {
+      return res.status(500).json({ error: 'Stripe did not return a checkout URL.' });
+    }
+
+    return res.json({ url: checkoutUrl });
   } catch (err) {
     console.error('Subscription checkout error:', err);
-    return res.status(500).json({ error: err.message || 'Failed to create checkout session' });
+    return res.status(500).json({
+      error: err.message || err.raw?.message || String(err) || 'Failed to create checkout session',
+      code: err.code || null,
+      type: err.type || null,
+      details: JSON.stringify(err, Object.getOwnPropertyNames(err))
+    });
   }
 });
 

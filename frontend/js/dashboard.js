@@ -575,11 +575,36 @@ document.getElementById('copyReferralBtn')?.addEventListener('click', () => {
   copyReferral();
 });
 
+const planToPriceIdMap = {
+  pro: 'price_1THMq2KtQrGDcYVPvR3OcRyN',
+  premium: 'price_1THMqvKtQrGDcYVP6K605mhv',
+  elite: 'price_1THMraKtQrGDcYVPytIyvklx'
+};
+
+const priceIdToPlanMap = {
+  price_1THMq2KtQrGDcYVPvR3OcRyN: 'pro',
+  price_1THMqvKtQrGDcYVP6K605mhv: 'premium',
+  price_1THMraKtQrGDcYVPytIyvklx: 'elite'
+};
+
 window.upgrade = async function upgrade(plan) {
   try {
+    const raw = String(plan || '').trim();
+    const isPriceId = raw.startsWith('price_');
+    const normalizedPlan = isPriceId ? priceIdToPlanMap[raw] : raw.toLowerCase();
+    const priceId = isPriceId ? raw : planToPriceIdMap[normalizedPlan];
+
+    if (!normalizedPlan && !priceId) {
+      alert('Invalid upgrade selection. Please try again.');
+      return;
+    }
+
     const data = await api('/api/create-checkout-session', {
       method: 'POST',
-      body: JSON.stringify({ plan })
+      body: JSON.stringify({
+        plan: normalizedPlan,
+        priceId
+      })
     });
 
     if (data.url) {
