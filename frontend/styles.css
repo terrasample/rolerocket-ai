@@ -316,12 +316,28 @@ body[data-dashboard-mode='starter'] .progressive-module {
 }
 
 .plan-guide {
-  background: linear-gradient(135deg, #ffffff 0%, #eef8ff 100%);
-  border: 1px solid #cfe7f8;
-  border-radius: 20px;
-  padding: 22px;
+  position: relative;
+  background:
+    radial-gradient(circle at top left, rgba(125, 211, 252, 0.32), transparent 34%),
+    linear-gradient(145deg, #ffffff 0%, #f5fbff 48%, #edf7ff 100%);
+  border: 1px solid rgba(186, 230, 253, 0.9);
+  border-radius: 24px;
+  padding: 24px;
   margin-bottom: 22px;
-  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.06);
+  box-shadow:
+    0 24px 50px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  overflow: hidden;
+}
+
+.plan-guide::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 180px;
+  height: 180px;
+  background: radial-gradient(circle, rgba(14, 165, 233, 0.18), transparent 68%);
+  pointer-events: none;
 }
 
 .plan-guide-head {
@@ -329,11 +345,14 @@ body[data-dashboard-mode='starter'] .progressive-module {
   justify-content: space-between;
   align-items: flex-start;
   gap: 16px;
-  margin-bottom: 18px;
+  margin-bottom: 20px;
+  position: relative;
+  z-index: 1;
 }
 
 .plan-guide-head h2 {
   margin: 4px 0 8px;
+  font-size: 1.9rem;
   letter-spacing: -0.02em;
 }
 
@@ -341,26 +360,58 @@ body[data-dashboard-mode='starter'] .progressive-module {
   margin: 0;
   color: #475569;
   max-width: 760px;
+  line-height: 1.6;
 }
 
 .plan-guide-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
+  gap: 16px;
+  position: relative;
+  z-index: 1;
 }
 
 .plan-guide-panel {
-  background: rgba(255, 255, 255, 0.8);
-  border: 1px solid #d9e9f5;
-  border-radius: 16px;
-  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 100%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 251, 255, 0.94));
+  border: 1px solid rgba(203, 213, 225, 0.8);
+  border-radius: 20px;
+  padding: 18px;
+  box-shadow:
+    0 14px 28px rgba(15, 23, 42, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.plan-guide-panel-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.plan-guide-panel-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #dbeafe, #eff6ff);
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  color: #0c4a6e;
+  font-size: 0.95rem;
+  font-weight: 800;
 }
 
 .plan-guide-panel strong {
   display: block;
-  font-size: 1rem;
-  line-height: 1.45;
-  margin-bottom: 8px;
+  font-size: 1.06rem;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+  color: #0f172a;
 }
 
 .plan-guide-panel p {
@@ -369,45 +420,70 @@ body[data-dashboard-mode='starter'] .progressive-module {
   line-height: 1.55;
 }
 
+.plan-guide-outcome {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid rgba(203, 213, 225, 0.7);
+  color: #334155;
+}
+
 .plan-guide-panel-accent {
-  background: linear-gradient(135deg, #0f172a 0%, #0c4a6e 100%);
+  background:
+    radial-gradient(circle at top right, rgba(125, 211, 252, 0.2), transparent 28%),
+    linear-gradient(145deg, #0f172a 0%, #0c4a6e 60%, #075985 100%);
   color: #ffffff;
-  border-color: rgba(125, 211, 252, 0.3);
+  border-color: rgba(125, 211, 252, 0.32);
+  box-shadow:
+    0 18px 34px rgba(12, 74, 110, 0.28),
+    inset 0 1px 0 rgba(224, 242, 254, 0.12);
+}
+
+.plan-guide-panel-accent .plan-guide-panel-icon {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(224, 242, 254, 0.18);
+  color: #f8fafc;
 }
 
 .plan-guide-panel-accent .coach-label,
+.plan-guide-panel-accent strong,
 .plan-guide-panel-accent p,
 .plan-guide-panel-accent li {
   color: #e0f2fe;
 }
 
 .plan-guide-list {
-  margin: 12px 0 0;
+  margin: 2px 0 0;
   padding-left: 18px;
 }
 
 .plan-guide-list li {
-  margin-bottom: 8px;
-  line-height: 1.5;
+  margin-bottom: 10px;
+  line-height: 1.55;
 }
 
 .plan-guide-steps {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  display: grid;
+  gap: 10px;
 }
 
 .plan-guide-steps span {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  min-height: 38px;
-  padding: 8px 12px;
-  border-radius: 999px;
-  background: #f8fafc;
-  border: 1px solid #dbeafe;
+  min-height: 48px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #ffffff, #f8fbff);
+  border: 1px solid rgba(191, 219, 254, 0.95);
   color: #0f172a;
-  font-size: 0.88rem;
+  font-size: 0.9rem;
   font-weight: 600;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.plan-guide-workflow-copy {
+  margin-top: -2px;
+  margin-bottom: 2px;
+  color: #64748b;
 }
 
 .price-card h3 {
