@@ -41,6 +41,7 @@ const { runATSAnalysis } = require('./services/atsScorer');
 const User = require('./models/User');
 const Resume = require('./models/Resume');
 const Job = require('./models/Job');
+const Telemetry = require('./models/Telemetry');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -625,6 +626,57 @@ app.get('/api/referral', authenticateToken, async (req, res) => {
   } catch (err) {
     console.error('Referral load error:', err);
     return res.status(500).json({ error: 'Failed to load referral info' });
+  }
+});
+
+app.post('/api/telemetry', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization || '';
+    const bearer = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+
+    let userId = null;
+    if (bearer) {
+      try {
+        const decoded = jwt.verify(bearer, process.env.JWT_SECRET);
+        userId = decoded.userId || decoded.id || decoded._id || decoded.sub || null;
+      } catch {
+        userId = null;
+      }
+    }
+
+    const {
+      event = '',
+      funnel = '',
+      sessionId = '',
+      page = '',
+      variant = '',
+      ts,
+      meta = {}
+    } = req.body || {};
+
+    if (!event) {
+      return res.status(400).json({ error: 'event is required' });
+    }
+
+    const safeMeta = typeof meta === 'object' && meta !== null ? meta : {};
+
+    await Telemetry.create({
+      userId,
+      event: String(event).slice(0, 80),
+      funnel: String(funnel).slice(0, 80),
+      sessionId: String(sessionId).slice(0, 80),
+      page: String(page).slice(0, 120),
+      variant: String(variant).slice(0, 20),
+      ts: ts ? new Date(ts) : new Date(),
+      meta: safeMeta,
+      userAgent: String(req.headers['user-agent'] || '').slice(0, 280),
+      ip: String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').slice(0, 120)
+    });
+
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error('Telemetry error:', err.message);
+    return res.status(500).json({ error: 'Failed to store telemetry' });
   }
 });
 

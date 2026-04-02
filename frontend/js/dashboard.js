@@ -27,33 +27,170 @@ const careerUrgencyNudgeEl = document.getElementById('careerUrgencyNudge');
 
 let currentUserPlan = 'free';
 let lastFoundJobs = [];
+let abVariant = 'A';
 
-async function api(path, options = {}) {
-  const isFormData = options.body instanceof FormData;
+const API_TIMEOUT_MS = 12000;
+const API_DEFAULT_RETRIES = 1;
+const RETRYABLE_STATUS = new Set([408, 429, 500, 502, 503, 504]);
+const offlineBanner = document.getElementById('offlineBanner');
 
-  const res = await fetch(path, {
-    ...options,
-    headers: {
-      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
-      Authorization: `Bearer ${token}`,
-      ...(options.headers || {})
-    }
-  });
+const sessionId = (() => {
+  const existing = localStorage.getItem('rr_dashboard_sid');
+  if (existing) return existing;
+  const next = `sid_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  localStorage.setItem('rr_dashboard_sid', next);
+  return next;
+})();
 
-  const text = await res.text();
+const telemetryQueue = [];
 
-  let data = {};
+function setOfflineBanner(offline) {
+  if (!offlineBanner) return;
+  if (offline) {
+    offlineBanner.hidden = false;
+  } else {
+    offlineBanner.hidden = true;
+  }
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchWithTimeout(path, options, timeoutMs = API_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
   try {
-    data = text ? JSON.parse(text) : {};
-  } catch {
-    data = { raw: text };
+    return await fetch(path, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function enqueueTelemetry(payload) {
+  telemetryQueue.push(payload);
+  if (telemetryQueue.length > 100) telemetryQueue.shift();
+}
+
+function track(event, funnel = '', meta = {}) {
+  enqueueTelemetry({
+    event,
+    funnel,
+    sessionId,
+    page: 'dashboard',
+    variant: abVariant,
+    ts: new Date().toISOString(),
+    meta
+  });
+}
+
+async function flushTelemetry() {
+  if (!telemetryQueue.length || !navigator.onLine) return;
+
+  const batch = telemetryQueue.splice(0, 15);
+
+  await Promise.allSettled(
+    batch.map((evt) =>
+      fetch('/api/telemetry', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(evt),
+        keepalive: true
+      })
+    )
+  );
+}
+
+setInterval(() => {
+  flushTelemetry().catch(() => {});
+}, 10000);
+
+window.addEventListener('online', () => {
+  setOfflineBanner(false);
+  track('network_online', 'reliability');
+  flushTelemetry().catch(() => {});
+});
+
+window.addEventListener('offline', () => {
+  setOfflineBanner(true);
+  track('network_offline', 'reliability');
+});
+
+window.addEventListener('beforeunload', () => {
+  track('session_end', 'engagement', { hasJobs: lastFoundJobs.length > 0 });
+  flushTelemetry().catch(() => {});
+});
+
+setOfflineBanner(!navigator.onLine);
+
+async function api(path, options = {}, config = {}) {
+  const isFormData = options.body instanceof FormData;
+  const retries = config.retries ?? API_DEFAULT_RETRIES;
+  const timeoutMs = config.timeoutMs ?? API_TIMEOUT_MS;
+
+  if (!navigator.onLine) {
+    track('api_blocked_offline', 'reliability', { path });
+    throw new Error('You appear to be offline. Reconnect and try again.');
   }
 
-  if (!res.ok) {
-    throw new Error(data.error || data.message || 'Request failed');
+  let attempt = 0;
+  let lastError;
+
+  while (attempt <= retries) {
+    try {
+      const res = await fetchWithTimeout(
+        path,
+        {
+          ...options,
+          headers: {
+            ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
+            Authorization: `Bearer ${token}`,
+            ...(options.headers || {})
+          }
+        },
+        timeoutMs
+      );
+
+      const text = await res.text();
+      let data = {};
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch {
+        data = { raw: text };
+      }
+
+      if (!res.ok) {
+        const err = new Error(data.error || data.message || 'Request failed');
+        err.status = res.status;
+        throw err;
+      }
+
+      return data;
+    } catch (err) {
+      const isAbort = err.name === 'AbortError';
+      const retryable = isAbort || RETRYABLE_STATUS.has(err.status);
+      lastError = isAbort ? new Error('Request timed out. Please try again.') : err;
+
+      if (attempt >= retries || !retryable) {
+        track('api_failed', 'reliability', {
+          path,
+          attempt,
+          status: err.status || null,
+          message: String(lastError.message || '')
+        });
+        throw lastError;
+      }
+
+      await sleep(350 * (attempt + 1));
+      attempt += 1;
+    }
   }
 
-  return data;
+  throw lastError || new Error('Request failed');
 }
 
 function normalizePlan(plan) {
@@ -95,6 +232,52 @@ function applyLocks() {
   });
 }
 
+function initPricingExperiment() {
+  const key = 'rr_ab_pricing_variant_v1';
+  const persisted = localStorage.getItem(key);
+  abVariant = persisted || (Math.random() < 0.5 ? 'A' : 'B');
+  if (!persisted) localStorage.setItem(key, abVariant);
+
+  const proSubtext = document.getElementById('proSubtext');
+  const premiumSubtext = document.getElementById('premiumSubtext');
+  const eliteSubtext = document.getElementById('eliteSubtext');
+  const proCta = document.getElementById('proUpgradeCta');
+  const premiumCta = document.getElementById('premiumUpgradeCta');
+  const eliteCta = document.getElementById('eliteUpgradeCta');
+
+  if (abVariant === 'B') {
+    if (proSubtext) proSubtext.textContent = 'Tailor resume + cover letter in minutes, not hours.';
+    if (premiumSubtext) premiumSubtext.textContent = 'Turn top matches into interviews with ATS + 1-Click flow.';
+    if (eliteSubtext) eliteSubtext.textContent = 'Live interview assist and strategic coaching for high-stakes roles.';
+    if (proCta) proCta.textContent = 'Start Pro Now';
+    if (premiumCta) premiumCta.textContent = 'Unlock Premium Tools';
+    if (eliteCta) eliteCta.textContent = 'Activate Elite Coach';
+  }
+
+  const promptMarkup = `
+    <aside class="ia-prompt" role="complementary" aria-label="Interview Assist prompt">
+      <div>
+        <strong>New: Live Interview Assist Mode</strong>
+        <p>Type a question mid-interview and get a concise, coach-structured answer instantly.</p>
+      </div>
+      <button id="jumpToIaBtn" class="secondary-btn">See Interview Assist</button>
+    </aside>
+  `;
+
+  const slot = abVariant === 'A'
+    ? document.getElementById('iaPromptMid')
+    : document.getElementById('iaPromptTop');
+
+  if (slot) slot.innerHTML = promptMarkup;
+
+  document.getElementById('jumpToIaBtn')?.addEventListener('click', () => {
+    document.getElementById('interviewAssistSection')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    track('ia_prompt_clicked', 'conversion', { variant: abVariant, placement: abVariant === 'A' ? 'mid' : 'top' });
+  });
+
+  track('pricing_variant_assigned', 'conversion', { variant: abVariant });
+}
+
 async function loadUserPlan() {
   try {
     const data = await api('/api/me', { method: 'GET' });
@@ -103,6 +286,7 @@ async function loadUserPlan() {
       currentUserPlan = normalizePlan(data.user.plan || 'free');
       planBadgeEl.textContent = formatPlan(currentUserPlan);
       applyLocks();
+      track('user_plan_loaded', 'activation', { plan: currentUserPlan });
     }
   } catch {
     currentUserPlan = 'free';
@@ -309,7 +493,10 @@ function updateDynamicCoachInsights() {
 }
 
 document.getElementById('findJobsBtn')?.addEventListener('click', async () => {
+  const btn = document.getElementById('findJobsBtn');
+  setButtonLoading(btn, 'Finding...');
   jobsListEl.innerHTML = '<div class="empty-state">Loading jobs...</div>';
+  track('find_jobs_started', 'jobs_search');
 
   try {
     const title = document.getElementById('jobTitle').value.trim();
@@ -327,9 +514,11 @@ document.getElementById('findJobsBtn')?.addEventListener('click', async () => {
     jobsListEl.innerHTML = '';
     lastFoundJobs = data.jobs || [];
     updateDynamicCoachInsights();
+    track('find_jobs_success', 'jobs_search', { count: lastFoundJobs.length, title, location });
 
     if (!data.jobs || !data.jobs.length) {
       jobsListEl.innerHTML = '<div class="empty-state">No jobs found.</div>';
+      clearButtonLoading(btn);
       return;
     }
 
@@ -338,7 +527,18 @@ document.getElementById('findJobsBtn')?.addEventListener('click', async () => {
     });
   } catch (err) {
     jobsListEl.innerHTML = `<div class="empty-state">❌ ${err.message}</div>`;
+    track('find_jobs_failed', 'jobs_search', { message: err.message });
+  } finally {
+    clearButtonLoading(btn);
   }
+});
+
+document.getElementById('jobTitle')?.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') document.getElementById('findJobsBtn')?.click();
+});
+
+document.getElementById('jobLocation')?.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') document.getElementById('findJobsBtn')?.click();
 });
 
 document.getElementById('linkedinSearchBtn')?.addEventListener('click', () => {
@@ -393,10 +593,14 @@ document.getElementById('importJobBtn')?.addEventListener('click', async () => {
 document.getElementById('oneClickApplyBtn')?.addEventListener('click', async () => {
   if (!hasPlan('premium')) {
     alert('Unlock job-winning resumes and faster offers with Premium.');
+    track('paywall_hit', 'one_click_apply', { requiredPlan: 'premium' });
     return;
   }
 
+  const btn = document.getElementById('oneClickApplyBtn');
+  setButtonLoading(btn, 'Running...');
   topJobsEl.innerHTML = '<div class="empty-state">Loading top jobs...</div>';
+  track('one_click_apply_started', 'one_click_apply');
 
   try {
     const data = await api('/api/apply/one-click', {
@@ -408,14 +612,19 @@ document.getElementById('oneClickApplyBtn')?.addEventListener('click', async () 
 
     if (!data.topJobs || !data.topJobs.length) {
       topJobsEl.innerHTML = '<div class="empty-state">No jobs ready yet.</div>';
+      clearButtonLoading(btn);
       return;
     }
 
     data.topJobs.forEach((job) => {
       topJobsEl.appendChild(createTopJobCard(job));
     });
+    track('one_click_apply_success', 'one_click_apply', { count: data.topJobs.length });
   } catch (err) {
     topJobsEl.innerHTML = `<div class="empty-state">❌ ${err.message}</div>`;
+    track('one_click_apply_failed', 'one_click_apply', { message: err.message });
+  } finally {
+    clearButtonLoading(btn);
   }
 });
 
@@ -590,6 +799,7 @@ const priceIdToPlanMap = {
 window.upgrade = async function upgrade(plan, triggerBtn) {
   const btn = triggerBtn || null;
   if (btn) setButtonLoading(btn, 'Redirecting...');
+  track('upgrade_click', 'checkout', { planInput: plan });
   try {
     const raw = String(plan || '').trim();
     const isPriceId = raw.startsWith('price_');
@@ -611,13 +821,16 @@ window.upgrade = async function upgrade(plan, triggerBtn) {
     });
 
     if (data.url) {
+      track('checkout_redirect_ready', 'checkout', { plan: normalizedPlan || 'unknown' });
       window.location.href = data.url;
     } else {
       alert('Failed to create checkout session');
+      track('checkout_dropoff', 'checkout', { reason: 'missing_checkout_url', plan: normalizedPlan || 'unknown' });
       if (btn) clearButtonLoading(btn);
     }
   } catch (err) {
     alert(err.message);
+    track('checkout_dropoff', 'checkout', { reason: err.message, planInput: plan });
     if (btn) clearButtonLoading(btn);
   }
 };
@@ -625,6 +838,7 @@ window.upgrade = async function upgrade(plan, triggerBtn) {
 window.lifetime = async function lifetime(triggerBtn) {
   const btn = triggerBtn || null;
   if (btn) setButtonLoading(btn, 'Redirecting...');
+  track('upgrade_click', 'checkout', { planInput: 'lifetime' });
   try {
     const data = await api('/api/create-lifetime-checkout', {
       method: 'POST',
@@ -632,13 +846,16 @@ window.lifetime = async function lifetime(triggerBtn) {
     });
 
     if (data.url) {
+      track('checkout_redirect_ready', 'checkout', { plan: 'lifetime' });
       window.location.href = data.url;
     } else {
       alert('Lifetime checkout failed');
+      track('checkout_dropoff', 'checkout', { reason: 'missing_checkout_url', plan: 'lifetime' });
       if (btn) clearButtonLoading(btn);
     }
   } catch (err) {
     alert(`Lifetime error: ${err.message}`);
+    track('checkout_dropoff', 'checkout', { reason: err.message, plan: 'lifetime' });
     if (btn) clearButtonLoading(btn);
   }
 };
@@ -683,6 +900,27 @@ document.getElementById('accountBtn')?.addEventListener('click', () => {
   window.location.href = 'account.html';
 });
 
+document.querySelectorAll('[data-plan-card]').forEach((card) => {
+  card.addEventListener('click', () => {
+    track('pricing_card_engaged', 'checkout', { plan: card.dataset.planCard || '' });
+  });
+});
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'hidden') return;
+
+  const jobDraft = (document.getElementById('jobTitle')?.value || '').trim();
+  const iaDraft = (document.getElementById('iaQuestion')?.value || '').trim();
+
+  if (jobDraft && !lastFoundJobs.length) {
+    track('dropoff_job_search_draft', 'jobs_search', { chars: jobDraft.length });
+  }
+
+  if (iaDraft) {
+    track('dropoff_ia_draft', 'interview_assist', { chars: iaDraft.length });
+  }
+});
+
 // ─── Interview Assist Mode ────────────────────────────────────────────────────
 (function () {
   const iaHistory = [];    // session history: [{question, type, answer, bullets, tip}]
@@ -707,6 +945,8 @@ document.getElementById('accountBtn')?.addEventListener('click', () => {
 
   if (!iaSubmitBtn) return; // card not present or not unlocked yet
 
+  track('ia_module_viewed', 'interview_assist', { unlocked: hasPlan('elite') });
+
   setupToggleBtn?.addEventListener('click', () => {
     const open = setupPanel.style.display !== 'none';
     setupPanel.style.display = open ? 'none' : 'block';
@@ -716,6 +956,10 @@ document.getElementById('accountBtn')?.addEventListener('click', () => {
   iaSaveCtxBtn?.addEventListener('click', () => {
     iaContext.role   = (iaRoleInput?.value   || '').trim();
     iaContext.resume = (iaResumeInput?.value || '').trim();
+    track('ia_context_saved', 'interview_assist', {
+      hasRole: Boolean(iaContext.role),
+      hasResume: Boolean(iaContext.resume)
+    });
     if (iaContextSaved) {
       iaContextSaved.style.display = 'inline';
       setTimeout(() => { iaContextSaved.style.display = 'none'; }, 2000);
@@ -736,6 +980,7 @@ document.getElementById('accountBtn')?.addEventListener('click', () => {
 
     setButtonLoading(iaSubmitBtn, 'Thinking…');
     iaResponse.style.display = 'none';
+    track('ia_question_submitted', 'interview_assist', { length: question.length });
 
     try {
       const payload = {
@@ -770,6 +1015,10 @@ document.getElementById('accountBtn')?.addEventListener('click', () => {
       iaTip.style.display = data.tip ? 'block' : 'none';
 
       iaResponse.style.display = 'block';
+      track('ia_answer_generated', 'interview_assist', {
+        type: typeLabel,
+        bullets: Array.isArray(data.bullets) ? data.bullets.length : 0
+      });
 
       // Add to session history
       iaHistory.push({ question, type: typeLabel, answer: data.answer || '', bullets: data.bullets || [], tip: data.tip || '' });
@@ -779,6 +1028,7 @@ document.getElementById('accountBtn')?.addEventListener('click', () => {
       iaQuestionInput.focus();
     } catch (err) {
       alert(err.message || 'Interview Assist failed');
+      track('ia_dropoff', 'interview_assist', { reason: err.message || 'unknown' });
     } finally {
       clearButtonLoading(iaSubmitBtn);
     }
@@ -787,6 +1037,7 @@ document.getElementById('accountBtn')?.addEventListener('click', () => {
   iaCopyBtn?.addEventListener('click', () => {
     const text = iaAnswer?.textContent || '';
     navigator.clipboard?.writeText(text).then(() => {
+      track('ia_answer_copied', 'interview_assist', { chars: text.length });
       iaCopyBtn.textContent = 'Copied ✓';
       setTimeout(() => { iaCopyBtn.textContent = 'Copy'; }, 2000);
     });
@@ -807,6 +1058,26 @@ document.getElementById('accountBtn')?.addEventListener('click', () => {
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 })();
+
+document.addEventListener('keydown', (e) => {
+  if (e.altKey && e.key === '1') {
+    e.preventDefault();
+    document.getElementById('jobTitle')?.focus();
+  }
+
+  if (e.altKey && e.key === '2') {
+    e.preventDefault();
+    document.getElementById('iaQuestion')?.focus();
+  }
+
+  if (!e.ctrlKey && !e.metaKey && e.key === '/') {
+    const activeTag = (document.activeElement?.tagName || '').toLowerCase();
+    if (!['input', 'textarea', 'select'].includes(activeTag)) {
+      e.preventDefault();
+      document.getElementById('jobTitle')?.focus();
+    }
+  }
+});
 
 async function loadTracker() {
   if (!savedJobsEl || !readyJobsEl || !appliedJobsEl || !interviewJobsEl || !offerJobsEl || !rejectedJobsEl) {
@@ -870,10 +1141,35 @@ async function loadTracker() {
   }
 }
 
+function scheduleHeavyLoads() {
+  const run = () => {
+    loadReferral();
+  };
+
+  if ('requestIdleCallback' in window) {
+    window.requestIdleCallback(run, { timeout: 1500 });
+  } else {
+    setTimeout(run, 300);
+  }
+
+  const trackerWrap = document.querySelector('.tracker-wrap');
+  if (!trackerWrap) return;
+
+  const observer = new IntersectionObserver((entries) => {
+    if (entries.some((entry) => entry.isIntersecting)) {
+      loadTracker();
+      track('tracker_lazy_loaded', 'performance');
+      observer.disconnect();
+    }
+  }, { rootMargin: '200px' });
+
+  observer.observe(trackerWrap);
+}
+
+initPricingExperiment();
 loadUserPlan();
 updateDynamicCoachInsights();
-loadTracker();
-loadReferral();
+scheduleHeavyLoads();
 
 // ─── Global loading state helpers ─────────────────────────────────────────
 function setButtonLoading(btn, text = 'Loading...') {

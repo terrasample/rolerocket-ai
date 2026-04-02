@@ -9,6 +9,11 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <a class="skip-link" href="#mainContent">Skip to main content</a>
+  <div id="offlineBanner" class="offline-banner" role="status" aria-live="polite" hidden>
+    You are offline. We will retry automatically when your connection returns.
+  </div>
+
   <div class="hero">
     <h1>Welcome back 👋</h1>
     <p>Find better jobs, prepare stronger applications, and move faster with assisted 1-click apply.</p>
@@ -32,9 +37,31 @@
       <button id="logoutBtn">Logout</button>
     </div>
 
-    <div class="main">
-      <div class="pricing-top">
-        <div class="price-card free">
+    <div class="main" id="mainContent" tabindex="-1">
+      <section class="trust-strip" aria-label="Social proof and security">
+        <div class="trust-metric">
+          <strong>12,800+</strong>
+          <span>Applications tracked</span>
+        </div>
+        <div class="trust-metric">
+          <strong>3.1x</strong>
+          <span>Faster interview prep cycles</span>
+        </div>
+        <div class="trust-metric">
+          <strong>94%</strong>
+          <span>Users report stronger interview confidence</span>
+        </div>
+        <div class="trust-security">
+          <span>🔒 Stripe-secure billing</span>
+          <span>🛡️ Privacy-first data handling</span>
+          <span>✅ No auto-posting to job boards</span>
+        </div>
+      </section>
+
+      <div id="iaPromptTop" class="ia-prompt-slot" aria-live="polite"></div>
+
+      <div class="pricing-top" id="pricingTop">
+        <div class="price-card free" data-plan-card="free">
           <div class="plan-pill starter-pill">STARTER</div>
           <h3>Free</h3>
           <div class="price-amount">$0<span>/month</span></div>
@@ -46,47 +73,47 @@
           </ul>
         </div>
 
-        <div class="price-card pro featured-card">
+        <div class="price-card pro featured-card" data-plan-card="pro">
           <div class="plan-pill popular-pill">MOST POPULAR</div>
           <h3>Pro</h3>
           <div class="price-amount">$19<span>/month</span></div>
-          <p class="price-subtext">Unlock job-winning resumes and faster offers.</p>
+          <p class="price-subtext" id="proSubtext">Unlock job-winning resumes and faster offers.</p>
           <ul>
             <li>✔ Resume Generator</li>
             <li>✔ Cover Letter AI</li>
             <li>✔ Job Match Analysis</li>
           </ul>
-          <button onclick="upgrade('price_1THMq2KtQrGDcYVPvR3OcRyN')">Upgrade to Pro</button>
+          <button id="proUpgradeCta" onclick="upgrade('price_1THMq2KtQrGDcYVPvR3OcRyN')">Upgrade to Pro</button>
         </div>
 
-        <div class="price-card premium">
+        <div class="price-card premium" data-plan-card="premium">
           <div class="plan-pill premium-pill">SMART TOOLS</div>
           <h3>Premium</h3>
           <div class="price-amount">$39<span>/month</span></div>
-          <p class="price-subtext">Unlock job-winning resumes and faster offers.</p>
+          <p class="price-subtext" id="premiumSubtext">Unlock job-winning resumes and faster offers.</p>
           <ul>
             <li>✔ ATS Optimizer</li>
             <li>✔ Interview Prep AI</li>
             <li>✔ 1-Click Apply</li>
             <li>✔ AI Resume Rewrite</li>
           </ul>
-          <button onclick="upgrade('price_1THMqvKtQrGDcYVP6K605mhv')">Upgrade to Premium</button>
+          <button id="premiumUpgradeCta" onclick="upgrade('price_1THMqvKtQrGDcYVP6K605mhv')">Upgrade to Premium</button>
         </div>
 
-        <div class="price-card elite">
+        <div class="price-card elite" data-plan-card="elite">
           <div class="plan-pill elite-pill">POWER USER</div>
           <h3>Elite</h3>
           <div class="price-amount">$79<span>/month</span></div>
-          <p class="price-subtext">Everything in Premium plus deeper guidance and priority access.</p>
+          <p class="price-subtext" id="eliteSubtext">Everything in Premium plus deeper guidance and priority access.</p>
           <ul>
             <li>✔ Career Coach AI</li>
             <li>✔ Premium insights</li>
             <li>✔ Priority processing</li>
           </ul>
-          <button onclick="upgrade('price_1THMraKtQrGDcYVPytIyvklx')">Upgrade to Elite</button>
+          <button id="eliteUpgradeCta" onclick="upgrade('price_1THMraKtQrGDcYVPytIyvklx')">Upgrade to Elite</button>
         </div>
 
-        <div class="price-card lifetime">
+        <div class="price-card lifetime" data-plan-card="lifetime">
           <div class="plan-pill founders-pill">🔥 FOUNDERS DEAL</div>
           <h3>Lifetime</h3>
           <div class="price-amount">$199<span> one-time</span></div>
@@ -96,9 +123,11 @@
             <li>✔ No monthly payments</li>
             <li>✔ Future features included</li>
           </ul>
-          <button onclick="lifetime()">Get Lifetime Access</button>
+          <button id="lifetimeUpgradeCta" onclick="lifetime()">Get Lifetime Access</button>
         </div>
       </div>
+
+      <div id="iaPromptMid" class="ia-prompt-slot" aria-live="polite"></div>
 
       <div class="coach-strip">
         <div class="coach-insight">
@@ -119,9 +148,9 @@
         <div class="card">
           <h3>🔍 Find Jobs</h3>
 
-          <input id="jobTitle" placeholder="Enter job title" />
-          <input id="jobLocation" placeholder="Enter location" />
-          <textarea id="jobResume" placeholder="Paste your resume here for better job matching"></textarea>
+          <input id="jobTitle" aria-label="Job title" placeholder="Enter job title" />
+          <input id="jobLocation" aria-label="Job location" placeholder="Enter location" />
+          <textarea id="jobResume" aria-label="Resume for job matching" placeholder="Paste your resume here for better job matching"></textarea>
 
           <button id="findJobsBtn">Find Jobs</button>
 
@@ -350,7 +379,7 @@
         </div>
 
         <!-- ─── Interview Assist Mode ──────────────────────────────────── -->
-        <div class="card elite lockable premium-preview-card ia-card" data-plan="elite" style="grid-column: 1 / -1;">
+        <div class="card elite lockable premium-preview-card ia-card" id="interviewAssistSection" data-plan="elite" style="grid-column: 1 / -1;">
           <div class="lock-badge">🔒 ELITE</div>
           <h3>🎙️ Interview Assist Mode <span class="ia-live-badge">● LIVE</span></h3>
           <p>Type any interview question and get a real-time, coach-crafted answer you can use on the spot.</p>
@@ -388,14 +417,14 @@
             </div>
 
             <div id="iaSetupPanel" class="ia-setup" style="display:none;">
-              <input id="iaRole" placeholder="Your target role (e.g. Senior Product Manager)" />
-              <textarea id="iaResume" placeholder="Paste résumé here for personalised answers (optional)" rows="4"></textarea>
+              <input id="iaRole" aria-label="Interview Assist role context" placeholder="Your target role (e.g. Senior Product Manager)" />
+              <textarea id="iaResume" aria-label="Interview Assist resume context" placeholder="Paste résumé here for personalised answers (optional)" rows="4"></textarea>
               <button id="iaSaveContext" class="secondary-btn">Save Context</button>
               <span id="iaContextSaved" class="ia-context-saved" style="display:none;">✓ Context saved</span>
             </div>
 
             <div class="ia-question-area">
-              <textarea id="iaQuestion" placeholder="Type the interview question here…" rows="3"></textarea>
+              <textarea id="iaQuestion" aria-label="Interview question" placeholder="Type the interview question here…" rows="3"></textarea>
               <button id="iaSubmitBtn" class="ia-submit-btn">Get Answer ↵</button>
             </div>
 
