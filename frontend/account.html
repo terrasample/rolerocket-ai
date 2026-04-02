@@ -77,12 +77,14 @@
     <a href="terms.html">Terms of Service</a>
   </footer>
 
+  <script src="js/api-base.js"></script>
+  <script src="js/auth-storage.js"></script>
   <script>
-    const TOKEN = localStorage.getItem('token');
+    const TOKEN = getStoredToken();
     if (!TOKEN) window.location.href = 'login.html';
 
     async function api(url, opts = {}) {
-      const res = await fetch(url, {
+      const res = await fetch(apiUrl(url), {
         ...opts,
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${TOKEN}`, ...(opts.headers || {}) }
       });
@@ -170,7 +172,7 @@
       if (!confirm('Last chance — delete your RoleRocket AI account forever?')) return;
       try {
         await api('/api/account', { method: 'DELETE' });
-        localStorage.removeItem('token');
+        clearStoredToken();
         window.location.href = 'index.html';
       } catch (err) {
         msg.textContent = err.message || 'Failed to delete account.';
@@ -179,7 +181,7 @@
 
     // Logout
     document.getElementById('logoutBtn').addEventListener('click', () => {
-      localStorage.removeItem('token');
+      clearStoredToken();
       window.location.href = 'index.html';
     });
 

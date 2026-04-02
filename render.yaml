@@ -5,3 +5,63 @@ services:
     buildCommand: cd "$PWD/backend" && npm install
     startCommand: cd "$PWD/backend" && npm start
     autoDeploy: true
+    envVars:
+      # ── Runtime ────────────────────────────────────────────────────────────
+      - key: NODE_ENV
+        value: production
+      - key: CLIENT_URL
+        value: https://www.rolerocketai.com
+
+      # ── Auth / DB (set these in the Render dashboard — never commit values) ─
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+
+      # ── OpenAI ─────────────────────────────────────────────────────────────
+      - key: OPENAI_API_KEY
+        sync: false
+
+      # ── Stripe ─────────────────────────────────────────────────────────────
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: STRIPE_PRO_PRICE_ID
+        sync: false
+      - key: STRIPE_PREMIUM_PRICE_ID
+        sync: false
+      - key: STRIPE_ELITE_PRICE_ID
+        sync: false
+      - key: STRIPE_LIFETIME_PRICE_ID
+        sync: false
+
+      # ── Email (optional — password reset) ──────────────────────────────────
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+
+      # ── Job sources ────────────────────────────────────────────────────────
+      - key: ADZUNA_APP_ID
+        sync: false
+      - key: ADZUNA_APP_KEY
+        sync: false
+      - key: ADZUNA_COUNTRY
+        value: us
+      - key: GREENHOUSE_BOARDS
+        value: openai,stripe,airbnb,notion,figma,datadog,coinbase,pinterest,doordash,uber,shopify,canva
+      - key: LEVER_BOARDS
+        value: netflix,figma,robinhood,asana,coursera,eventbrite,clearbit,help-scout
+      - key: REMOTIVE_ENABLED
+        value: "1"
+      - key: ARBEITNOW_ENABLED
+        value: "1"
+      - key: USAJOBS_API_KEY
+        sync: false
+      - key: USAJOBS_USER_AGENT
+        sync: false

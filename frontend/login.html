@@ -47,9 +47,9 @@
         <p class="auth-subtext">Log in and continue your job-winning workflow.</p>
 
         <form id="loginForm" class="auth-form">
-          <input id="loginEmail" type="email" placeholder="Email" required />
-          <input id="loginPassword" type="password" placeholder="Password" required />
-          <button type="submit" class="auth-submit-btn">Login</button>
+          <input id="loginEmail" type="email" placeholder="Email" autocomplete="email" required />
+          <input id="loginPassword" type="password" placeholder="Password" autocomplete="current-password" required />
+          <button id="loginSubmitBtn" type="submit" class="auth-submit-btn">Log In</button>
         </form>
 
         <div id="loginMessage" class="auth-message" role="status" aria-live="polite"></div>
@@ -70,41 +70,81 @@
     <a href="terms.html">Terms of Service</a>
   </footer>
 
+  <script src="js/api-base.js"></script>
+  <script src="js/auth-storage.js"></script>
   <script>
+    function safeJson(text) {
+      try {
+        return text ? JSON.parse(text) : {};
+      } catch {
+        return { error: text || 'Unexpected server response.' };
+      }
+    }
+
+    // Fast path: skip login screen if token already exists.
+    if (getStoredToken()) {
+      window.location.replace('dashboard.html');
+    }
+
     const form = document.getElementById('loginForm');
     const message = document.getElementById('loginMessage');
+    const submitBtn = document.getElementById('loginSubmitBtn');
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      message.textContent = 'Logging in...';
+      const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+      const password = document.getElementById('loginPassword').value;
+
+      if (!email || !password) {
+        message.textContent = 'Enter both email and password.';
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Signing in...';
+      message.textContent = 'Signing you in...';
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
 
       try {
-        const res = await fetch('/api/auth/login', {
+        const res = await fetch(apiUrl('/api/auth/login'), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
+          signal: controller.signal,
           body: JSON.stringify({
-            email: document.getElementById('loginEmail').value,
-            password: document.getElementById('loginPassword').value
+            email,
+            password
           })
         });
 
-        const data = await res.json();
+        const data = safeJson(await res.text());
 
         if (!res.ok) {
-          throw new Error(data.error || 'Login failed');
+          throw new Error(data.error || `Login failed (${res.status})`);
         }
 
-        localStorage.setItem('token', data.token);
-        message.textContent = '✅ Success! Redirecting...';
-
-        setTimeout(() => {
-          window.location.href = 'dashboard.html';
-        }, 800);
+        if (!setStoredToken(data.token)) {
+          throw new Error('Could not save session in this browser.');
+        }
+        window.location.replace('dashboard.html');
       } catch (err) {
-        message.textContent = `❌ ${err.message}`;
+        let apiTarget = 'unknown';
+        try { apiTarget = getApiBase(); } catch {}
+        if (err.name === 'AbortError') {
+          message.textContent = `Login timed out. API: ${apiTarget}`;
+        } else if (String(err.message || '').toLowerCase().includes('failed to fetch')) {
+          message.textContent = `Cannot reach server. Is http://localhost:5000 running? (API: ${apiTarget})`;
+        } else {
+          message.textContent = `❌ ${err.message || 'Login failed'} — API: ${apiTarget}`;
+        }
+      } finally {
+        clearTimeout(timeout);
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Log In';
       }
     });
   </script>

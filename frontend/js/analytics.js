@@ -1,8 +1,8 @@
-const token = localStorage.getItem('token');
+const token = typeof getStoredToken === 'function' ? getStoredToken() : localStorage.getItem('token');
 if (!token) window.location.href = 'login.html';
 
 async function api(path) {
-  const res = await fetch(path, {
+  const res = await fetch(apiUrl(path), {
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`
@@ -98,7 +98,11 @@ async function loadAnalytics() {
 
 document.getElementById('refreshAnalyticsBtn')?.addEventListener('click', loadAnalytics);
 document.getElementById('logoutBtn')?.addEventListener('click', () => {
-  localStorage.removeItem('token');
+  if (typeof clearStoredToken === 'function') {
+    clearStoredToken();
+  } else {
+    localStorage.removeItem('token');
+  }
   window.location.href = 'index.html';
 });
 

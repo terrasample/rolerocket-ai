@@ -1,4 +1,4 @@
-const token = localStorage.getItem('token');
+const token = typeof getStoredToken === 'function' ? getStoredToken() : localStorage.getItem('token');
 
 if (!token) {
   window.location.href = 'login.html';
@@ -34,6 +34,307 @@ const API_TIMEOUT_MS = 12000;
 const API_DEFAULT_RETRIES = 1;
 const RETRYABLE_STATUS = new Set([408, 429, 500, 502, 503, 504]);
 const offlineBanner = document.getElementById('offlineBanner');
+const checkoutBanner = document.getElementById('checkoutBanner');
+const starterModeBtn = document.getElementById('starterModeBtn');
+const powerModeBtn = document.getElementById('powerModeBtn');
+const modeSummary = document.getElementById('modeSummary');
+const todayPrimaryTitleEl = document.getElementById('todayPrimaryTitle');
+const todayPrimaryMetaEl = document.getElementById('todayPrimaryMeta');
+const todayPrimaryBtn = document.getElementById('todayPrimaryBtn');
+const todaySecondaryTitleEl = document.getElementById('todaySecondaryTitle');
+const todaySecondaryMetaEl = document.getElementById('todaySecondaryMeta');
+const todaySecondaryBtn = document.getElementById('todaySecondaryBtn');
+const modeKpiSummaryEl = document.getElementById('modeKpiSummary');
+const modeKpiSessionsEl = document.getElementById('modeKpiSessions');
+const modeKpiStarterEl = document.getElementById('modeKpiStarter');
+const modeKpiPowerEl = document.getElementById('modeKpiPower');
+
+const DASHBOARD_MODE_KEY = 'rr_dashboard_mode_v1';
+let dashboardMode = 'starter';
+let latestTrackerStats = {
+  total: 0,
+  saved: 0,
+  ready: 0,
+  applied: 0,
+  interview: 0,
+  offer: 0,
+  rejected: 0
+};
+
+// ─── Security helpers ──────────────────────────────────────────────────────
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function safeUrl(url) {
+  try {
+    const u = new URL(String(url || ''), window.location.origin);
+    if (u.protocol === 'http:' || u.protocol === 'https:') return u.href;
+  } catch { /* fall through */ }
+  return '#';
+}
+
+// ─── Toast notifications ───────────────────────────────────────────────────
+const TOAST_ICONS = { success: '✅', error: '❌', warn: '⚠️', info: 'ℹ️' };
+
+function showToast(message, type = 'success', durationMs = 4000) {
+  const container = document.getElementById('toastContainer');
+  if (!container) { console.warn('[toast]', message); return; }
+
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.setAttribute('role', 'status');
+
+  const icon = document.createElement('span');
+  icon.className = 'toast-icon';
+  icon.textContent = TOAST_ICONS[type] || 'ℹ️';
+
+  const msg = document.createElement('span');
+  msg.className = 'toast-msg';
+  msg.textContent = message;
+
+  toast.append(icon, msg);
+  container.appendChild(toast);
+
+  const dismiss = () => {
+    toast.classList.add('toast-out');
+    toast.addEventListener('animationend', () => toast.remove(), { once: true });
+  };
+
+  const timer = setTimeout(dismiss, durationMs);
+  toast.addEventListener('click', () => { clearTimeout(timer); dismiss(); });
+}
+
+// ─── AI output renderer ────────────────────────────────────────────────────
+function setAILoading(el, label = 'Generating\u2026') {
+  if (!el) return;
+  el.innerHTML = `<div class="ai-output-loading">${escapeHtml(label)}</div>`;
+}
+
+function renderAIOutput(text, el) {
+  if (!el) return;
+  const rawText = String(text || '');
+  const regionLabel = el.getAttribute('aria-label') || 'AI result';
+
+  el.innerHTML = '';
+
+  const header = document.createElement('div');
+  header.className = 'ai-output-header';
+
+  const labelEl = document.createElement('span');
+  labelEl.className = 'ai-output-label';
+  labelEl.textContent = regionLabel;
+
+  const copyBtn = document.createElement('button');
+  copyBtn.className = 'ai-copy-output-btn';
+  copyBtn.textContent = 'Copy';
+  copyBtn.addEventListener('click', () => {
+    navigator.clipboard?.writeText(rawText).then(() => {
+      copyBtn.textContent = 'Copied ✓';
+      setTimeout(() => { copyBtn.textContent = 'Copy'; }, 2000);
+    }).catch(() => {
+      const ta = document.createElement('textarea');
+      ta.value = rawText;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      copyBtn.textContent = 'Copied ✓';
+      setTimeout(() => { copyBtn.textContent = 'Copy'; }, 2000);
+    });
+  });
+
+  header.append(labelEl, copyBtn);
+
+  const body = document.createElement('div');
+  body.className = 'ai-output-body';
+
+  let currentList = null;
+
+  rawText.split('\n').forEach((rawLine) => {
+    const line = rawLine.trim();
+    if (!line) { currentList = null; return; }
+
+    // Section heading: **text** alone or ALL-CAPS 5+ chars
+    if (/^\*\*[^*]+\*\*:?\s*$/.test(line) || /^[A-Z][A-Z\s\d:]{4,}$/.test(line)) {
+      currentList = null;
+      const h = document.createElement('div');
+      h.className = 'ai-section-heading';
+      h.textContent = line.replace(/\*\*/g, '');
+      body.appendChild(h);
+      return;
+    }
+
+    // Bullet lines
+    if (/^[-•*✦]/.test(line) || /^\d+\.\s/.test(line)) {
+      if (!currentList) {
+        currentList = document.createElement('ul');
+        currentList.className = 'ai-bullet-list';
+        body.appendChild(currentList);
+      }
+      const li = document.createElement('li');
+      li.className = 'ai-bullet-item';
+      li.textContent = line.replace(/^[-•*✦]\s*/, '').replace(/^\d+\.\s*/, '');
+      currentList.appendChild(li);
+      return;
+    }
+
+    // Regular paragraph with optional inline **bold**
+    currentList = null;
+    const p = document.createElement('p');
+    p.className = 'ai-paragraph';
+    line.split(/(\*\*[^*]+\*\*)/).forEach((part) => {
+      if (/^\*\*[^*]+\*\*$/.test(part)) {
+        const strong = document.createElement('strong');
+        strong.textContent = part.replace(/\*\*/g, '');
+        p.appendChild(strong);
+      } else {
+        p.appendChild(document.createTextNode(part));
+      }
+    });
+    body.appendChild(p);
+  });
+
+  el.appendChild(header);
+  el.appendChild(body);
+}
+
+// ─── Saved resume helpers ──────────────────────────────────────────────────
+const RESUME_FIELD_IDS = ['resume', 'coverResume', 'matchResume', 'jobResume', 'careerCoachResume', 'iaResume'];
+
+async function loadSavedResume() {
+  try {
+    const data = await api('/api/resume/latest', { method: 'GET' }, { retries: 0, timeoutMs: 5000 });
+    if (!data.resume?.content) return;
+
+    const content = data.resume.content;
+    const preview = content.slice(0, 90).replace(/\n/g, ' ') + (content.length > 90 ? '\u2026' : '');
+
+    const previewEl = document.getElementById('savedResumePreview');
+    const stateEl = document.getElementById('savedResumeState');
+    if (previewEl) previewEl.textContent = preview;
+    if (stateEl) stateEl.textContent = 'Saved';
+
+    RESUME_FIELD_IDS.forEach((id) => {
+      const el = document.getElementById(id);
+      if (el && !el.value.trim()) el.value = content;
+    });
+
+    track('saved_resume_loaded', 'personalization', { chars: content.length });
+  } catch {
+    // No saved resume yet — silently skip
+  }
+}
+
+function applyResumeToAllFields(content, { onlyEmpty = false } = {}) {
+  RESUME_FIELD_IDS.forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (!onlyEmpty || !el.value.trim()) {
+      el.value = content;
+    }
+  });
+}
+
+async function saveMasterResume(content) {
+  return api('/api/resume/save', {
+    method: 'POST',
+    body: JSON.stringify({ content, title: 'Master Resume' })
+  });
+}
+
+function initSavedResumeManager() {
+  const toggleBtn = document.getElementById('toggleSavedResumeFormBtn');
+  const confirmBtn = document.getElementById('confirmSaveMasterResumeBtn');
+  const cancelBtn = document.getElementById('cancelSavedResumeBtn');
+  const editWrap = document.getElementById('savedResumeEditWrap');
+  const input = document.getElementById('masterResumeText');
+  const previewEl = document.getElementById('savedResumePreview');
+  const stateEl = document.getElementById('savedResumeState');
+
+  if (!toggleBtn || !confirmBtn || !cancelBtn || !editWrap || !input) return;
+
+  toggleBtn.addEventListener('click', async () => {
+    const isOpen = editWrap.style.display !== 'none';
+    if (isOpen) {
+      editWrap.style.display = 'none';
+      return;
+    }
+
+    try {
+      const data = await api('/api/resume/latest', { method: 'GET' }, { retries: 0, timeoutMs: 5000 });
+      input.value = data.resume?.content || '';
+    } catch {
+      input.value = '';
+    }
+
+    editWrap.style.display = 'flex';
+    input.focus();
+  });
+
+  cancelBtn.addEventListener('click', () => {
+    editWrap.style.display = 'none';
+  });
+
+  confirmBtn.addEventListener('click', async () => {
+    const content = String(input.value || '').trim();
+    if (!content) {
+      showToast('Paste your resume before saving.', 'warn');
+      return;
+    }
+
+    setButtonLoading(confirmBtn, 'Saving...');
+    try {
+      await saveMasterResume(content);
+      applyResumeToAllFields(content);
+
+      const preview = content.slice(0, 90).replace(/\n/g, ' ') + (content.length > 90 ? '...' : '');
+      if (previewEl) previewEl.textContent = preview;
+      if (stateEl) stateEl.textContent = 'Saved';
+
+      showToast('Saved. Resume auto-filled across all tools.');
+      editWrap.style.display = 'none';
+      track('saved_resume_updated', 'personalization', { chars: content.length });
+    } catch (err) {
+      showToast(`Resume save failed: ${err.message}`, 'error');
+    } finally {
+      clearButtonLoading(confirmBtn);
+    }
+  });
+}
+
+function initMobileSidebar() {
+  const menuToggleBtn = document.getElementById('menuToggleBtn');
+  const sidebarOverlay = document.getElementById('sidebarOverlay');
+  const sidebar = document.querySelector('.sidebar');
+  if (!menuToggleBtn || !sidebarOverlay || !sidebar) return;
+
+  const setOpen = (open) => {
+    document.body.classList.toggle('sidebar-open', open);
+    menuToggleBtn.setAttribute('aria-expanded', String(open));
+  };
+
+  menuToggleBtn.addEventListener('click', () => {
+    setOpen(!document.body.classList.contains('sidebar-open'));
+  });
+
+  sidebarOverlay.addEventListener('click', () => setOpen(false));
+
+  sidebar.querySelectorAll('button, a').forEach((el) => {
+    el.addEventListener('click', () => {
+      if (window.innerWidth <= 700) setOpen(false);
+    });
+  });
+
+  window.addEventListener('resize', () => {
+    if (window.innerWidth > 700) setOpen(false);
+  });
+}
 
 const sessionId = (() => {
   const existing = localStorage.getItem('rr_dashboard_sid');
@@ -63,7 +364,7 @@ async function fetchWithTimeout(path, options, timeoutMs = API_TIMEOUT_MS) {
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    return await fetch(path, { ...options, signal: controller.signal });
+    return await fetch(apiUrl(path), { ...options, signal: controller.signal });
   } finally {
     clearTimeout(timer);
   }
@@ -82,7 +383,10 @@ function track(event, funnel = '', meta = {}) {
     page: 'dashboard',
     variant: abVariant,
     ts: new Date().toISOString(),
-    meta
+    meta: {
+      mode: dashboardMode,
+      ...meta
+    }
   });
 }
 
@@ -93,7 +397,7 @@ async function flushTelemetry() {
 
   await Promise.allSettled(
     batch.map((evt) =>
-      fetch('/api/telemetry', {
+      fetch(apiUrl('/api/telemetry'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -233,6 +537,101 @@ function applyLocks() {
   });
 }
 
+function setDashboardMode(mode, options = {}) {
+  const { persist = true } = options;
+  const nextMode = mode === 'power' ? 'power' : 'starter';
+  dashboardMode = nextMode;
+  document.body.setAttribute('data-dashboard-mode', nextMode);
+
+  if (persist) {
+    localStorage.setItem(DASHBOARD_MODE_KEY, nextMode);
+  }
+
+  if (starterModeBtn) {
+    starterModeBtn.setAttribute('aria-pressed', String(nextMode === 'starter'));
+  }
+  if (powerModeBtn) {
+    powerModeBtn.setAttribute('aria-pressed', String(nextMode === 'power'));
+  }
+
+  if (modeSummary) {
+    modeSummary.textContent =
+      nextMode === 'starter'
+        ? 'Starter mode keeps only core daily actions visible.'
+        : 'Power mode shows all AI tools, personalization panels, and advanced controls.';
+  }
+
+  updateTodayRail();
+}
+
+function pickModeByMaturity({ plan, tracker }) {
+  const level = planLevel(plan || 'free');
+  const total = Number(tracker?.total || 0);
+  const ready = Number(tracker?.ready || 0);
+  const applied = Number(tracker?.applied || 0);
+
+  if (level >= 2 || applied >= 2 || total >= 8 || ready >= 3) {
+    return 'power';
+  }
+
+  return 'starter';
+}
+
+async function initDashboardMode() {
+  const saved = localStorage.getItem(DASHBOARD_MODE_KEY);
+
+  if (saved === 'starter' || saved === 'power') {
+    setDashboardMode(saved, { persist: false });
+  } else {
+    try {
+      const trackerData = await api('/api/jobs', { method: 'GET' }, { retries: 0, timeoutMs: 6000 });
+      const jobs = trackerData.jobs || [];
+      const counts = {
+        total: jobs.length,
+        saved: 0,
+        ready: 0,
+        applied: 0,
+        interview: 0,
+        offer: 0,
+        rejected: 0
+      };
+
+      jobs.forEach((job) => {
+        const status = String(job.status || 'saved').toLowerCase();
+        if (counts[status] !== undefined) counts[status] += 1;
+      });
+
+      latestTrackerStats = counts;
+    } catch {
+      // Keep defaults if we cannot pre-read pipeline state.
+    }
+
+    const autoMode = pickModeByMaturity({
+      plan: currentUserPlan,
+      tracker: latestTrackerStats
+    });
+
+    setDashboardMode(autoMode);
+    track('dashboard_mode_auto_selected', 'activation', {
+      mode: autoMode,
+      plan: currentUserPlan,
+      totalJobs: latestTrackerStats.total,
+      readyJobs: latestTrackerStats.ready,
+      appliedJobs: latestTrackerStats.applied
+    });
+  }
+
+  starterModeBtn?.addEventListener('click', () => {
+    setDashboardMode('starter');
+    track('dashboard_mode_changed', 'activation', { mode: 'starter', source: 'manual' });
+  });
+
+  powerModeBtn?.addEventListener('click', () => {
+    setDashboardMode('power');
+    track('dashboard_mode_changed', 'activation', { mode: 'power', source: 'manual' });
+  });
+}
+
 function initPricingExperiment() {
   const key = 'rr_ab_pricing_variant_v1';
   const persisted = localStorage.getItem(key);
@@ -247,12 +646,12 @@ function initPricingExperiment() {
   const eliteCta = document.getElementById('eliteUpgradeCta');
 
   if (abVariant === 'B') {
-    if (proSubtext) proSubtext.textContent = 'Tailor resume + cover letter in minutes, not hours.';
-    if (premiumSubtext) premiumSubtext.textContent = 'Turn top matches into interviews with ATS + 1-Click flow.';
-    if (eliteSubtext) eliteSubtext.textContent = 'Live interview assist and strategic coaching for high-stakes roles.';
-    if (proCta) proCta.textContent = 'Start Pro Now';
-    if (premiumCta) premiumCta.textContent = 'Unlock Premium Tools';
-    if (eliteCta) eliteCta.textContent = 'Activate Elite Coach';
+    if (proSubtext) proSubtext.textContent = 'Tailor resume + cover letter in minutes instead of hours.';
+    if (premiumSubtext) premiumSubtext.textContent = 'Move from top matches to applications with ATS + 1-Click flow.';
+    if (eliteSubtext) eliteSubtext.textContent = 'Real-time interview assist and strategy for high-stakes opportunities.';
+    if (proCta) proCta.textContent = 'Start Pro';
+    if (premiumCta) premiumCta.textContent = 'Unlock Premium';
+    if (eliteCta) eliteCta.textContent = 'Activate Elite';
   }
 
   const promptMarkup = `
@@ -287,13 +686,82 @@ async function loadUserPlan() {
       currentUserPlan = normalizePlan(data.user.plan || 'free');
       planBadgeEl.textContent = formatPlan(currentUserPlan);
       applyLocks();
+      updateTodayRail();
       track('user_plan_loaded', 'activation', { plan: currentUserPlan });
     }
   } catch {
     currentUserPlan = 'free';
     planBadgeEl.textContent = 'Free Plan';
     applyLocks();
+    updateTodayRail();
   }
+}
+
+function setCheckoutBanner(message, mode = 'success') {
+  if (!checkoutBanner) return;
+  checkoutBanner.textContent = message;
+  checkoutBanner.hidden = false;
+
+  if (mode === 'processing') {
+    checkoutBanner.classList.add('processing');
+  } else {
+    checkoutBanner.classList.remove('processing');
+  }
+}
+
+function clearCheckoutParams() {
+  const cleanUrl = `${window.location.pathname}${window.location.hash || ''}`;
+  window.history.replaceState({}, document.title, cleanUrl);
+}
+
+async function refreshPlanAfterCheckout(maxAttempts = 4) {
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    try {
+      const data = await api('/api/me', { method: 'GET' }, { retries: 0, timeoutMs: 8000 });
+      const nextPlan = normalizePlan(data.user?.plan || 'free');
+
+      currentUserPlan = nextPlan;
+      planBadgeEl.textContent = formatPlan(currentUserPlan);
+      applyLocks();
+
+      if (nextPlan !== 'free') {
+        return true;
+      }
+    } catch {
+      // Keep polling briefly in case webhook persistence is slightly delayed.
+    }
+
+    await sleep(900);
+  }
+
+  return false;
+}
+
+async function handleCheckoutRedirectState() {
+  const params = new URLSearchParams(window.location.search);
+  const isSubscriptionSuccess = params.get('success') === 'true';
+  const isLifetimeSuccess = params.get('lifetime') === 'true';
+
+  if (!isSubscriptionSuccess && !isLifetimeSuccess) return;
+
+  setCheckoutBanner('Payment received. Verifying your plan unlock...', 'processing');
+  track('checkout_returned', 'checkout', {
+    type: isLifetimeSuccess ? 'lifetime' : 'subscription'
+  });
+
+  const unlocked = await refreshPlanAfterCheckout();
+
+  if (unlocked) {
+    setCheckoutBanner(
+      `Success. Your ${formatPlan(currentUserPlan)} is active and premium tools are now unlocked.`
+    );
+    track('checkout_unlock_confirmed', 'checkout', { plan: currentUserPlan });
+  } else {
+    setCheckoutBanner('Payment succeeded. Your plan is still syncing. Refresh in a few seconds if needed.');
+    track('checkout_unlock_pending', 'checkout');
+  }
+
+  clearCheckoutParams();
 }
 
 function encodeJob(job) {
@@ -304,22 +772,44 @@ function createSearchJobCard(job) {
   const wrapper = document.createElement('div');
   wrapper.className = 'mini-job-card';
 
-  const safeJob = encodeJob(job);
+  const titleEl = document.createElement('strong');
+  titleEl.textContent = job.title || 'Untitled Job';
+  const companyEl = document.createElement('span');
+  companyEl.textContent = job.company || 'Unknown Company';
+  const locationEl = document.createElement('small');
+  locationEl.textContent = `📍 ${job.location || 'Unknown Location'}`;
+  const matchEl = document.createElement('small');
+  matchEl.textContent = `🔥 Match: ${job.matchScore || 0}%`;
+  const sourceEl = document.createElement('small');
+  sourceEl.textContent = `Source: ${job.source || 'Imported'}`;
 
-  wrapper.innerHTML = `
-    <strong>${job.title || 'Untitled Job'}</strong><br>
-    <span>${job.company || 'Unknown Company'}</span><br>
-    <small>📍 ${job.location || 'Unknown Location'}</small><br>
-    <small>🔥 Match: ${job.matchScore || 0}%</small><br>
-    <small>Source: ${job.source || 'Imported'}</small><br><br>
+  const actionsDiv = document.createElement('div');
+  actionsDiv.className = 'job-card-actions';
 
-    <div class="job-card-actions">
-      <a href="${job.link || '#'}" target="_blank">View Job</a>
-      <button onclick="saveFoundJob('${safeJob}')">Save Job</button>
-      <button onclick="sendJobToOneClick('${safeJob}')">Send to 1-Click Apply</button>
-      <a href="${job.linkedinSearchUrl || '#'}" target="_blank">Search LinkedIn</a>
-    </div>
-  `;
+  const viewLink = document.createElement('a');
+  viewLink.href = safeUrl(job.link);
+  viewLink.target = '_blank';
+  viewLink.rel = 'noopener noreferrer';
+  viewLink.textContent = 'View Job';
+
+  const saveBtn = document.createElement('button');
+  saveBtn.textContent = 'Save Job';
+  saveBtn.addEventListener('click', () => window.saveFoundJob(encodeJob(job)));
+
+  const oneClickBtn = document.createElement('button');
+  oneClickBtn.textContent = 'Send to 1-Click Apply';
+  oneClickBtn.addEventListener('click', () => window.sendJobToOneClick(encodeJob(job)));
+
+  const linkedinLink = document.createElement('a');
+  linkedinLink.href = safeUrl(job.linkedinSearchUrl);
+  linkedinLink.target = '_blank';
+  linkedinLink.rel = 'noopener noreferrer';
+  linkedinLink.textContent = 'Search LinkedIn';
+
+  actionsDiv.append(viewLink, saveBtn, oneClickBtn, linkedinLink);
+
+  const br = () => document.createElement('br');
+  wrapper.append(titleEl, br(), companyEl, br(), locationEl, br(), matchEl, br(), sourceEl, br(), br(), actionsDiv);
 
   return wrapper;
 }
@@ -328,22 +818,44 @@ function createImportedJobCard(job) {
   const wrapper = document.createElement('div');
   wrapper.className = 'mini-job-card';
 
-  const safeJob = encodeJob(job);
+  const titleEl = document.createElement('strong');
+  titleEl.textContent = job.title || 'Imported Role';
+  const companyEl = document.createElement('span');
+  companyEl.textContent = job.company || 'Imported Company';
+  const locationEl = document.createElement('small');
+  locationEl.textContent = `📍 ${job.location || 'Remote'}`;
+  const matchEl = document.createElement('small');
+  matchEl.textContent = `🔥 Match: ${job.matchScore || 0}%`;
+  const sourceEl = document.createElement('small');
+  sourceEl.textContent = `Source: ${job.source || 'Imported Job'}`;
 
-  wrapper.innerHTML = `
-    <strong>${job.title || 'Imported Role'}</strong><br>
-    <span>${job.company || 'Imported Company'}</span><br>
-    <small>📍 ${job.location || 'Remote'}</small><br>
-    <small>🔥 Match: ${job.matchScore || 0}%</small><br>
-    <small>Source: ${job.source || 'Imported Job'}</small><br><br>
+  const actionsDiv = document.createElement('div');
+  actionsDiv.className = 'job-card-actions';
 
-    <div class="job-card-actions">
-      <a href="${job.link || '#'}" target="_blank">Open Original Job</a>
-      <button onclick="saveFoundJob('${safeJob}')">Save Job</button>
-      <button onclick="sendJobToOneClick('${safeJob}')">Send to 1-Click Apply</button>
-      <a href="${job.linkedinSearchUrl || '#'}" target="_blank">Search LinkedIn</a>
-    </div>
-  `;
+  const viewLink = document.createElement('a');
+  viewLink.href = safeUrl(job.link);
+  viewLink.target = '_blank';
+  viewLink.rel = 'noopener noreferrer';
+  viewLink.textContent = 'Open Original Job';
+
+  const saveBtn = document.createElement('button');
+  saveBtn.textContent = 'Save Job';
+  saveBtn.addEventListener('click', () => window.saveFoundJob(encodeJob(job)));
+
+  const oneClickBtn = document.createElement('button');
+  oneClickBtn.textContent = 'Send to 1-Click Apply';
+  oneClickBtn.addEventListener('click', () => window.sendJobToOneClick(encodeJob(job)));
+
+  const linkedinLink = document.createElement('a');
+  linkedinLink.href = safeUrl(job.linkedinSearchUrl);
+  linkedinLink.target = '_blank';
+  linkedinLink.rel = 'noopener noreferrer';
+  linkedinLink.textContent = 'Search LinkedIn';
+
+  actionsDiv.append(viewLink, saveBtn, oneClickBtn, linkedinLink);
+
+  const br = () => document.createElement('br');
+  wrapper.append(titleEl, br(), companyEl, br(), locationEl, br(), matchEl, br(), sourceEl, br(), br(), actionsDiv);
 
   return wrapper;
 }
@@ -367,12 +879,17 @@ function createTopJobCard(job) {
   const wrapper = document.createElement('div');
   wrapper.className = 'mini-job-card';
 
-  wrapper.innerHTML = `
-    <strong>${job.title || 'Untitled Job'}</strong><br>
-    <span>${job.company || 'Unknown Company'}</span><br>
-    <small>⚡ Urgency: ${job.urgencyLabel || 'Unknown'}</small><br>
-    <small>🔥 Match: ${job.matchScore || 0}%</small>
-  `;
+  const titleEl = document.createElement('strong');
+  titleEl.textContent = job.title || 'Untitled Job';
+  const companyEl = document.createElement('span');
+  companyEl.textContent = job.company || 'Unknown Company';
+  const urgencyEl = document.createElement('small');
+  urgencyEl.textContent = `⚡ Urgency: ${job.urgencyLabel || 'Unknown'}`;
+  const matchEl = document.createElement('small');
+  matchEl.textContent = `🔥 Match: ${job.matchScore || 0}%`;
+
+  const br = () => document.createElement('br');
+  wrapper.append(titleEl, br(), companyEl, br(), urgencyEl, br(), matchEl);
 
   return wrapper;
 }
@@ -383,22 +900,29 @@ function createTrackerCard(job) {
 
   const currentStatus = (job.status || 'saved').toLowerCase();
 
-  wrapper.innerHTML = `
-    <strong>${job.title || 'Untitled Job'}</strong><br>
-    <span>${job.company || 'Unknown Company'}</span><br>
-    <small>${job.location || ''}</small><br><br>
+  const titleEl = document.createElement('strong');
+  titleEl.textContent = job.title || 'Untitled Job';
+  const companyEl = document.createElement('span');
+  companyEl.textContent = job.company || 'Unknown Company';
+  const locationEl = document.createElement('small');
+  locationEl.textContent = job.location || '';
 
-    <div class="tracker-actions">
-      <select onchange="updateJobStatus('${job._id}', this.value)">
-        <option value="saved" ${currentStatus === 'saved' ? 'selected' : ''}>Saved</option>
-        <option value="ready" ${currentStatus === 'ready' ? 'selected' : ''}>Ready</option>
-        <option value="applied" ${currentStatus === 'applied' ? 'selected' : ''}>Applied</option>
-        <option value="interview" ${currentStatus === 'interview' ? 'selected' : ''}>Interview</option>
-        <option value="offer" ${currentStatus === 'offer' ? 'selected' : ''}>Offer</option>
-        <option value="rejected" ${currentStatus === 'rejected' ? 'selected' : ''}>Rejected</option>
-      </select>
-    </div>
-  `;
+  const actionsDiv = document.createElement('div');
+  actionsDiv.className = 'tracker-actions';
+
+  const select = document.createElement('select');
+  ['saved', 'ready', 'applied', 'interview', 'offer', 'rejected'].forEach((status) => {
+    const option = document.createElement('option');
+    option.value = status;
+    option.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+    option.selected = currentStatus === status;
+    select.appendChild(option);
+  });
+  select.addEventListener('change', () => window.updateJobStatus(String(job._id), select.value));
+  actionsDiv.appendChild(select);
+
+  const br = () => document.createElement('br');
+  wrapper.append(titleEl, br(), companyEl, br(), locationEl, br(), br(), actionsDiv);
 
   return wrapper;
 }
@@ -425,26 +949,26 @@ window.saveFoundJob = async function saveFoundJob(encodedJob) {
   try {
     const job = JSON.parse(decodeURIComponent(encodedJob));
     await saveJobToBackend(job, 'saved');
-    alert('✅ Job saved to tracker');
+    showToast('Job saved to tracker');
     await loadTracker();
   } catch (err) {
-    alert(`Save error: ${err.message}`);
+    showToast(`Save error: ${err.message}`, 'error');
   }
 };
 
 window.sendJobToOneClick = async function sendJobToOneClick(encodedJob) {
   if (!hasPlan('premium')) {
-    alert('Unlock job-winning resumes and faster offers with Premium.');
+    showToast('Upgrade to Premium to use 1-Click Apply.', 'warn');
     return;
   }
 
   try {
     const job = JSON.parse(decodeURIComponent(encodedJob));
     await saveJobToBackend(job, 'ready');
-    alert('⚡ Job sent to Ready for 1-Click Apply');
+    showToast('Job sent to Ready queue');
     await loadTracker();
   } catch (err) {
-    alert(`1-Click Apply save error: ${err.message}`);
+    showToast(`1-Click Apply error: ${err.message}`, 'error');
   }
 };
 
@@ -457,9 +981,47 @@ window.updateJobStatus = async function updateJobStatus(jobId, newStatus) {
 
     await loadTracker();
   } catch (err) {
-    alert(`Status update error: ${err.message}`);
+    showToast(`Status update error: ${err.message}`, 'error');
   }
 };
+
+function updateTodayRail() {
+  if (!todayPrimaryTitleEl || !todayPrimaryMetaEl || !todayPrimaryBtn) return;
+
+  const ready = Number(latestTrackerStats.ready || 0);
+  const saved = Number(latestTrackerStats.saved || 0);
+  const total = Number(latestTrackerStats.total || 0);
+
+  if (!total && !lastFoundJobs.length) {
+    todayPrimaryTitleEl.textContent = 'Start your first high-fit search sprint';
+    todayPrimaryMetaEl.textContent = 'Search by role and location to build a focused pipeline quickly.';
+    todayPrimaryBtn.textContent = 'Start Search';
+  } else if (ready > 0 && hasPlan('premium')) {
+    todayPrimaryTitleEl.textContent = `You have ${ready} ready job${ready === 1 ? '' : 's'} to apply`;
+    todayPrimaryMetaEl.textContent = 'Run 1-Click Apply now while these high-fit roles are still fresh.';
+    todayPrimaryBtn.textContent = 'Apply Now';
+  } else if (ready > 0 && !hasPlan('premium')) {
+    todayPrimaryTitleEl.textContent = `You have ${ready} ready job${ready === 1 ? '' : 's'} waiting`;
+    todayPrimaryMetaEl.textContent = 'Unlock Premium to convert your ready queue in one click.';
+    todayPrimaryBtn.textContent = 'Upgrade to Premium';
+  } else {
+    todayPrimaryTitleEl.textContent = 'Convert saved roles into ready applications';
+    todayPrimaryMetaEl.textContent = 'Move top matches to Ready now so you can execute faster.';
+    todayPrimaryBtn.textContent = 'Open Tracker';
+  }
+
+  if (todaySecondaryTitleEl && todaySecondaryMetaEl && todaySecondaryBtn) {
+    if (saved > 0) {
+      todaySecondaryTitleEl.textContent = 'Add one more role to keep your pipeline compounding';
+      todaySecondaryMetaEl.textContent = 'Daily pipeline growth raises interview odds over time.';
+      todaySecondaryBtn.textContent = 'Import Role';
+    } else {
+      todaySecondaryTitleEl.textContent = 'Import one role from any job board';
+      todaySecondaryMetaEl.textContent = 'Paste any job description and instantly normalize it into your tracker.';
+      todaySecondaryBtn.textContent = 'Import Role';
+    }
+  }
+}
 
 function updateDynamicCoachInsights() {
   if (!careerCoachInsightEl || !careerMatchSignalEl || !careerUrgencyNudgeEl) {
@@ -510,7 +1072,7 @@ function updateDynamicCoachInsights() {
 
 document.getElementById('findJobsBtn')?.addEventListener('click', async () => {
   const btn = document.getElementById('findJobsBtn');
-  setButtonLoading(btn, 'Finding...');
+  setButtonLoading(btn, 'Searching...');
   jobsListEl.innerHTML = '<div class="empty-state">Loading jobs...</div>';
   track('find_jobs_started', 'jobs_search');
 
@@ -577,7 +1139,7 @@ document.getElementById('findJobsBtn')?.addEventListener('click', async () => {
       }, refreshAfterMs);
     }
   } catch (err) {
-    jobsListEl.innerHTML = `<div class="empty-state">❌ ${err.message}</div>`;
+    jobsListEl.innerHTML = `<div class="empty-state">❌ ${escapeHtml(err.message)}</div>`;
     track('find_jobs_failed', 'jobs_search', { message: err.message });
   } finally {
     clearButtonLoading(btn);
@@ -597,7 +1159,7 @@ document.getElementById('linkedinSearchBtn')?.addEventListener('click', () => {
   const location = document.getElementById('jobLocation').value.trim();
 
   if (!title && !location) {
-    alert('Enter a job title or location first.');
+    showToast('Enter a job title or location first.', 'warn');
     return;
   }
 
@@ -612,7 +1174,7 @@ document.getElementById('googleJobsBtn')?.addEventListener('click', () => {
   const location = document.getElementById('jobLocation').value.trim();
 
   if (!title && !location) {
-    alert('Enter a job title or location first.');
+    showToast('Enter a job title or location first.', 'warn');
     return;
   }
 
@@ -620,6 +1182,36 @@ document.getElementById('googleJobsBtn')?.addEventListener('click', () => {
     `https://www.google.com/search?q=${encodeURIComponent(`${title} ${location} jobs`)}`;
 
   window.open(googleJobsUrl, '_blank');
+});
+
+todayPrimaryBtn?.addEventListener('click', () => {
+  const label = (todayPrimaryBtn.textContent || '').toLowerCase();
+
+  if (label.includes('search')) {
+    document.getElementById('jobTitle')?.focus();
+    track('today_primary_clicked', 'activation', { action: 'focus_search' });
+    return;
+  }
+
+  if (label.includes('1-click')) {
+    document.getElementById('oneClickApplyBtn')?.click();
+    track('today_primary_clicked', 'activation', { action: 'one_click_apply' });
+    return;
+  }
+
+  if (label.includes('upgrade')) {
+    window.upgrade('premium', premiumBtn || undefined);
+    track('today_primary_clicked', 'activation', { action: 'upgrade_premium' });
+    return;
+  }
+
+  document.querySelector('.tracker-wrap')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  track('today_primary_clicked', 'activation', { action: 'open_tracker' });
+});
+
+todaySecondaryBtn?.addEventListener('click', () => {
+  document.getElementById('importJobText')?.focus();
+  track('today_secondary_clicked', 'activation', { action: 'focus_import' });
 });
 
 document.getElementById('importJobBtn')?.addEventListener('click', async () => {
@@ -637,19 +1229,19 @@ document.getElementById('importJobBtn')?.addEventListener('click', async () => {
     importedJobBoxEl.innerHTML = '';
     importedJobBoxEl.appendChild(createImportedJobCard(data.job));
   } catch (err) {
-    importedJobBoxEl.innerHTML = `<div class="empty-state">❌ ${err.message}</div>`;
+    importedJobBoxEl.innerHTML = `<div class="empty-state">❌ ${escapeHtml(err.message)}</div>`;
   }
 });
 
 document.getElementById('oneClickApplyBtn')?.addEventListener('click', async () => {
   if (!hasPlan('premium')) {
-    alert('Unlock job-winning resumes and faster offers with Premium.');
+    showToast('Upgrade to Premium to unlock 1-Click Apply.', 'warn');
     track('paywall_hit', 'one_click_apply', { requiredPlan: 'premium' });
     return;
   }
 
   const btn = document.getElementById('oneClickApplyBtn');
-  setButtonLoading(btn, 'Running...');
+  setButtonLoading(btn, 'Applying...');
   topJobsEl.innerHTML = '<div class="empty-state">Loading top jobs...</div>';
   track('one_click_apply_started', 'one_click_apply');
 
@@ -672,7 +1264,7 @@ document.getElementById('oneClickApplyBtn')?.addEventListener('click', async () 
     });
     track('one_click_apply_success', 'one_click_apply', { count: data.topJobs.length });
   } catch (err) {
-    topJobsEl.innerHTML = `<div class="empty-state">❌ ${err.message}</div>`;
+    topJobsEl.innerHTML = `<div class="empty-state">❌ ${escapeHtml(err.message)}</div>`;
     track('one_click_apply_failed', 'one_click_apply', { message: err.message });
   } finally {
     clearButtonLoading(btn);
@@ -681,12 +1273,12 @@ document.getElementById('oneClickApplyBtn')?.addEventListener('click', async () 
 
 document.getElementById('generateBtn')?.addEventListener('click', async () => {
   if (!hasPlan('pro')) {
-    alert('Unlock job-winning resumes and faster offers with Pro.');
+    showToast('Upgrade to Pro to unlock Resume Generator.', 'warn');
     return;
   }
 
   const result = document.getElementById('result');
-  result.textContent = 'Generating...';
+  setAILoading(result);
 
   try {
     const data = await api('/api/resume/generate', {
@@ -697,20 +1289,20 @@ document.getElementById('generateBtn')?.addEventListener('click', async () => {
       })
     });
 
-    result.textContent = data.result || 'No result returned.';
+    renderAIOutput(data.result || 'No result returned.', result);
   } catch (err) {
-    result.textContent = `Error: ${err.message}`;
+    renderAIOutput(`Error: ${err.message}`, result);
   }
 });
 
 document.getElementById('coverBtn')?.addEventListener('click', async () => {
   if (!hasPlan('pro')) {
-    alert('Unlock job-winning resumes and faster offers with Pro.');
+    showToast('Upgrade to Pro to unlock Cover Letter AI.', 'warn');
     return;
   }
 
   const result = document.getElementById('coverResult');
-  result.textContent = 'Generating...';
+  setAILoading(result);
 
   try {
     const data = await api('/api/generate-cover-letter', {
@@ -721,20 +1313,20 @@ document.getElementById('coverBtn')?.addEventListener('click', async () => {
       })
     });
 
-    result.textContent = data.result || 'No result returned.';
+    renderAIOutput(data.result || 'No result returned.', result);
   } catch (err) {
-    result.textContent = `Error: ${err.message}`;
+    renderAIOutput(`Error: ${err.message}`, result);
   }
 });
 
 document.getElementById('matchBtn')?.addEventListener('click', async () => {
   if (!hasPlan('pro')) {
-    alert('Unlock job-winning resumes and faster offers with Pro.');
+    showToast('Upgrade to Pro to unlock Job Match.', 'warn');
     return;
   }
 
   const result = document.getElementById('matchResult');
-  result.textContent = 'Analyzing...';
+  setAILoading(result, 'Analyzing...');
 
   try {
     const data = await api('/api/job-match', {
@@ -745,20 +1337,20 @@ document.getElementById('matchBtn')?.addEventListener('click', async () => {
       })
     });
 
-    result.textContent = data.result || 'No result returned.';
+    renderAIOutput(data.result || 'No result returned.', result);
   } catch (err) {
-    result.textContent = `Error: ${err.message}`;
+    renderAIOutput(`Error: ${err.message}`, result);
   }
 });
 
 document.getElementById('interviewPrepBtn')?.addEventListener('click', async () => {
   if (!hasPlan('premium')) {
-    alert('Unlock interview prep and stronger offer positioning with Premium.');
+    showToast('Upgrade to Premium to unlock Interview Prep.', 'warn');
     return;
   }
 
   const result = document.getElementById('interviewPrepResult');
-  result.textContent = 'Generating...';
+  setAILoading(result);
 
   try {
     const data = await api('/api/interview-prep', {
@@ -769,20 +1361,20 @@ document.getElementById('interviewPrepBtn')?.addEventListener('click', async () 
       })
     });
 
-    result.textContent = data.result || 'No result returned.';
+    renderAIOutput(data.result || 'No result returned.', result);
   } catch (err) {
-    result.textContent = `Error: ${err.message}`;
+    renderAIOutput(`Error: ${err.message}`, result);
   }
 });
 
 document.getElementById('careerCoachBtn')?.addEventListener('click', async () => {
   if (!hasPlan('elite')) {
-    alert('Unlock deeper career strategy and premium guidance with Elite.');
+    showToast('Upgrade to Elite to unlock Career Coach.', 'warn');
     return;
   }
 
   const result = document.getElementById('careerCoachResult');
-  result.textContent = 'Generating...';
+  setAILoading(result);
 
   try {
     const data = await api('/api/career-coach', {
@@ -793,9 +1385,9 @@ document.getElementById('careerCoachBtn')?.addEventListener('click', async () =>
       })
     });
 
-    result.textContent = data.result || 'No result returned.';
+    renderAIOutput(data.result || 'No result returned.', result);
   } catch (err) {
-    result.textContent = `Error: ${err.message}`;
+    renderAIOutput(`Error: ${err.message}`, result);
   }
 });
 
@@ -823,11 +1415,11 @@ window.copyReferral = async function copyReferral() {
 
   try {
     await navigator.clipboard.writeText(input.value);
-    alert('Referral link copied!');
+    showToast('Referral link copied!');
   } catch {
     input.select();
     document.execCommand('copy');
-    alert('Referral link copied!');
+    showToast('Referral link copied!');
   }
 };
 
@@ -849,7 +1441,7 @@ const priceIdToPlanMap = {
 
 window.upgrade = async function upgrade(plan, triggerBtn) {
   const btn = triggerBtn || null;
-  if (btn) setButtonLoading(btn, 'Redirecting...');
+  if (btn) setButtonLoading(btn, 'Opening checkout...');
   track('upgrade_click', 'checkout', { planInput: plan });
   try {
     const raw = String(plan || '').trim();
@@ -858,7 +1450,7 @@ window.upgrade = async function upgrade(plan, triggerBtn) {
     const priceId = isPriceId ? raw : planToPriceIdMap[normalizedPlan];
 
     if (!normalizedPlan && !priceId) {
-      alert('Invalid upgrade selection. Please try again.');
+      showToast('Invalid upgrade selection. Please try again.', 'error');
       if (btn) clearButtonLoading(btn);
       return;
     }
@@ -875,12 +1467,12 @@ window.upgrade = async function upgrade(plan, triggerBtn) {
       track('checkout_redirect_ready', 'checkout', { plan: normalizedPlan || 'unknown' });
       window.location.href = data.url;
     } else {
-      alert('Failed to create checkout session');
+      showToast('Failed to create checkout session.', 'error');
       track('checkout_dropoff', 'checkout', { reason: 'missing_checkout_url', plan: normalizedPlan || 'unknown' });
       if (btn) clearButtonLoading(btn);
     }
   } catch (err) {
-    alert(err.message);
+    showToast(err.message || 'Checkout failed.', 'error');
     track('checkout_dropoff', 'checkout', { reason: err.message, planInput: plan });
     if (btn) clearButtonLoading(btn);
   }
@@ -888,7 +1480,7 @@ window.upgrade = async function upgrade(plan, triggerBtn) {
 
 window.lifetime = async function lifetime(triggerBtn) {
   const btn = triggerBtn || null;
-  if (btn) setButtonLoading(btn, 'Redirecting...');
+  if (btn) setButtonLoading(btn, 'Opening checkout...');
   track('upgrade_click', 'checkout', { planInput: 'lifetime' });
   try {
     const data = await api('/api/create-lifetime-checkout', {
@@ -900,12 +1492,12 @@ window.lifetime = async function lifetime(triggerBtn) {
       track('checkout_redirect_ready', 'checkout', { plan: 'lifetime' });
       window.location.href = data.url;
     } else {
-      alert('Lifetime checkout failed');
+      showToast('Lifetime checkout failed.', 'error');
       track('checkout_dropoff', 'checkout', { reason: 'missing_checkout_url', plan: 'lifetime' });
       if (btn) clearButtonLoading(btn);
     }
   } catch (err) {
-    alert(`Lifetime error: ${err.message}`);
+    showToast(`Lifetime error: ${err.message}`, 'error');
     track('checkout_dropoff', 'checkout', { reason: err.message, plan: 'lifetime' });
     if (btn) clearButtonLoading(btn);
   }
@@ -928,7 +1520,11 @@ lifetimeBtn?.addEventListener('click', (e) => {
 });
 
 document.getElementById('logoutBtn')?.addEventListener('click', () => {
-  localStorage.removeItem('token');
+  if (typeof clearStoredToken === 'function') {
+    clearStoredToken();
+  } else {
+    localStorage.removeItem('token');
+  }
   window.location.href = 'index.html';
 });
 
@@ -941,7 +1537,7 @@ document.getElementById('billingBtn')?.addEventListener('click', async () => {
     if (data.url) window.location.href = data.url;
     else throw new Error(data.error || 'Could not open billing portal');
   } catch (err) {
-    alert(err.message || 'Failed to open billing portal');
+    showToast(err.message || 'Failed to open billing portal', 'error');
     btn.disabled = false;
     btn.textContent = '💳 Manage Billing';
   }
@@ -1209,7 +1805,7 @@ document.addEventListener('visibilitychange', () => {
       iaQuestionInput.value = '';
       iaQuestionInput.focus();
     } catch (err) {
-      alert(err.message || 'Interview Assist failed');
+      showToast(err.message || 'Interview Assist failed', 'error');
       track('ia_dropoff', 'interview_assist', { reason: err.message || 'unknown' });
     } finally {
       clearButtonLoading(iaSubmitBtn);
@@ -1312,8 +1908,20 @@ async function loadTracker() {
     fill(interviewJobsEl, buckets.interview);
     fill(offerJobsEl, buckets.offer);
     fill(rejectedJobsEl, buckets.rejected);
+
+    latestTrackerStats = {
+      total: jobs.length,
+      saved: buckets.saved.length,
+      ready: buckets.ready.length,
+      applied: buckets.applied.length,
+      interview: buckets.interview.length,
+      offer: buckets.offer.length,
+      rejected: buckets.rejected.length
+    };
+
+    updateTodayRail();
   } catch (err) {
-    const message = `<div class="empty-state">❌ ${err.message}</div>`;
+    const message = `<div class="empty-state">❌ ${escapeHtml(err.message)}</div>`;
     savedJobsEl.innerHTML = message;
     readyJobsEl.innerHTML = message;
     appliedJobsEl.innerHTML = message;
@@ -1323,9 +1931,40 @@ async function loadTracker() {
   }
 }
 
+async function loadModeImpactKpis() {
+  if (!modeKpiSummaryEl || !modeKpiSessionsEl || !modeKpiStarterEl || !modeKpiPowerEl) return;
+
+  try {
+    const data = await api('/api/dashboard/mode-kpis?days=14', { method: 'GET' }, { retries: 0, timeoutMs: 7000 });
+
+    const sessions = Number(data?.totals?.sessions || 0);
+    const starter = data?.byMode?.starter || {};
+    const power = data?.byMode?.power || {};
+
+    const starterSearchRate = sessions
+      ? Math.min(100, Math.round((Number(starter.searches || 0) / sessions) * 100))
+      : 0;
+
+    const powerIntentBase = Number(power.searches || 0) || 1;
+    const powerIntentRate = Math.min(
+      100,
+      Math.round(((Number(power.oneClickRuns || 0) + Number(power.upgradeClicks || 0)) / powerIntentBase) * 100)
+    );
+
+    modeKpiSummaryEl.textContent =
+      `Starter searches: ${starter.searches || 0} · Power high-intent actions: ${(Number(power.oneClickRuns || 0) + Number(power.upgradeClicks || 0))}`;
+    modeKpiSessionsEl.textContent = String(sessions);
+    modeKpiStarterEl.textContent = `${starterSearchRate}%`;
+    modeKpiPowerEl.textContent = `${powerIntentRate}%`;
+  } catch (err) {
+    modeKpiSummaryEl.textContent = `KPI snapshot unavailable: ${err.message}`;
+  }
+}
+
 function scheduleHeavyLoads() {
   const run = () => {
     loadReferral();
+    loadModeImpactKpis();
   };
 
   if ('requestIdleCallback' in window) {
@@ -1349,7 +1988,14 @@ function scheduleHeavyLoads() {
 }
 
 initPricingExperiment();
-loadUserPlan();
+updateTodayRail();
+loadUserPlan().finally(() => {
+  initDashboardMode();
+  handleCheckoutRedirectState();
+});
+initSavedResumeManager();
+initMobileSidebar();
+loadSavedResume();
 updateDynamicCoachInsights();
 scheduleHeavyLoads();
 loadLatestRoleProfile();

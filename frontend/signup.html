@@ -6,6 +6,8 @@
   <title>Create Free Account | RoleRocket AI</title>
   <meta name="description" content="Create your free RoleRocket AI account and start finding better jobs, optimizing your resume, and applying faster with AI." />
   <meta name="robots" content="index, follow" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>" />
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -48,9 +50,9 @@
 
         <form id="signupForm" class="auth-form">
           <input id="signupName" type="text" placeholder="Full name" required />
-          <input id="signupEmail" type="email" placeholder="Email address" required />
-          <input id="signupPassword" type="password" placeholder="Create password" required />
-          <button type="submit" class="auth-submit-btn">Create Free Account</button>
+          <input id="signupEmail" type="email" placeholder="Email address" autocomplete="email" required />
+          <input id="signupPassword" type="password" placeholder="Create password" autocomplete="new-password" minlength="8" required />
+          <button id="signupSubmitBtn" type="submit" class="auth-submit-btn">Create Free Account</button>
         </form>
 
         <div id="signupMessage" class="auth-message" role="status" aria-live="polite"></div>
@@ -73,46 +75,191 @@
     <a href="terms.html">Terms of Service</a>
   </footer>
 
+  <script src="js/api-base.js"></script>
+  <script src="js/auth-storage.js"></script>
   <script>
+    if (getStoredToken()) {
+      window.location.replace('dashboard.html');
+    }
+
+    // Warn if running from wrong origin (file://, VS Code preview, etc.)
+    (function showOriginWarning() {
+      const protocol = window.location.protocol;
+      const port = window.location.port;
+      const isCorrect =
+        (protocol === 'http:' || protocol === 'https:') &&
+        (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') &&
+        (port === '5000' || port === '');
+      const apiTarget = typeof getApiBase === 'function' ? getApiBase() : '(unknown)';
+      if (!isCorrect) {
+        const bar = document.createElement('div');
+        bar.style.cssText =
+          'position:fixed;top:0;left:0;right:0;z-index:9999;background:#b91c1c;color:#fff;'
+          + 'padding:10px 16px;font-size:14px;font-weight:600;text-align:center;';
+        bar.textContent =
+          '⚠️ Open this page via http://localhost:5000/signup.html — not directly as a file. Current origin: '
+          + window.location.origin;
+        document.body.prepend(bar);
+      }
+      console.log('[RoleRocket] API target:', apiTarget, '| Origin:', window.location.origin);
+    })();
+
     const signupForm = document.getElementById('signupForm');
     const signupMessage = document.getElementById('signupMessage');
+    const signupSubmitBtn = document.getElementById('signupSubmitBtn');
 
     const params = new URLSearchParams(window.location.search);
     const referral = params.get('ref');
 
+    function wait(ms) {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    async function safeJson(res) {
+      const text = await res.text();
+      try {
+        return text ? JSON.parse(text) : {};
+      } catch {
+        return { error: text || `Request failed (${res.status})` };
+      }
+    }
+
+    async function warmBackend() {
+      try {
+        await fetch(apiUrl('/api/health'), { method: 'GET', cache: 'no-store' });
+      } catch {
+        // Warm-up best effort only.
+      }
+    }
+
+    async function loginOnce(email, password, timeoutMs = 8000) {
+      const loginController = new AbortController();
+      const loginTimeout = setTimeout(() => loginController.abort(), timeoutMs);
+      try {
+        const loginRes = await fetch(apiUrl('/api/auth/login'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: loginController.signal,
+          body: JSON.stringify({ email, password })
+        });
+
+        const loginData = await safeJson(loginRes);
+        if (loginRes.ok && loginData.token) {
+          return loginData;
+        }
+        return null;
+      } finally {
+        clearTimeout(loginTimeout);
+      }
+    }
+
+    async function signupOnce(payload, timeoutMs = 12000) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const res = await fetch(apiUrl('/api/auth/signup'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
+          body: JSON.stringify(payload)
+        });
+
+        const data = await safeJson(res);
+        if (!res.ok) {
+          const err = new Error(data.error || `Signup failed (${res.status})`);
+          err.status = res.status;
+          throw err;
+        }
+        return data;
+      } finally {
+        clearTimeout(timeout);
+      }
+    }
+
     signupForm.addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      signupMessage.textContent = 'Creating account...';
+      const name = document.getElementById('signupName').value.trim();
+      const email = document.getElementById('signupEmail').value.trim().toLowerCase();
+      const password = document.getElementById('signupPassword').value;
+
+      if (!name || !email || !password) {
+        signupMessage.textContent = 'Please fill in all fields.';
+        return;
+      }
+
+      if (password.length < 8) {
+        signupMessage.textContent = 'Password must be at least 8 characters.';
+        return;
+      }
+
+      signupSubmitBtn.disabled = true;
+      signupSubmitBtn.textContent = 'Creating...';
+      signupMessage.textContent = 'Creating your account...';
+
+      await warmBackend();
+
+      const slowHint = setTimeout(() => {
+        signupMessage.textContent = 'Still working... finalizing your account.';
+      }, 4000);
 
       try {
-        const res = await fetch('/api/auth/signup', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            name: document.getElementById('signupName').value,
-            email: document.getElementById('signupEmail').value,
-            password: document.getElementById('signupPassword').value,
-            referralCode: referral
-          })
-        });
-
-        const data = await res.json();
-
-        if (!res.ok) {
-          throw new Error(data.error || 'Signup failed');
+        // Fast path: if account already exists with this password, log in instantly.
+        const preLogin = await loginOnce(email, password, 5000);
+        if (preLogin?.token) {
+          if (!setStoredToken(preLogin.token)) {
+            throw new Error('Could not save session in this browser.');
+          }
+          window.location.replace('dashboard.html');
+          return;
         }
 
-        localStorage.setItem('token', data.token);
-        signupMessage.textContent = '✅ Account created. Redirecting...';
+        const data = await signupOnce({
+          name,
+          email,
+          password,
+          referralCode: referral
+        });
 
-        setTimeout(() => {
-          window.location.href = 'dashboard.html';
-        }, 700);
+        if (!setStoredToken(data.token)) {
+          throw new Error('Could not save session in this browser.');
+        }
+        window.location.replace('dashboard.html');
       } catch (err) {
-        signupMessage.textContent = `❌ ${err.message}`;
+        // If signup response was delayed/lost but account exists, finalize with short login polling.
+        try {
+          signupMessage.textContent = 'Finalizing your account...';
+          for (let loginAttempt = 0; loginAttempt < 4; loginAttempt += 1) {
+            const loginData = await loginOnce(email, password, 7000);
+            if (loginData?.token) {
+              if (!setStoredToken(loginData.token)) {
+                throw new Error('Could not save session in this browser.');
+              }
+              window.location.replace('dashboard.html');
+              return;
+            }
+
+            await wait(1200);
+          }
+        } catch {
+          // Ignore fallback errors and show primary failure below.
+        }
+
+        let apiTarget = 'unknown';
+        try { apiTarget = getApiBase(); } catch {}
+        let failMsg;
+        if (err.name === 'AbortError') {
+          failMsg = `Signup timed out (>${12}s). Check connection.`;
+        } else if (String(err.message || '').toLowerCase().includes('failed to fetch')) {
+          failMsg = `Cannot reach server. Is http://localhost:5000 running? (API: ${apiTarget})`;
+        } else {
+          failMsg = `❌ ${err.message || 'Unknown error'} — API: ${apiTarget}`;
+        }
+        signupMessage.textContent = failMsg;
+      } finally {
+        clearTimeout(slowHint);
+        signupSubmitBtn.disabled = false;
+        signupSubmitBtn.textContent = 'Create Free Account';
       }
     });
   </script>

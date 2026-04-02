@@ -1,4 +1,4 @@
-const token = localStorage.getItem('token');
+const token = typeof getStoredToken === 'function' ? getStoredToken() : localStorage.getItem('token');
 
 if (!token) {
   window.location.href = 'login.html';
@@ -63,7 +63,7 @@ document.getElementById('runATSBtn')?.addEventListener('click', async () => {
   }
 
   try {
-    const res = await fetch('/api/ats/analyze', {
+    const res = await fetch(apiUrl('/api/ats/analyze'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -11,28 +11,60 @@ const OpenAI = require('openai');
 const Stripe = require('stripe');
 const nodemailer = require('nodemailer');
 
-function createMailTransporter() {
-  if (process.env.SMTP_HOST) {
-    return nodemailer.createTransport({
+let mailTransporter = null;
+
+function getMailTransporter() {
+  if (!process.env.SMTP_HOST) return null;
+  if (!mailTransporter) {
+    mailTransporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: Number(process.env.SMTP_PORT) || 587,
-      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+      connectionTimeout: 5000,
+      greetingTimeout: 5000,
+      socketTimeout: 8000
     });
   }
-  return null;
+  return mailTransporter;
+}
+
+function withTimeout(promise, ms, label = 'operation') {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error(`${label} timed out`)), ms))
+  ]);
 }
 
 async function sendEmail({ to, subject, html }) {
-  const transporter = createMailTransporter();
+  const transporter = getMailTransporter();
   if (!transporter) {
     console.warn('Email not configured: set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS in env.');
     return;
   }
-  await transporter.sendMail({
+  await withTimeout(transporter.sendMail({
     from: `"RoleRocket AI" <${process.env.SMTP_USER}>`,
     to,
     subject,
     html
+  }), 8000, 'sendEmail');
+}
+
+function queuePasswordResetEmail({ to, resetUrl }) {
+  setImmediate(async () => {
+    try {
+      await sendEmail({
+        to,
+        subject: 'Reset your RoleRocket AI password',
+        html: `
+          <h2>Password Reset</h2>
+          <p>Click the link below to reset your password. This link expires in 1 hour.</p>
+          <a href="${resetUrl}" style="background:#0284c7;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block;">Reset Password</a>
+          <p style="margin-top:16px;color:#888;">If you didn't request this, ignore this email.</p>
+        `
+      });
+    } catch (err) {
+      console.error('Password reset email send failed:', err.message);
+    }
   });
 }
 
@@ -71,6 +103,11 @@ const LEVER_BOARDS = (process.env.LEVER_BOARDS || '')
   .split(',')
   .map((v) => v.trim())
   .filter(Boolean);
+
+const REMOTIVE_ENABLED = process.env.REMOTIVE_ENABLED !== '0';
+const ARBEITNOW_ENABLED = process.env.ARBEITNOW_ENABLED !== '0';
+const USAJOBS_API_KEY = process.env.USAJOBS_API_KEY || '';
+const USAJOBS_USER_AGENT = process.env.USAJOBS_USER_AGENT || '';
 
 const JOB_CACHE_MS = 1000 * 60 * 5;
 const jobSearchCache = new Map();
@@ -136,7 +173,19 @@ app.post(
 );
 
 app.use(express.json({ limit: '2mb' }));
-app.use(express.static(path.join(__dirname, '../frontend')));
+app.use(express.static(path.join(__dirname, '../frontend'), {
+  etag: false,
+  lastModified: false,
+  setHeaders(res) {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+  }
+}));
+
+app.get('/api/health', (_req, res) => {
+  return res.json({ ok: true, ts: Date.now() });
+});
 
 if (process.env.NODE_ENV !== 'test') {
   mongoose
@@ -237,6 +286,83 @@ function dedupeJobs(jobs) {
   });
 }
 
+function normalizeDate(input) {
+  if (!input) return null;
+  const date = new Date(input);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toISOString();
+}
+
+function scoreTitleRelevance(jobTitle = '', queryTitle = '') {
+  const query = String(queryTitle || '').trim().toLowerCase();
+  if (!query) return 6;
+
+  const title = String(jobTitle || '').toLowerCase();
+  const tokens = query.split(/\s+/).filter(Boolean);
+  if (!tokens.length) return 6;
+
+  const matched = tokens.filter((t) => title.includes(t)).length;
+  return Math.min(16, Math.round((matched / tokens.length) * 16));
+}
+
+function scoreLocationRelevance(jobLocation = '', queryLocation = '') {
+  const query = String(queryLocation || '').trim().toLowerCase();
+  if (!query) return 4;
+
+  const location = String(jobLocation || '').toLowerCase();
+  if (!location) return 0;
+
+  if (location.includes(query)) return 8;
+  if (query.includes('remote') && (location.includes('remote') || location.includes('worldwide'))) return 8;
+  return 2;
+}
+
+function scoreFreshness(postedAt) {
+  if (!postedAt) return 8;
+
+  const ts = new Date(postedAt).getTime();
+  if (Number.isNaN(ts)) return 8;
+
+  const ageDays = (Date.now() - ts) / (1000 * 60 * 60 * 24);
+  if (ageDays < 0) return 10;
+
+  return Math.max(0, Math.round(22 - ageDays * 1.3));
+}
+
+function sourceQualityWeight(source = '') {
+  const table = {
+    Adzuna: 7,
+    Greenhouse: 8,
+    Lever: 8,
+    Remotive: 6,
+    Arbeitnow: 5,
+    USAJobs: 7,
+    Imported: 4,
+    'Fast Fallback': 2
+  };
+
+  return table[source] || 4;
+}
+
+function computeRankScore(job, query = {}) {
+  const match = Math.max(0, Math.min(60, Math.round(Number(job.matchScore || 0) * 0.6)));
+  const freshness = scoreFreshness(job.postedAt);
+  const source = sourceQualityWeight(job.source);
+  const title = scoreTitleRelevance(job.title, query.title);
+  const location = scoreLocationRelevance(job.location, query.location);
+
+  return match + freshness + source + title + location;
+}
+
+function rankJobs(jobs, query) {
+  return [...jobs]
+    .map((job) => ({
+      ...job,
+      rankScore: computeRankScore(job, query)
+    }))
+    .sort((a, b) => b.rankScore - a.rankScore);
+}
+
 function normalizeJob(raw) {
   return {
     title: raw.title || 'Untitled Job',
@@ -244,6 +370,7 @@ function normalizeJob(raw) {
     location: raw.location || 'Remote',
     link: raw.link || '#',
     description: raw.description || '',
+    postedAt: normalizeDate(raw.postedAt),
     matchScore: Number(raw.matchScore || 0),
     status: raw.status || 'saved',
     source: raw.source || 'Imported',
@@ -343,7 +470,7 @@ async function fetchAdzunaJobs(title, location, resume) {
 
   const url = `https://api.adzuna.com/v1/api/jobs/${ADZUNA_COUNTRY}/search/1?app_id=${encodeURIComponent(
     ADZUNA_APP_ID
-  )}&app_key=${encodeURIComponent(ADZUNA_APP_KEY)}&results_per_page=10&what=${encodeURIComponent(
+  )}&app_key=${encodeURIComponent(ADZUNA_APP_KEY)}&results_per_page=20&what=${encodeURIComponent(
     title
   )}&where=${encodeURIComponent(location)}&content-type=application/json`;
 
@@ -357,6 +484,7 @@ async function fetchAdzunaJobs(title, location, resume) {
       location: job.location?.display_name || location,
       link: job.redirect_url || '#',
       description: job.description || '',
+      postedAt: job.created,
       matchScore: estimateMatchScore(job.title, job.description, resume),
       source: 'Adzuna'
     })
@@ -376,7 +504,7 @@ async function fetchGreenhouseJobs(title, location, resume) {
         const text = `${job.title || ''} ${(job.location?.name || '')}`.toLowerCase();
         return text.includes(title.toLowerCase()) || !title.trim();
       })
-      .slice(0, 5)
+      .slice(0, 10)
       .map((job) =>
         normalizeJob({
           title: job.title,
@@ -384,6 +512,7 @@ async function fetchGreenhouseJobs(title, location, resume) {
           location: job.location?.name || location || 'Remote',
           link: job.absolute_url || '#',
           description: '',
+          postedAt: job.updated_at || job.created_at,
           matchScore: estimateMatchScore(job.title, job.location?.name || '', resume),
           source: 'Greenhouse'
         })
@@ -410,7 +539,7 @@ async function fetchLeverJobs(title, location, resume) {
         const text = `${job.text || ''} ${(job.categories?.location || '')}`.toLowerCase();
         return text.includes(title.toLowerCase()) || !title.trim();
       })
-      .slice(0, 5)
+      .slice(0, 10)
       .map((job) =>
         normalizeJob({
           title: job.text,
@@ -418,6 +547,7 @@ async function fetchLeverJobs(title, location, resume) {
           location: job.categories?.location || location || 'Remote',
           link: job.hostedUrl || '#',
           description: '',
+          postedAt: job.createdAt ? new Date(job.createdAt) : null,
           matchScore: estimateMatchScore(job.text, job.categories?.team || '', resume),
           source: 'Lever'
         })
@@ -432,6 +562,144 @@ async function fetchLeverJobs(title, location, resume) {
   return merged;
 }
 
+async function fetchRemotiveJobs(title, location, resume) {
+  if (!REMOTIVE_ENABLED) return [];
+
+  const search = encodeURIComponent(title || '');
+  const url = `https://remotive.com/api/remote-jobs?search=${search}`;
+  const json = await fetchJson(url, {}, 1200);
+  const jobs = Array.isArray(json.jobs) ? json.jobs : [];
+
+  return jobs
+    .filter((job) => {
+      const haystack = `${job.title || ''} ${job.candidate_required_location || ''}`.toLowerCase();
+      const hasTitle = !title.trim() || haystack.includes(title.toLowerCase());
+      const hasLocation = !location.trim() || haystack.includes(location.toLowerCase()) || haystack.includes('worldwide') || haystack.includes('remote');
+      return hasTitle && hasLocation;
+    })
+    .slice(0, 20)
+    .map((job) =>
+      normalizeJob({
+        title: job.title,
+        company: job.company_name || 'Unknown Company',
+        location: job.candidate_required_location || 'Remote',
+        link: job.url || '#',
+        description: job.description || '',
+        postedAt: job.publication_date,
+        matchScore: estimateMatchScore(job.title, job.description, resume),
+        source: 'Remotive'
+      })
+    );
+}
+
+async function fetchArbeitnowJobs(title, location, resume) {
+  if (!ARBEITNOW_ENABLED) return [];
+
+  const search = encodeURIComponent(title || '');
+  const url = `https://www.arbeitnow.com/api/job-board-api?search=${search}`;
+  const json = await fetchJson(url, {}, 1200);
+  const jobs = Array.isArray(json.data) ? json.data : [];
+
+  return jobs
+    .filter((job) => {
+      const haystack = `${job.title || ''} ${job.location || ''}`.toLowerCase();
+      const hasTitle = !title.trim() || haystack.includes(title.toLowerCase());
+      const hasLocation = !location.trim() || haystack.includes(location.toLowerCase()) || haystack.includes('remote');
+      return hasTitle && hasLocation;
+    })
+    .slice(0, 20)
+    .map((job) =>
+      normalizeJob({
+        title: job.title,
+        company: job.company_name || 'Unknown Company',
+        location: job.location || 'Remote',
+        link: job.url || '#',
+        description: job.description || '',
+        postedAt: job.created_at,
+        matchScore: estimateMatchScore(job.title, job.description, resume),
+        source: 'Arbeitnow'
+      })
+    );
+}
+
+async function fetchUsaJobs(title, location, resume) {
+  if (!USAJOBS_API_KEY || !USAJOBS_USER_AGENT) return [];
+
+  const keyword = encodeURIComponent(title || '');
+  const locationName = encodeURIComponent(location || '');
+  const url = `https://data.usajobs.gov/api/search?Keyword=${keyword}&LocationName=${locationName}&ResultsPerPage=25`;
+  const json = await fetchJson(
+    url,
+    {
+      headers: {
+        'Host': 'data.usajobs.gov',
+        'User-Agent': USAJOBS_USER_AGENT,
+        'Authorization-Key': USAJOBS_API_KEY
+      }
+    },
+    1500
+  );
+
+  const items = json?.SearchResult?.SearchResultItems;
+  const jobs = Array.isArray(items) ? items : [];
+
+  return jobs.map((item) => {
+    const d = item?.MatchedObjectDescriptor || {};
+    const desc = d?.UserArea?.Details || {};
+    return normalizeJob({
+      title: d.PositionTitle,
+      company: d.OrganizationName || 'US Government',
+      location: (Array.isArray(d.PositionLocationDisplay) && d.PositionLocationDisplay[0]) || location || 'United States',
+      link: d.PositionURI || '#',
+      description: desc?.JobSummary || '',
+      postedAt: desc?.PublicationStartDate || d.PublicationStartDate || d.PositionStartDate,
+      matchScore: estimateMatchScore(d.PositionTitle, desc?.JobSummary || '', resume),
+      source: 'USAJobs'
+    });
+  });
+}
+
+function getSourceConfigSnapshot() {
+  return {
+    adzuna: {
+      enabled: Boolean(ADZUNA_APP_ID && ADZUNA_APP_KEY),
+      country: ADZUNA_COUNTRY
+    },
+    greenhouse: {
+      enabled: GREENHOUSE_BOARDS.length > 0,
+      boardCount: GREENHOUSE_BOARDS.length,
+      boards: GREENHOUSE_BOARDS
+    },
+    lever: {
+      enabled: LEVER_BOARDS.length > 0,
+      boardCount: LEVER_BOARDS.length,
+      boards: LEVER_BOARDS
+    },
+    remotive: {
+      enabled: REMOTIVE_ENABLED
+    },
+    arbeitnow: {
+      enabled: ARBEITNOW_ENABLED
+    },
+    usajobs: {
+      enabled: Boolean(USAJOBS_API_KEY && USAJOBS_USER_AGENT),
+      hasApiKey: Boolean(USAJOBS_API_KEY),
+      hasUserAgent: Boolean(USAJOBS_USER_AGENT)
+    }
+  };
+}
+
+async function fetchAllSourcesSettled({ title, location, resume }) {
+  return Promise.allSettled([
+    timeoutPromise(fetchAdzunaJobs(title, location, resume), 1400),
+    timeoutPromise(fetchGreenhouseJobs(title, location, resume), 1200),
+    timeoutPromise(fetchLeverJobs(title, location, resume), 1200),
+    timeoutPromise(fetchRemotiveJobs(title, location, resume), 1200),
+    timeoutPromise(fetchArbeitnowJobs(title, location, resume), 1200),
+    timeoutPromise(fetchUsaJobs(title, location, resume), 1600)
+  ]);
+}
+
 async function searchJobsFast({ title, location, resume }) {
   const cacheKey = `${title}::${location}::${resume || ''}`.toLowerCase().trim();
   const cached = jobSearchCache.get(cacheKey);
@@ -440,11 +708,7 @@ async function searchJobsFast({ title, location, resume }) {
     return { jobs: cached.jobs, fromCache: true };
   }
 
-  const settled = await Promise.allSettled([
-    timeoutPromise(fetchAdzunaJobs(title, location, resume), 1400),
-    timeoutPromise(fetchGreenhouseJobs(title, location, resume), 1200),
-    timeoutPromise(fetchLeverJobs(title, location, resume), 1200)
-  ]);
+  const settled = await fetchAllSourcesSettled({ title, location, resume });
 
   const combined = [];
   settled.forEach((r) => {
@@ -453,7 +717,8 @@ async function searchJobsFast({ title, location, resume }) {
     }
   });
 
-  const jobs = dedupeJobs(combined).slice(0, 15);
+  const ranked = rankJobs(dedupeJobs(combined), { title, location });
+  const jobs = ranked.slice(0, 60);
   const finalJobs = jobs.length ? jobs : buildMockJobs(title, location);
 
   jobSearchCache.set(cacheKey, {
@@ -608,53 +873,115 @@ async function parseJobFromAnywhere(rawText, sourceUrl) {
 }
 
 function generateReferralCode() {
-  return Math.random().toString(36).substring(2, 8).toUpperCase();
+  return crypto.randomBytes(4).toString('hex').toUpperCase();
+}
+
+function authFailureMessage(prefix, err) {
+  const fallback = `${prefix} failed`;
+  if (process.env.NODE_ENV === 'production') return fallback;
+  const detail = String(err?.message || '').trim();
+  return detail ? `${fallback}: ${detail}` : fallback;
 }
 
 app.post('/api/auth/signup', async (req, res) => {
   try {
-    const { name, email, password, referralCode } = req.body;
+    const { name, email, password, referralCode } = req.body || {};
+    const normalizedName = String(name || '').trim();
+    const normalizedEmail = String(email || '').trim().toLowerCase();
+    const rawPassword = String(password || '');
+    const normalizedReferralCode = String(referralCode || '').trim().toUpperCase();
 
-    if (await User.findOne({ email })) {
-      return res.status(400).json({ error: 'User already exists' });
+    if (!normalizedName || !normalizedEmail || !rawPassword) {
+      return res.status(400).json({ error: 'Name, email, and password are required' });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    let newReferralCode = generateReferralCode();
-    while (await User.findOne({ referralCode: newReferralCode })) {
-      newReferralCode = generateReferralCode();
+    if (rawPassword.length < 8) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters' });
     }
 
-    const user = await User.create({
-      name,
-      email,
-      password: hashedPassword,
-      isSubscribed: false,
-      plan: 'free',
-      referralCode: newReferralCode,
-      referredBy: referralCode || null
-    });
+    const hashedPassword = await bcrypt.hash(rawPassword, 10);
 
-    if (referralCode) {
-      const refUser = await User.findOne({ referralCode: referralCode.toUpperCase() });
+    let user = null;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        user = await User.create({
+          name: normalizedName,
+          email: normalizedEmail,
+          password: hashedPassword,
+          isSubscribed: false,
+          plan: 'free',
+          referralCode: generateReferralCode(),
+          referredBy: normalizedReferralCode || null
+        });
+        break;
+      } catch (err) {
+        if (err?.code === 11000 && err?.keyPattern?.email) {
+          const existingUser = await User.findOne({ email: normalizedEmail })
+            .select('_id name email password isSubscribed plan referralCode referralCount')
+            .lean();
 
-      if (refUser) {
-        refUser.referralCount += 1;
+          if (existingUser) {
+            const passwordMatches = await bcrypt.compare(rawPassword, existingUser.password);
+            if (passwordMatches) {
+              const token = jwt.sign(
+                { userId: existingUser._id },
+                process.env.JWT_SECRET,
+                { expiresIn: '7d' }
+              );
 
-        if (refUser.referralCount >= 25) {
-          refUser.plan = 'lifetime';
-          refUser.isSubscribed = true;
-        } else if (refUser.referralCount >= 10) {
-          refUser.plan = 'premium';
-          refUser.isSubscribed = true;
-        } else if (refUser.referralCount >= 3) {
-          refUser.plan = 'pro';
-          refUser.isSubscribed = true;
+              return res.json({
+                token,
+                alreadyExisted: true,
+                user: {
+                  _id: existingUser._id,
+                  name: existingUser.name,
+                  email: existingUser.email,
+                  isSubscribed: existingUser.isSubscribed,
+                  plan: existingUser.plan,
+                  referralCode: existingUser.referralCode,
+                  referralCount: existingUser.referralCount
+                }
+              });
+            }
+          }
+
+          return res.status(400).json({ error: 'Account already exists. Try logging in.' });
         }
-
-        await refUser.save();
+        if (err?.code === 11000 && err?.keyPattern?.referralCode && attempt < 2) {
+          continue;
+        }
+        throw err;
       }
+    }
+
+    if (!user) {
+      throw new Error('Failed to create user');
+    }
+
+    if (normalizedReferralCode) {
+      setImmediate(async () => {
+        try {
+          const refUser = await User.findOne({ referralCode: normalizedReferralCode });
+          if (!refUser) return;
+
+          refUser.referralCount += 1;
+
+          if (refUser.referralCount >= 25) {
+            refUser.plan = 'lifetime';
+            refUser.isSubscribed = true;
+          } else if (refUser.referralCount >= 10) {
+            refUser.plan = 'premium';
+            refUser.isSubscribed = true;
+          } else if (refUser.referralCount >= 3) {
+            refUser.plan = 'pro';
+            refUser.isSubscribed = true;
+          }
+
+          await refUser.save();
+        } catch (refErr) {
+          console.error('Referral credit error:', refErr.message);
+        }
+      });
     }
 
     const token = jwt.sign(
@@ -677,20 +1004,29 @@ app.post('/api/auth/signup', async (req, res) => {
     });
   } catch (err) {
     console.error('Signup error:', err);
-    return res.status(500).json({ error: 'Signup failed' });
+    return res.status(500).json({ error: authFailureMessage('Signup', err) });
   }
 });
 
 app.post('/api/auth/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password } = req.body || {};
+    const normalizedEmail = String(email || '').trim().toLowerCase();
+    const rawPassword = String(password || '');
 
-    const user = await User.findOne({ email });
+    if (!normalizedEmail || !rawPassword) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+
+    const user = await User.findOne({ email: normalizedEmail })
+      .select('_id name email password isSubscribed plan referralCode referralCount')
+      .lean();
+
     if (!user) {
       return res.status(400).json({ error: 'Invalid credentials' });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
+    const isMatch = await bcrypt.compare(rawPassword, user.password);
     if (!isMatch) {
       return res.status(400).json({ error: 'Invalid credentials' });
     }
@@ -715,7 +1051,7 @@ app.post('/api/auth/login', async (req, res) => {
     });
   } catch (err) {
     console.error('Login error:', err);
-    return res.status(500).json({ error: 'Login failed' });
+    return res.status(500).json({ error: authFailureMessage('Login', err) });
   }
 });
 
@@ -797,6 +1133,67 @@ app.post('/api/telemetry', async (req, res) => {
   } catch (err) {
     console.error('Telemetry error:', err.message);
     return res.status(500).json({ error: 'Failed to store telemetry' });
+  }
+});
+
+app.get('/api/dashboard/mode-kpis', authenticateToken, async (req, res) => {
+  try {
+    const rawDays = Number(req.query.days || 14);
+    const days = Number.isFinite(rawDays) ? Math.min(Math.max(rawDays, 1), 60) : 14;
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+    const events = await Telemetry.find({
+      userId: req.user.userId,
+      ts: { $gte: since },
+      page: 'dashboard'
+    })
+      .select('event sessionId meta ts')
+      .lean();
+
+    const result = {
+      starter: { searches: 0, oneClickRuns: 0, upgradeClicks: 0, sessions: 0 },
+      power: { searches: 0, oneClickRuns: 0, upgradeClicks: 0, sessions: 0 },
+      unknown: { searches: 0, oneClickRuns: 0, upgradeClicks: 0, sessions: 0 }
+    };
+
+    const allSessions = new Set();
+    const modeSessionMap = {
+      starter: new Set(),
+      power: new Set(),
+      unknown: new Set()
+    };
+
+    events.forEach((evt) => {
+      const modeRaw = String(evt.meta?.mode || '').toLowerCase();
+      const mode = modeRaw === 'starter' || modeRaw === 'power' ? modeRaw : 'unknown';
+      const sid = String(evt.sessionId || '');
+
+      if (sid) {
+        allSessions.add(sid);
+        modeSessionMap[mode].add(sid);
+      }
+
+      const event = String(evt.event || '');
+      if (event === 'find_jobs_success') result[mode].searches += 1;
+      if (event === 'one_click_apply_success') result[mode].oneClickRuns += 1;
+      if (event === 'upgrade_click') result[mode].upgradeClicks += 1;
+    });
+
+    result.starter.sessions = modeSessionMap.starter.size;
+    result.power.sessions = modeSessionMap.power.size;
+    result.unknown.sessions = modeSessionMap.unknown.size;
+
+    return res.json({
+      windowDays: days,
+      totals: {
+        sessions: allSessions.size,
+        events: events.length
+      },
+      byMode: result
+    });
+  } catch (err) {
+    console.error('Mode KPI error:', err.message);
+    return res.status(500).json({ error: 'Failed to load mode KPIs' });
   }
 });
 
@@ -1351,6 +1748,58 @@ app.post('/api/jobs/find', authenticateToken, async (req, res) => {
   }
 });
 
+app.get('/api/jobs/sources-diagnostics', authenticateToken, async (req, res) => {
+  try {
+    const title = String(req.query.title || 'software engineer').trim();
+    const location = String(req.query.location || 'remote').trim();
+    const resume = String(req.query.resume || '');
+
+    const names = ['Adzuna', 'Greenhouse', 'Lever', 'Remotive', 'Arbeitnow', 'USAJobs'];
+    const settled = await fetchAllSourcesSettled({ title, location, resume });
+
+    const sourceStats = names.map((name, idx) => {
+      const result = settled[idx];
+      if (result.status === 'fulfilled' && Array.isArray(result.value)) {
+        return {
+          source: name,
+          ok: true,
+          count: result.value.length,
+          error: null
+        };
+      }
+
+      return {
+        source: name,
+        ok: false,
+        count: 0,
+        error: String(result.reason?.message || 'failed')
+      };
+    });
+
+    const combined = [];
+    settled.forEach((r) => {
+      if (r.status === 'fulfilled' && Array.isArray(r.value)) combined.push(...r.value);
+    });
+
+    const ranked = rankJobs(dedupeJobs(combined), { title, location });
+
+    return res.json({
+      query: { title, location },
+      sourceConfig: getSourceConfigSnapshot(),
+      sourceStats,
+      totals: {
+        raw: combined.length,
+        deduped: ranked.length,
+        returnedCap: Math.min(60, ranked.length)
+      },
+      topSamples: ranked.slice(0, 10)
+    });
+  } catch (err) {
+    console.error('Source diagnostics error:', err);
+    return res.status(500).json({ error: 'Failed to load source diagnostics' });
+  }
+});
+
 app.post('/api/jobs/import', authenticateToken, async (req, res) => {
   try {
     const { jobText, sourceUrl } = req.body;
@@ -1662,16 +2111,8 @@ app.post('/api/auth/forgot-password', async (req, res) => {
 
     const resetUrl = `${process.env.CLIENT_URL}/reset-password.html?token=${token}`;
 
-    await sendEmail({
-      to: user.email,
-      subject: 'Reset your RoleRocket AI password',
-      html: `
-        <h2>Password Reset</h2>
-        <p>Click the link below to reset your password. This link expires in 1 hour.</p>
-        <a href="${resetUrl}" style="background:#7c3aed;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block;">Reset Password</a>
-        <p style="margin-top:16px;color:#888;">If you didn't request this, ignore this email.</p>
-      `
-    });
+    // Respond immediately so the UI is fast; send email in the background.
+    queuePasswordResetEmail({ to: user.email, resetUrl });
 
     return res.json({ message: 'If that email exists, a reset link was sent.' });
   } catch (err) {

@@ -9,24 +9,30 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="true"></div>
   <a class="skip-link" href="#mainContent">Skip to main content</a>
   <div id="offlineBanner" class="offline-banner" role="status" aria-live="polite" hidden>
     You are offline. We will retry automatically when your connection returns.
   </div>
+  <div id="checkoutBanner" class="checkout-banner" role="status" aria-live="polite" hidden></div>
 
   <div class="hero">
-    <h1>Welcome back 👋</h1>
-    <p>Find better jobs, prepare stronger applications, and move faster with assisted 1-click apply.</p>
+    <div class="hero-copy">
+      <h1>Welcome back 👋</h1>
+      <p>Find better jobs, prepare stronger applications, and move faster with assisted 1-click apply.</p>
+    </div>
+    <button id="menuToggleBtn" class="menu-toggle-btn" aria-label="Open navigation menu" aria-expanded="false">&#9776;</button>
   </div>
 
+  <div id="sidebarOverlay" class="sidebar-overlay" aria-hidden="true"></div>
   <div class="layout">
     <div class="sidebar">
       <h2>🚀 RoleRocket AI</h2>
 
-      <button id="proBtn">Upgrade Pro</button>
-      <button id="premiumBtn">Upgrade Premium</button>
-      <button id="eliteBtn">Upgrade Elite</button>
-      <button id="lifetimeBtn" class="lifetime">🔥 Lifetime Access</button>
+      <button id="proBtn">Start Pro</button>
+      <button id="premiumBtn">Unlock Premium</button>
+      <button id="eliteBtn">Activate Elite</button>
+      <button id="lifetimeBtn" class="lifetime">🔥 Claim Lifetime</button>
 
       <hr />
 
@@ -66,7 +72,7 @@
           <div class="plan-pill starter-pill">STARTER</div>
           <h3>Free</h3>
           <div class="price-amount">$0<span>/month</span></div>
-          <p class="price-subtext">Get started and explore the platform.</p>
+          <p class="price-subtext">Start your search system and track every opportunity in one place.</p>
           <ul>
             <li>✔ Job search</li>
             <li>✔ Tracker access</li>
@@ -78,53 +84,53 @@
           <div class="plan-pill popular-pill">MOST POPULAR</div>
           <h3>Pro</h3>
           <div class="price-amount">$19<span>/month</span></div>
-          <p class="price-subtext" id="proSubtext">Unlock job-winning resumes and faster offers.</p>
+          <p class="price-subtext" id="proSubtext">Create tailored resumes and cover letters fast for every target role.</p>
           <ul>
             <li>✔ Resume Generator</li>
             <li>✔ Cover Letter AI</li>
             <li>✔ Job Match Analysis</li>
           </ul>
-          <button id="proUpgradeCta" onclick="upgrade('price_1THMq2KtQrGDcYVPvR3OcRyN')">Upgrade to Pro</button>
+          <button id="proUpgradeCta" onclick="upgrade('price_1THMq2KtQrGDcYVPvR3OcRyN')">Start Pro</button>
         </div>
 
         <div class="price-card premium" data-plan-card="premium">
           <div class="plan-pill premium-pill">SMART TOOLS</div>
           <h3>Premium</h3>
           <div class="price-amount">$39<span>/month</span></div>
-          <p class="price-subtext" id="premiumSubtext">Unlock job-winning resumes and faster offers.</p>
+          <p class="price-subtext" id="premiumSubtext">Move from matching to applying with ATS insights and 1-Click execution.</p>
           <ul>
             <li>✔ ATS Optimizer</li>
             <li>✔ Interview Prep AI</li>
             <li>✔ 1-Click Apply</li>
             <li>✔ AI Resume Rewrite</li>
           </ul>
-          <button id="premiumUpgradeCta" onclick="upgrade('price_1THMqvKtQrGDcYVP6K605mhv')">Upgrade to Premium</button>
+          <button id="premiumUpgradeCta" onclick="upgrade('price_1THMqvKtQrGDcYVP6K605mhv')">Unlock Premium</button>
         </div>
 
         <div class="price-card elite" data-plan-card="elite">
           <div class="plan-pill elite-pill">POWER USER</div>
           <h3>Elite</h3>
           <div class="price-amount">$79<span>/month</span></div>
-          <p class="price-subtext" id="eliteSubtext">Everything in Premium plus deeper guidance and priority access.</p>
+          <p class="price-subtext" id="eliteSubtext">Get live interview support and strategic coaching for high-stakes roles.</p>
           <ul>
             <li>✔ Career Coach AI</li>
             <li>✔ Premium insights</li>
             <li>✔ Priority processing</li>
           </ul>
-          <button id="eliteUpgradeCta" onclick="upgrade('price_1THMraKtQrGDcYVPytIyvklx')">Upgrade to Elite</button>
+          <button id="eliteUpgradeCta" onclick="upgrade('price_1THMraKtQrGDcYVPytIyvklx')">Activate Elite</button>
         </div>
 
         <div class="price-card lifetime" data-plan-card="lifetime">
           <div class="plan-pill founders-pill">🔥 FOUNDERS DEAL</div>
           <h3>Lifetime</h3>
           <div class="price-amount">$199<span> one-time</span></div>
-          <p class="price-subtext">Pay once. Keep access forever.</p>
+          <p class="price-subtext">One payment, permanent access to current and future feature releases.</p>
           <ul>
             <li>✔ Everything included</li>
             <li>✔ No monthly payments</li>
             <li>✔ Future features included</li>
           </ul>
-          <button id="lifetimeUpgradeCta" onclick="lifetime()">Get Lifetime Access</button>
+          <button id="lifetimeUpgradeCta" onclick="lifetime()">Claim Lifetime</button>
         </div>
       </div>
 
@@ -145,6 +151,70 @@
         </div>
       </div>
 
+      <section class="dashboard-mode-shell" aria-label="Dashboard mode controls">
+        <div>
+          <strong>Dashboard mode</strong>
+          <p id="modeSummary" class="mode-summary">Starter mode keeps only core daily actions visible.</p>
+        </div>
+        <div class="mode-toggle" role="group" aria-label="Choose dashboard mode">
+          <button id="starterModeBtn" class="secondary-btn" aria-pressed="true">Starter Mode</button>
+          <button id="powerModeBtn" class="secondary-btn" aria-pressed="false">Power Mode</button>
+        </div>
+      </section>
+
+      <section class="today-rail" aria-label="Today's action rail">
+        <article class="today-card today-primary">
+          <span class="today-kicker">Today</span>
+          <h3 id="todayPrimaryTitle">Start your first high-fit search sprint</h3>
+          <p id="todayPrimaryMeta">Find strong matches in minutes and turn momentum into applications.</p>
+          <button id="todayPrimaryBtn">Start Search</button>
+        </article>
+
+        <article class="today-card today-secondary">
+          <span class="today-kicker">Next Best Move</span>
+          <h3 id="todaySecondaryTitle">Import one role and lock in pipeline momentum</h3>
+          <p id="todaySecondaryMeta">A consistent tracker turns intent into interviews over time.</p>
+          <button id="todaySecondaryBtn" class="secondary-btn">Import Role</button>
+        </article>
+
+        <article class="today-card today-kpi-card">
+          <span class="today-kicker">Mode Impact (14d)</span>
+          <p id="modeKpiSummary">Loading KPI snapshot...</p>
+          <div class="today-kpi-grid">
+            <div>
+              <strong id="modeKpiSessions">0</strong>
+              <span>Sessions</span>
+            </div>
+            <div>
+              <strong id="modeKpiStarter">0%</strong>
+              <span>Starter Search Rate</span>
+            </div>
+            <div>
+              <strong id="modeKpiPower">0%</strong>
+              <span>Power Intent Rate</span>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <div class="saved-resume-bar" id="savedResumeBar">
+        <div class="saved-resume-meta">
+          <span class="saved-resume-label">My Saved Resume</span>
+          <span class="saved-resume-status" id="savedResumeState">Not saved</span>
+          <span class="saved-resume-preview" id="savedResumePreview">No resume saved yet — paste once below and every tool auto-fills.</span>
+        </div>
+        <div class="saved-resume-actions">
+          <button id="toggleSavedResumeFormBtn" class="secondary-btn">Edit Master Resume</button>
+        </div>
+        <div class="saved-resume-edit-wrap" id="savedResumeEditWrap" style="display:none;">
+          <textarea id="masterResumeText" placeholder="Paste your full resume here…" rows="6" aria-label="Master resume text"></textarea>
+          <div class="quick-link-row">
+            <button id="confirmSaveMasterResumeBtn">Save Resume</button>
+            <button id="cancelSavedResumeBtn" class="secondary-btn">Cancel</button>
+          </div>
+        </div>
+      </div>
+
       <div class="grid">
         <div class="card">
           <h3>🔍 Find Jobs</h3>
@@ -153,7 +223,7 @@
           <input id="jobLocation" aria-label="Job location" placeholder="Enter location" />
           <textarea id="jobResume" aria-label="Resume for job matching" placeholder="Paste your resume here for better job matching"></textarea>
 
-          <button id="findJobsBtn">Find Jobs</button>
+          <button id="findJobsBtn">Search Roles</button>
 
           <div class="quick-link-row">
             <button id="linkedinSearchBtn" class="secondary-btn">Search LinkedIn</button>
@@ -195,7 +265,7 @@
             </div>
           </div>
 
-          <button id="oneClickApplyBtn">Run 1-Click Apply</button>
+          <button id="oneClickApplyBtn">Apply Now</button>
           <div id="topJobs"></div>
         </div>
 
@@ -205,12 +275,12 @@
           <input id="importJobUrl" placeholder="Paste job URL (LinkedIn, Indeed, company site, etc.)" />
           <textarea id="importJobText" placeholder="Paste the full job description here"></textarea>
 
-          <button id="importJobBtn">Import Job</button>
+          <button id="importJobBtn">Import Role</button>
 
           <div id="importedJobBox"></div>
         </div>
 
-        <div class="card lockable" data-plan="pro">
+        <div class="card lockable progressive-module" data-plan="pro">
           <div class="lock-badge">🔒 PRO</div>
           <h3>🧠 Resume Generator</h3>
 
@@ -224,11 +294,11 @@
           <textarea id="jobDescription" placeholder="Paste job description here"></textarea>
           <textarea id="resume" placeholder="Paste your resume here"></textarea>
 
-          <button id="generateBtn">Generate Resume</button>
-          <pre id="result"></pre>
+          <button id="generateBtn">Build Resume</button>
+          <div class="ai-output-card" id="result" role="region" aria-label="Generated resume"></div>
         </div>
 
-        <div class="card lockable" data-plan="pro">
+        <div class="card lockable progressive-module" data-plan="pro">
           <div class="lock-badge">🔒 PRO</div>
           <h3>✉️ Cover Letter</h3>
 
@@ -242,11 +312,11 @@
           <textarea id="coverJob" placeholder="Paste job description here for cover letter"></textarea>
           <textarea id="coverResume" placeholder="Paste your resume here for cover letter"></textarea>
 
-          <button id="coverBtn">Generate Cover Letter</button>
-          <pre id="coverResult"></pre>
+          <button id="coverBtn">Build Cover Letter</button>
+          <div class="ai-output-card" id="coverResult" role="region" aria-label="Generated cover letter"></div>
         </div>
 
-        <div class="card lockable" data-plan="pro">
+        <div class="card lockable progressive-module" data-plan="pro">
           <div class="lock-badge">🔒 PRO</div>
           <h3>📊 Job Match</h3>
 
@@ -260,11 +330,11 @@
           <textarea id="matchJob" placeholder="Paste job description here for job match"></textarea>
           <textarea id="matchResume" placeholder="Paste your resume here for job match"></textarea>
 
-          <button id="matchBtn">Analyze Match</button>
-          <pre id="matchResult"></pre>
+          <button id="matchBtn">Score Match</button>
+          <div class="ai-output-card" id="matchResult" role="region" aria-label="Job match result"></div>
         </div>
 
-        <div class="card premium lockable premium-preview-card" data-plan="premium">
+        <div class="card premium lockable premium-preview-card progressive-module" data-plan="premium">
           <div class="lock-badge">🔒 PREMIUM</div>
           <h3>🔥 ATS Optimizer</h3>
           <p>Analyze your resume, find recruiter red flags, and improve your score.</p>
@@ -297,11 +367,11 @@
           </div>
 
           <a href="optimizer.html">
-            <button>Open ATS Tool</button>
+            <button>Launch ATS Tool</button>
           </a>
         </div>
 
-        <div class="card premium lockable premium-preview-card" data-plan="premium">
+        <div class="card premium lockable premium-preview-card progressive-module" data-plan="premium">
           <div class="lock-badge">🔒 PREMIUM</div>
           <h3>🎤 Interview Prep AI</h3>
           <p>Generate tailored interview questions and strong example answers for your target role.</p>
@@ -336,11 +406,11 @@
           <textarea id="interviewRole" placeholder="Enter target role"></textarea>
           <textarea id="interviewJobDescription" placeholder="Paste job description for interview prep"></textarea>
 
-          <button id="interviewPrepBtn">Generate Interview Prep</button>
-          <pre id="interviewPrepResult"></pre>
+          <button id="interviewPrepBtn">Build Interview Prep</button>
+          <div class="ai-output-card" id="interviewPrepResult" role="region" aria-label="Interview prep result"></div>
         </div>
 
-        <div class="card premium lockable premium-preview-card" data-plan="elite">
+        <div class="card premium lockable premium-preview-card progressive-module" data-plan="elite">
           <div class="lock-badge">🔒 ELITE</div>
           <h3>💎 Career Coach AI</h3>
           <p>See what roles pay more, what skills you’re missing, and where you should focus next.</p>
@@ -375,12 +445,12 @@
           <textarea id="careerCoachResume" placeholder="Paste your resume for career coaching"></textarea>
           <textarea id="careerCoachGoals" placeholder="Describe your next role, salary goal, or career target"></textarea>
 
-          <button id="careerCoachBtn">Generate Career Plan</button>
-          <pre id="careerCoachResult"></pre>
+          <button id="careerCoachBtn">Build Career Plan</button>
+          <div class="ai-output-card" id="careerCoachResult" role="region" aria-label="Career plan result"></div>
         </div>
 
         <!-- ─── Interview Assist Mode ──────────────────────────────────── -->
-        <div class="card elite lockable premium-preview-card ia-card" id="interviewAssistSection" data-plan="elite" style="grid-column: 1 / -1;">
+        <div class="card elite lockable premium-preview-card ia-card progressive-module" id="interviewAssistSection" data-plan="elite" style="grid-column: 1 / -1;">
           <div class="lock-badge">🔒 ELITE</div>
           <h3>🎙️ Interview Assist Mode <span class="ia-live-badge">● LIVE</span></h3>
           <p>Type any interview question and get a real-time, coach-crafted answer you can use on the spot.</p>
@@ -420,13 +490,13 @@
             <div id="iaSetupPanel" class="ia-setup" style="display:none;">
               <input id="iaRole" aria-label="Interview Assist role context" placeholder="Your target role (e.g. Senior Product Manager)" />
               <textarea id="iaResume" aria-label="Interview Assist resume context" placeholder="Paste résumé here for personalised answers (optional)" rows="4"></textarea>
-              <button id="iaSaveContext" class="secondary-btn">Save Context</button>
+              <button id="iaSaveContext" class="secondary-btn">Save Interview Context</button>
               <span id="iaContextSaved" class="ia-context-saved" style="display:none;">✓ Context saved</span>
             </div>
 
             <div class="ia-question-area">
               <textarea id="iaQuestion" aria-label="Interview question" placeholder="Type the interview question here…" rows="3"></textarea>
-              <button id="iaSubmitBtn" class="ia-submit-btn">Get Answer ↵</button>
+              <button id="iaSubmitBtn" class="ia-submit-btn">Coach My Answer ↵</button>
             </div>
 
             <div id="iaResponse" class="ia-response" style="display:none;">
@@ -460,7 +530,7 @@
           </ul>
         </div>
 
-        <div class="card" aria-labelledby="roleProfileTitle">
+        <div class="card progressive-module" aria-labelledby="roleProfileTitle">
           <h3 id="roleProfileTitle">🎯 Role Profile</h3>
           <p>Save your target role profile for smarter, adaptive recommendations.</p>
           <input id="rpName" placeholder="Profile name (e.g. PM Track)" aria-label="Profile name" />
@@ -469,24 +539,24 @@
           <input id="rpSalary" placeholder="Salary target (optional)" aria-label="Salary target" />
           <input id="rpSkills" placeholder="Core skills (comma separated)" aria-label="Core skills" />
           <div class="quick-link-row">
-            <button id="saveRoleProfileBtn">Save Profile</button>
-            <button id="loadRoleProfileBtn" class="secondary-btn">Load Latest</button>
+              <button id="saveRoleProfileBtn">Save Target Profile</button>
+              <button id="loadRoleProfileBtn" class="secondary-btn">Load Last Profile</button>
           </div>
           <div id="roleProfileMessage" class="empty-state" aria-live="polite"></div>
         </div>
 
-        <div class="card" aria-labelledby="adaptiveRecTitle">
+        <div class="card progressive-module" aria-labelledby="adaptiveRecTitle">
           <h3 id="adaptiveRecTitle">🧭 Adaptive Recommendations</h3>
           <p>Recommendations adapt to your profile and job pipeline behavior.</p>
-          <button id="refreshAdaptiveBtn">Refresh Recommendations</button>
+          <button id="refreshAdaptiveBtn">Refresh Suggestions</button>
           <div id="adaptiveStats" class="empty-state">No personalization stats loaded yet.</div>
           <ul id="adaptiveList" class="reward-list"></ul>
         </div>
 
-        <div class="card" aria-labelledby="outcomeProofTitle">
+        <div class="card progressive-module" aria-labelledby="outcomeProofTitle">
           <h3 id="outcomeProofTitle">🏆 Outcome Proof Loop</h3>
           <p>Track your interview and offer outcomes against plan cohorts.</p>
-          <button id="refreshOutcomeBtn">Refresh Outcome Proof</button>
+          <button id="refreshOutcomeBtn">Refresh Benchmarks</button>
           <div id="outcomeMine" class="empty-state">No outcome metrics loaded yet.</div>
           <div id="outcomeCohort" class="empty-state">No cohort metrics loaded yet.</div>
         </div>
@@ -571,6 +641,8 @@
     <a href="terms.html">Terms of Service</a>
   </footer>
 
+  <script src="js/api-base.js"></script>
+  <script src="js/auth-storage.js"></script>
   <script src="js/dashboard.js"></script>
 </body>
 </html>
