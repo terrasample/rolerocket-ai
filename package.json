@@ -2,15 +2,12 @@
   "name": "rolerocket-ai",
   "version": "1.0.0",
   "description": "RoleRocket AI job application assistant",
-  "main": "backend/server.js",
   "scripts": {
-    "start": "cd backend && npm install && npm start",
-    "install": "cd backend && npm install"
+    "build": "cd backend && npm install",
+    "start": "node backend/server.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "engines": {
     "node": "18"
   }
 }
+
