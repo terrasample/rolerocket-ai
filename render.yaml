@@ -17,6 +17,8 @@ services:
         sync: false
       - key: JWT_SECRET
         sync: false
+      - key: DB_DIAGNOSTIC_TOKEN
+        sync: false
 
       # ── OpenAI ─────────────────────────────────────────────────────────────
       - key: OPENAI_API_KEY

@@ -118,6 +118,13 @@ const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '')
   .map((v) => v.trim().toLowerCase())
   .filter(Boolean);
 const E2E_MOCK_MODE = process.env.E2E_MOCK === '1';
+const DB_DIAGNOSTIC_TOKEN = String(process.env.DB_DIAGNOSTIC_TOKEN || '').trim();
+
+let lastDbEvent = {
+  type: 'startup',
+  message: 'Mongo not connected yet',
+  at: new Date().toISOString()
+};
 
 app.use(cors());
 
@@ -188,6 +195,49 @@ app.get('/api/health', (_req, res) => {
   return res.json({ ok: true, dbReady, ts: Date.now() });
 });
 
+app.get('/api/health/deep', async (req, res) => {
+  const providedToken = String(req.headers['x-db-diagnostic-token'] || req.query.token || '').trim();
+  if (!DB_DIAGNOSTIC_TOKEN || providedToken !== DB_DIAGNOSTIC_TOKEN) {
+    return res.status(404).json({ error: 'Not found' });
+  }
+
+  const stateMap = {
+    0: 'disconnected',
+    1: 'connected',
+    2: 'connecting',
+    3: 'disconnecting'
+  };
+
+  const response = {
+    ok: true,
+    dbReady: mongoose.connection.readyState === 1,
+    dbState: stateMap[mongoose.connection.readyState] || 'unknown',
+    host: mongoose.connection.host || null,
+    name: mongoose.connection.name || null,
+    lastDbEvent,
+    ts: Date.now()
+  };
+
+  if (!response.dbReady) {
+    return res.status(503).json({
+      ...response,
+      error: 'Database connection is not ready'
+    });
+  }
+
+  try {
+    const pingStart = Date.now();
+    await mongoose.connection.db.admin().ping();
+    response.pingMs = Date.now() - pingStart;
+    return res.json(response);
+  } catch (err) {
+    return res.status(503).json({
+      ...response,
+      error: String(err?.message || 'Ping failed')
+    });
+  }
+});
+
 app.post('/api/waitlist', async (req, res) => {
   try {
     const { name, email, source } = req.body || {};
@@ -237,10 +287,41 @@ function ensureDbReady(res, operation = 'Request') {
 }
 
 if (process.env.NODE_ENV !== 'test') {
+  mongoose.connection.on('connected', () => {
+    lastDbEvent = {
+      type: 'connected',
+      message: 'MongoDB connected',
+      at: new Date().toISOString()
+    };
+  });
+
+  mongoose.connection.on('disconnected', () => {
+    lastDbEvent = {
+      type: 'disconnected',
+      message: 'MongoDB disconnected',
+      at: new Date().toISOString()
+    };
+  });
+
+  mongoose.connection.on('error', (err) => {
+    lastDbEvent = {
+      type: 'error',
+      message: String(err?.message || 'Unknown MongoDB error'),
+      at: new Date().toISOString()
+    };
+  });
+
   mongoose
     .connect(process.env.MONGODB_URI)
     .then(() => console.log('✅ MongoDB connected'))
-    .catch((err) => console.error('❌ MongoDB error:', err));
+    .catch((err) => {
+      lastDbEvent = {
+        type: 'connect-failed',
+        message: String(err?.message || 'Initial MongoDB connect failed'),
+        at: new Date().toISOString()
+      };
+      console.error('❌ MongoDB error:', err);
+    });
 }
 
 const authenticateToken = (req, res, next) => {
