@@ -68,6 +68,33 @@ function queuePasswordResetEmail({ to, resetUrl }) {
   });
 }
 
+function queueWelcomeEmail({ to, name }) {
+  setImmediate(async () => {
+    try {
+      const firstName = String(name || '').trim().split(/\s+/)[0] || 'there';
+      await sendEmail({
+        to,
+        subject: 'Welcome to RoleRocket AI',
+        html: `
+          <div style="font-family:Segoe UI,Arial,sans-serif;color:#0f172a;line-height:1.6;max-width:640px;">
+            <h2 style="margin:0 0 10px;">Welcome to RoleRocket AI, ${firstName}</h2>
+            <p style="margin:0 0 14px;">Your account is live. You can now search roles, tailor your resume, and move faster with smarter applications.</p>
+            <ul style="margin:0 0 18px;padding-left:20px;">
+              <li>Find and save high-fit jobs</li>
+              <li>Generate role-targeted resumes and cover letters</li>
+              <li>Track your full application pipeline</li>
+            </ul>
+            <a href="${process.env.CLIENT_URL}/dashboard.html" style="display:inline-block;background:#0284c7;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:700;">Open RoleRocket AI</a>
+            <p style="margin:18px 0 0;color:#475569;font-size:13px;">Need help? Reply to this email and our team will assist.</p>
+          </div>
+        `
+      });
+    } catch (err) {
+      console.error('Welcome email send failed:', err.message);
+    }
+  });
+}
+
 const { runATSAnalysis } = require('./services/atsScorer');
 
 const User = require('./models/User');
@@ -1089,6 +1116,8 @@ app.post('/api/auth/signup', async (req, res) => {
     if (!user) {
       throw new Error('Failed to create user');
     }
+
+    queueWelcomeEmail({ to: user.email, name: user.name });
 
     if (normalizedReferralCode) {
       setImmediate(async () => {

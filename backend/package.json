@@ -7,7 +7,9 @@
     "start": "node server.js",
     "test": "node tests/core-flows.e2e.js",
     "test:e2e": "node tests/core-flows.e2e.js",
-    "a11y:audit": "node scripts/a11y-audit.js"
+    "a11y:audit": "node scripts/a11y-audit.js",
+    "email:welcome:dry": "node scripts/send-welcome-campaign.js",
+    "email:welcome:live": "node scripts/send-welcome-campaign.js --live"
   },
   "keywords": [],
   "author": "",
