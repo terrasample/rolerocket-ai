@@ -28,6 +28,7 @@ const careerUrgencyNudgeEl = document.getElementById('careerUrgencyNudge');
 let currentUserPlan = 'free';
 let lastFoundJobs = [];
 let abVariant = 'A';
+const localJobSearchCache = new Map();
 
 const API_TIMEOUT_MS = 12000;
 const API_DEFAULT_RETRIES = 1;
@@ -347,6 +348,21 @@ function createImportedJobCard(job) {
   return wrapper;
 }
 
+function renderFoundJobs(jobs = []) {
+  jobsListEl.innerHTML = '';
+  lastFoundJobs = jobs;
+  updateDynamicCoachInsights();
+
+  if (!jobs.length) {
+    jobsListEl.innerHTML = '<div class="empty-state">No jobs found.</div>';
+    return;
+  }
+
+  jobs.forEach((job) => {
+    jobsListEl.appendChild(createSearchJobCard(job));
+  });
+}
+
 function createTopJobCard(job) {
   const wrapper = document.createElement('div');
   wrapper.className = 'mini-job-card';
@@ -501,30 +517,28 @@ document.getElementById('findJobsBtn')?.addEventListener('click', async () => {
   try {
     const title = document.getElementById('jobTitle').value.trim();
     const location = document.getElementById('jobLocation').value.trim();
+    const resume = document.getElementById('jobResume').value;
+    const cacheKey = `${title}::${location}::${(resume || '').slice(0, 300)}`.toLowerCase();
+
+    if (localJobSearchCache.has(cacheKey)) {
+      renderFoundJobs(localJobSearchCache.get(cacheKey));
+      track('find_jobs_local_cache_hit', 'jobs_search');
+      return;
+    }
 
     const data = await api('/api/jobs/find', {
       method: 'POST',
       body: JSON.stringify({
         title,
         location,
-        resume: document.getElementById('jobResume').value
+        resume
       })
-    });
+    }, { retries: 0, timeoutMs: 3500 });
 
-    jobsListEl.innerHTML = '';
-    lastFoundJobs = data.jobs || [];
-    updateDynamicCoachInsights();
-    track('find_jobs_success', 'jobs_search', { count: lastFoundJobs.length, title, location });
-
-    if (!data.jobs || !data.jobs.length) {
-      jobsListEl.innerHTML = '<div class="empty-state">No jobs found.</div>';
-      clearButtonLoading(btn);
-      return;
-    }
-
-    data.jobs.forEach((job) => {
-      jobsListEl.appendChild(createSearchJobCard(job));
-    });
+    const jobs = data.jobs || [];
+    localJobSearchCache.set(cacheKey, jobs);
+    renderFoundJobs(jobs);
+    track('find_jobs_success', 'jobs_search', { count: jobs.length, title, location });
   } catch (err) {
     jobsListEl.innerHTML = `<div class="empty-state">❌ ${err.message}</div>`;
     track('find_jobs_failed', 'jobs_search', { message: err.message });

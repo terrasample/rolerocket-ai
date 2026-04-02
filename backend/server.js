@@ -73,6 +73,7 @@ const LEVER_BOARDS = (process.env.LEVER_BOARDS || '')
 
 const JOB_CACHE_MS = 1000 * 60 * 5;
 const jobSearchCache = new Map();
+const EXTERNAL_FETCH_TIMEOUT_MS = 1200;
 
 app.use(cors());
 
@@ -284,12 +285,28 @@ function estimateMatchScore(title, description, resume = '') {
   return Math.min(score, 95);
 }
 
-async function fetchJson(url, options = {}) {
-  const res = await fetch(url, options);
-  if (!res.ok) {
-    throw new Error(`Fetch failed: ${res.status}`);
+async function fetchJson(url, options = {}, timeoutMs = EXTERNAL_FETCH_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const res = await fetch(url, {
+      ...options,
+      signal: options.signal || controller.signal
+    });
+
+    if (!res.ok) {
+      throw new Error(`Fetch failed: ${res.status}`);
+    }
+    return res.json();
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      throw new Error('Fetch timeout');
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeout);
   }
-  return res.json();
 }
 
 async function fetchAdzunaJobs(title, location, resume) {
@@ -301,7 +318,7 @@ async function fetchAdzunaJobs(title, location, resume) {
     title
   )}&where=${encodeURIComponent(location)}&content-type=application/json`;
 
-  const json = await fetchJson(url);
+  const json = await fetchJson(url, {}, 1200);
   const results = Array.isArray(json.results) ? json.results : [];
 
   return results.map((job) =>
@@ -322,7 +339,7 @@ async function fetchGreenhouseJobs(title, location, resume) {
 
   const boardCalls = GREENHOUSE_BOARDS.map(async (board) => {
     const url = `https://boards-api.greenhouse.io/v1/boards/${encodeURIComponent(board)}/jobs`;
-    const json = await fetchJson(url);
+    const json = await fetchJson(url, {}, 1000);
     const jobs = Array.isArray(json.jobs) ? json.jobs : [];
 
     return jobs
@@ -357,7 +374,7 @@ async function fetchLeverJobs(title, location, resume) {
 
   const boardCalls = LEVER_BOARDS.map(async (board) => {
     const url = `https://api.lever.co/v0/postings/${encodeURIComponent(board)}?mode=json`;
-    const jobs = await fetchJson(url);
+    const jobs = await fetchJson(url, {}, 1000);
 
     return (Array.isArray(jobs) ? jobs : [])
       .filter((job) => {
@@ -395,9 +412,9 @@ async function searchJobsFast({ title, location, resume }) {
   }
 
   const settled = await Promise.allSettled([
-    timeoutPromise(fetchAdzunaJobs(title, location, resume), 3500),
-    timeoutPromise(fetchGreenhouseJobs(title, location, resume), 2500),
-    timeoutPromise(fetchLeverJobs(title, location, resume), 2500)
+    timeoutPromise(fetchAdzunaJobs(title, location, resume), 1400),
+    timeoutPromise(fetchGreenhouseJobs(title, location, resume), 1200),
+    timeoutPromise(fetchLeverJobs(title, location, resume), 1200)
   ]);
 
   const combined = [];
