@@ -876,7 +876,8 @@ function createSearchJobCard(job) {
   viewLink.href = safeUrl(job.link);
   viewLink.target = '_blank';
   viewLink.rel = 'noopener noreferrer';
-  viewLink.textContent = 'View Job';
+  const sourceName = String(job.source || '').trim();
+  viewLink.textContent = sourceName ? `Apply on ${sourceName}` : 'Apply Now';
 
   const saveBtn = document.createElement('button');
   saveBtn.textContent = 'Save Job';
