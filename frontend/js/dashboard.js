@@ -21,8 +21,10 @@ const premiumBtn = document.getElementById('premiumBtn');
 const eliteBtn = document.getElementById('eliteBtn');
 const lifetimeBtn = document.getElementById('lifetimeBtn');
 const planGuideEl = document.getElementById('planGuide');
+const planGuideTierEl = document.getElementById('planGuideTier');
 const planGuideTitleEl = document.getElementById('planGuideTitle');
 const planGuideSubtitleEl = document.getElementById('planGuideSubtitle');
+const planGuideSignalsEl = document.getElementById('planGuideSignals');
 const planGuideAudienceEl = document.getElementById('planGuideAudience');
 const planGuideOutcomeEl = document.getElementById('planGuideOutcome');
 const planGuideNarrativeEl = document.getElementById('planGuideNarrative');
@@ -77,6 +79,7 @@ let activePlanGuide = 'pro';
 
 const PLAN_GUIDE_CONTENT = {
   pro: {
+    tier: 'PRO PLAN',
     title: 'Pro is built for faster application output',
     subtitle: 'Use Pro when your bottleneck is creating strong, customized application materials quickly.',
     audience: 'Job seekers who want stronger resumes and tailored applications without spending hours rewriting from scratch.',
@@ -87,10 +90,12 @@ const PLAN_GUIDE_CONTENT = {
       'Cover Letter AI removes blank-page friction for each application.',
       'Job Match Analysis helps decide which roles deserve your time first.'
     ],
+    signals: ['Application Speed', 'Tailored Output', 'Priority Focus'],
     steps: ['Prioritize best-fit roles', 'Tailor resume fast', 'Generate cover letter', 'Submit with more confidence'],
     jumpLabel: 'Jump to Pro pricing card'
   },
   premium: {
+    tier: 'PREMIUM PLAN',
     title: 'Premium is for people ready to execute at higher volume',
     subtitle: 'Choose Premium when you already know what to apply for and need better speed, quality control, and conversion support.',
     audience: 'Candidates who want ATS optimization, interview prep, and faster application execution on roles already in motion.',
@@ -101,10 +106,12 @@ const PLAN_GUIDE_CONTENT = {
       'Interview Prep AI helps you prepare while opportunities are still warm.',
       '1-Click Apply shortens the jump from ready queue to completed application.'
     ],
+    signals: ['Execution Speed', 'ATS Readiness', 'Interview Lift'],
     steps: ['Audit resume for ATS', 'Strengthen weak bullets', 'Prep likely interview questions', 'Apply from your ready queue'],
     jumpLabel: 'Jump to Premium pricing card'
   },
   elite: {
+    tier: 'ELITE PLAN',
     title: 'Elite is for high-stakes searches and stronger positioning',
     subtitle: 'Elite is best when the target role matters enough that strategy, positioning, and timing all need to improve together.',
     audience: 'Professionals targeting more selective roles, stronger compensation, or a faster climb where strategy matters as much as output.',
@@ -115,10 +122,12 @@ const PLAN_GUIDE_CONTENT = {
       'Premium insights surface where your momentum is strongest.',
       'Priority processing keeps feedback loops tighter when speed matters.'
     ],
+    signals: ['Strategic Depth', 'High-Stakes Support', 'Faster Feedback'],
     steps: ['Refine role strategy', 'Pressure-test positioning', 'Execute on top opportunities', 'Adjust from signal'],
     jumpLabel: 'Jump to Elite pricing card'
   },
   lifetime: {
+    tier: 'LIFETIME ACCESS',
     title: 'Lifetime is the ownership option for long-term use',
     subtitle: 'Choose Lifetime if you want one purchase that covers this search and future transitions without monthly decisions.',
     audience: 'People who expect to use RoleRocket across multiple job changes, promotions, or pivots and want permanent access.',
@@ -129,6 +138,7 @@ const PLAN_GUIDE_CONTENT = {
       'No monthly payments keeps your cost predictable forever.',
       'Future features remain included as the product expands.'
     ],
+    signals: ['One-Time Purchase', 'Permanent Access', 'Future Releases'],
     steps: ['Buy once', 'Keep all paid tools active', 'Use RoleRocket for every future search', 'Avoid subscription churn'],
     jumpLabel: 'Jump to Lifetime pricing card'
   }
@@ -177,12 +187,15 @@ function renderPlanGuide(plan) {
 
   if (!planGuideEl) return;
 
+  planGuideEl.dataset.planTheme = nextPlan;
+  planGuideTierEl.textContent = content.tier;
   planGuideTitleEl.textContent = content.title;
   planGuideSubtitleEl.textContent = content.subtitle;
   planGuideAudienceEl.textContent = content.audience;
   planGuideOutcomeEl.textContent = content.outcome;
   planGuideNarrativeEl.textContent = content.narrative;
   planGuideJumpBtn.textContent = content.jumpLabel;
+  planGuideSignalsEl.innerHTML = content.signals.map((item) => `<span class="plan-guide-signal">${escapeHtml(item)}</span>`).join('');
   planGuideBulletsEl.innerHTML = content.bullets.map((item) => `<li>${escapeHtml(item)}</li>`).join('');
   planGuideStepsEl.innerHTML = content.steps.map((item) => `<span>${escapeHtml(item)}</span>`).join('');
 

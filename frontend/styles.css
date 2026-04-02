@@ -330,6 +330,26 @@ body[data-dashboard-mode='starter'] .progressive-module {
   overflow: hidden;
 }
 
+.plan-guide[data-plan-theme='pro'] {
+  --plan-guide-accent: #0ea5e9;
+  --plan-guide-accent-soft: rgba(14, 165, 233, 0.12);
+}
+
+.plan-guide[data-plan-theme='premium'] {
+  --plan-guide-accent: #0284c7;
+  --plan-guide-accent-soft: rgba(2, 132, 199, 0.12);
+}
+
+.plan-guide[data-plan-theme='elite'] {
+  --plan-guide-accent: #0f172a;
+  --plan-guide-accent-soft: rgba(15, 23, 42, 0.14);
+}
+
+.plan-guide[data-plan-theme='lifetime'] {
+  --plan-guide-accent: #d97706;
+  --plan-guide-accent-soft: rgba(217, 119, 6, 0.14);
+}
+
 .plan-guide::before {
   content: '';
   position: absolute;
@@ -337,6 +357,18 @@ body[data-dashboard-mode='starter'] .progressive-module {
   width: 180px;
   height: 180px;
   background: radial-gradient(circle, rgba(14, 165, 233, 0.18), transparent 68%);
+  pointer-events: none;
+}
+
+.plan-guide::after {
+  content: '';
+  position: absolute;
+  inset: auto 24px 0 auto;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--plan-guide-accent-soft, rgba(14, 165, 233, 0.12)), transparent 70%);
+  filter: blur(4px);
   pointer-events: none;
 }
 
@@ -354,6 +386,7 @@ body[data-dashboard-mode='starter'] .progressive-module {
   margin: 4px 0 8px;
   font-size: 1.9rem;
   letter-spacing: -0.02em;
+  max-width: 780px;
 }
 
 .plan-guide-head p {
@@ -361,6 +394,53 @@ body[data-dashboard-mode='starter'] .progressive-module {
   color: #475569;
   max-width: 760px;
   line-height: 1.6;
+}
+
+.plan-guide-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 2px 0 10px;
+}
+
+.plan-guide-tier {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(239, 246, 255, 0.96));
+  border: 1px solid rgba(191, 219, 254, 0.95);
+  color: var(--plan-guide-accent, #0ea5e9);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.05);
+}
+
+.plan-guide-signals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 18px;
+  position: relative;
+  z-index: 1;
+}
+
+.plan-guide-signal {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(203, 213, 225, 0.8);
+  color: #0f172a;
+  font-size: 0.82rem;
+  font-weight: 700;
+  box-shadow: 0 10px 18px rgba(15, 23, 42, 0.04);
 }
 
 .plan-guide-grid {
@@ -383,6 +463,18 @@ body[data-dashboard-mode='starter'] .progressive-module {
   box-shadow:
     0 14px 28px rgba(15, 23, 42, 0.05),
     inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  transition:
+    transform 0.22s ease,
+    box-shadow 0.22s ease,
+    border-color 0.22s ease;
+}
+
+.plan-guide-panel:hover {
+  transform: translateY(-3px);
+  border-color: rgba(148, 163, 184, 0.42);
+  box-shadow:
+    0 20px 34px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.86);
 }
 
 .plan-guide-panel-top {
@@ -399,11 +491,12 @@ body[data-dashboard-mode='starter'] .progressive-module {
   width: 34px;
   height: 34px;
   border-radius: 999px;
-  background: linear-gradient(135deg, #dbeafe, #eff6ff);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--plan-guide-accent, #0ea5e9) 12%, white), #eff6ff);
   border: 1px solid rgba(148, 163, 184, 0.24);
-  color: #0c4a6e;
+  color: var(--plan-guide-accent, #0c4a6e);
   font-size: 0.95rem;
   font-weight: 800;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .plan-guide-panel strong {
@@ -451,6 +544,12 @@ body[data-dashboard-mode='starter'] .progressive-module {
   color: #e0f2fe;
 }
 
+.plan-guide-panel-accent .plan-guide-workflow-copy,
+.plan-guide-panel-accent .plan-guide-outcome {
+  color: #dbeafe;
+  border-top-color: rgba(224, 242, 254, 0.16);
+}
+
 .plan-guide-list {
   margin: 2px 0 0;
   padding-left: 18px;
@@ -478,6 +577,13 @@ body[data-dashboard-mode='starter'] .progressive-module {
   font-size: 0.9rem;
   font-weight: 600;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.plan-guide-steps span::before {
+  content: '•';
+  margin-right: 10px;
+  color: var(--plan-guide-accent, #0ea5e9);
+  font-size: 1rem;
 }
 
 .plan-guide-workflow-copy {
@@ -1564,6 +1670,10 @@ pre {
 
   .plan-guide-head {
     flex-direction: column;
+  }
+
+  .plan-guide-signals {
+    gap: 8px;
   }
 
   .plan-guide-steps {
