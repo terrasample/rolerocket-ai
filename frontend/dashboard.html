@@ -205,6 +205,13 @@
         </div>
         <div class="saved-resume-actions">
           <button id="toggleSavedResumeFormBtn" class="secondary-btn">Edit Master Resume</button>
+          <button id="uploadResumeBtn" class="secondary-btn" type="button">Upload Resume File</button>
+          <input
+            id="resumeUploadInput"
+            type="file"
+            accept=".txt,.md,.rtf,text/plain,text/markdown,application/rtf"
+            style="display:none;"
+          />
         </div>
         <div class="saved-resume-edit-wrap" id="savedResumeEditWrap" style="display:none;">
           <textarea id="masterResumeText" placeholder="Paste your full resume here…" rows="6" aria-label="Master resume text"></textarea>

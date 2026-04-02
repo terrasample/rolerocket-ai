@@ -248,10 +248,33 @@ async function saveMasterResume(content) {
   });
 }
 
+async function extractResumeTextFromFile(file) {
+  if (!file) throw new Error('Choose a file to upload.');
+
+  const name = String(file.name || '').toLowerCase();
+  const supportsTextRead =
+    String(file.type || '').startsWith('text/') || /\.(txt|md|rtf)$/.test(name);
+
+  if (!supportsTextRead) {
+    throw new Error('Only TXT, MD, and RTF files are supported for upload right now.');
+  }
+
+  const raw = await file.text();
+  const cleaned = String(raw || '').replace(/\u0000/g, '').trim();
+
+  if (!cleaned) {
+    throw new Error('That file is empty. Please choose another resume file.');
+  }
+
+  return cleaned;
+}
+
 function initSavedResumeManager() {
   const toggleBtn = document.getElementById('toggleSavedResumeFormBtn');
   const confirmBtn = document.getElementById('confirmSaveMasterResumeBtn');
   const cancelBtn = document.getElementById('cancelSavedResumeBtn');
+  const uploadBtn = document.getElementById('uploadResumeBtn');
+  const uploadInput = document.getElementById('resumeUploadInput');
   const editWrap = document.getElementById('savedResumeEditWrap');
   const input = document.getElementById('masterResumeText');
   const previewEl = document.getElementById('savedResumePreview');
@@ -306,6 +329,41 @@ function initSavedResumeManager() {
       clearButtonLoading(confirmBtn);
     }
   });
+
+  if (uploadBtn && uploadInput) {
+    uploadBtn.addEventListener('click', () => {
+      uploadInput.click();
+    });
+
+    uploadInput.addEventListener('change', async () => {
+      const file = uploadInput.files && uploadInput.files[0] ? uploadInput.files[0] : null;
+      if (!file) return;
+
+      setButtonLoading(uploadBtn, 'Uploading...');
+
+      try {
+        const content = await extractResumeTextFromFile(file);
+        await saveMasterResume(content);
+        applyResumeToAllFields(content);
+        input.value = content;
+
+        const preview = content.slice(0, 90).replace(/\n/g, ' ') + (content.length > 90 ? '...' : '');
+        if (previewEl) previewEl.textContent = preview;
+        if (stateEl) stateEl.textContent = 'Saved';
+
+        showToast('Resume uploaded and auto-filled across all tools.');
+        track('saved_resume_uploaded', 'personalization', {
+          chars: content.length,
+          ext: String(file.name || '').split('.').pop() || 'unknown'
+        });
+      } catch (err) {
+        showToast(`Resume upload failed: ${err.message}`, 'error');
+      } finally {
+        uploadInput.value = '';
+        clearButtonLoading(uploadBtn);
+      }
+    });
+  }
 }
 
 function initMobileSidebar() {
@@ -768,6 +826,31 @@ function encodeJob(job) {
   return encodeURIComponent(JSON.stringify(job));
 }
 
+function formatPostedAgo(postedAt) {
+  if (!postedAt) return 'Posted date unavailable';
+
+  const parsed = new Date(postedAt);
+  if (Number.isNaN(parsed.getTime())) return 'Posted date unavailable';
+
+  const deltaMs = Date.now() - parsed.getTime();
+  if (deltaMs < 0) return 'Posted just now';
+
+  const minutes = Math.floor(deltaMs / 60000);
+  if (minutes < 60) return minutes <= 1 ? 'Posted 1 minute ago' : `Posted ${minutes} minutes ago`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return hours === 1 ? 'Posted 1 hour ago' : `Posted ${hours} hours ago`;
+
+  const days = Math.floor(hours / 24);
+  if (days < 30) return days === 1 ? 'Posted 1 day ago' : `Posted ${days} days ago`;
+
+  const months = Math.floor(days / 30);
+  if (months < 12) return months === 1 ? 'Posted 1 month ago' : `Posted ${months} months ago`;
+
+  const years = Math.floor(months / 12);
+  return years === 1 ? 'Posted 1 year ago' : `Posted ${years} years ago`;
+}
+
 function createSearchJobCard(job) {
   const wrapper = document.createElement('div');
   wrapper.className = 'mini-job-card';
@@ -782,6 +865,9 @@ function createSearchJobCard(job) {
   matchEl.textContent = `🔥 Match: ${job.matchScore || 0}%`;
   const sourceEl = document.createElement('small');
   sourceEl.textContent = `Source: ${job.source || 'Imported'}`;
+  const postedEl = document.createElement('small');
+  postedEl.className = 'job-posted-age';
+  postedEl.textContent = formatPostedAgo(job.postedAt || job.createdAt);
 
   const actionsDiv = document.createElement('div');
   actionsDiv.className = 'job-card-actions';
@@ -809,7 +895,7 @@ function createSearchJobCard(job) {
   actionsDiv.append(viewLink, saveBtn, oneClickBtn, linkedinLink);
 
   const br = () => document.createElement('br');
-  wrapper.append(titleEl, br(), companyEl, br(), locationEl, br(), matchEl, br(), sourceEl, br(), br(), actionsDiv);
+  wrapper.append(titleEl, br(), companyEl, br(), locationEl, br(), matchEl, br(), sourceEl, br(), postedEl, br(), br(), actionsDiv);
 
   return wrapper;
 }
@@ -828,6 +914,9 @@ function createImportedJobCard(job) {
   matchEl.textContent = `🔥 Match: ${job.matchScore || 0}%`;
   const sourceEl = document.createElement('small');
   sourceEl.textContent = `Source: ${job.source || 'Imported Job'}`;
+  const postedEl = document.createElement('small');
+  postedEl.className = 'job-posted-age';
+  postedEl.textContent = formatPostedAgo(job.postedAt || job.createdAt);
 
   const actionsDiv = document.createElement('div');
   actionsDiv.className = 'job-card-actions';
@@ -855,7 +944,7 @@ function createImportedJobCard(job) {
   actionsDiv.append(viewLink, saveBtn, oneClickBtn, linkedinLink);
 
   const br = () => document.createElement('br');
-  wrapper.append(titleEl, br(), companyEl, br(), locationEl, br(), matchEl, br(), sourceEl, br(), br(), actionsDiv);
+  wrapper.append(titleEl, br(), companyEl, br(), locationEl, br(), matchEl, br(), sourceEl, br(), postedEl, br(), br(), actionsDiv);
 
   return wrapper;
 }
@@ -887,9 +976,12 @@ function createTopJobCard(job) {
   urgencyEl.textContent = `⚡ Urgency: ${job.urgencyLabel || 'Unknown'}`;
   const matchEl = document.createElement('small');
   matchEl.textContent = `🔥 Match: ${job.matchScore || 0}%`;
+  const postedEl = document.createElement('small');
+  postedEl.className = 'job-posted-age';
+  postedEl.textContent = formatPostedAgo(job.postedAt || job.createdAt);
 
   const br = () => document.createElement('br');
-  wrapper.append(titleEl, br(), companyEl, br(), urgencyEl, br(), matchEl);
+  wrapper.append(titleEl, br(), companyEl, br(), urgencyEl, br(), matchEl, br(), postedEl);
 
   return wrapper;
 }

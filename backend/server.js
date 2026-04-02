@@ -2288,16 +2288,25 @@ app.post('/api/auth/reset-password', async (req, res) => {
 // ─── Stripe Customer Portal ──────────────────────────────────────────────────
 app.post('/api/create-portal-session', authenticateToken, async (req, res) => {
   try {
-    const user = await User.findById(req.user.userId).select('email');
+    const user = await User.findById(req.user.userId).select('email name');
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-    if (!customers.data.length) {
-      return res.status(400).json({ error: 'No Stripe customer found for this account' });
+    let customerId = customers.data[0]?.id;
+
+    if (!customerId) {
+      const createdCustomer = await stripe.customers.create({
+        email: user.email,
+        name: user.name || undefined,
+        metadata: {
+          userId: String(req.user.userId)
+        }
+      });
+      customerId = createdCustomer.id;
     }
 
     const session = await stripe.billingPortal.sessions.create({
-      customer: customers.data[0].id,
+      customer: customerId,
       return_url: `${process.env.CLIENT_URL}/dashboard.html`
     });
 

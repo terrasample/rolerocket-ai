@@ -708,6 +708,11 @@ pre {
   background: linear-gradient(180deg, #ffffff 0%, #fafcff 100%);
 }
 
+.job-posted-age {
+  color: #475569;
+  font-weight: 600;
+}
+
 .tracker-job-card {
   min-height: auto;
 }
