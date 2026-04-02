@@ -55,6 +55,16 @@
           <button id="signupSubmitBtn" type="submit" class="auth-submit-btn">Create Free Account</button>
         </form>
 
+        <div id="signupWaitlistBox" class="auth-waitlist-box" style="display:none;">
+          <p><strong>Signup is temporarily unavailable.</strong> Leave your email and we will prioritize your access.</p>
+          <form id="signupWaitlistForm" class="auth-form">
+            <input id="signupWaitlistName" type="text" placeholder="Name (optional)" />
+            <input id="signupWaitlistEmail" type="email" placeholder="Email" required />
+            <button id="signupWaitlistBtn" type="submit" class="auth-submit-btn">Join Priority Waitlist</button>
+          </form>
+          <div id="signupWaitlistMessage" class="auth-message" role="status" aria-live="polite"></div>
+        </div>
+
         <div id="signupMessage" class="auth-message" role="status" aria-live="polite"></div>
 
         <p class="auth-footer">
@@ -107,6 +117,12 @@
     const signupForm = document.getElementById('signupForm');
     const signupMessage = document.getElementById('signupMessage');
     const signupSubmitBtn = document.getElementById('signupSubmitBtn');
+    const signupWaitlistBox = document.getElementById('signupWaitlistBox');
+    const signupWaitlistForm = document.getElementById('signupWaitlistForm');
+    const signupWaitlistName = document.getElementById('signupWaitlistName');
+    const signupWaitlistEmail = document.getElementById('signupWaitlistEmail');
+    const signupWaitlistBtn = document.getElementById('signupWaitlistBtn');
+    const signupWaitlistMessage = document.getElementById('signupWaitlistMessage');
 
     const params = new URLSearchParams(window.location.search);
     const referral = params.get('ref');
@@ -175,6 +191,42 @@
         clearTimeout(timeout);
       }
     }
+
+    function showSignupWaitlist(email, name) {
+      signupWaitlistBox.style.display = 'block';
+      if (email) signupWaitlistEmail.value = email;
+      if (name && !signupWaitlistName.value) signupWaitlistName.value = name;
+    }
+
+    signupWaitlistForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = signupWaitlistEmail.value.trim().toLowerCase();
+      const name = signupWaitlistName.value.trim();
+      if (!email) {
+        signupWaitlistMessage.textContent = 'Enter an email.';
+        return;
+      }
+
+      signupWaitlistBtn.disabled = true;
+      signupWaitlistBtn.textContent = 'Saving...';
+      signupWaitlistMessage.textContent = 'Saving your request...';
+
+      try {
+        const res = await fetch(apiUrl('/api/waitlist'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, source: 'signup' })
+        });
+        const data = await safeJson(res);
+        if (!res.ok) throw new Error(data.error || 'Could not save waitlist');
+        signupWaitlistMessage.textContent = 'You are on the priority waitlist. We will contact you as soon as signup is restored.';
+      } catch (err) {
+        signupWaitlistMessage.textContent = `Could not save waitlist: ${err.message}`;
+      } finally {
+        signupWaitlistBtn.disabled = false;
+        signupWaitlistBtn.textContent = 'Join Priority Waitlist';
+      }
+    });
 
     signupForm.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -256,6 +308,10 @@
           failMsg = `❌ ${err.message || 'Unknown error'} — API: ${apiTarget}`;
         }
         signupMessage.textContent = failMsg;
+
+        if (String(err.message || '').toLowerCase().includes('temporarily unavailable')) {
+          showSignupWaitlist(email, name);
+        }
       } finally {
         clearTimeout(slowHint);
         signupSubmitBtn.disabled = false;

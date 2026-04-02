@@ -52,6 +52,16 @@
           <button id="loginSubmitBtn" type="submit" class="auth-submit-btn">Log In</button>
         </form>
 
+        <div id="loginWaitlistBox" class="auth-waitlist-box" style="display:none;">
+          <p><strong>Auth is temporarily down.</strong> Leave your email and we will prioritize your access.</p>
+          <form id="loginWaitlistForm" class="auth-form">
+            <input id="loginWaitlistName" type="text" placeholder="Name (optional)" />
+            <input id="loginWaitlistEmail" type="email" placeholder="Email" required />
+            <button id="loginWaitlistBtn" type="submit" class="auth-submit-btn">Join Priority Waitlist</button>
+          </form>
+          <div id="loginWaitlistMessage" class="auth-message" role="status" aria-live="polite"></div>
+        </div>
+
         <div id="loginMessage" class="auth-message" role="status" aria-live="polite"></div>
 
         <p class="auth-footer">          <a href="forgot-password.html" style="color:#7c3aed;font-size:0.9rem;">Forgot password?</a>
@@ -89,6 +99,48 @@
     const form = document.getElementById('loginForm');
     const message = document.getElementById('loginMessage');
     const submitBtn = document.getElementById('loginSubmitBtn');
+    const waitlistBox = document.getElementById('loginWaitlistBox');
+    const waitlistForm = document.getElementById('loginWaitlistForm');
+    const waitlistName = document.getElementById('loginWaitlistName');
+    const waitlistEmail = document.getElementById('loginWaitlistEmail');
+    const waitlistBtn = document.getElementById('loginWaitlistBtn');
+    const waitlistMessage = document.getElementById('loginWaitlistMessage');
+
+    function showWaitlistFallback(email) {
+      waitlistBox.style.display = 'block';
+      if (email) waitlistEmail.value = email;
+      if (!waitlistName.value) waitlistName.focus();
+    }
+
+    waitlistForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = waitlistEmail.value.trim().toLowerCase();
+      const name = waitlistName.value.trim();
+      if (!email) {
+        waitlistMessage.textContent = 'Enter an email.';
+        return;
+      }
+
+      waitlistBtn.disabled = true;
+      waitlistBtn.textContent = 'Saving...';
+      waitlistMessage.textContent = 'Saving your request...';
+
+      try {
+        const res = await fetch(apiUrl('/api/waitlist'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, source: 'login' })
+        });
+        const data = safeJson(await res.text());
+        if (!res.ok) throw new Error(data.error || 'Could not save waitlist');
+        waitlistMessage.textContent = 'You are on the priority waitlist. We will contact you as soon as auth is restored.';
+      } catch (err) {
+        waitlistMessage.textContent = `Could not save waitlist: ${err.message}`;
+      } finally {
+        waitlistBtn.disabled = false;
+        waitlistBtn.textContent = 'Join Priority Waitlist';
+      }
+    });
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -140,6 +192,10 @@
           message.textContent = `Cannot reach server. Is http://localhost:5000 running? (API: ${apiTarget})`;
         } else {
           message.textContent = `❌ ${err.message || 'Login failed'} — API: ${apiTarget}`;
+        }
+
+        if (String(err.message || '').toLowerCase().includes('temporarily unavailable')) {
+          showWaitlistFallback(email);
         }
       } finally {
         clearTimeout(timeout);

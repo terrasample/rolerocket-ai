@@ -188,6 +188,47 @@ app.get('/api/health', (_req, res) => {
   return res.json({ ok: true, dbReady, ts: Date.now() });
 });
 
+app.post('/api/waitlist', async (req, res) => {
+  try {
+    const { name, email, source } = req.body || {};
+    const normalizedName = String(name || '').trim();
+    const normalizedEmail = String(email || '').trim().toLowerCase();
+    const normalizedSource = String(source || 'auth-outage').trim();
+
+    if (!normalizedEmail || !/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
+      return res.status(400).json({ error: 'Valid email is required' });
+    }
+
+    console.warn('Waitlist lead captured:', {
+      name: normalizedName || null,
+      email: normalizedEmail,
+      source: normalizedSource,
+      ts: new Date().toISOString()
+    });
+
+    if (ADMIN_EMAILS.length > 0) {
+      sendEmail({
+        to: ADMIN_EMAILS.join(','),
+        subject: 'New waitlist lead captured',
+        html: `
+          <h3>RoleRocket waitlist lead</h3>
+          <p><strong>Name:</strong> ${normalizedName || '(not provided)'}</p>
+          <p><strong>Email:</strong> ${normalizedEmail}</p>
+          <p><strong>Source:</strong> ${normalizedSource}</p>
+          <p><strong>Time:</strong> ${new Date().toISOString()}</p>
+        `
+      }).catch((err) => {
+        console.warn('Waitlist notify email failed:', err.message);
+      });
+    }
+
+    return res.json({ ok: true, message: 'You are on the priority waitlist.' });
+  } catch (err) {
+    console.error('Waitlist capture error:', err);
+    return res.status(500).json({ error: 'Could not capture waitlist right now' });
+  }
+});
+
 function ensureDbReady(res, operation = 'Request') {
   if (mongoose.connection.readyState === 1) return true;
   return res.status(503).json({
