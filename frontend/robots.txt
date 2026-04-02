@@ -1,0 +1,22 @@
+User-agent: *
+Allow: /
+Allow: /index.html
+Allow: /signup.html
+Allow: /login.html
+Allow: /privacy.html
+Allow: /terms.html
+Allow: /forgot-password.html
+Allow: /styles.css
+Allow: /sitemap.xml
+
+# Block private authenticated pages
+Disallow: /dashboard.html
+Disallow: /account.html
+Disallow: /analytics.html
+Disallow: /optimizer.html
+Disallow: /reset-password.html
+
+# Block API endpoints
+Disallow: /api/
+
+Sitemap: https://www.rolerocketai.com/sitemap.xml
