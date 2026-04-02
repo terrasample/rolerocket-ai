@@ -32,6 +32,7 @@
 
       <p id="planBadge">Free Plan</p>
 
+      <button id="analyticsBtn">📈 Analytics</button>
       <button id="billingBtn">💳 Manage Billing</button>
       <button id="accountBtn">👤 Account</button>
       <button id="logoutBtn">Logout</button>
@@ -40,16 +41,16 @@
     <div class="main" id="mainContent" tabindex="-1">
       <section class="trust-strip" aria-label="Social proof and security">
         <div class="trust-metric">
-          <strong>12,800+</strong>
+          <strong id="proofApplications">12,800+</strong>
           <span>Applications tracked</span>
         </div>
         <div class="trust-metric">
-          <strong>3.1x</strong>
-          <span>Faster interview prep cycles</span>
+          <strong id="proofInterviewRate">3.1x</strong>
+          <span>Interview conversion multiplier</span>
         </div>
         <div class="trust-metric">
-          <strong>94%</strong>
-          <span>Users report stronger interview confidence</span>
+          <strong id="proofOfferRate">94%</strong>
+          <span>Offer conversion signal</span>
         </div>
         <div class="trust-security">
           <span>🔒 Stripe-secure billing</span>
@@ -457,6 +458,37 @@
             <li>10 invites → Premium</li>
             <li>25 invites → Lifetime 🔥</li>
           </ul>
+        </div>
+
+        <div class="card" aria-labelledby="roleProfileTitle">
+          <h3 id="roleProfileTitle">🎯 Role Profile</h3>
+          <p>Save your target role profile for smarter, adaptive recommendations.</p>
+          <input id="rpName" placeholder="Profile name (e.g. PM Track)" aria-label="Profile name" />
+          <input id="rpRole" placeholder="Target role (e.g. Senior Project Manager)" aria-label="Target role" />
+          <input id="rpLocation" placeholder="Target location" aria-label="Target location" />
+          <input id="rpSalary" placeholder="Salary target (optional)" aria-label="Salary target" />
+          <input id="rpSkills" placeholder="Core skills (comma separated)" aria-label="Core skills" />
+          <div class="quick-link-row">
+            <button id="saveRoleProfileBtn">Save Profile</button>
+            <button id="loadRoleProfileBtn" class="secondary-btn">Load Latest</button>
+          </div>
+          <div id="roleProfileMessage" class="empty-state" aria-live="polite"></div>
+        </div>
+
+        <div class="card" aria-labelledby="adaptiveRecTitle">
+          <h3 id="adaptiveRecTitle">🧭 Adaptive Recommendations</h3>
+          <p>Recommendations adapt to your profile and job pipeline behavior.</p>
+          <button id="refreshAdaptiveBtn">Refresh Recommendations</button>
+          <div id="adaptiveStats" class="empty-state">No personalization stats loaded yet.</div>
+          <ul id="adaptiveList" class="reward-list"></ul>
+        </div>
+
+        <div class="card" aria-labelledby="outcomeProofTitle">
+          <h3 id="outcomeProofTitle">🏆 Outcome Proof Loop</h3>
+          <p>Track your interview and offer outcomes against plan cohorts.</p>
+          <button id="refreshOutcomeBtn">Refresh Outcome Proof</button>
+          <div id="outcomeMine" class="empty-state">No outcome metrics loaded yet.</div>
+          <div id="outcomeCohort" class="empty-state">No cohort metrics loaded yet.</div>
         </div>
       </div>
 

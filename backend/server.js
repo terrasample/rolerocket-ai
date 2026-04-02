@@ -42,6 +42,7 @@ const User = require('./models/User');
 const Resume = require('./models/Resume');
 const Job = require('./models/Job');
 const Telemetry = require('./models/Telemetry');
+const RoleProfile = require('./models/RoleProfile');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -75,6 +76,11 @@ const JOB_CACHE_MS = 1000 * 60 * 5;
 const jobSearchCache = new Map();
 const EXTERNAL_FETCH_TIMEOUT_MS = 1200;
 const jobSearchInFlight = new Map();
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '')
+  .split(',')
+  .map((v) => v.trim().toLowerCase())
+  .filter(Boolean);
+const E2E_MOCK_MODE = process.env.E2E_MOCK === '1';
 
 app.use(cors());
 
@@ -132,10 +138,12 @@ app.post(
 app.use(express.json({ limit: '2mb' }));
 app.use(express.static(path.join(__dirname, '../frontend')));
 
-mongoose
-  .connect(process.env.MONGODB_URI)
-  .then(() => console.log('✅ MongoDB connected'))
-  .catch((err) => console.error('❌ MongoDB error:', err));
+if (process.env.NODE_ENV !== 'test') {
+  mongoose
+    .connect(process.env.MONGODB_URI)
+    .then(() => console.log('✅ MongoDB connected'))
+    .catch((err) => console.error('❌ MongoDB error:', err));
+}
 
 const authenticateToken = (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];
@@ -161,6 +169,26 @@ const authenticateToken = (req, res, next) => {
     return res.status(403).json({ error: 'Invalid token' });
   }
 };
+
+async function requireAnalyticsAccess(req, res, next) {
+  try {
+    const user = await User.findById(req.user.userId).select('email plan');
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const email = String(user.email || '').toLowerCase();
+    const isAdminEmail = ADMIN_EMAILS.length ? ADMIN_EMAILS.includes(email) : false;
+    const allowByPlan = !ADMIN_EMAILS.length && hasRequiredPlan(user, 'elite');
+
+    if (!isAdminEmail && !allowByPlan) {
+      return res.status(403).json({ error: 'Analytics access denied' });
+    }
+
+    req.currentUser = user;
+    return next();
+  } catch (err) {
+    return res.status(500).json({ error: 'Access check failed' });
+  }
+}
 
 function normalizePlan(plan) {
   const allowedPlans = new Set(['free', 'pro', 'premium', 'elite', 'lifetime']);
@@ -772,6 +800,257 @@ app.post('/api/telemetry', async (req, res) => {
   }
 });
 
+app.get('/api/admin/telemetry/summary', authenticateToken, requireAnalyticsAccess, async (req, res) => {
+  try {
+    const rawDays = Number(req.query.days || 7);
+    const days = Number.isFinite(rawDays) ? Math.min(Math.max(rawDays, 1), 90) : 7;
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+    const [events, users, jobs] = await Promise.all([
+      Telemetry.find({ ts: { $gte: since } }).select('event funnel ts variant').lean(),
+      User.find({}).select('_id plan createdAt').lean(),
+      Job.find({ createdAt: { $gte: since } }).select('userId status createdAt').lean()
+    ]);
+
+    const eventCounts = {};
+    const funnelCounts = {};
+    const daily = {};
+
+    events.forEach((evt) => {
+      const event = evt.event || 'unknown';
+      const funnel = evt.funnel || 'uncategorized';
+      const day = new Date(evt.ts || Date.now()).toISOString().slice(0, 10);
+
+      eventCounts[event] = (eventCounts[event] || 0) + 1;
+      funnelCounts[funnel] = (funnelCounts[funnel] || 0) + 1;
+      daily[day] = (daily[day] || 0) + 1;
+    });
+
+    const usersByPlan = { free: 0, pro: 0, premium: 0, elite: 0, lifetime: 0 };
+    users.forEach((u) => {
+      const p = normalizePlan(u.plan || 'free');
+      usersByPlan[p] = (usersByPlan[p] || 0) + 1;
+    });
+
+    const cohort = {
+      free: { users: usersByPlan.free, applied: 0, interview: 0, offer: 0 },
+      pro: { users: usersByPlan.pro, applied: 0, interview: 0, offer: 0 },
+      premium: { users: usersByPlan.premium, applied: 0, interview: 0, offer: 0 },
+      elite: { users: usersByPlan.elite, applied: 0, interview: 0, offer: 0 },
+      lifetime: { users: usersByPlan.lifetime, applied: 0, interview: 0, offer: 0 }
+    };
+
+    const userPlanMap = new Map(users.map((u) => [String(u._id), normalizePlan(u.plan || 'free')]));
+
+    jobs.forEach((job) => {
+      const plan = userPlanMap.get(String(job.userId)) || 'free';
+      const status = String(job.status || '').toLowerCase();
+      if (!cohort[plan]) return;
+      if (status === 'applied') cohort[plan].applied += 1;
+      if (status === 'interview') cohort[plan].interview += 1;
+      if (status === 'offer') cohort[plan].offer += 1;
+    });
+
+    const cohortWithRates = Object.entries(cohort).map(([plan, c]) => ({
+      plan,
+      users: c.users,
+      applied: c.applied,
+      interview: c.interview,
+      offer: c.offer,
+      interviewRate: c.applied ? Number((c.interview / c.applied).toFixed(3)) : 0,
+      offerRate: c.interview ? Number((c.offer / c.interview).toFixed(3)) : 0
+    }));
+
+    return res.json({
+      windowDays: days,
+      totals: {
+        events: events.length,
+        users: users.length,
+        jobs: jobs.length
+      },
+      topEvents: Object.entries(eventCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 25)
+        .map(([event, count]) => ({ event, count })),
+      funnels: Object.entries(funnelCounts)
+        .sort((a, b) => b[1] - a[1])
+        .map(([funnel, count]) => ({ funnel, count })),
+      trend: Object.entries(daily)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([day, count]) => ({ day, count })),
+      usersByPlan,
+      cohorts: cohortWithRates
+    });
+  } catch (err) {
+    console.error('Telemetry summary error:', err);
+    return res.status(500).json({ error: 'Failed to load telemetry summary' });
+  }
+});
+
+app.get('/api/outcomes/proof', authenticateToken, async (req, res) => {
+  try {
+    const [user, userJobs, allUsers, allJobs] = await Promise.all([
+      User.findById(req.user.userId).select('plan'),
+      Job.find({ userId: req.user.userId }).select('status').lean(),
+      User.find({}).select('_id plan').lean(),
+      Job.find({ status: { $in: ['applied', 'interview', 'offer'] } }).select('userId status').lean()
+    ]);
+
+    const mine = { applied: 0, interview: 0, offer: 0 };
+    userJobs.forEach((job) => {
+      const status = String(job.status || '').toLowerCase();
+      if (mine[status] !== undefined) mine[status] += 1;
+    });
+
+    const userPlanMap = new Map(allUsers.map((u) => [String(u._id), normalizePlan(u.plan || 'free')]));
+    const cohorts = {
+      free: { applied: 0, interview: 0, offer: 0 },
+      pro: { applied: 0, interview: 0, offer: 0 },
+      premium: { applied: 0, interview: 0, offer: 0 },
+      elite: { applied: 0, interview: 0, offer: 0 },
+      lifetime: { applied: 0, interview: 0, offer: 0 }
+    };
+
+    allJobs.forEach((job) => {
+      const status = String(job.status || '').toLowerCase();
+      const plan = userPlanMap.get(String(job.userId)) || 'free';
+      if (cohorts[plan] && cohorts[plan][status] !== undefined) cohorts[plan][status] += 1;
+    });
+
+    const mineInterviewRate = mine.applied ? mine.interview / mine.applied : 0;
+    const mineOfferRate = mine.interview ? mine.offer / mine.interview : 0;
+    const currentPlan = normalizePlan(user?.plan || 'free');
+
+    return res.json({
+      mine: {
+        plan: currentPlan,
+        applied: mine.applied,
+        interview: mine.interview,
+        offer: mine.offer,
+        interviewRate: Number(mineInterviewRate.toFixed(3)),
+        offerRate: Number(mineOfferRate.toFixed(3))
+      },
+      cohorts
+    });
+  } catch (err) {
+    console.error('Outcome proof error:', err);
+    return res.status(500).json({ error: 'Failed to load outcome proof' });
+  }
+});
+
+app.get('/api/role-profiles', authenticateToken, async (req, res) => {
+  try {
+    const profiles = await RoleProfile.find({ userId: req.user.userId }).sort({ updatedAt: -1 });
+    return res.json({ profiles });
+  } catch (err) {
+    console.error('Role profile list error:', err);
+    return res.status(500).json({ error: 'Failed to load role profiles' });
+  }
+});
+
+app.post('/api/role-profiles', authenticateToken, async (req, res) => {
+  try {
+    const payload = req.body || {};
+    const profileId = payload._id ? String(payload._id) : null;
+
+    const update = {
+      profileName: String(payload.profileName || 'Primary Profile').trim(),
+      targetRole: String(payload.targetRole || '').trim(),
+      targetLocation: String(payload.targetLocation || 'Remote').trim(),
+      salaryTarget: String(payload.salaryTarget || '').trim(),
+      industries: Array.isArray(payload.industries) ? payload.industries.map((v) => String(v).trim()).filter(Boolean).slice(0, 12) : [],
+      coreSkills: Array.isArray(payload.coreSkills) ? payload.coreSkills.map((v) => String(v).trim()).filter(Boolean).slice(0, 25) : [],
+      workPreference: ['remote', 'hybrid', 'onsite', 'flexible'].includes(payload.workPreference) ? payload.workPreference : 'flexible',
+      seniority: ['entry', 'mid', 'senior', 'lead', 'director', 'executive'].includes(payload.seniority) ? payload.seniority : 'mid',
+      notes: String(payload.notes || '').slice(0, 2000)
+    };
+
+    let profile;
+
+    if (profileId) {
+      profile = await RoleProfile.findOneAndUpdate(
+        { _id: profileId, userId: req.user.userId },
+        update,
+        { new: true }
+      );
+      if (!profile) return res.status(404).json({ error: 'Profile not found' });
+    } else {
+      profile = await RoleProfile.create({ userId: req.user.userId, ...update });
+    }
+
+    return res.json({ profile });
+  } catch (err) {
+    console.error('Role profile save error:', err);
+    return res.status(500).json({ error: 'Failed to save role profile' });
+  }
+});
+
+app.delete('/api/role-profiles/:id', authenticateToken, async (req, res) => {
+  try {
+    const profile = await RoleProfile.findOneAndDelete({ _id: req.params.id, userId: req.user.userId });
+    if (!profile) return res.status(404).json({ error: 'Profile not found' });
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error('Role profile delete error:', err);
+    return res.status(500).json({ error: 'Failed to delete role profile' });
+  }
+});
+
+app.get('/api/recommendations/adaptive', authenticateToken, async (req, res) => {
+  try {
+    const [profiles, jobs] = await Promise.all([
+      RoleProfile.find({ userId: req.user.userId }).sort({ updatedAt: -1 }).limit(1),
+      Job.find({ userId: req.user.userId }).sort({ createdAt: -1 }).limit(80)
+    ]);
+
+    const profile = profiles[0] || null;
+    const counts = { saved: 0, ready: 0, applied: 0, interview: 0, offer: 0, rejected: 0 };
+    jobs.forEach((job) => {
+      const s = String(job.status || 'saved').toLowerCase();
+      if (counts[s] !== undefined) counts[s] += 1;
+    });
+
+    const recs = [];
+
+    if (!profile) {
+      recs.push('Create a role profile to personalize job recommendations and interview prep.');
+    } else {
+      if (profile.coreSkills.length < 5) {
+        recs.push('Add at least 5 core skills in your profile so matching can prioritize stronger-fit roles.');
+      }
+      if (!profile.salaryTarget) {
+        recs.push('Set a salary target to filter out low-fit opportunities and focus your pipeline.');
+      }
+      if ((profile.targetLocation || '').toLowerCase() !== 'remote' && profile.workPreference === 'flexible') {
+        recs.push('Mark work preference as remote or hybrid to improve role filtering quality.');
+      }
+    }
+
+    if (counts.saved > counts.applied * 2) {
+      recs.push('You are saving more jobs than applying. Convert your top 5 saved roles to ready this week.');
+    }
+    if (counts.applied >= 8 && counts.interview === 0) {
+      recs.push('Your apply-to-interview rate is low. Prioritize ATS optimization before the next 5 applications.');
+    }
+    if (counts.interview > 0 && counts.offer === 0) {
+      recs.push('Use Interview Assist after each mock session and track STAR examples by role profile.');
+    }
+
+    if (!recs.length) {
+      recs.push('Momentum is strong. Keep applying to high-match roles and run interview simulations weekly.');
+    }
+
+    return res.json({
+      profile,
+      stats: counts,
+      recommendations: recs.slice(0, 6)
+    });
+  } catch (err) {
+    console.error('Adaptive recommendation error:', err);
+    return res.status(500).json({ error: 'Failed to load recommendations' });
+  }
+});
+
 app.post('/api/resume/generate', authenticateToken, async (req, res) => {
   try {
     const { jobDescription, resume } = req.body;
@@ -951,6 +1230,15 @@ app.post('/api/interview-assist', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'question is required' });
     }
 
+    if (E2E_MOCK_MODE) {
+      return res.json({
+        type: 'behavioral',
+        answer: 'I resolved conflict by clarifying goals, aligning stakeholders, and delivering a measurable outcome.',
+        bullets: ['Clarify conflict quickly', 'Align priorities', 'Close with measurable results'],
+        tip: 'Lead with ownership and outcome.'
+      });
+    }
+
     const user = await User.findById(req.user.userId);
     if (!hasRequiredPlan(user, 'elite')) {
       return res.status(403).json({ error: 'Upgrade to Elite to use Interview Assist.' });
@@ -1015,6 +1303,20 @@ app.post('/api/jobs/find', authenticateToken, async (req, res) => {
 
     if (!title || !location) {
       return res.status(400).json({ error: 'title and location are required' });
+    }
+
+    if (E2E_MOCK_MODE) {
+      return res.json({
+        jobs: buildMockJobs(title, location),
+        meta: {
+          fromCache: false,
+          source: 'e2e-mock',
+          hydrated: true,
+          refreshAfterMs: 0,
+          linkedinSearchUrl: makeLinkedInSearchUrl(title, location),
+          googleJobsUrl: makeGoogleJobsUrl(title, location)
+        }
+      });
     }
 
     let jobs;
@@ -1248,6 +1550,10 @@ app.post('/api/create-checkout-session', authenticateToken, async (req, res) => 
       return res.status(400).json({ error: 'plan or priceId is required' });
     }
 
+    if (E2E_MOCK_MODE) {
+      return res.json({ url: 'https://checkout.test/session' });
+    }
+
     const planToPriceMap = {
       pro: PRO_PRICE_ID,
       premium: PREMIUM_PRICE_ID,
@@ -1462,11 +1768,15 @@ app.get('/{*path}', (req, res) => {
   return res.sendFile(path.join(__dirname, '../frontend/index.html'));
 });
 
-app.listen(PORT, () => {
-  console.log(`\ud83d\ude80 Server running on port ${PORT}`);
-  setTimeout(() => {
-    prewarmJobSearches().catch((err) => {
-      console.warn('Job prewarm failed:', err.message);
-    });
-  }, 500);
-});
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, () => {
+    console.log(`\ud83d\ude80 Server running on port ${PORT}`);
+    setTimeout(() => {
+      prewarmJobSearches().catch((err) => {
+        console.warn('Job prewarm failed:', err.message);
+      });
+    }, 500);
+  });
+}
+
+module.exports = app;

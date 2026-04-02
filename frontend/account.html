@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <a class="skip-link" href="#accountMain">Skip to main content</a>
   <div class="hero">
     <h1>Account Settings</h1>
     <p>Manage your profile, subscription, and billing information.</p>
@@ -23,7 +24,7 @@
       <button id="logoutBtn">Logout</button>
     </div>
 
-    <div class="main">
+    <div class="main" id="accountMain" tabindex="-1">
       <div class="grid" style="max-width: 700px;">
 
         <!-- Profile Info -->
@@ -47,7 +48,7 @@
             <input id="cpConfirm" type="password" placeholder="Confirm new password" minlength="8" required />
             <button type="submit" class="auth-submit-btn" id="cpBtn">Update Password</button>
           </form>
-          <div id="cpMessage" style="margin-top:10px;font-size:0.9rem;"></div>
+          <div id="cpMessage" style="margin-top:10px;font-size:0.9rem;" role="status" aria-live="polite"></div>
         </div>
 
         <!-- Subscription -->
@@ -55,7 +56,7 @@
           <h3 style="margin-top:0;">💳 Subscription</h3>
           <p>Manage your subscription, update payment methods, or cancel your plan through the Stripe billing portal.</p>
           <button id="portalBtn" class="auth-submit-btn" style="max-width:220px;padding:12px 20px;">Open Billing Portal</button>
-          <div id="portalMessage" style="margin-top:10px;font-size:0.9rem;color:#dc2626;"></div>
+          <div id="portalMessage" style="margin-top:10px;font-size:0.9rem;color:#dc2626;" role="status" aria-live="polite"></div>
         </div>
 
         <!-- Danger Zone -->
@@ -63,12 +64,18 @@
           <h3 style="margin-top:0;color:#dc2626;">⚠️ Danger Zone</h3>
           <p style="color:#6b7280;font-size:0.9rem;">Permanently delete your account and all associated data. This cannot be undone.</p>
           <button id="deleteBtn" style="background:#dc2626;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:600;">Delete My Account</button>
-          <div id="deleteMessage" style="margin-top:10px;font-size:0.9rem;color:#dc2626;"></div>
+          <div id="deleteMessage" style="margin-top:10px;font-size:0.9rem;color:#dc2626;" role="status" aria-live="polite"></div>
         </div>
 
       </div>
     </div>
   </div>
+
+  <footer class="site-footer">
+    &copy; 2026 RoleRocket AI &nbsp;&middot;&nbsp;
+    <a href="privacy.html">Privacy Policy</a>
+    <a href="terms.html">Terms of Service</a>
+  </footer>
 
   <script>
     const TOKEN = localStorage.getItem('token');

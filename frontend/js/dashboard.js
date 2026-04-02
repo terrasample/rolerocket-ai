@@ -951,6 +951,137 @@ document.getElementById('accountBtn')?.addEventListener('click', () => {
   window.location.href = 'account.html';
 });
 
+document.getElementById('analyticsBtn')?.addEventListener('click', () => {
+  window.location.href = 'analytics.html';
+});
+
+async function saveRoleProfile() {
+  const message = document.getElementById('roleProfileMessage');
+  try {
+    const skills = String(document.getElementById('rpSkills')?.value || '')
+      .split(',')
+      .map((v) => v.trim())
+      .filter(Boolean);
+
+    const data = await api('/api/role-profiles', {
+      method: 'POST',
+      body: JSON.stringify({
+        profileName: document.getElementById('rpName')?.value || 'Primary Profile',
+        targetRole: document.getElementById('rpRole')?.value || '',
+        targetLocation: document.getElementById('rpLocation')?.value || 'Remote',
+        salaryTarget: document.getElementById('rpSalary')?.value || '',
+        coreSkills: skills
+      })
+    });
+
+    if (message) {
+      message.textContent = 'Role profile saved.';
+    }
+    track('role_profile_saved', 'personalization', {
+      hasRole: Boolean(data.profile?.targetRole),
+      skills: skills.length
+    });
+    await loadAdaptiveRecommendations();
+  } catch (err) {
+    if (message) message.textContent = `Failed to save profile: ${err.message}`;
+  }
+}
+
+async function loadLatestRoleProfile() {
+  const message = document.getElementById('roleProfileMessage');
+  try {
+    const data = await api('/api/role-profiles', { method: 'GET' });
+    const profile = (data.profiles || [])[0];
+    if (!profile) {
+      if (message) message.textContent = 'No role profile yet. Save your first one.';
+      return;
+    }
+
+    document.getElementById('rpName').value = profile.profileName || '';
+    document.getElementById('rpRole').value = profile.targetRole || '';
+    document.getElementById('rpLocation').value = profile.targetLocation || '';
+    document.getElementById('rpSalary').value = profile.salaryTarget || '';
+    document.getElementById('rpSkills').value = (profile.coreSkills || []).join(', ');
+    if (message) message.textContent = 'Loaded latest profile.';
+  } catch (err) {
+    if (message) message.textContent = `Failed to load profile: ${err.message}`;
+  }
+}
+
+async function loadAdaptiveRecommendations() {
+  const list = document.getElementById('adaptiveList');
+  const stats = document.getElementById('adaptiveStats');
+  if (!list || !stats) return;
+
+  try {
+    const data = await api('/api/recommendations/adaptive', { method: 'GET' });
+    const recs = data.recommendations || [];
+    const s = data.stats || {};
+
+    stats.textContent = `Pipeline: Saved ${s.saved || 0} · Ready ${s.ready || 0} · Applied ${s.applied || 0} · Interview ${s.interview || 0} · Offer ${s.offer || 0}`;
+
+    list.innerHTML = '';
+    recs.forEach((item) => {
+      const li = document.createElement('li');
+      li.textContent = item;
+      list.appendChild(li);
+    });
+
+    track('adaptive_recs_loaded', 'personalization', { count: recs.length });
+  } catch (err) {
+    stats.textContent = `Recommendations unavailable: ${err.message}`;
+  }
+}
+
+async function loadOutcomeProof() {
+  try {
+    const data = await api('/api/outcomes/proof', { method: 'GET' });
+    const mine = data.mine || {};
+    const cohorts = data.cohorts || {};
+
+    const mineEl = document.getElementById('outcomeMine');
+    const cohortEl = document.getElementById('outcomeCohort');
+    if (mineEl) {
+      mineEl.textContent = `You (${mine.plan || 'free'}): Applied ${mine.applied || 0} · Interview ${mine.interview || 0} · Offer ${mine.offer || 0} · Interview Rate ${(Number(mine.interviewRate || 0) * 100).toFixed(1)}% · Offer Rate ${(Number(mine.offerRate || 0) * 100).toFixed(1)}%`;
+    }
+
+    const benchmark = cohorts[mine.plan || 'free'] || cohorts.free || { applied: 0, interview: 0, offer: 0 };
+    const cohortInterviewRate = benchmark.applied ? benchmark.interview / benchmark.applied : 0;
+    const cohortOfferRate = benchmark.interview ? benchmark.offer / benchmark.interview : 0;
+
+    if (cohortEl) {
+      cohortEl.textContent = `Cohort benchmark (${mine.plan || 'free'}): Interview ${(cohortInterviewRate * 100).toFixed(1)}% · Offer ${(cohortOfferRate * 100).toFixed(1)}%`;
+    }
+
+    const proofApplications = document.getElementById('proofApplications');
+    const proofInterviewRate = document.getElementById('proofInterviewRate');
+    const proofOfferRate = document.getElementById('proofOfferRate');
+
+    if (proofApplications) {
+      const totalApplied = Object.values(cohorts).reduce((sum, c) => sum + Number(c?.applied || 0), 0);
+      proofApplications.textContent = totalApplied.toLocaleString();
+    }
+
+    if (proofInterviewRate) {
+      const ratio = cohortInterviewRate > 0 ? (Number(mine.interviewRate || 0) / cohortInterviewRate) : 1;
+      proofInterviewRate.textContent = `${ratio.toFixed(1)}x`;
+    }
+
+    if (proofOfferRate) {
+      const pct = Number(mine.offerRate || 0) * 100;
+      proofOfferRate.textContent = `${pct.toFixed(1)}%`;
+    }
+  } catch (err) {
+    const mineEl = document.getElementById('outcomeMine');
+    if (mineEl) mineEl.textContent = `Outcome metrics unavailable: ${err.message}`;
+  }
+}
+
+document.getElementById('saveRoleProfileBtn')?.addEventListener('click', saveRoleProfile);
+document.getElementById('loadRoleProfileBtn')?.addEventListener('click', loadLatestRoleProfile);
+document.getElementById('refreshAdaptiveBtn')?.addEventListener('click', loadAdaptiveRecommendations);
+document.getElementById('refreshOutcomeBtn')?.addEventListener('click', loadOutcomeProof);
+
 document.querySelectorAll('[data-plan-card]').forEach((card) => {
   card.addEventListener('click', () => {
     track('pricing_card_engaged', 'checkout', { plan: card.dataset.planCard || '' });
@@ -1221,6 +1352,9 @@ initPricingExperiment();
 loadUserPlan();
 updateDynamicCoachInsights();
 scheduleHeavyLoads();
+loadLatestRoleProfile();
+loadAdaptiveRecommendations();
+loadOutcomeProof();
 
 // ─── Global loading state helpers ─────────────────────────────────────────
 function setButtonLoading(btn, text = 'Loading...') {

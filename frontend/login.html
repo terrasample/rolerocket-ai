@@ -10,8 +10,9 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body class="landing-page">
+  <a class="skip-link" href="#loginMain">Skip to main content</a>
 
-  <section class="landing-hero auth-hero">
+  <section class="landing-hero auth-hero" id="loginMain">
     <div class="auth-shell">
       <div class="auth-left">
         <div class="landing-badge">👋 Welcome Back</div>
@@ -51,7 +52,7 @@
           <button type="submit" class="auth-submit-btn">Login</button>
         </form>
 
-        <div id="loginMessage" class="auth-message"></div>
+        <div id="loginMessage" class="auth-message" role="status" aria-live="polite"></div>
 
         <p class="auth-footer">          <a href="forgot-password.html" style="color:#7c3aed;font-size:0.9rem;">Forgot password?</a>
         </p>
@@ -62,6 +63,12 @@
       </div>
     </div>
   </section>
+
+  <footer class="site-footer">
+    &copy; 2026 RoleRocket AI &nbsp;&middot;&nbsp;
+    <a href="privacy.html">Privacy Policy</a>
+    <a href="terms.html">Terms of Service</a>
+  </footer>
 
   <script>
     const form = document.getElementById('loginForm');

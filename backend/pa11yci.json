@@ -1,0 +1,19 @@
+{
+  "defaults": {
+    "standard": "WCAG2AA",
+    "timeout": 30000,
+    "wait": 500,
+    "chromeLaunchConfig": {
+      "args": ["--no-sandbox", "--disable-setuid-sandbox"]
+    }
+  },
+  "urls": [
+    "http://localhost:5000/",
+    "http://localhost:5000/login.html",
+    "http://localhost:5000/signup.html",
+    "http://localhost:5000/dashboard.html",
+    "http://localhost:5000/optimizer.html",
+    "http://localhost:5000/account.html",
+    "http://localhost:5000/analytics.html"
+  ]
+}

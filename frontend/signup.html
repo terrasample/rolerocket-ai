@@ -10,8 +10,9 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body class="landing-page">
+  <a class="skip-link" href="#signupMain">Skip to main content</a>
 
-  <section class="landing-hero auth-hero">
+  <section class="landing-hero auth-hero" id="signupMain">
     <div class="auth-shell">
       <div class="auth-left">
         <div class="landing-badge">🚀 Start Free</div>
@@ -52,7 +53,7 @@
           <button type="submit" class="auth-submit-btn">Create Free Account</button>
         </form>
 
-        <div id="signupMessage" class="auth-message"></div>
+        <div id="signupMessage" class="auth-message" role="status" aria-live="polite"></div>
 
         <p class="auth-footer">
           Already have an account?
@@ -65,6 +66,12 @@
       </div>
     </div>
   </section>
+
+  <footer class="site-footer">
+    &copy; 2026 RoleRocket AI &nbsp;&middot;&nbsp;
+    <a href="privacy.html">Privacy Policy</a>
+    <a href="terms.html">Terms of Service</a>
+  </footer>
 
   <script>
     const signupForm = document.getElementById('signupForm');

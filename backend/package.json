@@ -5,7 +5,9 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node tests/core-flows.e2e.js",
+    "test:e2e": "node tests/core-flows.e2e.js",
+    "a11y:audit": "node scripts/a11y-audit.js"
   },
   "keywords": [],
   "author": "",
@@ -23,5 +25,6 @@
     "openai": "^6.32.0",
     "pdfkit": "^0.18.0",
     "stripe": "^21.0.1"
-  }
+  },
+  "devDependencies": {}
 }

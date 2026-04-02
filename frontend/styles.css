@@ -1613,3 +1613,65 @@ pre {
     text-align: center;
   }
 }
+
+/* ─── Analytics + System UI ───────────────────────────────────────────────── */
+.analytics-grid {
+  align-items: start;
+}
+
+.analytics-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.analytics-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  font-size: 0.9rem;
+}
+
+.analytics-row span {
+  color: #334155;
+  font-weight: 600;
+}
+
+.analytics-table-wrap {
+  overflow-x: auto;
+}
+
+.analytics-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 760px;
+}
+
+.analytics-table th,
+.analytics-table td {
+  border: 1px solid #e5e7eb;
+  padding: 10px;
+  text-align: left;
+  font-size: 0.88rem;
+}
+
+.analytics-table th {
+  background: #f8fafc;
+  color: #1f2937;
+}
+
+.analytics-table tr:nth-child(even) {
+  background: #fcfcfd;
+}
+
+.reward-list {
+  line-height: 1.6;
+}
+
+.auth-message {
+  min-height: 20px;
+}
