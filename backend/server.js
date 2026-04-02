@@ -188,6 +188,13 @@ app.get('/api/health', (_req, res) => {
   return res.json({ ok: true, dbReady, ts: Date.now() });
 });
 
+function ensureDbReady(res, operation = 'Request') {
+  if (mongoose.connection.readyState === 1) return true;
+  return res.status(503).json({
+    error: `${operation} temporarily unavailable. Database connection is not ready.`
+  });
+}
+
 if (process.env.NODE_ENV !== 'test') {
   mongoose
     .connect(process.env.MONGODB_URI)
@@ -886,6 +893,8 @@ function authFailureMessage(prefix, err) {
 
 app.post('/api/auth/signup', async (req, res) => {
   try {
+    if (ensureDbReady(res, 'Signup') !== true) return;
+
     const { name, email, password, referralCode } = req.body || {};
     const normalizedName = String(name || '').trim();
     const normalizedEmail = String(email || '').trim().toLowerCase();
@@ -1011,6 +1020,8 @@ app.post('/api/auth/signup', async (req, res) => {
 
 app.post('/api/auth/login', async (req, res) => {
   try {
+    if (ensureDbReady(res, 'Login') !== true) return;
+
     const { email, password } = req.body || {};
     const normalizedEmail = String(email || '').trim().toLowerCase();
     const rawPassword = String(password || '');
@@ -2099,6 +2110,8 @@ app.post('/api/create-lifetime-checkout', authenticateToken, async (req, res) =>
 // ─── Forgot Password ────────────────────────────────────────────────────────
 app.post('/api/auth/forgot-password', async (req, res) => {
   try {
+    if (ensureDbReady(res, 'Forgot password') !== true) return;
+
     const { email } = req.body || {};
     if (!email) return res.status(400).json({ error: 'Email is required' });
 
@@ -2125,6 +2138,8 @@ app.post('/api/auth/forgot-password', async (req, res) => {
 // ─── Reset Password ──────────────────────────────────────────────────────────
 app.post('/api/auth/reset-password', async (req, res) => {
   try {
+    if (ensureDbReady(res, 'Reset password') !== true) return;
+
     const { token, password } = req.body || {};
     if (!token || !password) return res.status(400).json({ error: 'Token and password are required' });
     if (String(password).length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
