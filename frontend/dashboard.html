@@ -29,10 +29,10 @@
     <div class="sidebar">
       <h2>🚀 RoleRocket AI</h2>
 
-      <button id="proBtn">Start Pro</button>
-      <button id="premiumBtn">Unlock Premium</button>
-      <button id="eliteBtn">Activate Elite</button>
-      <button id="lifetimeBtn" class="lifetime">🔥 Claim Lifetime</button>
+      <button id="proBtn" data-sidebar-plan-btn="pro">About Pro</button>
+      <button id="premiumBtn" data-sidebar-plan-btn="premium">About Premium</button>
+      <button id="eliteBtn" data-sidebar-plan-btn="elite">About Elite</button>
+      <button id="lifetimeBtn" class="lifetime" data-sidebar-plan-btn="lifetime">About Lifetime</button>
 
       <hr />
 
@@ -133,6 +133,45 @@
           <button id="lifetimeUpgradeCta" onclick="lifetime()">Claim Lifetime</button>
         </div>
       </div>
+
+      <section class="plan-guide" id="planGuide" aria-labelledby="planGuideTitle">
+        <div class="plan-guide-head">
+          <div>
+            <span class="today-kicker">Plan Deep Dive</span>
+            <h2 id="planGuideTitle">Pro is built for faster application output</h2>
+            <p id="planGuideSubtitle">Use the sidebar “About” buttons to compare how each paid plan changes your workflow, quality, and speed.</p>
+          </div>
+          <button id="planGuideJumpBtn" class="secondary-btn" type="button">Jump to Pro pricing card</button>
+        </div>
+
+        <div class="plan-guide-grid">
+          <article class="plan-guide-panel">
+            <span class="coach-label">Best For</span>
+            <strong id="planGuideAudience">Job seekers who want stronger resumes and tailored applications without spending hours rewriting from scratch.</strong>
+            <p id="planGuideOutcome">Primary outcome: ship better application materials consistently so you can apply to more high-fit roles every week.</p>
+          </article>
+
+          <article class="plan-guide-panel plan-guide-panel-accent">
+            <span class="coach-label">What Changes</span>
+            <p id="planGuideNarrative">Pro turns RoleRocket from a tracker into an application production system. It focuses on the outputs that most directly improve conversion early in the funnel.</p>
+            <ul id="planGuideBullets" class="plan-guide-list">
+              <li>Resume Generator creates role-targeted versions faster.</li>
+              <li>Cover Letter AI removes blank-page friction for each application.</li>
+              <li>Job Match Analysis helps decide which roles deserve your time first.</li>
+            </ul>
+          </article>
+
+          <article class="plan-guide-panel">
+            <span class="coach-label">Unlocked Workflow</span>
+            <div id="planGuideSteps" class="plan-guide-steps">
+              <span>Prioritize best-fit roles</span>
+              <span>Tailor resume fast</span>
+              <span>Generate cover letter</span>
+              <span>Submit with more confidence</span>
+            </div>
+          </article>
+        </div>
+      </section>
 
       <div id="iaPromptMid" class="ia-prompt-slot" aria-live="polite"></div>
 

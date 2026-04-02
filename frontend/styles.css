@@ -146,6 +146,12 @@ h3,
   border-color: rgba(255, 255, 255, 0.12);
 }
 
+.sidebar button.plan-info-active {
+  background: linear-gradient(135deg, #0f172a, #0c4a6e);
+  border-color: rgba(103, 232, 249, 0.5);
+  box-shadow: 0 10px 22px rgba(12, 74, 110, 0.35);
+}
+
 .sidebar .lifetime {
   background: linear-gradient(135deg, #f59e0b, #f97316);
 }
@@ -294,6 +300,108 @@ body[data-dashboard-mode='starter'] .progressive-module {
   box-shadow:
     0 22px 40px rgba(15, 23, 42, 0.09),
     0 4px 14px rgba(15, 23, 42, 0.04);
+}
+
+.price-card.plan-focus {
+  border-color: #0c4a6e;
+  box-shadow:
+    0 24px 44px rgba(14, 165, 233, 0.18),
+    0 6px 18px rgba(15, 23, 42, 0.06);
+}
+
+.plan-guide {
+  background: linear-gradient(135deg, #ffffff 0%, #eef8ff 100%);
+  border: 1px solid #cfe7f8;
+  border-radius: 20px;
+  padding: 22px;
+  margin-bottom: 22px;
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.06);
+}
+
+.plan-guide-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.plan-guide-head h2 {
+  margin: 4px 0 8px;
+  letter-spacing: -0.02em;
+}
+
+.plan-guide-head p {
+  margin: 0;
+  color: #475569;
+  max-width: 760px;
+}
+
+.plan-guide-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.plan-guide-panel {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid #d9e9f5;
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.plan-guide-panel strong {
+  display: block;
+  font-size: 1rem;
+  line-height: 1.45;
+  margin-bottom: 8px;
+}
+
+.plan-guide-panel p {
+  margin: 0;
+  color: #475569;
+  line-height: 1.55;
+}
+
+.plan-guide-panel-accent {
+  background: linear-gradient(135deg, #0f172a 0%, #0c4a6e 100%);
+  color: #ffffff;
+  border-color: rgba(125, 211, 252, 0.3);
+}
+
+.plan-guide-panel-accent .coach-label,
+.plan-guide-panel-accent p,
+.plan-guide-panel-accent li {
+  color: #e0f2fe;
+}
+
+.plan-guide-list {
+  margin: 12px 0 0;
+  padding-left: 18px;
+}
+
+.plan-guide-list li {
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+.plan-guide-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.plan-guide-steps span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: #f8fafc;
+  border: 1px solid #dbeafe;
+  color: #0f172a;
+  font-size: 0.88rem;
+  font-weight: 600;
 }
 
 .price-card h3 {
@@ -1324,6 +1432,10 @@ pre {
     flex-direction: column;
     align-items: flex-start;
   }
+
+  .plan-guide-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 1000px) {
@@ -1357,10 +1469,28 @@ pre {
 
   .grid,
   .pricing-top,
+  .plan-guide-grid,
   .tracker-grid,
   .coach-strip,
   .today-rail {
     grid-template-columns: 1fr;
+  }
+
+  .plan-guide {
+    padding: 16px;
+  }
+
+  .plan-guide-head {
+    flex-direction: column;
+  }
+
+  .plan-guide-steps {
+    flex-direction: column;
+  }
+
+  .plan-guide-steps span {
+    width: 100%;
+    justify-content: center;
   }
 
   .card,

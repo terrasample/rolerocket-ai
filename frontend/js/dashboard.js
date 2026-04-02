@@ -20,6 +20,15 @@ const proBtn = document.getElementById('proBtn');
 const premiumBtn = document.getElementById('premiumBtn');
 const eliteBtn = document.getElementById('eliteBtn');
 const lifetimeBtn = document.getElementById('lifetimeBtn');
+const planGuideEl = document.getElementById('planGuide');
+const planGuideTitleEl = document.getElementById('planGuideTitle');
+const planGuideSubtitleEl = document.getElementById('planGuideSubtitle');
+const planGuideAudienceEl = document.getElementById('planGuideAudience');
+const planGuideOutcomeEl = document.getElementById('planGuideOutcome');
+const planGuideNarrativeEl = document.getElementById('planGuideNarrative');
+const planGuideBulletsEl = document.getElementById('planGuideBullets');
+const planGuideStepsEl = document.getElementById('planGuideSteps');
+const planGuideJumpBtn = document.getElementById('planGuideJumpBtn');
 
 const careerCoachInsightEl = document.getElementById('careerCoachInsight');
 const careerMatchSignalEl = document.getElementById('careerMatchSignal');
@@ -60,6 +69,66 @@ let latestTrackerStats = {
   offer: 0,
   rejected: 0
 };
+let activePlanGuide = 'pro';
+
+const PLAN_GUIDE_CONTENT = {
+  pro: {
+    title: 'Pro is built for faster application output',
+    subtitle: 'Use Pro when your bottleneck is creating strong, customized application materials quickly.',
+    audience: 'Job seekers who want stronger resumes and tailored applications without spending hours rewriting from scratch.',
+    outcome: 'Primary outcome: ship better application materials consistently so you can apply to more high-fit roles every week.',
+    narrative: 'Pro turns RoleRocket from a tracker into an application production system. It focuses on the outputs that improve conversion early in the funnel.',
+    bullets: [
+      'Resume Generator creates role-targeted versions faster.',
+      'Cover Letter AI removes blank-page friction for each application.',
+      'Job Match Analysis helps decide which roles deserve your time first.'
+    ],
+    steps: ['Prioritize best-fit roles', 'Tailor resume fast', 'Generate cover letter', 'Submit with more confidence'],
+    jumpLabel: 'Jump to Pro pricing card'
+  },
+  premium: {
+    title: 'Premium is for people ready to execute at higher volume',
+    subtitle: 'Choose Premium when you already know what to apply for and need better speed, quality control, and conversion support.',
+    audience: 'Candidates who want ATS optimization, interview prep, and faster application execution on roles already in motion.',
+    outcome: 'Primary outcome: move more roles from interesting to applied while improving recruiter-readiness before each submission.',
+    narrative: 'Premium adds the workflow tools that sharpen your materials and reduce friction between finding a role and actually getting the application out.',
+    bullets: [
+      'ATS Optimizer surfaces keyword and readability gaps before you apply.',
+      'Interview Prep AI helps you prepare while opportunities are still warm.',
+      '1-Click Apply shortens the jump from ready queue to completed application.'
+    ],
+    steps: ['Audit resume for ATS', 'Strengthen weak bullets', 'Prep likely interview questions', 'Apply from your ready queue'],
+    jumpLabel: 'Jump to Premium pricing card'
+  },
+  elite: {
+    title: 'Elite is for high-stakes searches and stronger positioning',
+    subtitle: 'Elite is best when the target role matters enough that strategy, positioning, and timing all need to improve together.',
+    audience: 'Professionals targeting more selective roles, stronger compensation, or a faster climb where strategy matters as much as output.',
+    outcome: 'Primary outcome: make better search decisions, not just better application documents, so your effort goes where it has the highest upside.',
+    narrative: 'Elite layers strategic coaching and premium insight on top of execution, so RoleRocket helps you choose better opportunities and show up sharper in each one.',
+    bullets: [
+      'Career Coach AI gives strategic guidance on what to pursue next.',
+      'Premium insights surface where your momentum is strongest.',
+      'Priority processing keeps feedback loops tighter when speed matters.'
+    ],
+    steps: ['Refine role strategy', 'Pressure-test positioning', 'Execute on top opportunities', 'Adjust from signal'],
+    jumpLabel: 'Jump to Elite pricing card'
+  },
+  lifetime: {
+    title: 'Lifetime is the ownership option for long-term use',
+    subtitle: 'Choose Lifetime if you want one purchase that covers this search and future transitions without monthly decisions.',
+    audience: 'People who expect to use RoleRocket across multiple job changes, promotions, or pivots and want permanent access.',
+    outcome: 'Primary outcome: lock in every current tool and future release without recurring billing pressure or downgrade decisions.',
+    narrative: 'Lifetime is not just a pricing option. It is the commitment path for users who want RoleRocket as durable career infrastructure instead of a temporary subscription.',
+    bullets: [
+      'Everything included means no feature gating across plan tiers.',
+      'No monthly payments keeps your cost predictable forever.',
+      'Future features remain included as the product expands.'
+    ],
+    steps: ['Buy once', 'Keep all paid tools active', 'Use RoleRocket for every future search', 'Avoid subscription churn'],
+    jumpLabel: 'Jump to Lifetime pricing card'
+  }
+};
 
 // ─── Security helpers ──────────────────────────────────────────────────────
 function escapeHtml(s) {
@@ -77,6 +146,51 @@ function safeUrl(url) {
     if (u.protocol === 'http:' || u.protocol === 'https:') return u.href;
   } catch { /* fall through */ }
   return '#';
+}
+
+function getSidebarPlanButtons() {
+  return Array.from(document.querySelectorAll('[data-sidebar-plan-btn]'));
+}
+
+function setActivePlanGuideButton(plan) {
+  getSidebarPlanButtons().forEach((button) => {
+    const isActive = button.dataset.sidebarPlanBtn === plan;
+    button.classList.toggle('plan-info-active', isActive);
+    button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+  });
+}
+
+function setActivePlanCard(plan) {
+  document.querySelectorAll('[data-plan-card]').forEach((card) => {
+    card.classList.toggle('plan-focus', card.dataset.planCard === plan);
+  });
+}
+
+function renderPlanGuide(plan) {
+  const nextPlan = PLAN_GUIDE_CONTENT[plan] ? plan : 'pro';
+  const content = PLAN_GUIDE_CONTENT[nextPlan];
+  activePlanGuide = nextPlan;
+
+  if (!planGuideEl) return;
+
+  planGuideTitleEl.textContent = content.title;
+  planGuideSubtitleEl.textContent = content.subtitle;
+  planGuideAudienceEl.textContent = content.audience;
+  planGuideOutcomeEl.textContent = content.outcome;
+  planGuideNarrativeEl.textContent = content.narrative;
+  planGuideJumpBtn.textContent = content.jumpLabel;
+  planGuideBulletsEl.innerHTML = content.bullets.map((item) => `<li>${escapeHtml(item)}</li>`).join('');
+  planGuideStepsEl.innerHTML = content.steps.map((item) => `<span>${escapeHtml(item)}</span>`).join('');
+
+  setActivePlanGuideButton(nextPlan);
+  setActivePlanCard(nextPlan);
+}
+
+function showPlanGuide(plan, scroll = true) {
+  renderPlanGuide(plan);
+  if (scroll && planGuideEl) {
+    planGuideEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 }
 
 // ─── Toast notifications ───────────────────────────────────────────────────
@@ -743,6 +857,7 @@ async function loadUserPlan() {
     if (data.user) {
       currentUserPlan = normalizePlan(data.user.plan || 'free');
       planBadgeEl.textContent = formatPlan(currentUserPlan);
+      renderPlanGuide(currentUserPlan === 'free' ? 'pro' : currentUserPlan);
       applyLocks();
       updateTodayRail();
       track('user_plan_loaded', 'activation', { plan: currentUserPlan });
@@ -750,6 +865,7 @@ async function loadUserPlan() {
   } catch {
     currentUserPlan = 'free';
     planBadgeEl.textContent = 'Free Plan';
+    renderPlanGuide('pro');
     applyLocks();
     updateTodayRail();
   }
@@ -1596,20 +1712,25 @@ window.lifetime = async function lifetime(triggerBtn) {
   }
 };
 
-proBtn?.addEventListener('click', (e) => {
-  upgrade('pro', e.currentTarget);
+proBtn?.addEventListener('click', () => {
+  showPlanGuide('pro');
 });
 
-premiumBtn?.addEventListener('click', (e) => {
-  upgrade('premium', e.currentTarget);
+premiumBtn?.addEventListener('click', () => {
+  showPlanGuide('premium');
 });
 
-eliteBtn?.addEventListener('click', (e) => {
-  upgrade('elite', e.currentTarget);
+eliteBtn?.addEventListener('click', () => {
+  showPlanGuide('elite');
 });
 
-lifetimeBtn?.addEventListener('click', (e) => {
-  lifetime(e.currentTarget);
+lifetimeBtn?.addEventListener('click', () => {
+  showPlanGuide('lifetime');
+});
+
+planGuideJumpBtn?.addEventListener('click', () => {
+  const card = document.querySelector(`[data-plan-card="${activePlanGuide}"]`);
+  card?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 });
 
 document.getElementById('logoutBtn')?.addEventListener('click', () => {
@@ -1643,6 +1764,8 @@ document.getElementById('accountBtn')?.addEventListener('click', () => {
 document.getElementById('analyticsBtn')?.addEventListener('click', () => {
   window.location.href = 'analytics.html';
 });
+
+renderPlanGuide('pro');
 
 async function saveRoleProfile() {
   const message = document.getElementById('roleProfileMessage');
