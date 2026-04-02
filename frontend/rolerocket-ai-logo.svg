@@ -1,0 +1,28 @@
+<svg width="1200" height="300" viewBox="0 0 1200 300" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="RoleRocket AI logo">
+  <defs>
+    <linearGradient id="rr_body" x1="36" y1="24" x2="206" y2="212" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0EA5E9"/>
+      <stop offset="1" stop-color="#2563EB"/>
+    </linearGradient>
+    <linearGradient id="rr_flame" x1="108" y1="182" x2="108" y2="244" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FDBA74"/>
+      <stop offset="1" stop-color="#F97316"/>
+    </linearGradient>
+  </defs>
+
+  <g transform="translate(24 24)">
+    <circle cx="108" cy="108" r="100" fill="#E0F2FE"/>
+    <path d="M70 150C84 118 121 87 160 80C153 119 124 157 94 172L70 150Z" fill="url(#rr_body)"/>
+    <path d="M88 170L62 194L96 188L88 170Z" fill="#1D4ED8"/>
+    <path d="M108 158L122 212L95 188L108 158Z" fill="url(#rr_flame)"/>
+    <circle cx="123" cy="110" r="14" fill="#F8FAFC"/>
+    <circle cx="123" cy="110" r="8" fill="#BFDBFE"/>
+    <path d="M154 74L182 46" stroke="#38BDF8" stroke-width="8" stroke-linecap="round"/>
+    <path d="M168 86L188 66" stroke="#7DD3FC" stroke-width="6" stroke-linecap="round"/>
+  </g>
+
+  <g transform="translate(250 82)">
+    <text x="0" y="74" fill="#0F172A" font-family="Manrope, Plus Jakarta Sans, Segoe UI, Arial, sans-serif" font-weight="800" font-size="84" letter-spacing="-1.2">RoleRocket AI</text>
+    <text x="2" y="124" fill="#0369A1" font-family="Plus Jakarta Sans, Segoe UI, Arial, sans-serif" font-weight="600" font-size="30">AI Job Search and Application Copilot</text>
+  </g>
+</svg>
