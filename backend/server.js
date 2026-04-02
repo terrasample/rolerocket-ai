@@ -1013,7 +1013,7 @@ app.post('/api/auth/signup', async (req, res) => {
     });
   } catch (err) {
     console.error('Signup error:', err);
-    return res.status(500).json({ error: authFailureMessage('Signup', err) });
+    return res.status(500).json({ error: authFailureMessage('Signup', err), _debug: process.env.DEBUG_AUTH === '1' ? String(err?.message) : undefined });
   }
 });
 
