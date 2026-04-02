@@ -536,9 +536,46 @@ document.getElementById('findJobsBtn')?.addEventListener('click', async () => {
     }, { retries: 0, timeoutMs: 3500 });
 
     const jobs = data.jobs || [];
+    const isHydrated = Boolean(data.meta?.hydrated);
     localJobSearchCache.set(cacheKey, jobs);
     renderFoundJobs(jobs);
-    track('find_jobs_success', 'jobs_search', { count: jobs.length, title, location });
+    track('find_jobs_success', 'jobs_search', {
+      count: jobs.length,
+      title,
+      location,
+      source: data.meta?.source || 'unknown'
+    });
+
+    if (!isHydrated) {
+      const refreshAfterMs = Number(data.meta?.refreshAfterMs || 1200);
+      setTimeout(async () => {
+        try {
+          const fresh = await api('/api/jobs/find', {
+            method: 'POST',
+            body: JSON.stringify({
+              title,
+              location,
+              resume,
+              forceRefresh: true
+            })
+          }, { retries: 0, timeoutMs: 3000 });
+
+          const freshJobs = fresh.jobs || [];
+          localJobSearchCache.set(cacheKey, freshJobs);
+
+          const stillSameSearch =
+            document.getElementById('jobTitle').value.trim() === title &&
+            document.getElementById('jobLocation').value.trim() === location;
+
+          if (stillSameSearch && freshJobs.length) {
+            renderFoundJobs(freshJobs);
+            track('find_jobs_hydrated', 'jobs_search', { count: freshJobs.length });
+          }
+        } catch {
+          // Keep instant results if hydration fails; user still gets immediate output.
+        }
+      }, refreshAfterMs);
+    }
   } catch (err) {
     jobsListEl.innerHTML = `<div class="empty-state">❌ ${err.message}</div>`;
     track('find_jobs_failed', 'jobs_search', { message: err.message });

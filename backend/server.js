@@ -74,6 +74,7 @@ const LEVER_BOARDS = (process.env.LEVER_BOARDS || '')
 const JOB_CACHE_MS = 1000 * 60 * 5;
 const jobSearchCache = new Map();
 const EXTERNAL_FETCH_TIMEOUT_MS = 1200;
+const jobSearchInFlight = new Map();
 
 app.use(cors());
 
@@ -433,6 +434,80 @@ async function searchJobsFast({ title, location, resume }) {
   });
 
   return { jobs: finalJobs, fromCache: false };
+}
+
+function getJobSearchCacheKey({ title, location, resume }) {
+  return `${title}::${location}::${resume || ''}`.toLowerCase().trim();
+}
+
+function warmJobSearchCache({ title, location, resume }) {
+  const cacheKey = getJobSearchCacheKey({ title, location, resume });
+
+  if (jobSearchInFlight.has(cacheKey)) {
+    return jobSearchInFlight.get(cacheKey);
+  }
+
+  const task = searchJobsFast({ title, location, resume })
+    .catch(() => null)
+    .finally(() => {
+      jobSearchInFlight.delete(cacheKey);
+    });
+
+  jobSearchInFlight.set(cacheKey, task);
+  return task;
+}
+
+function getInstantJobs({ title, location, resume }) {
+  const cacheKey = getJobSearchCacheKey({ title, location, resume });
+  const cached = jobSearchCache.get(cacheKey);
+
+  if (cached && Date.now() - cached.createdAt < JOB_CACHE_MS) {
+    return {
+      jobs: cached.jobs,
+      meta: {
+        fromCache: true,
+        source: 'warm-cache',
+        hydrated: true,
+        refreshAfterMs: 0
+      }
+    };
+  }
+
+  warmJobSearchCache({ title, location, resume });
+
+  return {
+    jobs: buildMockJobs(title, location),
+    meta: {
+      fromCache: false,
+      source: 'instant-fallback',
+      hydrated: false,
+      refreshAfterMs: 1200
+    }
+  };
+}
+
+function parsePrewarmPairs() {
+  const raw = process.env.JOB_PREWARM_QUERIES ||
+    'project manager|remote;program manager|remote;operations manager|remote';
+
+  return raw
+    .split(';')
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map((pair) => {
+      const [title = '', location = 'remote'] = pair.split('|').map((v) => v.trim());
+      return { title, location };
+    })
+    .filter((v) => v.title && v.location);
+}
+
+async function prewarmJobSearches() {
+  const pairs = parsePrewarmPairs();
+  if (!pairs.length) return;
+
+  for (const pair of pairs) {
+    warmJobSearchCache({ ...pair, resume: '' });
+  }
 }
 
 function extractCompanyName(text = '') {
@@ -936,18 +1011,34 @@ Rules:
 
 app.post('/api/jobs/find', authenticateToken, async (req, res) => {
   try {
-    const { title, location, resume } = req.body;
+    const { title, location, resume, forceRefresh } = req.body;
 
     if (!title || !location) {
       return res.status(400).json({ error: 'title and location are required' });
     }
 
-    const { jobs, fromCache } = await searchJobsFast({ title, location, resume });
+    let jobs;
+    let meta;
+
+    if (forceRefresh) {
+      const fresh = await searchJobsFast({ title, location, resume });
+      jobs = fresh.jobs;
+      meta = {
+        fromCache: fresh.fromCache,
+        source: fresh.fromCache ? 'warm-cache' : 'fresh-fetch',
+        hydrated: true,
+        refreshAfterMs: 0
+      };
+    } else {
+      const instant = getInstantJobs({ title, location, resume });
+      jobs = instant.jobs;
+      meta = instant.meta;
+    }
 
     return res.json({
       jobs,
       meta: {
-        fromCache,
+        ...meta,
         linkedinSearchUrl: makeLinkedInSearchUrl(title, location),
         googleJobsUrl: makeGoogleJobsUrl(title, location)
       }
@@ -1373,4 +1464,9 @@ app.get('/{*path}', (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`\ud83d\ude80 Server running on port ${PORT}`);
+  setTimeout(() => {
+    prewarmJobSearches().catch((err) => {
+      console.warn('Job prewarm failed:', err.message);
+    });
+  }, 500);
 });
