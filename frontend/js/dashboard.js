@@ -587,7 +587,9 @@ const priceIdToPlanMap = {
   price_1THMraKtQrGDcYVPytIyvklx: 'elite'
 };
 
-window.upgrade = async function upgrade(plan) {
+window.upgrade = async function upgrade(plan, triggerBtn) {
+  const btn = triggerBtn || null;
+  if (btn) setButtonLoading(btn, 'Redirecting...');
   try {
     const raw = String(plan || '').trim();
     const isPriceId = raw.startsWith('price_');
@@ -596,6 +598,7 @@ window.upgrade = async function upgrade(plan) {
 
     if (!normalizedPlan && !priceId) {
       alert('Invalid upgrade selection. Please try again.');
+      if (btn) clearButtonLoading(btn);
       return;
     }
 
@@ -611,13 +614,17 @@ window.upgrade = async function upgrade(plan) {
       window.location.href = data.url;
     } else {
       alert('Failed to create checkout session');
+      if (btn) clearButtonLoading(btn);
     }
   } catch (err) {
     alert(err.message);
+    if (btn) clearButtonLoading(btn);
   }
 };
 
-window.lifetime = async function lifetime() {
+window.lifetime = async function lifetime(triggerBtn) {
+  const btn = triggerBtn || null;
+  if (btn) setButtonLoading(btn, 'Redirecting...');
   try {
     const data = await api('/api/create-lifetime-checkout', {
       method: 'POST',
@@ -628,31 +635,52 @@ window.lifetime = async function lifetime() {
       window.location.href = data.url;
     } else {
       alert('Lifetime checkout failed');
+      if (btn) clearButtonLoading(btn);
     }
   } catch (err) {
     alert(`Lifetime error: ${err.message}`);
+    if (btn) clearButtonLoading(btn);
   }
 };
 
-proBtn?.addEventListener('click', () => {
-  upgrade('pro');
+proBtn?.addEventListener('click', (e) => {
+  upgrade('pro', e.currentTarget);
 });
 
-premiumBtn?.addEventListener('click', () => {
-  upgrade('premium');
+premiumBtn?.addEventListener('click', (e) => {
+  upgrade('premium', e.currentTarget);
 });
 
-eliteBtn?.addEventListener('click', () => {
-  upgrade('elite');
+eliteBtn?.addEventListener('click', (e) => {
+  upgrade('elite', e.currentTarget);
 });
 
-lifetimeBtn?.addEventListener('click', () => {
-  lifetime();
+lifetimeBtn?.addEventListener('click', (e) => {
+  lifetime(e.currentTarget);
 });
 
 document.getElementById('logoutBtn')?.addEventListener('click', () => {
   localStorage.removeItem('token');
   window.location.href = 'index.html';
+});
+
+document.getElementById('billingBtn')?.addEventListener('click', async () => {
+  const btn = document.getElementById('billingBtn');
+  btn.disabled = true;
+  btn.textContent = 'Loading...';
+  try {
+    const data = await api('/api/create-portal-session', { method: 'POST' });
+    if (data.url) window.location.href = data.url;
+    else throw new Error(data.error || 'Could not open billing portal');
+  } catch (err) {
+    alert(err.message || 'Failed to open billing portal');
+    btn.disabled = false;
+    btn.textContent = '💳 Manage Billing';
+  }
+});
+
+document.getElementById('accountBtn')?.addEventListener('click', () => {
+  window.location.href = 'account.html';
 });
 
 async function loadTracker() {
@@ -721,3 +749,14 @@ loadUserPlan();
 updateDynamicCoachInsights();
 loadTracker();
 loadReferral();
+
+// ─── Global loading state helpers ─────────────────────────────────────────
+function setButtonLoading(btn, text = 'Loading...') {
+  btn.disabled = true;
+  btn._origText = btn.textContent;
+  btn.textContent = text;
+}
+function clearButtonLoading(btn) {
+  btn.disabled = false;
+  btn.textContent = btn._origText || btn.textContent;
+}

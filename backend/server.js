@@ -6,8 +6,35 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const OpenAI = require('openai');
 const Stripe = require('stripe');
+const nodemailer = require('nodemailer');
+
+function createMailTransporter() {
+  if (process.env.SMTP_HOST) {
+    return nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: Number(process.env.SMTP_PORT) || 587,
+      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+    });
+  }
+  return null;
+}
+
+async function sendEmail({ to, subject, html }) {
+  const transporter = createMailTransporter();
+  if (!transporter) {
+    console.warn('Email not configured: set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS in env.');
+    return;
+  }
+  await transporter.sendMail({
+    from: `"RoleRocket AI" <${process.env.SMTP_USER}>`,
+    to,
+    subject,
+    html
+  });
+}
 
 const { runATSAnalysis } = require('./services/atsScorer');
 
@@ -1086,10 +1113,128 @@ app.post('/api/create-lifetime-checkout', authenticateToken, async (req, res) =>
   }
 });
 
+// ─── Forgot Password ────────────────────────────────────────────────────────
+app.post('/api/auth/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body || {};
+    if (!email) return res.status(400).json({ error: 'Email is required' });
+
+    const user = await User.findOne({ email: String(email).toLowerCase().trim() });
+    if (!user) return res.json({ message: 'If that email exists, a reset link was sent.' });
+
+    const token = crypto.randomBytes(32).toString('hex');
+    user.passwordResetToken = token;
+    user.passwordResetExpires = new Date(Date.now() + 60 * 60 * 1000);
+    await user.save();
+
+    const resetUrl = `${process.env.CLIENT_URL}/reset-password.html?token=${token}`;
+
+    await sendEmail({
+      to: user.email,
+      subject: 'Reset your RoleRocket AI password',
+      html: `
+        <h2>Password Reset</h2>
+        <p>Click the link below to reset your password. This link expires in 1 hour.</p>
+        <a href="${resetUrl}" style="background:#7c3aed;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block;">Reset Password</a>
+        <p style="margin-top:16px;color:#888;">If you didn't request this, ignore this email.</p>
+      `
+    });
+
+    return res.json({ message: 'If that email exists, a reset link was sent.' });
+  } catch (err) {
+    console.error('Forgot password error:', err);
+    return res.status(500).json({ error: 'Failed to send reset email' });
+  }
+});
+
+// ─── Reset Password ──────────────────────────────────────────────────────────
+app.post('/api/auth/reset-password', async (req, res) => {
+  try {
+    const { token, password } = req.body || {};
+    if (!token || !password) return res.status(400).json({ error: 'Token and password are required' });
+    if (String(password).length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
+
+    const user = await User.findOne({
+      passwordResetToken: token,
+      passwordResetExpires: { $gt: new Date() }
+    });
+
+    if (!user) return res.status(400).json({ error: 'Invalid or expired reset link' });
+
+    user.password = await bcrypt.hash(password, 10);
+    user.passwordResetToken = null;
+    user.passwordResetExpires = null;
+    await user.save();
+
+    return res.json({ message: 'Password reset successfully. You can now log in.' });
+  } catch (err) {
+    console.error('Reset password error:', err);
+    return res.status(500).json({ error: 'Failed to reset password' });
+  }
+});
+
+// ─── Stripe Customer Portal ──────────────────────────────────────────────────
+app.post('/api/create-portal-session', authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId).select('email');
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+    if (!customers.data.length) {
+      return res.status(400).json({ error: 'No Stripe customer found for this account' });
+    }
+
+    const session = await stripe.billingPortal.sessions.create({
+      customer: customers.data[0].id,
+      return_url: `${process.env.CLIENT_URL}/dashboard.html`
+    });
+
+    return res.json({ url: session.url });
+  } catch (err) {
+    console.error('Portal session error:', err);
+    return res.status(500).json({ error: err.message || 'Failed to open billing portal' });
+  }
+});
+
+// ─── Change Password ────────────────────────────────────────────────────────
+app.post('/api/auth/change-password', authenticateToken, async (req, res) => {
+  try {
+    const { oldPassword, newPassword } = req.body || {};
+    if (!oldPassword || !newPassword) return res.status(400).json({ error: 'Both passwords are required' });
+    if (String(newPassword).length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
+
+    const user = await User.findById(req.user.userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const match = await bcrypt.compare(oldPassword, user.password);
+    if (!match) return res.status(401).json({ error: 'Current password is incorrect' });
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    await user.save();
+
+    return res.json({ message: 'Password updated successfully' });
+  } catch (err) {
+    console.error('Change password error:', err);
+    return res.status(500).json({ error: 'Failed to update password' });
+  }
+});
+
+// ─── Delete Account ──────────────────────────────────────────────────────────
+app.delete('/api/account', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    await User.findByIdAndDelete(userId);
+    return res.json({ message: 'Account deleted' });
+  } catch (err) {
+    console.error('Delete account error:', err);
+    return res.status(500).json({ error: 'Failed to delete account' });
+  }
+});
+
 app.get('/{*path}', (req, res) => {
   return res.sendFile(path.join(__dirname, '../frontend/index.html'));
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`\ud83d\ude80 Server running on port ${PORT}`);
 });

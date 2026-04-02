@@ -15,7 +15,10 @@ const UserSchema = new mongoose.Schema(
 
     referralCode: { type: String, unique: true, sparse: true },
     referredBy: { type: String, default: null },
-    referralCount: { type: Number, default: 0 }
+    referralCount: { type: Number, default: 0 },
+
+    passwordResetToken: { type: String, default: null },
+    passwordResetExpires: { type: Date, default: null }
   },
   { timestamps: true }
 );

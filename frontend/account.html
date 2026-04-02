@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Account | RoleRocket AI</title>
+  <meta name="robots" content="noindex" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="hero">
+    <h1>Account Settings</h1>
+    <p>Manage your profile, subscription, and billing information.</p>
+  </div>
+
+  <div class="layout">
+    <div class="sidebar">
+      <h2>🚀 RoleRocket AI</h2>
+      <button onclick="window.location.href='dashboard.html'">← Back to Dashboard</button>
+      <hr />
+      <button id="billingBtn">💳 Manage Billing</button>
+      <button id="logoutBtn">Logout</button>
+    </div>
+
+    <div class="main">
+      <div class="grid" style="max-width: 700px;">
+
+        <!-- Profile Info -->
+        <div class="card">
+          <h3 style="margin-top:0;">👤 Profile</h3>
+          <div id="profileLoading" style="color:#6b7280;">Loading account info...</div>
+          <div id="profileInfo" style="display:none;">
+            <p><strong>Name:</strong> <span id="accountName">—</span></p>
+            <p><strong>Email:</strong> <span id="accountEmail">—</span></p>
+            <p><strong>Plan:</strong> <span id="accountPlan" style="font-weight:700;color:#7c3aed;">—</span></p>
+            <p><strong>Referral Code:</strong> <code id="accountReferral" style="background:#f3f4f6;padding:2px 8px;border-radius:6px;">—</code></p>
+          </div>
+        </div>
+
+        <!-- Change Password -->
+        <div class="card">
+          <h3 style="margin-top:0;">🔒 Change Password</h3>
+          <form id="changePassForm" class="auth-form" style="max-width:400px;">
+            <input id="cpOld" type="password" placeholder="Current password" required />
+            <input id="cpNew" type="password" placeholder="New password (min 8 chars)" minlength="8" required />
+            <input id="cpConfirm" type="password" placeholder="Confirm new password" minlength="8" required />
+            <button type="submit" class="auth-submit-btn" id="cpBtn">Update Password</button>
+          </form>
+          <div id="cpMessage" style="margin-top:10px;font-size:0.9rem;"></div>
+        </div>
+
+        <!-- Subscription -->
+        <div class="card">
+          <h3 style="margin-top:0;">💳 Subscription</h3>
+          <p>Manage your subscription, update payment methods, or cancel your plan through the Stripe billing portal.</p>
+          <button id="portalBtn" class="auth-submit-btn" style="max-width:220px;padding:12px 20px;">Open Billing Portal</button>
+          <div id="portalMessage" style="margin-top:10px;font-size:0.9rem;color:#dc2626;"></div>
+        </div>
+
+        <!-- Danger Zone -->
+        <div class="card" style="border: 1px solid #fee2e2;">
+          <h3 style="margin-top:0;color:#dc2626;">⚠️ Danger Zone</h3>
+          <p style="color:#6b7280;font-size:0.9rem;">Permanently delete your account and all associated data. This cannot be undone.</p>
+          <button id="deleteBtn" style="background:#dc2626;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:600;">Delete My Account</button>
+          <div id="deleteMessage" style="margin-top:10px;font-size:0.9rem;color:#dc2626;"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const TOKEN = localStorage.getItem('token');
+    if (!TOKEN) window.location.href = 'login.html';
+
+    async function api(url, opts = {}) {
+      const res = await fetch(url, {
+        ...opts,
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${TOKEN}`, ...(opts.headers || {}) }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Request failed');
+      return data;
+    }
+
+    // Load profile
+    async function loadProfile() {
+      try {
+        const data = await api('/api/me');
+        document.getElementById('accountName').textContent = data.name || '—';
+        document.getElementById('accountEmail').textContent = data.email || '—';
+        const plan = data.plan || 'free';
+        document.getElementById('accountPlan').textContent = plan.charAt(0).toUpperCase() + plan.slice(1);
+        document.getElementById('accountReferral').textContent = data.referralCode || '—';
+        document.getElementById('profileLoading').style.display = 'none';
+        document.getElementById('profileInfo').style.display = 'block';
+      } catch (err) {
+        document.getElementById('profileLoading').textContent = 'Failed to load account info.';
+      }
+    }
+
+    // Change password
+    document.getElementById('changePassForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const msg = document.getElementById('cpMessage');
+      const btn = document.getElementById('cpBtn');
+      const oldPass = document.getElementById('cpOld').value;
+      const newPass = document.getElementById('cpNew').value;
+      const confirmPass = document.getElementById('cpConfirm').value;
+
+      if (newPass !== confirmPass) {
+        msg.textContent = 'New passwords do not match.';
+        msg.style.color = '#dc2626';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Updating...';
+
+      try {
+        const data = await api('/api/auth/change-password', {
+          method: 'POST',
+          body: JSON.stringify({ oldPassword: oldPass, newPassword: newPass })
+        });
+        msg.textContent = '✅ Password updated successfully.';
+        msg.style.color = '#16a34a';
+        document.getElementById('changePassForm').reset();
+      } catch (err) {
+        msg.textContent = `❌ ${err.message}`;
+        msg.style.color = '#dc2626';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Update Password';
+      }
+    });
+
+    // Billing portal
+    document.getElementById('portalBtn').addEventListener('click', async () => {
+      const btn = document.getElementById('portalBtn');
+      const msg = document.getElementById('portalMessage');
+      btn.disabled = true;
+      btn.textContent = 'Loading...';
+      try {
+        const data = await api('/api/create-portal-session', { method: 'POST' });
+        if (data.url) window.location.href = data.url;
+      } catch (err) {
+        msg.textContent = err.message || 'Could not open billing portal.';
+        btn.disabled = false;
+        btn.textContent = 'Open Billing Portal';
+      }
+    });
+
+    // Billing portal from sidebar
+    document.getElementById('billingBtn').addEventListener('click', async () => {
+      document.getElementById('portalBtn').click();
+    });
+
+    // Delete account
+    document.getElementById('deleteBtn').addEventListener('click', async () => {
+      const msg = document.getElementById('deleteMessage');
+      if (!confirm('Are you absolutely sure? This will permanently delete your account and cannot be undone.')) return;
+      if (!confirm('Last chance — delete your RoleRocket AI account forever?')) return;
+      try {
+        await api('/api/account', { method: 'DELETE' });
+        localStorage.removeItem('token');
+        window.location.href = 'index.html';
+      } catch (err) {
+        msg.textContent = err.message || 'Failed to delete account.';
+      }
+    });
+
+    // Logout
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      localStorage.removeItem('token');
+      window.location.href = 'index.html';
+    });
+
+    loadProfile();
+  </script>
+
+</body>
+</html>
