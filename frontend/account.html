@@ -83,6 +83,10 @@
     const TOKEN = getStoredToken();
     if (!TOKEN) window.location.href = 'login.html';
 
+    const sidebarBillingBtn = document.getElementById('billingBtn');
+    const portalBtn = document.getElementById('portalBtn');
+    const portalMessage = document.getElementById('portalMessage');
+
     async function api(url, opts = {}) {
       const res = await fetch(apiUrl(url), {
         ...opts,
@@ -93,15 +97,28 @@
       return data;
     }
 
+    function setBillingButtonState(isLoading) {
+      if (portalBtn) {
+        portalBtn.disabled = isLoading;
+        portalBtn.textContent = isLoading ? 'Loading...' : 'Open Billing Portal';
+      }
+
+      if (sidebarBillingBtn) {
+        sidebarBillingBtn.disabled = isLoading;
+        sidebarBillingBtn.textContent = isLoading ? 'Loading...' : '💳 Manage Billing';
+      }
+    }
+
     // Load profile
     async function loadProfile() {
       try {
         const data = await api('/api/me');
-        document.getElementById('accountName').textContent = data.name || '—';
-        document.getElementById('accountEmail').textContent = data.email || '—';
-        const plan = data.plan || 'free';
+        const user = data.user || data;
+        document.getElementById('accountName').textContent = user.name || '—';
+        document.getElementById('accountEmail').textContent = user.email || '—';
+        const plan = user.plan || 'free';
         document.getElementById('accountPlan').textContent = plan.charAt(0).toUpperCase() + plan.slice(1);
-        document.getElementById('accountReferral').textContent = data.referralCode || '—';
+        document.getElementById('accountReferral').textContent = user.referralCode || '—';
         document.getElementById('profileLoading').style.display = 'none';
         document.getElementById('profileInfo').style.display = 'block';
       } catch (err) {
@@ -145,24 +162,36 @@
     });
 
     // Billing portal
-    document.getElementById('portalBtn').addEventListener('click', async () => {
-      const btn = document.getElementById('portalBtn');
-      const msg = document.getElementById('portalMessage');
-      btn.disabled = true;
-      btn.textContent = 'Loading...';
+    async function openBillingPortal() {
+      portalMessage.textContent = '';
+      setBillingButtonState(true);
       try {
         const data = await api('/api/create-portal-session', { method: 'POST' });
-        if (data.url) window.location.href = data.url;
+        if (data.url) {
+          window.location.href = data.url;
+          return;
+        }
+
+        throw new Error('Could not open billing portal.');
       } catch (err) {
-        msg.textContent = err.message || 'Could not open billing portal.';
-        btn.disabled = false;
-        btn.textContent = 'Open Billing Portal';
+        portalMessage.textContent = err.message || 'Could not open billing portal.';
+        setBillingButtonState(false);
       }
-    });
+    }
+
+    portalBtn.addEventListener('click', openBillingPortal);
 
     // Billing portal from sidebar
-    document.getElementById('billingBtn').addEventListener('click', async () => {
-      document.getElementById('portalBtn').click();
+    sidebarBillingBtn.addEventListener('click', openBillingPortal);
+
+    window.addEventListener('pageshow', () => {
+      setBillingButtonState(false);
+    });
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        setBillingButtonState(false);
+      }
     });
 
     // Delete account
@@ -185,6 +214,7 @@
       window.location.href = 'index.html';
     });
 
+    setBillingButtonState(false);
     loadProfile();
   </script>
 
