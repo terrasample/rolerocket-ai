@@ -184,16 +184,8 @@ app.use(express.static(path.join(__dirname, '../frontend'), {
 }));
 
 app.get('/api/health', (_req, res) => {
-  return res.json({ ok: true, ts: Date.now() });
-});
-
-// Temporary env-check endpoint — shows which critical vars are missing (no values exposed).
-// Remove this route once production is confirmed working.
-app.get('/api/env-check', (_req, res) => {
-  const vars = ['MONGODB_URI', 'JWT_SECRET', 'OPENAI_API_KEY', 'STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET', 'CLIENT_URL'];
-  const result = {};
-  vars.forEach((k) => { result[k] = process.env[k] ? 'set' : 'MISSING'; });
-  return res.json(result);
+  const dbReady = mongoose.connection.readyState === 1;
+  return res.json({ ok: true, dbReady, ts: Date.now() });
 });
 
 if (process.env.NODE_ENV !== 'test') {
@@ -1013,7 +1005,7 @@ app.post('/api/auth/signup', async (req, res) => {
     });
   } catch (err) {
     console.error('Signup error:', err);
-    return res.status(500).json({ error: `Signup failed: ${String(err?.message || err)}` });
+    return res.status(500).json({ error: authFailureMessage('Signup', err) });
   }
 });
 
