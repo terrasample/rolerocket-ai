@@ -273,6 +273,7 @@
           if (!setStoredToken(preLogin.token)) {
             throw new Error('Could not save session in this browser.');
           }
+          setStoredUser(preLogin.user || { name, email });
           window.location.replace('dashboard.html');
           return;
         }
@@ -287,6 +288,7 @@
         if (!setStoredToken(data.token)) {
           throw new Error('Could not save session in this browser.');
         }
+        setStoredUser(data.user || { name, email });
         window.location.replace('dashboard.html');
       } catch (err) {
         // If signup response was delayed/lost but account exists, finalize with short login polling.
@@ -298,6 +300,7 @@
               if (!setStoredToken(loginData.token)) {
                 throw new Error('Could not save session in this browser.');
               }
+              setStoredUser(loginData.user || { name, email });
               window.location.replace('dashboard.html');
               return;
             }

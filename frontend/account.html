@@ -109,19 +109,30 @@
       }
     }
 
+    function renderProfile(user) {
+      document.getElementById('accountName').textContent = user?.name || '—';
+      document.getElementById('accountEmail').textContent = user?.email || '—';
+      const plan = String(user?.plan || 'free');
+      document.getElementById('accountPlan').textContent = plan.charAt(0).toUpperCase() + plan.slice(1);
+      document.getElementById('accountReferral').textContent = user?.referralCode || '—';
+      document.getElementById('profileLoading').style.display = 'none';
+      document.getElementById('profileInfo').style.display = 'block';
+    }
+
     // Load profile
     async function loadProfile() {
       try {
         const data = await api('/api/me');
         const user = data.user || data;
-        document.getElementById('accountName').textContent = user.name || '—';
-        document.getElementById('accountEmail').textContent = user.email || '—';
-        const plan = user.plan || 'free';
-        document.getElementById('accountPlan').textContent = plan.charAt(0).toUpperCase() + plan.slice(1);
-        document.getElementById('accountReferral').textContent = user.referralCode || '—';
-        document.getElementById('profileLoading').style.display = 'none';
-        document.getElementById('profileInfo').style.display = 'block';
+        setStoredUser(user);
+        renderProfile(user);
       } catch (err) {
+        const storedUser = typeof getStoredUser === 'function' ? getStoredUser() : null;
+        if (storedUser) {
+          renderProfile(storedUser);
+          return;
+        }
+
         document.getElementById('profileLoading').textContent = 'Failed to load account info.';
       }
     }

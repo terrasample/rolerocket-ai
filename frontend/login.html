@@ -195,6 +195,7 @@
         if (!setStoredToken(data.token)) {
           throw new Error('Could not save session in this browser.');
         }
+        setStoredUser(data.user || { email });
         window.location.replace('dashboard.html');
       } catch (err) {
         let apiTarget = 'unknown';
