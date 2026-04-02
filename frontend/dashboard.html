@@ -45,7 +45,7 @@
     </div>
 
     <div class="main" id="mainContent" tabindex="-1">
-      <section class="trust-strip" aria-label="Social proof and security">
+      <section class="trust-strip advanced-section" aria-label="Social proof and security" hidden>
         <div class="trust-metric">
           <strong id="proofApplications">12,800+</strong>
           <span>Applications tracked</span>
@@ -65,7 +65,7 @@
         </div>
       </section>
 
-      <div id="iaPromptTop" class="ia-prompt-slot" aria-live="polite"></div>
+      <div id="iaPromptTop" class="ia-prompt-slot advanced-section" aria-live="polite" hidden></div>
 
       <div class="pricing-top" id="pricingTop">
         <div class="price-card free" data-plan-card="free">
@@ -134,7 +134,7 @@
         </div>
       </div>
 
-      <section class="plan-guide" id="planGuide" aria-labelledby="planGuideTitle">
+      <section class="plan-guide advanced-section" id="planGuide" aria-labelledby="planGuideTitle" hidden>
         <div class="plan-guide-head">
           <div>
             <span class="today-kicker">Plan Deep Dive</span>
@@ -173,9 +173,9 @@
         </div>
       </section>
 
-      <div id="iaPromptMid" class="ia-prompt-slot" aria-live="polite"></div>
+      <div id="iaPromptMid" class="ia-prompt-slot advanced-section" aria-live="polite" hidden></div>
 
-      <div class="coach-strip">
+      <div class="coach-strip advanced-section" hidden>
         <div class="coach-insight">
           <span class="coach-label">Career Coach Insight</span>
           <strong id="careerCoachInsight">Analyzing your positioning…</strong>
@@ -198,6 +198,7 @@
         <div class="mode-toggle" role="group" aria-label="Choose dashboard mode">
           <button id="starterModeBtn" class="secondary-btn" aria-pressed="true">Starter Mode</button>
           <button id="powerModeBtn" class="secondary-btn" aria-pressed="false">Power Mode</button>
+          <button id="advancedInsightsBtn" class="secondary-btn" aria-pressed="false">Show Advanced</button>
         </div>
       </section>
 

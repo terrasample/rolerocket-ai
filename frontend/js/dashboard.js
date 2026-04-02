@@ -47,6 +47,8 @@ const checkoutBanner = document.getElementById('checkoutBanner');
 const starterModeBtn = document.getElementById('starterModeBtn');
 const powerModeBtn = document.getElementById('powerModeBtn');
 const modeSummary = document.getElementById('modeSummary');
+const advancedInsightsBtn = document.getElementById('advancedInsightsBtn');
+const advancedSectionEls = Array.from(document.querySelectorAll('.advanced-section'));
 const todayPrimaryTitleEl = document.getElementById('todayPrimaryTitle');
 const todayPrimaryMetaEl = document.getElementById('todayPrimaryMeta');
 const todayPrimaryBtn = document.getElementById('todayPrimaryBtn');
@@ -59,7 +61,9 @@ const modeKpiStarterEl = document.getElementById('modeKpiStarter');
 const modeKpiPowerEl = document.getElementById('modeKpiPower');
 
 const DASHBOARD_MODE_KEY = 'rr_dashboard_mode_v1';
+const DASHBOARD_ADVANCED_KEY = 'rr_dashboard_advanced_v1';
 let dashboardMode = 'starter';
+let advancedInsightsVisible = false;
 let latestTrackerStats = {
   total: 0,
   saved: 0,
@@ -187,10 +191,33 @@ function renderPlanGuide(plan) {
 }
 
 function showPlanGuide(plan, scroll = true) {
+  setAdvancedInsightsVisible(true, { persist: true });
   renderPlanGuide(plan);
   if (scroll && planGuideEl) {
     planGuideEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
+}
+
+function setAdvancedInsightsVisible(visible, { persist = true } = {}) {
+  advancedInsightsVisible = Boolean(visible);
+
+  advancedSectionEls.forEach((section) => {
+    section.hidden = !advancedInsightsVisible;
+  });
+
+  if (advancedInsightsBtn) {
+    advancedInsightsBtn.textContent = advancedInsightsVisible ? 'Hide Advanced' : 'Show Advanced';
+    advancedInsightsBtn.setAttribute('aria-pressed', advancedInsightsVisible ? 'true' : 'false');
+  }
+
+  if (persist) {
+    localStorage.setItem(DASHBOARD_ADVANCED_KEY, advancedInsightsVisible ? 'show' : 'hide');
+  }
+}
+
+function initAdvancedInsights() {
+  const saved = localStorage.getItem(DASHBOARD_ADVANCED_KEY);
+  setAdvancedInsightsVisible(saved === 'show', { persist: false });
 }
 
 // ─── Toast notifications ───────────────────────────────────────────────────
@@ -1733,6 +1760,10 @@ planGuideJumpBtn?.addEventListener('click', () => {
   card?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 });
 
+advancedInsightsBtn?.addEventListener('click', () => {
+  setAdvancedInsightsVisible(!advancedInsightsVisible, { persist: true });
+});
+
 document.getElementById('logoutBtn')?.addEventListener('click', () => {
   if (typeof clearStoredToken === 'function') {
     clearStoredToken();
@@ -1766,6 +1797,7 @@ document.getElementById('analyticsBtn')?.addEventListener('click', () => {
 });
 
 renderPlanGuide('pro');
+initAdvancedInsights();
 
 async function saveRoleProfile() {
   const message = document.getElementById('roleProfileMessage');
