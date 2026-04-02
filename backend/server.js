@@ -187,6 +187,15 @@ app.get('/api/health', (_req, res) => {
   return res.json({ ok: true, ts: Date.now() });
 });
 
+// Temporary env-check endpoint — shows which critical vars are missing (no values exposed).
+// Remove this route once production is confirmed working.
+app.get('/api/env-check', (_req, res) => {
+  const vars = ['MONGODB_URI', 'JWT_SECRET', 'OPENAI_API_KEY', 'STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET', 'CLIENT_URL'];
+  const result = {};
+  vars.forEach((k) => { result[k] = process.env[k] ? 'set' : 'MISSING'; });
+  return res.json(result);
+});
+
 if (process.env.NODE_ENV !== 'test') {
   mongoose
     .connect(process.env.MONGODB_URI)
