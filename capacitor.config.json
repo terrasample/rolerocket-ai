@@ -2,8 +2,24 @@
   "appId": "com.rolerocket.ai",
   "appName": "RoleRocket AI",
   "webDir": "frontend",
+  "ios": {
+    "contentInset": "automatic"
+  },
   "server": {
     "url": "https://www.rolerocketai.com",
-    "cleartext": false
+    "cleartext": false,
+    "allowNavigation": [
+      "www.rolerocketai.com",
+      "rolerocketai.com",
+      "checkout.stripe.com",
+      "billing.stripe.com"
+    ]
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1200,
+      "launchAutoHide": true,
+      "backgroundColor": "#f5f7fa"
+    }
   }
 }
