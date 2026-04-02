@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>RoleRocket AI Dashboard</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="hero">
+    <h1>Welcome back 👋</h1>
+    <p>Find better jobs, prepare stronger applications, and move faster with assisted 1-click apply.</p>
+  </div>
+
+  <div class="layout">
+    <div class="sidebar">
+      <h2>🚀 RoleRocket AI</h2>
+
+      <button id="proBtn">Upgrade Pro</button>
+      <button id="premiumBtn">Upgrade Premium</button>
+      <button id="eliteBtn">Upgrade Elite</button>
+      <button id="lifetimeBtn" class="lifetime">🔥 Lifetime Access</button>
+
+      <hr />
+
+      <p id="planBadge">Free Plan</p>
+
+      <button id="logoutBtn">Logout</button>
+    </div>
+
+    <div class="main">
+      <div class="pricing-top">
+        <div class="price-card free">
+          <div class="plan-pill starter-pill">STARTER</div>
+          <h3>Free</h3>
+          <div class="price-amount">$0<span>/month</span></div>
+          <p class="price-subtext">Get started and explore the platform.</p>
+          <ul>
+            <li>✔ Job search</li>
+            <li>✔ Tracker access</li>
+            <li>✔ Paste job from anywhere</li>
+          </ul>
+        </div>
+
+        <div class="price-card pro featured-card">
+          <div class="plan-pill popular-pill">MOST POPULAR</div>
+          <h3>Pro</h3>
+          <div class="price-amount">$19<span>/month</span></div>
+          <p class="price-subtext">Unlock job-winning resumes and faster offers.</p>
+          <ul>
+            <li>✔ Resume Generator</li>
+            <li>✔ Cover Letter AI</li>
+            <li>✔ Job Match Analysis</li>
+          </ul>
+          <button onclick="upgrade('price_1THMq2KtQrGDcYVPvR3OcRyN')">Upgrade to Pro</button>
+        </div>
+
+        <div class="price-card premium">
+          <div class="plan-pill premium-pill">SMART TOOLS</div>
+          <h3>Premium</h3>
+          <div class="price-amount">$39<span>/month</span></div>
+          <p class="price-subtext">Unlock job-winning resumes and faster offers.</p>
+          <ul>
+            <li>✔ ATS Optimizer</li>
+            <li>✔ Interview Prep AI</li>
+            <li>✔ 1-Click Apply</li>
+            <li>✔ AI Resume Rewrite</li>
+          </ul>
+          <button onclick="upgrade('price_1THMqvKtQrGDcYVP6K605mhv')">Upgrade to Premium</button>
+        </div>
+
+        <div class="price-card elite">
+          <div class="plan-pill elite-pill">POWER USER</div>
+          <h3>Elite</h3>
+          <div class="price-amount">$79<span>/month</span></div>
+          <p class="price-subtext">Everything in Premium plus deeper guidance and priority access.</p>
+          <ul>
+            <li>✔ Career Coach AI</li>
+            <li>✔ Premium insights</li>
+            <li>✔ Priority processing</li>
+          </ul>
+          <button onclick="upgrade('price_1THMraKtQrGDcYVPytIyvklx')">Upgrade to Elite</button>
+        </div>
+
+        <div class="price-card lifetime">
+          <div class="plan-pill founders-pill">🔥 FOUNDERS DEAL</div>
+          <h3>Lifetime</h3>
+          <div class="price-amount">$199<span> one-time</span></div>
+          <p class="price-subtext">Pay once. Keep access forever.</p>
+          <ul>
+            <li>✔ Everything included</li>
+            <li>✔ No monthly payments</li>
+            <li>✔ Future features included</li>
+          </ul>
+          <button onclick="lifetime()">Get Lifetime Access</button>
+        </div>
+      </div>
+
+      <div class="coach-strip">
+        <div class="coach-insight">
+          <span class="coach-label">Career Coach Insight</span>
+          <strong id="careerCoachInsight">Analyzing your positioning…</strong>
+        </div>
+        <div class="coach-insight">
+          <span class="coach-label">Match Signal</span>
+          <strong id="careerMatchSignal">Analyzing your role fit…</strong>
+        </div>
+        <div class="coach-insight">
+          <span class="coach-label">Urgency Nudge</span>
+          <strong id="careerUrgencyNudge">Looking for your best next move…</strong>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <h3>🔍 Find Jobs</h3>
+
+          <input id="jobTitle" placeholder="Enter job title" />
+          <input id="jobLocation" placeholder="Enter location" />
+          <textarea id="jobResume" placeholder="Paste your resume here for better job matching"></textarea>
+
+          <button id="findJobsBtn">Find Jobs</button>
+
+          <div class="quick-link-row">
+            <button id="linkedinSearchBtn" class="secondary-btn">Search LinkedIn</button>
+            <button id="googleJobsBtn" class="secondary-btn">Search Google Jobs</button>
+          </div>
+
+          <div id="jobsList"></div>
+        </div>
+
+        <div class="card premium lockable premium-preview-card" data-plan="premium">
+          <div class="lock-badge">🔒 PREMIUM</div>
+          <h3>⚡ 1-Click Apply</h3>
+          <p>Apply to your best jobs instantly.</p>
+
+          <div class="locked-preview-shell">
+            <div class="blur-preview">
+              <div class="preview-chip-row">
+                <span class="preview-chip">Best-fit roles</span>
+                <span class="preview-chip">Priority first</span>
+              </div>
+
+              <div class="preview-result-card">
+                <strong>Senior Project Manager</strong>
+                <p>Match score: 92% · Urgency: High · Ready to apply</p>
+              </div>
+
+              <div class="preview-result-card">
+                <strong>Implementation Program Manager</strong>
+                <p>Match score: 88% · Urgency: Medium · Next best move</p>
+              </div>
+            </div>
+
+            <div class="locked-overlay">
+              <div class="locked-message">
+                <strong>Unlock faster applications and more interviews</strong>
+                <p class="lock-proof">Premium members move on their best-fit roles faster.</p>
+                <button class="unlock-btn" onclick="upgrade('price_1THMqvKtQrGDcYVP6K605mhv')">Unlock faster applications</button>
+              </div>
+            </div>
+          </div>
+
+          <button id="oneClickApplyBtn">Run 1-Click Apply</button>
+          <div id="topJobs"></div>
+        </div>
+
+        <div class="card">
+          <h3>📥 Paste Job From Anywhere</h3>
+
+          <input id="importJobUrl" placeholder="Paste job URL (LinkedIn, Indeed, company site, etc.)" />
+          <textarea id="importJobText" placeholder="Paste the full job description here"></textarea>
+
+          <button id="importJobBtn">Import Job</button>
+
+          <div id="importedJobBox"></div>
+        </div>
+
+        <div class="card lockable" data-plan="pro">
+          <div class="lock-badge">🔒 PRO</div>
+          <h3>🧠 Resume Generator</h3>
+
+          <div class="locked-overlay">
+            <div class="locked-message">
+              <strong>Unlock job-winning resumes and faster offers</strong>
+              <button class="unlock-btn" onclick="upgrade('price_1THMq2KtQrGDcYVPvR3OcRyN')">Unlock with Pro</button>
+            </div>
+          </div>
+
+          <textarea id="jobDescription" placeholder="Paste job description here"></textarea>
+          <textarea id="resume" placeholder="Paste your resume here"></textarea>
+
+          <button id="generateBtn">Generate Resume</button>
+          <pre id="result"></pre>
+        </div>
+
+        <div class="card lockable" data-plan="pro">
+          <div class="lock-badge">🔒 PRO</div>
+          <h3>✉️ Cover Letter</h3>
+
+          <div class="locked-overlay">
+            <div class="locked-message">
+              <strong>Unlock job-winning resumes and faster offers</strong>
+              <button class="unlock-btn" onclick="upgrade('price_1THMq2KtQrGDcYVPvR3OcRyN')">Unlock with Pro</button>
+            </div>
+          </div>
+
+          <textarea id="coverJob" placeholder="Paste job description here for cover letter"></textarea>
+          <textarea id="coverResume" placeholder="Paste your resume here for cover letter"></textarea>
+
+          <button id="coverBtn">Generate Cover Letter</button>
+          <pre id="coverResult"></pre>
+        </div>
+
+        <div class="card lockable" data-plan="pro">
+          <div class="lock-badge">🔒 PRO</div>
+          <h3>📊 Job Match</h3>
+
+          <div class="locked-overlay">
+            <div class="locked-message">
+              <strong>Unlock job-winning resumes and faster offers</strong>
+              <button class="unlock-btn" onclick="upgrade('price_1THMq2KtQrGDcYVPvR3OcRyN')">Unlock with Pro</button>
+            </div>
+          </div>
+
+          <textarea id="matchJob" placeholder="Paste job description here for job match"></textarea>
+          <textarea id="matchResume" placeholder="Paste your resume here for job match"></textarea>
+
+          <button id="matchBtn">Analyze Match</button>
+          <pre id="matchResult"></pre>
+        </div>
+
+        <div class="card premium lockable premium-preview-card" data-plan="premium">
+          <div class="lock-badge">🔒 PREMIUM</div>
+          <h3>🔥 ATS Optimizer</h3>
+          <p>Analyze your resume, find recruiter red flags, and improve your score.</p>
+
+          <div class="locked-preview-shell">
+            <div class="blur-preview">
+              <div class="preview-score-box">
+                <span>ATS Score Preview</span>
+                <strong>82</strong>
+              </div>
+
+              <div class="preview-result-card">
+                <strong>Missing keywords</strong>
+                <p>stakeholder management · implementation · reporting cadence</p>
+              </div>
+
+              <div class="preview-result-card">
+                <strong>Suggested fix</strong>
+                <p>Add stronger measurable delivery outcomes and systems language.</p>
+              </div>
+            </div>
+
+            <div class="locked-overlay">
+              <div class="locked-message">
+                <strong>See your full ATS score and fix weak spots</strong>
+                <p class="lock-proof">Get instant access after upgrading to Premium.</p>
+                <button class="unlock-btn" onclick="upgrade('price_1THMqvKtQrGDcYVP6K605mhv')">Unlock ATS insights</button>
+              </div>
+            </div>
+          </div>
+
+          <a href="optimizer.html">
+            <button>Open ATS Tool</button>
+          </a>
+        </div>
+
+        <div class="card premium lockable premium-preview-card" data-plan="premium">
+          <div class="lock-badge">🔒 PREMIUM</div>
+          <h3>🎤 Interview Prep AI</h3>
+          <p>Generate tailored interview questions and strong example answers for your target role.</p>
+
+          <div class="locked-preview-shell">
+            <div class="blur-preview">
+              <div class="preview-result-card">
+                <strong>Likely question</strong>
+                <p>Tell me about a time you managed a delayed project and reset stakeholder trust.</p>
+              </div>
+
+              <div class="preview-result-card">
+                <strong>Strong answer angle</strong>
+                <p>Ownership, executive communication, recovery plan, and measurable outcome.</p>
+              </div>
+
+              <div class="preview-result-card">
+                <strong>Smart closing question</strong>
+                <p>What separates strong performers from average ones in this role?</p>
+              </div>
+            </div>
+
+            <div class="locked-overlay">
+              <div class="locked-message">
+                <strong>Unlock tailored answers and stronger interview performance</strong>
+                <p class="lock-proof">Premium users prepare faster and show up sharper.</p>
+                <button class="unlock-btn" onclick="upgrade('price_1THMqvKtQrGDcYVP6K605mhv')">Unlock interview prep</button>
+              </div>
+            </div>
+          </div>
+
+          <textarea id="interviewRole" placeholder="Enter target role"></textarea>
+          <textarea id="interviewJobDescription" placeholder="Paste job description for interview prep"></textarea>
+
+          <button id="interviewPrepBtn">Generate Interview Prep</button>
+          <pre id="interviewPrepResult"></pre>
+        </div>
+
+        <div class="card premium lockable premium-preview-card" data-plan="elite">
+          <div class="lock-badge">🔒 ELITE</div>
+          <h3>💎 Career Coach AI</h3>
+          <p>See what roles pay more, what skills you’re missing, and where you should focus next.</p>
+
+          <div class="locked-preview-shell">
+            <div class="blur-preview">
+              <div class="preview-result-card">
+                <strong>Best next role</strong>
+                <p>Senior Program Manager · Healthcare Operations · $145K–$175K target range</p>
+              </div>
+
+              <div class="preview-result-card">
+                <strong>Main growth gap</strong>
+                <p>Stronger executive-value positioning and clearer quantified leadership wins.</p>
+              </div>
+
+              <div class="preview-result-card">
+                <strong>Next move</strong>
+                <p>Target 15 high-fit roles and reposition resume around operational outcomes.</p>
+              </div>
+            </div>
+
+            <div class="locked-overlay">
+              <div class="locked-message">
+                <strong>Unlock your next-step strategy and salary positioning</strong>
+                <p class="lock-proof">Elite gives you deeper guidance and premium career direction.</p>
+                <button class="unlock-btn" onclick="upgrade('price_1THMraKtQrGDcYVPytIyvklx')">Unlock career strategy</button>
+              </div>
+            </div>
+          </div>
+
+          <textarea id="careerCoachResume" placeholder="Paste your resume for career coaching"></textarea>
+          <textarea id="careerCoachGoals" placeholder="Describe your next role, salary goal, or career target"></textarea>
+
+          <button id="careerCoachBtn">Generate Career Plan</button>
+          <pre id="careerCoachResult"></pre>
+        </div>
+
+        <div class="card">
+          <h3>🎁 Invite & Earn</h3>
+          <p>Your referral link:</p>
+          <input id="referralLink" readonly />
+          <p><strong>Referrals:</strong> <span id="refCount">0</span></p>
+          <button id="copyReferralBtn">Copy Link</button>
+
+          <ul class="reward-list">
+            <li>3 invites → Pro</li>
+            <li>10 invites → Premium</li>
+            <li>25 invites → Lifetime 🔥</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tracker-wrap">
+        <h2 class="section-title">📌 Job Tracker</h2>
+        <p class="section-subtitle">Included on Free. Track your saved jobs and pipeline status.</p>
+
+        <div class="tracker-grid">
+          <div class="tracker-column">
+            <h3>Saved</h3>
+            <div id="savedJobs"></div>
+          </div>
+
+          <div class="tracker-column">
+            <h3>Ready</h3>
+            <div id="readyJobs"></div>
+          </div>
+
+          <div class="tracker-column">
+            <h3>Applied</h3>
+            <div id="appliedJobs"></div>
+          </div>
+
+          <div class="tracker-column">
+            <h3>Interview</h3>
+            <div id="interviewJobs"></div>
+          </div>
+
+          <div class="tracker-column">
+            <h3>Offer</h3>
+            <div id="offerJobs"></div>
+          </div>
+
+          <div class="tracker-column">
+            <h3>Rejected</h3>
+            <div id="rejectedJobs"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="faq-section">
+        <h2>❓ Frequently Asked Questions</h2>
+
+        <div class="faq-item">
+          <h4>How does 1-Click Apply work?</h4>
+          <p>We prioritize your best jobs and prepare your application flow faster so you can move on strong opportunities with less friction.</p>
+        </div>
+
+        <div class="faq-item">
+          <h4>Do I need to rewrite my resume every time?</h4>
+          <p>No. RoleRocket helps tailor your resume to each role using AI so you can move faster without starting from scratch.</p>
+        </div>
+
+        <div class="faq-item">
+          <h4>What makes this different from Jobscan?</h4>
+          <p>RoleRocket does more than scoring. It helps you find jobs, tailor applications, prep for interviews, track your pipeline, and move faster.</p>
+        </div>
+
+        <div class="faq-item">
+          <h4>Is Lifetime access really forever?</h4>
+          <p>Yes. Lifetime is a one-time payment that unlocks all current features and future upgrades included in the plan.</p>
+        </div>
+
+        <div class="faq-item">
+          <h4>Can I start free?</h4>
+          <p>Yes. You can start free, explore the workflow, and upgrade only when you want deeper automation and guidance.</p>
+        </div>
+
+        <div class="faq-item">
+          <h4>How do referrals work?</h4>
+          <p>Share your unique invite link. At 3 referrals you unlock Pro, at 10 referrals you unlock Premium, and at 25 referrals you unlock Lifetime.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/dashboard.js"></script>
+</body>
+</html>

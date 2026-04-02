@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>ATS Optimizer</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <div class="hero">
+    <h1>ATS Optimizer</h1>
+    <p>Analyze your resume, rewrite it with AI, and use 1-Click Fix to update it instantly.</p>
+  </div>
+
+  <div class="ats-container">
+
+    <div class="card">
+      <h3>Job Description</h3>
+      <textarea id="atsJobDescription" placeholder="Paste the full job description here"></textarea>
+    </div>
+
+    <div class="card">
+      <h3>Your Resume</h3>
+      <textarea id="atsResume" placeholder="Paste your full resume here"></textarea>
+    </div>
+
+    <div class="card premium">
+      <h3>⚡ ATS Actions</h3>
+      <div class="ats-actions">
+        <button id="runATSBtn">Analyze Resume</button>
+        <button id="rewriteBtn">🔥 Rewrite Resume</button>
+        <button id="applyFixBtn">⚡ Apply Fix</button>
+        <button id="saveResumeBtn">💾 Save Resume</button>
+      </div>
+      <div id="optimizerStatus" class="section-subtitle"></div>
+    </div>
+
+    <div class="card">
+      <h3>ATS Score</h3>
+      <div class="ats-score-section">
+        <div class="score-circle">
+          <span id="atsScore">0</span>
+          <small>ATS Score</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="ats-grid">
+      <div class="card">
+        <h3>Matched Keywords</h3>
+        <div id="matchedKeywords" class="tag-container"></div>
+      </div>
+
+      <div class="card">
+        <h3>Missing Keywords</h3>
+        <div id="missingKeywords" class="tag-container"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>🚨 Recruiter Red Flags</h3>
+      <div id="redFlags"></div>
+    </div>
+
+    <div class="card">
+      <h3>📊 Bullet Scores</h3>
+      <div id="bulletScores"></div>
+    </div>
+
+    <div class="card premium">
+      <h3>🤖 AI Rewrite Output</h3>
+      <pre id="rewriteOutput"></pre>
+    </div>
+
+    <div class="card">
+      <h3>📁 Saved Resumes</h3>
+      <div id="resumeList"></div>
+    </div>
+
+  </div>
+
+  <script src="js/optimizer.js"></script>
+</body>
+</html>

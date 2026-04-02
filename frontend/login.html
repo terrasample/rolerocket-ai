@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login | RoleRocket AI</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="landing-page">
+
+  <section class="landing-hero auth-hero">
+    <div class="auth-shell">
+      <div class="auth-left">
+        <div class="landing-badge">👋 Welcome Back</div>
+        <h1>Log in to RoleRocket AI</h1>
+        <p>
+          Jump back into your job search, resume optimization,
+          interview prep, and application pipeline.
+        </p>
+
+        <div class="landing-proof-row auth-proof-row">
+          <div class="landing-proof-card">
+            <strong>Keep momentum</strong>
+            <span>Pick up where you left off without losing your progress.</span>
+          </div>
+          <div class="landing-proof-card">
+            <strong>Apply smarter</strong>
+            <span>Use AI tools to move faster on better-fit roles.</span>
+          </div>
+          <div class="landing-proof-card">
+            <strong>Track everything</strong>
+            <span>Stay organized from saved jobs to interviews and offers.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="auth-card">
+        <div class="auth-card-top">
+          <span class="preview-pill">LOGIN</span>
+        </div>
+
+        <h2>Welcome back</h2>
+        <p class="auth-subtext">Log in and continue your job-winning workflow.</p>
+
+        <form id="loginForm" class="auth-form">
+          <input id="loginEmail" type="email" placeholder="Email" required />
+          <input id="loginPassword" type="password" placeholder="Password" required />
+          <button type="submit" class="auth-submit-btn">Login</button>
+        </form>
+
+        <div id="loginMessage" class="auth-message"></div>
+
+        <p class="auth-footer">
+          Don’t have an account?
+          <a href="signup.html">Create one</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    const form = document.getElementById('loginForm');
+    const message = document.getElementById('loginMessage');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      message.textContent = 'Logging in...';
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            email: document.getElementById('loginEmail').value,
+            password: document.getElementById('loginPassword').value
+          })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || 'Login failed');
+        }
+
+        localStorage.setItem('token', data.token);
+        message.textContent = '✅ Success! Redirecting...';
+
+        setTimeout(() => {
+          window.location.href = 'dashboard.html';
+        }, 800);
+      } catch (err) {
+        message.textContent = `❌ ${err.message}`;
+      }
+    });
+  </script>
+
+</body>
+</html>
