@@ -112,14 +112,14 @@ h3,
   align-items: center;
   justify-content: center;
   gap: 14px;
-  font-size: clamp(2.6rem, 5.6vw, 3.6rem);
+  font-size: clamp(7.8rem, 16.8vw, 10.8rem);
   font-weight: 900;
   color: #dc2626;
   line-height: 1.1;
 }
 
 .home-brand-rocket {
-  font-size: 2.36em;
+  font-size: 7.08em;
   filter: drop-shadow(0 8px 16px rgba(14, 165, 233, 0.35));
 }
 
