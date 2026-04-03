@@ -832,11 +832,27 @@ body[data-dashboard-mode='starter'] .progressive-module {
   color: #111827;
 }
 
+.price-original {
+  text-decoration: line-through;
+  color: #94a3b8;
+  font-size: 0.72em;
+  margin-right: 8px;
+  font-weight: 700;
+}
+
 .price-amount span {
   font-size: 14px;
   font-weight: 500;
   color: #6b7280;
   margin-left: 4px;
+}
+
+.limited-offer-note {
+  margin-top: -2px;
+  margin-bottom: 12px;
+  color: #0369a1;
+  font-size: 0.82rem;
+  font-weight: 700;
 }
 
 .price-subtext {

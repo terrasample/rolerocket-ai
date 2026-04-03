@@ -61,6 +61,9 @@ const modeKpiSummaryEl = document.getElementById('modeKpiSummary');
 const modeKpiSessionsEl = document.getElementById('modeKpiSessions');
 const modeKpiStarterEl = document.getElementById('modeKpiStarter');
 const modeKpiPowerEl = document.getElementById('modeKpiPower');
+const lifetimeDashboardPriceEl = document.getElementById('lifetimeDashboardPrice');
+const lifetimeOfferPillEl = document.getElementById('lifetimeOfferPill');
+const lifetimeDashboardOfferNoteEl = document.getElementById('lifetimeDashboardOfferNote');
 const veteranDiscountModalEl = document.getElementById('veteranDiscountModal');
 const veteranDiscountCodeValueEl = document.getElementById('veteranDiscountCodeValue');
 const veteranCopyCodeBtn = document.getElementById('veteranCopyCodeBtn');
@@ -1011,6 +1014,27 @@ async function loadUserPlan() {
     renderPlanGuide('pro');
     applyLocks();
     updateTodayRail();
+  }
+}
+
+async function syncLifetimeOfferUi() {
+  if (!lifetimeDashboardPriceEl || !lifetimeOfferPillEl || !lifetimeDashboardOfferNoteEl) return;
+
+  try {
+    const data = await api('/api/lifetime-offer-status', { method: 'GET' }, { retries: 0, timeoutMs: 5000 });
+
+    if (data?.offerActive) {
+      lifetimeDashboardPriceEl.innerHTML = '<span class="price-original">$249</span> $199<span> one-time</span>';
+      lifetimeOfferPillEl.textContent = '🔥 LIMITED OFFER';
+      lifetimeDashboardOfferNoteEl.textContent = `Limited offer: $199 for the first 50 customers. ${data.remaining || 0} spots left.`;
+      return;
+    }
+
+    lifetimeDashboardPriceEl.innerHTML = '$249<span> one-time</span>';
+    lifetimeOfferPillEl.textContent = '🔥 LIFETIME ACCESS';
+    lifetimeDashboardOfferNoteEl.textContent = 'Limited offer sold out. Lifetime is now $249 one-time.';
+  } catch (err) {
+    console.warn('Lifetime offer UI sync failed:', err?.message || err);
   }
 }
 
@@ -2362,6 +2386,7 @@ initMobileSidebar();
 loadSavedResume();
 updateDynamicCoachInsights();
 scheduleHeavyLoads();
+syncLifetimeOfferUi();
 loadLatestRoleProfile();
 loadAdaptiveRecommendations();
 loadOutcomeProof();

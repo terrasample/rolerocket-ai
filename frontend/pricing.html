@@ -80,10 +80,36 @@
         <p>One-time purchase with everything unlocked permanently.</p>
         <p class="veteran-tier-note">Veteran discount available after verification. <a href="https://www.id.me/individuals/military" target="_blank" rel="noopener noreferrer">Please verify your military status.</a></p>
         <div class="pricing-top">
-          <article class="price-card lifetime"><div class="plan-pill founders-pill">LIFETIME ACCESS</div><h3>Lifetime All-In</h3><div class="price-amount">$199<span> one-time</span></div><ul><li>All Free features</li><li>All Pro features</li><li>All Premium features</li><li>All Elite features</li><li>AI Interview Simulation Call</li><li>Executive presence coaching</li><li>Career Coach AI</li><li>LinkedIn Optimization</li><li>No monthly payments</li><li>Future updates included</li><li>Permanent access</li><li>Locked only before purchase</li></ul><a href="signup.html"><button>Claim Lifetime</button></a></article>
+          <article class="price-card lifetime"><div class="plan-pill founders-pill" id="lifetimePricingPill">LIFETIME LIMITED</div><h3>Lifetime All-In</h3><div class="price-amount" id="lifetimePricingAmount"><span class="price-original" id="lifetimePricingOriginal">$249</span> $199<span> one-time</span></div><p class="limited-offer-note" id="lifetimePricingOfferNote">Limited offer: $199 for the first 50 customers. Then returns to $249.</p><ul><li>All Free features</li><li>All Pro features</li><li>All Premium features</li><li>All Elite features</li><li>AI Interview Simulation Call</li><li>Executive presence coaching</li><li>Career Coach AI</li><li>LinkedIn Optimization</li><li>No monthly payments</li><li>Future updates included</li><li>Permanent access</li><li>Locked only before purchase</li></ul><a href="signup.html"><button>Claim Lifetime</button></a></article>
         </div>
       </section>
     </main>
   </div>
+  <script>
+    (async function syncLifetimeOfferUi() {
+      try {
+        const res = await fetch('/api/lifetime-offer-status', { headers: { Accept: 'application/json' } });
+        if (!res.ok) return;
+        const data = await res.json();
+
+        const amountEl = document.getElementById('lifetimePricingAmount');
+        const pillEl = document.getElementById('lifetimePricingPill');
+        const noteEl = document.getElementById('lifetimePricingOfferNote');
+        if (!amountEl || !pillEl || !noteEl) return;
+
+        if (data.offerActive) {
+          amountEl.innerHTML = '<span class="price-original">$249</span> $199<span> one-time</span>';
+          pillEl.textContent = 'LIFETIME LIMITED';
+          noteEl.textContent = `Limited offer: $199 for the first 50 customers. ${data.remaining} spots left.`;
+        } else {
+          amountEl.innerHTML = '$249<span> one-time</span>';
+          pillEl.textContent = 'LIFETIME ACCESS';
+          noteEl.textContent = 'Limited offer sold out. Lifetime is now $249 one-time.';
+        }
+      } catch (_err) {
+        // Keep default pricing UI if offer status API is not reachable.
+      }
+    })();
+  </script>
 </body>
 </html>

@@ -116,6 +116,7 @@ const Resume = require('./models/Resume');
 const Job = require('./models/Job');
 const Telemetry = require('./models/Telemetry');
 const RoleProfile = require('./models/RoleProfile');
+const LifetimeSale = require('./models/LifetimeSale');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -127,6 +128,8 @@ const openai = new OpenAI({
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 const LIFETIME_PRICE_ID = process.env.STRIPE_LIFETIME_PRICE_ID || '';
+const LIFETIME_REGULAR_PRICE_ID = String(process.env.STRIPE_LIFETIME_REGULAR_PRICE_ID || '').trim();
+const LIFETIME_DISCOUNT_LIMIT = Math.max(1, Number(process.env.LIFETIME_DISCOUNT_LIMIT || 50));
 const PRO_PRICE_ID = process.env.STRIPE_PRO_PRICE_ID || '';
 const PREMIUM_PRICE_ID = process.env.STRIPE_PREMIUM_PRICE_ID || '';
 const ELITE_PRICE_ID = process.env.STRIPE_ELITE_PRICE_ID || '';
@@ -170,6 +173,25 @@ let lastDbEvent = {
   at: new Date().toISOString()
 };
 
+async function getLifetimeOfferStatus() {
+  const sold = await LifetimeSale.countDocuments();
+  const remaining = Math.max(LIFETIME_DISCOUNT_LIMIT - sold, 0);
+  const offerActive = remaining > 0;
+
+  return {
+    limit: LIFETIME_DISCOUNT_LIMIT,
+    sold,
+    remaining,
+    offerActive,
+    discountedPriceId: LIFETIME_PRICE_ID || null,
+    regularPriceId: LIFETIME_REGULAR_PRICE_ID || null,
+    currentPrice: offerActive ? 199 : 249,
+    currentPriceLabel: offerActive ? '$199' : '$249',
+    regularPriceLabel: '$249',
+    discountedPriceLabel: '$199'
+  };
+}
+
 app.use(cors());
 
 app.post(
@@ -193,6 +215,19 @@ app.post(
               isSubscribed: true,
               plan: 'lifetime'
             });
+
+            if (session.id) {
+              await LifetimeSale.findOneAndUpdate(
+                { stripeSessionId: String(session.id) },
+                {
+                  stripeSessionId: String(session.id),
+                  userId,
+                  priceId: session.metadata?.lifetimePriceId || null,
+                  purchasedAt: new Date()
+                },
+                { upsert: true, new: true, setDefaultsOnInsert: true }
+              );
+            }
           } else {
             const selectedPlan = session.metadata?.plan || 'premium';
             await User.findByIdAndUpdate(userId, {
@@ -279,6 +314,16 @@ app.get('/api/health/deep', async (req, res) => {
       ...response,
       error: String(err?.message || 'Ping failed')
     });
+  }
+});
+
+app.get('/api/lifetime-offer-status', async (_req, res) => {
+  try {
+    const status = await getLifetimeOfferStatus();
+    return res.json(status);
+  } catch (err) {
+    console.error('Lifetime offer status error:', err);
+    return res.status(500).json({ error: 'Failed to load lifetime offer status' });
   }
 });
 
@@ -2439,11 +2484,18 @@ app.post('/api/create-checkout-session', authenticateToken, async (req, res) => 
 
 app.post('/api/create-lifetime-checkout', authenticateToken, async (req, res) => {
   try {
-    if (!LIFETIME_PRICE_ID) {
-      return res.status(400).json({ error: 'Missing STRIPE_LIFETIME_PRICE_ID' });
+    const offerStatus = await getLifetimeOfferStatus();
+    const selectedLifetimePriceId = offerStatus.offerActive ? LIFETIME_PRICE_ID : LIFETIME_REGULAR_PRICE_ID;
+
+    if (!selectedLifetimePriceId) {
+      return res.status(400).json({
+        error: offerStatus.offerActive
+          ? 'Missing STRIPE_LIFETIME_PRICE_ID (limited $199 offer price).'
+          : 'Missing STRIPE_LIFETIME_REGULAR_PRICE_ID ($249 regular price).'
+      });
     }
 
-    const price = await stripe.prices.retrieve(LIFETIME_PRICE_ID, {
+    const price = await stripe.prices.retrieve(selectedLifetimePriceId, {
       expand: ['product']
     });
 
@@ -2464,12 +2516,14 @@ app.post('/api/create-lifetime-checkout', authenticateToken, async (req, res) =>
       mode: 'payment',
       allow_promotion_codes: !shouldApplyVeteranDiscount,
       payment_method_types: ['card'],
-      line_items: [{ price: LIFETIME_PRICE_ID, quantity: 1 }],
+      line_items: [{ price: selectedLifetimePriceId, quantity: 1 }],
       success_url: `${process.env.CLIENT_URL}/dashboard.html?lifetime=true`,
       cancel_url: `${process.env.CLIENT_URL}/dashboard.html`,
       metadata: {
         userId: req.user.userId,
         type: 'lifetime',
+        lifetimeOfferActive: offerStatus.offerActive ? 'true' : 'false',
+        lifetimePriceId: selectedLifetimePriceId,
         veteranDiscountApplied: shouldApplyVeteranDiscount ? 'true' : 'false'
       }
     };
