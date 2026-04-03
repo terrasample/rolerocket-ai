@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,600;1,700&display=swap');
 
 * {
   box-sizing: border-box;
@@ -246,69 +246,103 @@ h3,
 }
 
 .marketing-card {
-  background: #ffffff;
-  border: 1px solid #dbe3ef;
-  border-radius: 16px;
-  padding: 18px;
-  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.05);
+  background: linear-gradient(145deg, #0b1628 0%, #0e2044 55%, #0c4a6e 100%);
+  border: 1px solid rgba(99, 190, 245, 0.22);
+  border-radius: 18px;
+  padding: 24px 26px;
+  box-shadow:
+    0 24px 52px rgba(8, 47, 73, 0.5),
+    0 2px 0 rgba(255, 255, 255, 0.04) inset,
+    0 0 0 1px rgba(14, 165, 233, 0.08) inset;
+  color: #dbeafe;
+  position: relative;
+  overflow: hidden;
+}
+
+.marketing-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, transparent 60%);
+  pointer-events: none;
 }
 
 .marketing-card h3 {
-  margin: 0 0 8px;
+  margin: 0 0 10px;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: italic;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.01em;
+  line-height: 1.35;
 }
 
 .marketing-card p {
   margin: 0;
-  color: #475569;
-  line-height: 1.55;
+  color: #bfdbfe;
+  line-height: 1.65;
+  font-size: 0.95rem;
+}
+
+.marketing-card p strong {
+  color: #e0f2fe;
+}
+
+.marketing-card a {
+  color: #7dd3fc;
+  font-weight: 600;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(125, 211, 252, 0.35);
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.marketing-card a:hover {
+  color: #38bdf8;
+  border-bottom-color: rgba(56, 189, 248, 0.6);
 }
 
 .marketing-card ul {
   margin: 10px 0 0;
   padding-left: 18px;
-  color: #334155;
+  color: #bfdbfe;
+  font-size: 0.94rem;
+  line-height: 1.7;
 }
 
 .tier-feature {
-  border-left: 4px solid #0ea5e9;
+  border-left: 4px solid #38bdf8;
 }
 
 .tier-feature.pro {
-  border-left-color: #0284c7;
+  border-left-color: #38bdf8;
 }
 
 .tier-feature.premium {
-  border-left-color: #0c4a6e;
+  border-left-color: #a78bfa;
 }
 
 .tier-feature.elite {
-  border-left-color: #7c2d12;
+  border-left-color: #f87171;
 }
 
 .tier-feature.lifetime {
-  border-left-color: #d97706;
+  border-left-color: #fbbf24;
 }
 
 .veteran-banner {
-  background:
-    linear-gradient(120deg, rgba(17, 94, 89, 0.95), rgba(20, 83, 45, 0.92)),
-    repeating-linear-gradient(
-      -45deg,
-      rgba(187, 247, 208, 0.16),
-      rgba(187, 247, 208, 0.16) 10px,
-      rgba(254, 240, 138, 0.06) 10px,
-      rgba(254, 240, 138, 0.06) 20px
-    );
-  border: 2px solid #86efac;
-  border-radius: 16px;
-  padding: 16px 18px;
-  color: #ecfccb;
-  box-shadow: 0 12px 24px rgba(20, 83, 45, 0.25);
+  background: linear-gradient(120deg, #3a4314 0%, #4b5320 55%, #3d4a18 100%);
+  border: 2px solid #6b7c2d;
+  border-radius: 14px;
+  padding: 14px 22px;
+  color: #e8f0c8;
+  font-size: 0.97rem;
+  font-weight: 500;
+  line-height: 1.65;
+  letter-spacing: 0.01em;
+  box-shadow: 0 8px 20px rgba(58, 67, 20, 0.35);
   margin-bottom: 16px;
-}
-
-.veteran-banner strong {
-  color: #fef9c3;
 }
 
 .feature-master-list {
@@ -320,9 +354,8 @@ h3,
 
 .feature-master-list li {
   margin-bottom: 8px;
-  color: #334155;
+  color: #bfdbfe;
 }
-
 .pricing-tier-block {
   margin-bottom: 24px;
 }
