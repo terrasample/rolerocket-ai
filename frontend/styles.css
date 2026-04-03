@@ -381,6 +381,22 @@ h3,
   color: #475569;
 }
 
+.veteran-tier-note {
+  margin: 0 0 14px;
+  color: #334155;
+  font-weight: 600;
+}
+
+.veteran-tier-note a {
+  color: #0369a1;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.veteran-tier-note a:hover {
+  color: #075985;
+}
+
 @media (max-width: 900px) {
   .feature-master-list {
     columns: 1;
