@@ -29,23 +29,19 @@
     </div>
   </div>
 
-  <div class="hero">
-    <div class="hero-copy">
-      <h1>Welcome back 👋</h1>
-      <p>Find better jobs, prepare stronger applications, and move faster with assisted 1-click apply.</p>
-    </div>
-    <button id="menuToggleBtn" class="menu-toggle-btn" aria-label="Open navigation menu" aria-expanded="false">&#9776;</button>
+  <div class="hero home-hero">
+    <h1 class="home-brand-title"><span class="home-brand-rocket" aria-hidden="true">🚀</span><span>RoleRocket AI</span></h1>
+    <p class="home-brand-subtitle">Your AI Career System</p>
   </div>
 
   <div id="sidebarOverlay" class="sidebar-overlay" aria-hidden="true"></div>
   <div class="layout">
     <div class="sidebar">
       <h2 aria-label="RoleRocket AI"></h2>
-
-      <button id="proBtn" data-sidebar-plan-btn="pro">About Pro</button>
-      <button id="premiumBtn" data-sidebar-plan-btn="premium">About Premium</button>
-      <button id="eliteBtn" data-sidebar-plan-btn="elite">About Elite</button>
-      <button id="lifetimeBtn" class="lifetime" data-sidebar-plan-btn="lifetime">About Lifetime</button>
+      <a class=\"sidebar-link-btn active\" href=\"dashboard.html\">Dashboard</a>
+      <a class=\"sidebar-link-btn\" href=\"index.html\">Home</a>
+      <a class=\"sidebar-link-btn\" href=\"features.html\">Features</a>
+      <a class=\"sidebar-link-btn\" href=\"job-tracking.html\">Job Tracking</a>
 
       <hr />
 
@@ -80,78 +76,16 @@
 
       <div id="iaPromptTop" class="ia-prompt-slot advanced-section" aria-live="polite" hidden></div>
 
-      <div class="pricing-top" id="pricingTop">
-        <div class="price-card free" data-plan-card="free">
-          <div class="plan-pill starter-pill">STARTER</div>
-          <span class="plan-lock-chip" data-plan-lock-chip="free">Current Plan</span>
-          <h3>Free</h3>
-          <div class="price-amount">$0<span>/month</span></div>
-          <p class="price-subtext">Start your search system and track every opportunity in one place.</p>
-          <ul>
-            <li>✔ Job search</li>
-            <li>✔ Tracker access</li>
-            <li>✔ Paste job from anywhere</li>
-          </ul>
+      <section class="dashboard-welcome advanced-section" aria-label="Dashboard welcome">
+        <div>
+          <span class="today-kicker">Your Dashboard</span>
+          <h2>Your AI-Powered Career System</h2>
+          <p>Track opportunities, optimize applications, and land your next role with confidence.</p>
         </div>
-
-        <div class="price-card pro featured-card" data-plan-card="pro">
-          <div class="plan-pill popular-pill">MOST POPULAR</div>
-          <span class="plan-lock-chip" data-plan-lock-chip="pro">Locked</span>
-          <h3>Pro</h3>
-          <div class="price-amount">$19<span>/month</span></div>
-          <p class="price-subtext" id="proSubtext">Create tailored resumes and cover letters fast for every target role.</p>
-          <ul>
-            <li>✔ Resume Generator</li>
-            <li>✔ Cover Letter AI</li>
-            <li>✔ Job Match Analysis</li>
-          </ul>
-          <button id="proUpgradeCta" onclick="upgrade('price_1THMq2KtQrGDcYVPvR3OcRyN')">Start Pro</button>
+        <div class="dashboard-cta">
+          <button id="viewPlansBtn" class="secondary-btn" onclick="document.getElementById('pricingSection').scrollIntoView({behavior:'smooth'})">View All Plans</button>
         </div>
-
-        <div class="price-card premium" data-plan-card="premium">
-          <div class="plan-pill premium-pill">SMART TOOLS</div>
-          <span class="plan-lock-chip" data-plan-lock-chip="premium">Locked</span>
-          <h3>Premium</h3>
-          <div class="price-amount">$39<span>/month</span></div>
-          <p class="price-subtext" id="premiumSubtext">Move from matching to applying with ATS insights and 1-Click execution.</p>
-          <ul>
-            <li>✔ ATS Optimizer</li>
-            <li>✔ Interview Prep AI</li>
-            <li>✔ 1-Click Apply</li>
-            <li>✔ AI Resume Rewrite</li>
-          </ul>
-          <button id="premiumUpgradeCta" onclick="upgrade('price_1THMqvKtQrGDcYVP6K605mhv')">Unlock Premium</button>
-        </div>
-
-        <div class="price-card elite" data-plan-card="elite">
-          <div class="plan-pill elite-pill">POWER USER</div>
-          <span class="plan-lock-chip" data-plan-lock-chip="elite">Locked</span>
-          <h3>Elite</h3>
-          <div class="price-amount">$79<span>/month</span></div>
-          <p class="price-subtext" id="eliteSubtext">Get live interview support and strategic coaching for high-stakes roles.</p>
-          <ul>
-            <li>✔ Career Coach AI</li>
-            <li>✔ Premium insights</li>
-            <li>✔ Priority processing</li>
-          </ul>
-          <button id="eliteUpgradeCta" onclick="upgrade('price_1THMraKtQrGDcYVPytIyvklx')">Activate Elite</button>
-        </div>
-
-        <div class="price-card lifetime" data-plan-card="lifetime">
-          <div class="plan-pill founders-pill" id="lifetimeOfferPill">🔥 LIMITED OFFER</div>
-          <span class="plan-lock-chip" data-plan-lock-chip="lifetime">Locked</span>
-          <h3>Lifetime</h3>
-          <div class="price-amount" id="lifetimeDashboardPrice"><span class="price-original" id="lifetimeDashboardOriginal">$249</span> $199<span> one-time</span></div>
-          <p class="limited-offer-note" id="lifetimeDashboardOfferNote">Limited offer: $199 for the first 50 customers. Then returns to $249.</p>
-          <p class="price-subtext">One payment, permanent access to current and future feature releases.</p>
-          <ul>
-            <li>✔ Everything included</li>
-            <li>✔ No monthly payments</li>
-            <li>✔ Future features included</li>
-          </ul>
-          <button id="lifetimeUpgradeCta" onclick="lifetime()">Claim Lifetime</button>
-        </div>
-      </div>
+      </section>
 
       <section class="plan-guide advanced-section" id="planGuide" aria-labelledby="planGuideTitle" hidden>
         <div class="plan-guide-head">
@@ -161,9 +95,9 @@
               <span id="planGuideTier" class="plan-guide-tier">PRO PLAN</span>
             </div>
             <h2 id="planGuideTitle">Pro is built for faster application output</h2>
-            <p id="planGuideSubtitle">Use the sidebar “About” buttons to compare how each paid plan changes your workflow, quality, and speed.</p>
+            <p id="planGuideSubtitle">Use the navigation to compare how each paid plan changes your workflow, quality, and speed.</p>
           </div>
-          <button id="planGuideJumpBtn" class="secondary-btn" type="button">Jump to Pro pricing card</button>
+          <button id="planGuideJumpBtn" class="secondary-btn" type="button" onclick="document.getElementById('pricingSection').scrollIntoView({behavior:'smooth'})">View All Plans</button>
         </div>
 
         <div id="planGuideSignals" class="plan-guide-signals" aria-label="Plan value signals">
@@ -647,6 +581,84 @@
         </div>
       </div>
 
+      <!-- Pipeline Analytics & In-Demand Section -->
+      <div class="dashboard-analytics-section">
+        <div class="analytics-grid">
+          <div class="card analytics-card">
+            <h3>📊 Pipeline KPIs (14d)</h3>
+            <p>Real-time status of your application flow.</p>
+            <div class="kpi-chart-container">
+              <canvas id="pipelineChart" height="200"></canvas>
+            </div>
+            <div class="kpi-stats">
+              <div class="kpi-stat">
+                <strong id="kpiSaved">0</strong>
+                <span>Saved</span>
+              </div>
+              <div class="kpi-stat">
+                <strong id="kpiApplied">0</strong>
+                <span>Applied</span>
+              </div>
+              <div class="kpi-stat">
+                <strong id="kpiInterview">0</strong>
+                <span>Interview</span>
+              </div>
+              <div class="kpi-stat">
+                <strong id="kpiOffer">0</strong>
+                <span>Offer</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card analytics-card in-demand-section">
+            <h3>🔥 Top In-Demand Roles Right Now</h3>
+            <p>Global hiring trends across 5 key industries.</p>
+            <div class="demand-grid-compact">
+              <article class="demand-card compact">
+                <h4>Technology</h4>
+                <ol>
+                  <li>Software Engineer</li>
+                  <li>Data Scientist</li>
+                  <li>Cybersecurity Analyst</li>
+                </ol>
+              </article>
+              <article class="demand-card compact">
+                <h4>Healthcare</h4>
+                <ol>
+                  <li>Registered Nurse</li>
+                  <li>Nurse Practitioner</li>
+                  <li>Healthcare Data Analyst</li>
+                </ol>
+              </article>
+              <article class="demand-card compact">
+                <h4>Finance</h4>
+                <ol>
+                  <li>Financial Analyst</li>
+                  <li>Risk Manager</li>
+                  <li>Investment Associate</li>
+                </ol>
+              </article>
+              <article class="demand-card compact">
+                <h4>Energy & Infra</h4>
+                <ol>
+                  <li>Electrical Engineer</li>
+                  <li>Renewable Tech</li>
+                  <li>Project Manager</li>
+                </ol>
+              </article>
+              <article class="demand-card compact">
+                <h4>Aviation</h4>
+                <ol>
+                  <li>Aircraft Technician</li>
+                  <li>Commercial Pilot</li>
+                  <li>Operations Analyst</li>
+                </ol>
+              </article>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="tracker-wrap">
         <h2 class="section-title">📌 Job Tracker</h2>
         <p class="section-subtitle">Included on Free. Track your saved jobs and pipeline status.</p>
@@ -728,6 +740,7 @@
 
   <script src="js/api-base.js"></script>
   <script src="js/auth-storage.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
   <script src="js/dashboard.js"></script>
 </body>
 </html>

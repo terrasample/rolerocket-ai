@@ -35,18 +35,76 @@
           interview prep, and application pipeline.
         </p>
 
-        <div class="landing-proof-row auth-proof-row">
-          <div class="landing-proof-card">
-            <strong>Keep momentum</strong>
-            <span>Pick up where you left off without losing your progress.</span>
+        <div class="premium-features-card">
+          <div class="premium-features-header">
+            <div class="features-badge">✨ AI-Powered Features</div>
+            <h2 class="features-title">Your Complete Career Operating System</h2>
+            <p class="features-subtitle">Everything you need to land your dream role with confidence</p>
           </div>
-          <div class="landing-proof-card">
-            <strong>Apply smarter</strong>
-            <span>Use AI tools to move faster on better-fit roles.</span>
+
+          <div class="premium-features-grid">
+            <div class="premium-feature-item">
+              <div class="feature-icon">🔍</div>
+              <div class="feature-content">
+                <h4>AI Job Search</h4>
+                <p>Find high-fit roles ranked by match strength. Search, filter, and prioritize opportunities instantly.</p>
+              </div>
+            </div>
+
+            <div class="premium-feature-item">
+              <div class="feature-icon">📄</div>
+              <div class="feature-content">
+                <h4>Resume Generator</h4>
+                <p>Create role-targeted versions fast with tailored keywords and ATS-ready formatting. No rewriting needed.</p>
+              </div>
+            </div>
+
+            <div class="premium-feature-item">
+              <div class="feature-icon">🎤</div>
+              <div class="feature-content">
+                <h4>Interview Prep AI</h4>
+                <p>Get realistic interview prompts and stronger response frameworks. Practice with confidence before the call.</p>
+              </div>
+            </div>
+
+            <div class="premium-feature-item">
+              <div class="feature-icon">⚡</div>
+              <div class="feature-content">
+                <h4>ATS Optimizer</h4>
+                <p>Identify keyword gaps and scoring issues. Optimize every application to pass recruiter screening.</p>
+              </div>
+            </div>
+
+            <div class="premium-feature-item">
+              <div class="feature-icon">📊</div>
+              <div class="feature-content">
+                <h4>Job Pipeline Tracker</h4>
+                <p>Organize all opportunities from saved to interview to offer. Stay focused and never lose momentum.</p>
+              </div>
+            </div>
+
+            <div class="premium-feature-item">
+              <div class="feature-icon">✉️</div>
+              <div class="feature-content">
+                <h4>Cover Letter AI</h4>
+                <p>Generate compelling, role-specific cover letters. Apply to more roles faster without the writer's block.</p>
+              </div>
+            </div>
           </div>
-          <div class="landing-proof-card">
-            <strong>Track everything</strong>
-            <span>Stay organized from saved jobs to interviews and offers.</span>
+
+          <div class="features-proof-row">
+            <div class="features-proof-item">
+              <strong>3.1x</strong>
+              <span>Interview rate increase</span>
+            </div>
+            <div class="features-proof-item">
+              <strong>94%</strong>
+              <span>Offer conversion probability</span>
+            </div>
+            <div class="features-proof-item">
+              <strong>12,800+</strong>
+              <span>Roles tracked quarterly</span>
+            </div>
           </div>
         </div>
       </div>
@@ -105,10 +163,7 @@
       }
     }
 
-    // Fast path: skip login screen if token already exists.
-    if (getStoredToken()) {
-      window.location.replace('dashboard.html');
-    }
+    // Users must actively log in—no auto-redirect.
 
     const form = document.getElementById('loginForm');
     const message = document.getElementById('loginMessage');

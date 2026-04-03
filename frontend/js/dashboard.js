@@ -2245,6 +2245,97 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
+let pipelineChartInstance = null;
+
+function renderPipelineChart() {
+  const canvas = document.getElementById('pipelineChart');
+  if (!canvas) return;
+
+  const ctx = canvas.getContext('2d');
+  const stats = latestTrackerStats || { saved: 0, ready: 0, applied: 0, interview: 0, offer: 0, rejected: 0 };
+
+  const data = {
+    labels: ['Saved', 'Ready', 'Applied', 'Interview', 'Offer', 'Rejected'],
+    datasets: [
+      {
+        data: [
+          stats.saved || 0,
+          stats.ready || 0,
+          stats.applied || 0,
+          stats.interview || 0,
+          stats.offer || 0,
+          stats.rejected || 0
+        ],
+        backgroundColor: [
+          '#e0f2fe',
+          '#0ea5e9',
+          '#0284c7',
+          '#0369a1',
+          '#059669',
+          '#dc2626'
+        ],
+        borderColor: [
+          '#bae6fd',
+          '#38bdf8',
+          '#0369a1',
+          '#0c4a6e',
+          '#047857',
+          '#b91c1c'
+        ],
+        borderWidth: 2
+      }
+    ]
+  };
+
+  if (pipelineChartInstance) {
+    pipelineChartInstance.data = data;
+    pipelineChartInstance.update();
+  } else {
+    pipelineChartInstance = new Chart(ctx, {
+      type: 'doughnut',
+      data: data,
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              font: { size: 12, weight: '600', family: '"Plus Jakarta Sans", "Segoe UI", sans-serif' },
+              color: '#475569',
+              padding: 12,
+              usePointStyle: true,
+              pointStyle: 'circle'
+            }
+          },
+          tooltip: {
+            backgroundColor: 'rgba(15, 23, 42, 0.95)',
+            padding: 12,
+            titleColor: '#fff',
+            bodyColor: '#fff',
+            borderColor: 'rgba(255, 255, 255, 0.2)',
+            borderWidth: 1,
+            titleFont: { size: 13, weight: '700' },
+            bodyFont: { size: 12 },
+            displayColors: true
+          }
+        }
+      }
+    });
+  }
+
+  // Update KPI stats
+  const kpiSavedEl = document.getElementById('kpiSaved');
+  const kpiAppliedEl = document.getElementById('kpiApplied');
+  const kpiInterviewEl = document.getElementById('kpiInterview');
+  const kpiOfferEl = document.getElementById('kpiOffer');
+
+  if (kpiSavedEl) kpiSavedEl.textContent = String(stats.saved || 0);
+  if (kpiAppliedEl) kpiAppliedEl.textContent = String(stats.applied || 0);
+  if (kpiInterviewEl) kpiInterviewEl.textContent = String(stats.interview || 0);
+  if (kpiOfferEl) kpiOfferEl.textContent = String(stats.offer || 0);
+}
+
 async function loadTracker() {
   if (!savedJobsEl || !readyJobsEl || !appliedJobsEl || !interviewJobsEl || !offerJobsEl || !rejectedJobsEl) {
     return;
@@ -2308,6 +2399,7 @@ async function loadTracker() {
     };
 
     updateTodayRail();
+    renderPipelineChart();
   } catch (err) {
     const message = `<div class="empty-state">❌ ${escapeHtml(err.message)}</div>`;
     savedJobsEl.innerHTML = message;
