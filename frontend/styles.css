@@ -104,20 +104,22 @@ h3,
 
 .home-hero {
   text-align: center;
-  padding: 22px 24px;
+  padding: 52px 24px 50px;
 }
 
 .home-brand-title {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  font-size: clamp(2rem, 4.4vw, 2.8rem);
+  gap: 14px;
+  font-size: clamp(2.6rem, 5.6vw, 3.6rem);
+  font-weight: 900;
+  color: #dc2626;
   line-height: 1.1;
 }
 
 .home-brand-rocket {
-  font-size: 1.07em;
+  font-size: 2.36em;
   filter: drop-shadow(0 8px 16px rgba(14, 165, 233, 0.35));
 }
 
