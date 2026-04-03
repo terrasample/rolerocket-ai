@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Verify Email | RoleRocket AI</title>
+  <meta name="robots" content="noindex" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="landing-page">
+  <a class="skip-link" href="#verifyMain">Skip to main content</a>
+
+  <section class="landing-hero auth-hero" id="verifyMain">
+    <div class="auth-shell">
+      <div class="auth-left">
+        <div class="landing-badge">📩 Email Verification</div>
+        <h1>Confirming your RoleRocket AI email</h1>
+        <p>We are validating your link now. Once verified, you can log in and start using the platform.</p>
+      </div>
+
+      <div class="auth-card">
+        <div class="auth-card-top"><span class="preview-pill">VERIFY</span></div>
+        <h2>Verifying...</h2>
+        <p id="verifyMessage" class="auth-subtext">Please wait while we verify your email.</p>
+        <p class="auth-footer">
+          <a id="verifyLoginLink" href="login.html">Continue to Login</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <script src="js/api-base.js"></script>
+  <script>
+    const messageEl = document.getElementById('verifyMessage');
+    const loginLink = document.getElementById('verifyLoginLink');
+    const params = new URLSearchParams(window.location.search);
+    const token = String(params.get('token') || '').trim();
+
+    async function verify() {
+      if (!token) {
+        messageEl.textContent = 'Verification link is missing a token. Request a new verification email from login.';
+        return;
+      }
+
+      try {
+        const res = await fetch(apiUrl('/api/auth/verify-email'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token })
+        });
+
+        let data = {};
+        try {
+          data = await res.json();
+        } catch {
+          data = {};
+        }
+
+        if (!res.ok) {
+          throw new Error(data.error || 'Verification failed. Please request a new link.');
+        }
+
+        messageEl.textContent = 'Email verified successfully. You can now log in.';
+        loginLink.href = 'login.html?verify=success';
+      } catch (err) {
+        messageEl.textContent = err.message || 'Verification failed. Please request a new link.';
+        loginLink.href = 'login.html';
+      }
+    }
+
+    verify();
+  </script>
+</body>
+</html>

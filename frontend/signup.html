@@ -267,50 +267,18 @@
       }, 4000);
 
       try {
-        // Fast path: if account already exists with this password, log in instantly.
-        const preLogin = await loginOnce(email, password, 5000);
-        if (preLogin?.token) {
-          if (!setStoredToken(preLogin.token)) {
-            throw new Error('Could not save session in this browser.');
-          }
-          setStoredUser(preLogin.user || { name, email });
-          window.location.replace('dashboard.html');
-          return;
-        }
-
-        const data = await signupOnce({
+        await signupOnce({
           name,
           email,
           password,
           referralCode: referral
         });
 
-        if (!setStoredToken(data.token)) {
-          throw new Error('Could not save session in this browser.');
-        }
-        setStoredUser(data.user || { name, email });
-        window.location.replace('dashboard.html');
+        signupMessage.textContent = 'Account created. Check your email to verify your account before logging in.';
+        setTimeout(() => {
+          window.location.replace(`login.html?verify=check-email&email=${encodeURIComponent(email)}`);
+        }, 1200);
       } catch (err) {
-        // If signup response was delayed/lost but account exists, finalize with short login polling.
-        try {
-          signupMessage.textContent = 'Finalizing your account...';
-          for (let loginAttempt = 0; loginAttempt < 4; loginAttempt += 1) {
-            const loginData = await loginOnce(email, password, 7000);
-            if (loginData?.token) {
-              if (!setStoredToken(loginData.token)) {
-                throw new Error('Could not save session in this browser.');
-              }
-              setStoredUser(loginData.user || { name, email });
-              window.location.replace('dashboard.html');
-              return;
-            }
-
-            await wait(1200);
-          }
-        } catch {
-          // Ignore fallback errors and show primary failure below.
-        }
-
         let apiTarget = 'unknown';
         try { apiTarget = getApiBase(); } catch {}
         let failMsg;

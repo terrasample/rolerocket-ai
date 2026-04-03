@@ -1,5 +1,6 @@
 require('dotenv').config();
 
+const { getWelcomeEmailHtml } = require('./welcome-email-template');
 const mongoose = require('mongoose');
 const nodemailer = require('nodemailer');
 
@@ -10,6 +11,7 @@ const SMTP_HOST = process.env.SMTP_HOST;
 const SMTP_PORT = Number(process.env.SMTP_PORT) || 587;
 const SMTP_USER = process.env.SMTP_USER;
 const SMTP_PASS = process.env.SMTP_PASS;
+const SMTP_FROM = process.env.SMTP_FROM || 'noreply@rolerocketai.com';
 const CLIENT_URL = process.env.CLIENT_URL || 'https://www.rolerocketai.com';
 
 const isLive = process.argv.includes('--live');
@@ -42,20 +44,7 @@ function sleep(ms) {
 }
 
 function getWelcomeHtml(name) {
-  const firstName = String(name || '').trim().split(/\s+/)[0] || 'there';
-  return `
-    <div style="font-family:Segoe UI,Arial,sans-serif;color:#0f172a;line-height:1.6;max-width:640px;">
-      <h2 style="margin:0 0 10px;">Welcome to RoleRocket AI, ${firstName}</h2>
-      <p style="margin:0 0 14px;">Your account is live. You can now search roles, tailor your resume, and move faster with smarter applications.</p>
-      <ul style="margin:0 0 18px;padding-left:20px;">
-        <li>Find and save high-fit jobs</li>
-        <li>Generate role-targeted resumes and cover letters</li>
-        <li>Track your full application pipeline</li>
-      </ul>
-      <a href="${CLIENT_URL}/dashboard.html" style="display:inline-block;background:#0284c7;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:700;">Open RoleRocket AI</a>
-      <p style="margin:18px 0 0;color:#475569;font-size:13px;">Need help? Reply to this email and our team will assist.</p>
-    </div>
-  `;
+  return getWelcomeEmailHtml(name, CLIENT_URL.replace(/\/$/, ''));
 }
 
 async function run() {
@@ -97,7 +86,7 @@ async function run() {
 
     try {
       await transporter.sendMail({
-        from: `"RoleRocket AI" <${SMTP_USER}>`,
+        from: `"RoleRocket AI" <${SMTP_FROM}>`,
         to,
         subject,
         html

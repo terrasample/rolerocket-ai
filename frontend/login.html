@@ -76,6 +76,7 @@
         </div>
 
         <div id="loginMessage" class="auth-message" role="status" aria-live="polite"></div>
+        <button id="resendVerificationBtn" type="button" class="secondary-btn" style="display:none;margin-top:10px;">Resend Verification Email</button>
 
         <p class="auth-footer">          <a href="forgot-password.html" style="color:#7c3aed;font-size:0.9rem;">Forgot password?</a>
         </p>
@@ -112,12 +113,48 @@
     const form = document.getElementById('loginForm');
     const message = document.getElementById('loginMessage');
     const submitBtn = document.getElementById('loginSubmitBtn');
+    const resendVerificationBtn = document.getElementById('resendVerificationBtn');
     const waitlistBox = document.getElementById('loginWaitlistBox');
     const waitlistForm = document.getElementById('loginWaitlistForm');
     const waitlistName = document.getElementById('loginWaitlistName');
     const waitlistEmail = document.getElementById('loginWaitlistEmail');
     const waitlistBtn = document.getElementById('loginWaitlistBtn');
     const waitlistMessage = document.getElementById('loginWaitlistMessage');
+    const query = new URLSearchParams(window.location.search);
+
+    if (query.get('verify') === 'check-email') {
+      message.textContent = 'Check your inbox and verify your email before logging in.';
+      const prefEmail = query.get('email');
+      if (prefEmail) {
+        document.getElementById('loginEmail').value = prefEmail;
+      }
+    }
+
+    resendVerificationBtn.addEventListener('click', async () => {
+      const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+      if (!email) {
+        message.textContent = 'Enter your email first so we can resend verification.';
+        return;
+      }
+
+      resendVerificationBtn.disabled = true;
+      resendVerificationBtn.textContent = 'Sending...';
+      try {
+        const res = await fetch(apiUrl('/api/auth/resend-verification'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        const data = safeJson(await res.text());
+        if (!res.ok) throw new Error(data.error || 'Could not resend verification');
+        message.textContent = data.message || 'Verification email sent. Please check your inbox.';
+      } catch (err) {
+        message.textContent = `❌ ${err.message || 'Could not resend verification.'}`;
+      } finally {
+        resendVerificationBtn.disabled = false;
+        resendVerificationBtn.textContent = 'Resend Verification Email';
+      }
+    });
 
     function showWaitlistFallback(email) {
       waitlistBox.style.display = 'block';
@@ -206,6 +243,12 @@
           message.textContent = `Cannot reach server. Is http://localhost:5000 running? (API: ${apiTarget})`;
         } else {
           message.textContent = `❌ ${err.message || 'Login failed'} — API: ${apiTarget}`;
+        }
+
+        if (String(err.message || '').toLowerCase().includes('verify your email')) {
+          resendVerificationBtn.style.display = 'inline-block';
+        } else {
+          resendVerificationBtn.style.display = 'none';
         }
 
         if (String(err.message || '').toLowerCase().includes('temporarily unavailable')) {

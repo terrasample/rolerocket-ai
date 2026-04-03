@@ -1,5 +1,7 @@
 require('dotenv').config();
 
+const { getWelcomeEmailHtml } = require('./scripts/welcome-email-template');
+
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
@@ -41,8 +43,9 @@ async function sendEmail({ to, subject, html }) {
     console.warn('Email not configured: set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS in env.');
     return;
   }
+  const fromAddress = process.env.SMTP_FROM || 'noreply@rolerocketai.com';
   await withTimeout(transporter.sendMail({
-    from: `"RoleRocket AI" <${process.env.SMTP_USER}>`,
+    from: `"RoleRocket AI" <${fromAddress}>`,
     to,
     subject,
     html
@@ -72,25 +75,36 @@ function queueWelcomeEmail({ to, name }) {
   setImmediate(async () => {
     try {
       const firstName = String(name || '').trim().split(/\s+/)[0] || 'there';
+      const dashUrl = (process.env.CLIENT_URL || 'https://www.rolerocketai.com').replace(/\/$/, '');
       await sendEmail({
         to,
-        subject: 'Welcome to RoleRocket AI',
+        subject: `Welcome to RoleRocket AI, ${firstName} 🚀`,
+        html: getWelcomeEmailHtml(name, dashUrl)
+      });
+    } catch (err) {
+      console.error('Welcome email send failed:', err.message);
+    }
+  });
+}
+
+function queueEmailVerificationEmail({ to, name, verifyUrl }) {
+  setImmediate(async () => {
+    try {
+      const firstName = String(name || '').trim().split(/\s+/)[0] || 'there';
+      await sendEmail({
+        to,
+        subject: 'Verify your email for RoleRocket AI',
         html: `
           <div style="font-family:Segoe UI,Arial,sans-serif;color:#0f172a;line-height:1.6;max-width:640px;">
-            <h2 style="margin:0 0 10px;">Welcome to RoleRocket AI, ${firstName}</h2>
-            <p style="margin:0 0 14px;">Your account is live. You can now search roles, tailor your resume, and move faster with smarter applications.</p>
-            <ul style="margin:0 0 18px;padding-left:20px;">
-              <li>Find and save high-fit jobs</li>
-              <li>Generate role-targeted resumes and cover letters</li>
-              <li>Track your full application pipeline</li>
-            </ul>
-            <a href="${process.env.CLIENT_URL}/dashboard.html" style="display:inline-block;background:#0284c7;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:700;">Open RoleRocket AI</a>
-            <p style="margin:18px 0 0;color:#475569;font-size:13px;">Need help? Reply to this email and our team will assist.</p>
+            <h2 style="margin:0 0 10px;">Verify your email, ${firstName}</h2>
+            <p style="margin:0 0 14px;">Before logging in, please confirm this email address so we can protect your account.</p>
+            <a href="${verifyUrl}" style="display:inline-block;background:#0284c7;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:700;">Verify Email</a>
+            <p style="margin:18px 0 0;color:#475569;font-size:13px;">This verification link expires in 24 hours. If you did not create this account, you can ignore this email.</p>
           </div>
         `
       });
     } catch (err) {
-      console.error('Welcome email send failed:', err.message);
+      console.error('Verification email send failed:', err.message);
     }
   });
 }
@@ -1040,6 +1054,18 @@ function authFailureMessage(prefix, err) {
   return detail ? `${fallback}: ${detail}` : fallback;
 }
 
+function createEmailVerificationTokenRecord() {
+  const rawToken = crypto.randomBytes(32).toString('hex');
+  const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+  const expiresAt = new Date(Date.now() + (24 * 60 * 60 * 1000));
+  return { rawToken, tokenHash, expiresAt };
+}
+
+function getEmailVerificationUrl(rawToken) {
+  const baseUrl = (process.env.CLIENT_URL || 'https://www.rolerocketai.com').replace(/\/$/, '');
+  return `${baseUrl}/verify-email.html?token=${rawToken}`;
+}
+
 app.post('/api/auth/signup', async (req, res) => {
   try {
     if (ensureDbReady(res, 'Signup') !== true) return;
@@ -1059,6 +1085,7 @@ app.post('/api/auth/signup', async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(rawPassword, 10);
+    const verification = createEmailVerificationTokenRecord();
 
     let user = null;
     for (let attempt = 0; attempt < 3; attempt += 1) {
@@ -1070,7 +1097,10 @@ app.post('/api/auth/signup', async (req, res) => {
           isSubscribed: false,
           plan: 'free',
           referralCode: generateReferralCode(),
-          referredBy: normalizedReferralCode || null
+          referredBy: normalizedReferralCode || null,
+          emailVerified: false,
+          emailVerificationToken: verification.tokenHash,
+          emailVerificationExpires: verification.expiresAt
         });
         break;
       } catch (err) {
@@ -1082,6 +1112,30 @@ app.post('/api/auth/signup', async (req, res) => {
           if (existingUser) {
             const passwordMatches = await bcrypt.compare(rawPassword, existingUser.password);
             if (passwordMatches) {
+              if (!existingUser.emailVerified) {
+                const nextVerification = createEmailVerificationTokenRecord();
+                await User.updateOne(
+                  { _id: existingUser._id },
+                  {
+                    $set: {
+                      emailVerificationToken: nextVerification.tokenHash,
+                      emailVerificationExpires: nextVerification.expiresAt,
+                      emailVerified: false
+                    }
+                  }
+                );
+
+                queueEmailVerificationEmail({
+                  to: existingUser.email,
+                  name: existingUser.name,
+                  verifyUrl: getEmailVerificationUrl(nextVerification.rawToken)
+                });
+
+                return res.status(400).json({
+                  error: 'Email not verified yet. We just sent a new verification link.'
+                });
+              }
+
               const token = jwt.sign(
                 { userId: existingUser._id },
                 process.env.JWT_SECRET,
@@ -1117,7 +1171,11 @@ app.post('/api/auth/signup', async (req, res) => {
       throw new Error('Failed to create user');
     }
 
-    queueWelcomeEmail({ to: user.email, name: user.name });
+    queueEmailVerificationEmail({
+      to: user.email,
+      name: user.name,
+      verifyUrl: getEmailVerificationUrl(verification.rawToken)
+    });
 
     if (normalizedReferralCode) {
       setImmediate(async () => {
@@ -1145,14 +1203,9 @@ app.post('/api/auth/signup', async (req, res) => {
       });
     }
 
-    const token = jwt.sign(
-      { userId: user._id },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
-    );
-
     return res.json({
-      token,
+      requiresVerification: true,
+      message: 'Account created. Please verify your email before logging in.',
       user: {
         _id: user._id,
         name: user.name,
@@ -1160,7 +1213,8 @@ app.post('/api/auth/signup', async (req, res) => {
         isSubscribed: user.isSubscribed,
         plan: user.plan,
         referralCode: user.referralCode,
-        referralCount: user.referralCount
+        referralCount: user.referralCount,
+        emailVerified: false
       }
     });
   } catch (err) {
@@ -1182,7 +1236,7 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     const user = await User.findOne({ email: normalizedEmail })
-      .select('_id name email password isSubscribed plan referralCode referralCount')
+      .select('_id name email password isSubscribed plan referralCode referralCount emailVerified')
       .lean();
 
     if (!user) {
@@ -1192,6 +1246,10 @@ app.post('/api/auth/login', async (req, res) => {
     const isMatch = await bcrypt.compare(rawPassword, user.password);
     if (!isMatch) {
       return res.status(400).json({ error: 'Invalid credentials' });
+    }
+
+    if (user.emailVerified === false) {
+      return res.status(403).json({ error: 'Please verify your email before logging in.' });
     }
 
     const token = jwt.sign(
@@ -1209,12 +1267,84 @@ app.post('/api/auth/login', async (req, res) => {
         isSubscribed: user.isSubscribed,
         plan: user.plan,
         referralCode: user.referralCode,
-        referralCount: user.referralCount
+        referralCount: user.referralCount,
+        emailVerified: user.emailVerified !== false
       }
     });
   } catch (err) {
     console.error('Login error:', err);
     return res.status(500).json({ error: authFailureMessage('Login', err) });
+  }
+});
+
+app.post('/api/auth/verify-email', async (req, res) => {
+  try {
+    if (ensureDbReady(res, 'Email verify') !== true) return;
+
+    const rawToken = String(req.body?.token || '').trim();
+    if (!rawToken) {
+      return res.status(400).json({ error: 'Verification token is required.' });
+    }
+
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+    const user = await User.findOne({
+      emailVerificationToken: tokenHash,
+      emailVerificationExpires: { $gt: new Date() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ error: 'Verification link is invalid or expired.' });
+    }
+
+    user.emailVerified = true;
+    user.emailVerificationToken = null;
+    user.emailVerificationExpires = null;
+    await user.save();
+
+    queueWelcomeEmail({ to: user.email, name: user.name });
+
+    return res.json({ message: 'Email verified successfully. You can now log in.' });
+  } catch (err) {
+    console.error('Email verification error:', err);
+    return res.status(500).json({ error: authFailureMessage('Email verification', err) });
+  }
+});
+
+app.post('/api/auth/resend-verification', async (req, res) => {
+  try {
+    if (ensureDbReady(res, 'Resend verification') !== true) return;
+
+    const normalizedEmail = String(req.body?.email || '').trim().toLowerCase();
+    if (!normalizedEmail) {
+      return res.status(400).json({ error: 'Email is required.' });
+    }
+
+    const user = await User.findOne({ email: normalizedEmail })
+      .select('_id name email emailVerified');
+
+    if (!user) {
+      return res.json({ message: 'If this account exists, a verification email has been sent.' });
+    }
+
+    if (user.emailVerified !== false) {
+      return res.json({ message: 'Email is already verified. Please log in.' });
+    }
+
+    const verification = createEmailVerificationTokenRecord();
+    user.emailVerificationToken = verification.tokenHash;
+    user.emailVerificationExpires = verification.expiresAt;
+    await user.save();
+
+    queueEmailVerificationEmail({
+      to: user.email,
+      name: user.name,
+      verifyUrl: getEmailVerificationUrl(verification.rawToken)
+    });
+
+    return res.json({ message: 'Verification email sent. Please check your inbox.' });
+  } catch (err) {
+    console.error('Resend verification error:', err);
+    return res.status(500).json({ error: authFailureMessage('Resend verification', err) });
   }
 });
 

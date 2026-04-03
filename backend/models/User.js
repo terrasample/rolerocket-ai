@@ -18,7 +18,11 @@ const UserSchema = new mongoose.Schema(
     referralCount: { type: Number, default: 0 },
 
     passwordResetToken: { type: String, default: null },
-    passwordResetExpires: { type: Date, default: null }
+    passwordResetExpires: { type: Date, default: null },
+
+    emailVerified: { type: Boolean, default: true },
+    emailVerificationToken: { type: String, default: null },
+    emailVerificationExpires: { type: Date, default: null }
   },
   { timestamps: true }
 );
