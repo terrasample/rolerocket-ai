@@ -138,6 +138,44 @@
         <p>From job targeting and resume optimization to interview readiness and executive presence, RoleRocket AI turns your search into a repeatable system.</p>
       </section>
 
+      <section class="marketing-card premium-stats-section" aria-label="Live platform statistics">
+        <div class="premium-stats-header">
+          <h3>Real platform activity</h3>
+          <p>Live data from real usage across RoleRocket AI.</p>
+        </div>
+        <div class="premium-stats-grid">
+          <div class="stats-chart-wrap">
+            <div
+              class="stats-pie"
+              id="statsPie"
+              role="img"
+              aria-label="Usage distribution for resumes built, jobs tracked, and applications logged"
+            ></div>
+            <ul class="stats-legend" aria-label="Usage legend">
+              <li><span class="swatch resumes" aria-hidden="true"></span>Resumes built <strong id="legendResumes">--</strong></li>
+              <li><span class="swatch jobs" aria-hidden="true"></span>Jobs tracked <strong id="legendJobs">--</strong></li>
+              <li><span class="swatch applications" aria-hidden="true"></span>Applications logged <strong id="legendApplications">--</strong></li>
+            </ul>
+          </div>
+
+          <div class="stats-kpis" aria-label="Key platform totals">
+            <article class="stat-kpi">
+              <span class="kpi-label">Total users</span>
+              <strong id="statUsers">--</strong>
+            </article>
+            <article class="stat-kpi">
+              <span class="kpi-label">Active paid members</span>
+              <strong id="statSubscribers">--</strong>
+            </article>
+            <article class="stat-kpi">
+              <span class="kpi-label">Total recorded activity</span>
+              <strong id="statActivity">--</strong>
+            </article>
+          </div>
+        </div>
+        <p class="stats-footnote" id="statsFootnote">Loading live stats...</p>
+      </section>
+
       <section class="marketing-card testimonials-section" aria-label="AI testimonials">
         <h3>Testimonials from customers.</h3>
         <div class="marketing-grid">
@@ -191,47 +229,84 @@
         </article>
       </section>
 
-      <section class="marketing-card" aria-label="All features list">
-        <h3>What you can do inside</h3>
-        <ul class="feature-master-list">
-          <li>AI job search with filters</li>
-          <li>Role import from external links</li>
-          <li>Resume Generator</li>
-          <li>Cover Letter AI</li>
-          <li>Job Match Analysis</li>
-          <li>LinkedIn Optimization</li>
-          <li>ATS Optimizer</li>
-          <li>Interview Prep AI</li>
-          <li>1-Click Apply pipeline</li>
-          <li>AI Resume Rewrite</li>
-          <li>Career Coach AI</li>
-          <li>AI Interview Simulation Call (Elite)</li>
-          <li>Interview feedback and improvement pointers</li>
-          <li>Executive presence coaching</li>
-          <li>Application tracker by stage</li>
-          <li>Priority support and premium insights</li>
-        </ul>
+      <section class="marketing-card premium-cta-strip" aria-label="Premium call to action">
+        <h3>Your next role should not depend on luck</h3>
+        <p>Use one focused system for job targeting, tailored documents, interview prep, and execution.</p>
+        <div class="premium-cta-links">
+          <a href="products.html">View Product Suite</a>
+          <a href="pricing.html">Compare Plans</a>
+        </div>
       </section>
 
-      <section class="marketing-grid" aria-label="Action buttons">
-        <article class="marketing-card">
-          <h3>Explore the company</h3>
-          <p>Read our mission, story, and customer promise.</p>
-          <p><a href="about-us.html">Go to About Us</a></p>
-        </article>
+      <script>
+        (function loadHomepageStats() {
+          const format = (n) => Number(n || 0).toLocaleString();
 
-        <article class="marketing-card">
-          <h3>See every product</h3>
-          <p>Review all features across Free, Pro, Premium, Elite, and Lifetime.</p>
-          <p><a href="products.html">Go to Products</a></p>
-        </article>
+          const pie = document.getElementById('statsPie');
+          const usersEl = document.getElementById('statUsers');
+          const subscribersEl = document.getElementById('statSubscribers');
+          const activityEl = document.getElementById('statActivity');
+          const resumesLegendEl = document.getElementById('legendResumes');
+          const jobsLegendEl = document.getElementById('legendJobs');
+          const applicationsLegendEl = document.getElementById('legendApplications');
+          const footnoteEl = document.getElementById('statsFootnote');
 
-        <article class="marketing-card">
-          <h3>Compare all pricing tiers</h3>
-          <p>Open the full tiered pricing page with section-by-section plan stacks.</p>
-          <p><a href="pricing.html">Go to Pricing</a></p>
-        </article>
-      </section>
+          function renderPie(resumes, jobs, applications) {
+            const total = resumes + jobs + applications;
+            const resumesPct = total > 0 ? (resumes / total) * 100 : 34;
+            const jobsPct = total > 0 ? (jobs / total) * 100 : 33;
+            const applicationsPct = total > 0 ? (applications / total) * 100 : 33;
+
+            pie.style.setProperty('--slice-resumes', resumesPct + '%');
+            pie.style.setProperty('--slice-jobs', jobsPct + '%');
+            pie.style.setProperty('--slice-applications', applicationsPct + '%');
+          }
+
+          function renderStats(data) {
+            const resumes = Number(data.resumesTotal || 0);
+            const jobs = Number(data.jobsTrackedTotal || 0);
+            const applications = Number(data.applicationsTotal || 0);
+
+            usersEl.textContent = format(data.usersTotal);
+            subscribersEl.textContent = format(data.subscribedUsers);
+            activityEl.textContent = format(data.usageTotal);
+
+            resumesLegendEl.textContent = format(resumes);
+            jobsLegendEl.textContent = format(jobs);
+            applicationsLegendEl.textContent = format(applications);
+
+            renderPie(resumes, jobs, applications);
+
+            const updated = data.updatedAt ? new Date(data.updatedAt) : null;
+            footnoteEl.textContent = updated && !Number.isNaN(updated.getTime())
+              ? 'Updated live: ' + updated.toLocaleString()
+              : 'Updated live from platform usage.';
+          }
+
+          function renderFallback() {
+            renderPie(1, 1, 1);
+            usersEl.textContent = '--';
+            subscribersEl.textContent = '--';
+            activityEl.textContent = '--';
+            resumesLegendEl.textContent = '--';
+            jobsLegendEl.textContent = '--';
+            applicationsLegendEl.textContent = '--';
+            footnoteEl.textContent = 'Live stats are temporarily unavailable.';
+          }
+
+          fetch('/api/public/stats', { cache: 'no-store' })
+            .then((res) => {
+              if (!res.ok) {
+                throw new Error('stats-unavailable');
+              }
+              return res.json();
+            })
+            .then(renderStats)
+            .catch(() => {
+              renderFallback();
+            });
+        })();
+      </script>
 
 
     </main>

@@ -114,6 +114,7 @@ const { runATSAnalysis } = require('./services/atsScorer');
 const User = require('./models/User');
 const Resume = require('./models/Resume');
 const Job = require('./models/Job');
+const Application = require('./models/Application');
 const Telemetry = require('./models/Telemetry');
 const RoleProfile = require('./models/RoleProfile');
 const LifetimeSale = require('./models/LifetimeSale');
@@ -324,6 +325,41 @@ app.get('/api/lifetime-offer-status', async (_req, res) => {
   } catch (err) {
     console.error('Lifetime offer status error:', err);
     return res.status(500).json({ error: 'Failed to load lifetime offer status' });
+  }
+});
+
+app.get('/api/public/stats', async (_req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ error: 'Stats temporarily unavailable' });
+    }
+
+    const [
+      usersTotal,
+      subscribedUsers,
+      resumesTotal,
+      jobsTrackedTotal,
+      applicationsTotal
+    ] = await Promise.all([
+      User.countDocuments(),
+      User.countDocuments({ isSubscribed: true }),
+      Resume.countDocuments(),
+      Job.countDocuments(),
+      Application.countDocuments()
+    ]);
+
+    return res.json({
+      usersTotal,
+      subscribedUsers,
+      resumesTotal,
+      jobsTrackedTotal,
+      applicationsTotal,
+      usageTotal: resumesTotal + jobsTrackedTotal + applicationsTotal,
+      updatedAt: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error('Public stats error:', err);
+    return res.status(500).json({ error: 'Failed to load public stats' });
   }
 });
 
