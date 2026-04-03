@@ -262,10 +262,7 @@ app.post(
 app.use(express.json({ limit: '2mb' }));
 
 app.get('/', (_req, res) => {
-  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-  res.set('Pragma', 'no-cache');
-  res.set('Expires', '0');
-  return res.sendFile(path.join(__dirname, '../frontend/index.html'));
+  return res.redirect(301, '/login.html');
 });
 
 app.get('/index.html', (_req, res) => {
