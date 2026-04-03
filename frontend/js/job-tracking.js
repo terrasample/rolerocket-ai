@@ -155,16 +155,36 @@ function createTrackerCard(job) {
   const actionsDiv = document.createElement('div');
   actionsDiv.className = 'tracker-actions';
 
+
   const select = document.createElement('select');
-  ['saved', 'ready', 'applied', 'interview', 'offer', 'rejected'].forEach((status) => {
+  const statuses = ['saved', 'ready', 'applied', 'interview', 'offer', 'rejected'];
+  statuses.forEach((status) => {
     const option = document.createElement('option');
     option.value = status;
     option.textContent = status.charAt(0).toUpperCase() + status.slice(1);
     option.selected = currentStatus === status;
     select.appendChild(option);
   });
+  // Add Remove from Tracker option
+  const removeOption = document.createElement('option');
+  removeOption.value = '__remove__';
+  removeOption.textContent = 'Remove from Tracker';
+  select.appendChild(removeOption);
 
   select.addEventListener('change', async () => {
+    if (select.value === '__remove__') {
+      if (confirm('Remove this job from your tracker?')) {
+        try {
+          await api(`/api/jobs/${job._id}`, { method: 'DELETE' });
+          await loadTracker();
+        } catch (err) {
+          alert(err.message);
+        }
+      } else {
+        select.value = currentStatus;
+      }
+      return;
+    }
     try {
       await api(`/api/jobs/${job._id}/status`, {
         method: 'PUT',
