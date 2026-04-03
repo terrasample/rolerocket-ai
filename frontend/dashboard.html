@@ -15,6 +15,19 @@
     You are offline. We will retry automatically when your connection returns.
   </div>
   <div id="checkoutBanner" class="checkout-banner" role="status" aria-live="polite" hidden></div>
+  <div id="veteranDiscountModal" class="veteran-discount-modal" role="dialog" aria-modal="true" aria-labelledby="veteranDiscountTitle" hidden>
+    <div class="veteran-discount-card">
+      <button id="veteranDismissBtn" class="veteran-close-btn" aria-label="Close veteran discount popup">x</button>
+      <p class="veteran-kicker">Veteran verification confirmed</p>
+      <h2 id="veteranDiscountTitle">Your 10% veteran discount is ready</h2>
+      <p class="veteran-copy">Use this code at checkout. It is automatically applied when available for your account.</p>
+      <div class="veteran-code-row">
+        <code id="veteranDiscountCodeValue">VETERAN10</code>
+        <button id="veteranCopyCodeBtn" class="secondary-btn" type="button">Copy Code</button>
+      </div>
+      <p class="veteran-note">Thank you for your service.</p>
+    </div>
+  </div>
 
   <div class="hero">
     <div class="hero-copy">

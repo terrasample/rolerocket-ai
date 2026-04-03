@@ -130,6 +130,9 @@ const LIFETIME_PRICE_ID = process.env.STRIPE_LIFETIME_PRICE_ID || '';
 const PRO_PRICE_ID = process.env.STRIPE_PRO_PRICE_ID || '';
 const PREMIUM_PRICE_ID = process.env.STRIPE_PREMIUM_PRICE_ID || '';
 const ELITE_PRICE_ID = process.env.STRIPE_ELITE_PRICE_ID || '';
+const STRIPE_VETERAN_COUPON_ID = String(process.env.STRIPE_VETERAN_COUPON_ID || '').trim();
+const VETERAN_DISCOUNT_CODE = String(process.env.VETERAN_DISCOUNT_CODE || 'VETERAN10').trim();
+const IDME_CALLBACK_TOKEN = String(process.env.IDME_CALLBACK_TOKEN || '').trim();
 
 const ADZUNA_APP_ID = process.env.ADZUNA_APP_ID || '';
 const ADZUNA_APP_KEY = process.env.ADZUNA_APP_KEY || '';
@@ -1361,6 +1364,79 @@ app.get('/api/me', authenticateToken, async (req, res) => {
   }
 });
 
+app.get('/api/veteran/status', authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId).select('veteranVerified veteranVerifiedAt veteranDiscountPopupSeenAt');
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    return res.json({
+      veteranVerified: Boolean(user.veteranVerified),
+      veteranVerifiedAt: user.veteranVerifiedAt || null,
+      popupSeen: Boolean(user.veteranDiscountPopupSeenAt)
+    });
+  } catch (err) {
+    console.error('Veteran status error:', err);
+    return res.status(500).json({ error: 'Failed to load veteran verification status' });
+  }
+});
+
+app.get('/api/veteran/discount-code', authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId).select('veteranVerified veteranVerifiedAt veteranDiscountPopupSeenAt');
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (!user.veteranVerified) {
+      return res.status(403).json({ error: 'Veteran verification is required before discount code access.' });
+    }
+
+    if (!user.veteranDiscountPopupSeenAt) {
+      user.veteranDiscountPopupSeenAt = new Date();
+      await user.save();
+    }
+
+    return res.json({
+      code: VETERAN_DISCOUNT_CODE,
+      veteranVerified: true,
+      veteranVerifiedAt: user.veteranVerifiedAt || null
+    });
+  } catch (err) {
+    console.error('Veteran discount code error:', err);
+    return res.status(500).json({ error: 'Failed to load veteran discount code' });
+  }
+});
+
+app.post('/api/veteran/idme/callback', async (req, res) => {
+  try {
+    const callbackToken = String(req.body?.token || req.query?.token || '').trim();
+    if (!IDME_CALLBACK_TOKEN || callbackToken !== IDME_CALLBACK_TOKEN) {
+      return res.status(401).json({ error: 'Invalid callback token' });
+    }
+
+    const userId = String(req.body?.userId || req.query?.userId || '').trim();
+    const email = String(req.body?.email || req.query?.email || '').trim().toLowerCase();
+    if (!userId && !email) {
+      return res.status(400).json({ error: 'userId or email is required' });
+    }
+
+    const lookup = userId ? { _id: userId } : { email };
+    const user = await User.findOne(lookup);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    user.veteranVerified = true;
+    user.veteranVerifiedAt = new Date();
+    await user.save();
+
+    const redirectUrl = String(req.body?.redirect || req.query?.redirect || '').trim();
+    if (redirectUrl) {
+      return res.redirect(302, `${redirectUrl}${redirectUrl.includes('?') ? '&' : '?'}veteran=verified`);
+    }
+
+    return res.json({ message: 'Veteran verification saved', userId: String(user._id) });
+  } catch (err) {
+    console.error('ID.me callback error:', err);
+    return res.status(500).json({ error: 'Failed to process veteran verification callback' });
+  }
+});
+
 app.get('/api/referral', authenticateToken, async (req, res) => {
   try {
     const user = await User.findById(req.user.userId).select(
@@ -2308,24 +2384,35 @@ app.post('/api/create-checkout-session', authenticateToken, async (req, res) => 
       return res.status(400).json({ error: 'Unknown plan. Check your .env Stripe price IDs.' });
     }
 
-    const session = await stripe.checkout.sessions.create({
+    const user = await User.findById(userId).select('veteranVerified');
+    const shouldApplyVeteranDiscount = Boolean(user?.veteranVerified && STRIPE_VETERAN_COUPON_ID);
+
+    const sessionPayload = {
       mode: 'subscription',
-      allow_promotion_codes: true,
+      allow_promotion_codes: !shouldApplyVeteranDiscount,
       payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${process.env.CLIENT_URL}/dashboard.html?success=true`,
       cancel_url: `${process.env.CLIENT_URL}/dashboard.html`,
       metadata: {
         userId,
-        plan: normalizedPlan || 'custom'
+        plan: normalizedPlan || 'custom',
+        veteranDiscountApplied: shouldApplyVeteranDiscount ? 'true' : 'false'
       },
       subscription_data: {
         metadata: {
           userId,
-          plan: normalizedPlan || 'custom'
+          plan: normalizedPlan || 'custom',
+          veteranDiscountApplied: shouldApplyVeteranDiscount ? 'true' : 'false'
         }
       }
-    });
+    };
+
+    if (shouldApplyVeteranDiscount) {
+      sessionPayload.discounts = [{ coupon: STRIPE_VETERAN_COUPON_ID }];
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionPayload);
 
     let checkoutUrl = session.url;
 
@@ -2370,17 +2457,28 @@ app.post('/api/create-lifetime-checkout', authenticateToken, async (req, res) =>
       });
     }
 
-    const session = await stripe.checkout.sessions.create({
+    const user = await User.findById(req.user.userId).select('veteranVerified');
+    const shouldApplyVeteranDiscount = Boolean(user?.veteranVerified && STRIPE_VETERAN_COUPON_ID);
+
+    const sessionPayload = {
       mode: 'payment',
+      allow_promotion_codes: !shouldApplyVeteranDiscount,
       payment_method_types: ['card'],
       line_items: [{ price: LIFETIME_PRICE_ID, quantity: 1 }],
       success_url: `${process.env.CLIENT_URL}/dashboard.html?lifetime=true`,
       cancel_url: `${process.env.CLIENT_URL}/dashboard.html`,
       metadata: {
         userId: req.user.userId,
-        type: 'lifetime'
+        type: 'lifetime',
+        veteranDiscountApplied: shouldApplyVeteranDiscount ? 'true' : 'false'
       }
-    });
+    };
+
+    if (shouldApplyVeteranDiscount) {
+      sessionPayload.discounts = [{ coupon: STRIPE_VETERAN_COUPON_ID }];
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionPayload);
 
     return res.json({ url: session.url });
   } catch (err) {

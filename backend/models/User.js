@@ -22,7 +22,11 @@ const UserSchema = new mongoose.Schema(
 
     emailVerified: { type: Boolean, default: true },
     emailVerificationToken: { type: String, default: null },
-    emailVerificationExpires: { type: Date, default: null }
+    emailVerificationExpires: { type: Date, default: null },
+
+    veteranVerified: { type: Boolean, default: false },
+    veteranVerifiedAt: { type: Date, default: null },
+    veteranDiscountPopupSeenAt: { type: Date, default: null }
   },
   { timestamps: true }
 );

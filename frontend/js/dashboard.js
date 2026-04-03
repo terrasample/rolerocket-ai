@@ -61,9 +61,14 @@ const modeKpiSummaryEl = document.getElementById('modeKpiSummary');
 const modeKpiSessionsEl = document.getElementById('modeKpiSessions');
 const modeKpiStarterEl = document.getElementById('modeKpiStarter');
 const modeKpiPowerEl = document.getElementById('modeKpiPower');
+const veteranDiscountModalEl = document.getElementById('veteranDiscountModal');
+const veteranDiscountCodeValueEl = document.getElementById('veteranDiscountCodeValue');
+const veteranCopyCodeBtn = document.getElementById('veteranCopyCodeBtn');
+const veteranDismissBtn = document.getElementById('veteranDismissBtn');
 
 const DASHBOARD_MODE_KEY = 'rr_dashboard_mode_v1';
 const DASHBOARD_ADVANCED_KEY = 'rr_dashboard_advanced_v1';
+const VETERAN_POPUP_STORAGE_KEY = 'rr_veteran_popup_seen_v1';
 let dashboardMode = 'starter';
 let advancedInsightsVisible = false;
 let latestTrackerStats = {
@@ -263,6 +268,74 @@ function showToast(message, type = 'success', durationMs = 4000) {
   const timer = setTimeout(dismiss, durationMs);
   toast.addEventListener('click', () => { clearTimeout(timer); dismiss(); });
 }
+
+function removeUrlQueryParams(paramNames = []) {
+  if (!paramNames.length) return;
+  const url = new URL(window.location.href);
+  let changed = false;
+  paramNames.forEach((key) => {
+    if (url.searchParams.has(key)) {
+      url.searchParams.delete(key);
+      changed = true;
+    }
+  });
+  if (!changed) return;
+
+  const nextSearch = url.searchParams.toString();
+  const nextUrl = `${url.pathname}${nextSearch ? `?${nextSearch}` : ''}${url.hash || ''}`;
+  window.history.replaceState({}, document.title, nextUrl);
+}
+
+function closeVeteranDiscountPopup() {
+  if (!veteranDiscountModalEl) return;
+  veteranDiscountModalEl.hidden = true;
+}
+
+async function copyVeteranCode() {
+  const code = String(veteranDiscountCodeValueEl?.textContent || '').trim();
+  if (!code) return;
+
+  try {
+    await navigator.clipboard.writeText(code);
+    showToast('Veteran code copied. Use it at checkout.');
+  } catch {
+    showToast('Could not copy automatically. You can still use the visible code.', 'warn');
+  }
+}
+
+async function maybeShowVeteranDiscountPopup(user, { force = false } = {}) {
+  if (!user?.veteranVerified) return;
+
+  const userId = String(user._id || user.id || 'me').trim();
+  const storageKey = `${VETERAN_POPUP_STORAGE_KEY}:${userId}`;
+  if (!force && localStorage.getItem(storageKey) === '1') return;
+
+  let code = 'VETERAN10';
+  try {
+    const data = await api('/api/veteran/discount-code', { method: 'GET' }, { retries: 0, timeoutMs: 5000 });
+    if (data?.code) code = String(data.code).trim();
+  } catch (err) {
+    console.warn('Veteran code fetch warning:', err?.message || err);
+  }
+
+  localStorage.setItem(storageKey, '1');
+
+  if (!veteranDiscountModalEl || !veteranDiscountCodeValueEl) {
+    showToast(`Veteran discount ready. Use code ${code}.`, 'success', 7000);
+    return;
+  }
+
+  veteranDiscountCodeValueEl.textContent = code;
+  veteranDiscountModalEl.hidden = false;
+}
+
+veteranCopyCodeBtn?.addEventListener('click', copyVeteranCode);
+veteranDismissBtn?.addEventListener('click', closeVeteranDiscountPopup);
+veteranDiscountModalEl?.addEventListener('click', (event) => {
+  if (event.target === veteranDiscountModalEl) {
+    closeVeteranDiscountPopup();
+  }
+});
 
 // ─── AI output renderer ────────────────────────────────────────────────────
 function setAILoading(el, label = 'Generating\u2026') {
@@ -924,6 +997,13 @@ async function loadUserPlan() {
       applyLocks();
       updateTodayRail();
       track('user_plan_loaded', 'activation', { plan: currentUserPlan });
+
+      const params = new URLSearchParams(window.location.search);
+      const forceVeteranPopup = params.get('veteran') === 'verified';
+      await maybeShowVeteranDiscountPopup(data.user, { force: forceVeteranPopup });
+      if (forceVeteranPopup) {
+        removeUrlQueryParams(['veteran']);
+      }
     }
   } catch {
     currentUserPlan = 'free';

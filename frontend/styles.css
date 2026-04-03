@@ -2457,6 +2457,82 @@ pre {
   animation: toast-out 0.22s ease forwards;
 }
 
+.veteran-discount-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.68);
+  display: grid;
+  place-items: center;
+  z-index: 10000;
+  padding: 20px;
+}
+
+.veteran-discount-card {
+  width: min(520px, 100%);
+  background: linear-gradient(145deg, #0b1628 0%, #0e2044 60%, #0c4a6e 100%);
+  border: 1px solid rgba(125, 211, 252, 0.35);
+  border-radius: 18px;
+  box-shadow: 0 24px 48px rgba(2, 6, 23, 0.45);
+  padding: 24px;
+  color: #dbeafe;
+  position: relative;
+}
+
+.veteran-close-btn {
+  position: absolute;
+  right: 12px;
+  top: 10px;
+  border: 0;
+  background: transparent;
+  color: #bfdbfe;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.veteran-kicker {
+  margin: 0 0 8px;
+  color: #7dd3fc;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+}
+
+.veteran-discount-card h2 {
+  margin: 0 0 10px;
+  color: #ffffff;
+}
+
+.veteran-copy {
+  margin: 0 0 14px;
+  color: #bfdbfe;
+}
+
+.veteran-code-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.veteran-code-row code {
+  background: rgba(14, 165, 233, 0.2);
+  border: 1px solid rgba(125, 211, 252, 0.32);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 1rem;
+  color: #f0f9ff;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+}
+
+.veteran-note {
+  margin: 14px 0 0;
+  color: #cbd5e1;
+  font-size: 0.88rem;
+}
+
 @keyframes toast-in {
   from { opacity: 0; transform: translateX(40px) scale(0.97); }
   to   { opacity: 1; transform: translateX(0) scale(1); }
