@@ -1,3 +1,16 @@
+/* Top business name bar for homepage */
+.business-bar {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(90deg, #0f172a 0%, #1e293b 100%);
+  border-bottom: 1.5px solid #facc15;
+  padding: 0.18in 0 0.07in 0; /* quarter inch taller than text box */
+  min-height: 0.32in;
+  box-shadow: 0 2px 12px #0ea5e91a;
+  z-index: 10;
+}
 /* Feature titles: less italic, still luxurious */
 .feature-title {
   font-family: 'Playfair Display', Georgia, serif;
