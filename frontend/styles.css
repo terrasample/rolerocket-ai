@@ -108,7 +108,8 @@ h3,
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 44px 24px;
+  min-height: 50vh;
+  padding: 60px 24px;
 }
 
 .home-brand-title {
@@ -151,19 +152,14 @@ h3,
 }
 
 #homeHero {
-  overflow: hidden;
+  overflow: visible;
 }
 
 .home-brand-title--home {
-  transform: scale(2);
-  transform-origin: center top;
-  margin-top: 10px;
-  margin-bottom: 8px;
+  margin: 0 0 12px 0;
 }
 
 .home-brand-title--home .home-brand-rocket {
-  transform: scale(0.5);
-  transform-origin: center;
   display: inline-block;
 }
 
