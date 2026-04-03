@@ -1,3 +1,34 @@
+/* Feature titles: less italic, still luxurious */
+.feature-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 1.45rem;
+  letter-spacing: 0.01em;
+  color: #1e293b;
+  margin-bottom: 8px;
+  background: linear-gradient(90deg, #facc15 0%, #fef9c3 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 2px 8px #facc1530;
+}
+
+/* Fast, clickable feature demo video */
+.feature-demo-video {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  border-radius: 14px;
+  box-shadow: 0 4px 24px #0ea5e930;
+  margin: 0 auto 10px auto;
+  background: #f1f5f9;
+  cursor: pointer;
+  transition: box-shadow 0.18s;
+}
+.feature-demo-video:hover {
+  box-shadow: 0 8px 32px #0ea5e950;
+}
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700;800;900&family=Manrope:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,600;1,700&display=swap');
 
 * {
@@ -75,10 +106,11 @@ h3,
   border-bottom-color: #7dd3fc;
 }
 
+/* Compact hero for homepage */
 .hero {
   background: linear-gradient(135deg, #111827 0%, #1f2937 52%, #0c4a6e 100%);
   color: white;
-  padding: 34px 32px;
+  padding: 18px 16px 0 16px;
   box-shadow: 0 10px 30px rgba(17, 24, 39, 0.18);
 }
 
@@ -106,9 +138,65 @@ h3,
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   text-align: center;
-  padding: 22px 24px;
+  padding: 8px 0 0 0;
+  min-height: 180px;
+}
+
+.compact-logo-card {
+  background: rgba(255,255,255,0.03);
+  border: 1.5px solid rgba(250,204,21,0.2);
+  border-radius: 24px;
+  padding: 18px 18px 10px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  box-shadow: 0 0 30px rgba(250,204,21,0.07), 0 10px 30px rgba(0,0,0,0.25);
+  max-width: 420px;
+  margin: 0 auto;
+}
+.compact-brand-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.compact-rocket {
+  font-size: 38px;
+  line-height: 1;
+  filter: drop-shadow(0 2px 8px rgba(250,204,21,0.4));
+}
+.compact-brand-name {
+  font-family: 'Cinzel', Georgia, serif;
+  font-size: 2.1rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  background: linear-gradient(180deg, #fff8dc 0%, #facc15 46%, #b45309 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  line-height: 1;
+  text-shadow: none;
+  filter: drop-shadow(0 2px 8px rgba(250,204,21,0.18));
+  white-space: nowrap;
+}
+.compact-subtitle {
+  margin-top: 6px;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  color: #93c5fd;
+  text-transform: uppercase;
+  filter: drop-shadow(0 1px 3px rgba(14,165,233,0.25));
+  text-align: center;
+}
+.compact-divider {
+  margin-top: 6px;
+  width: 180px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(250,204,21,0.3), transparent);
 }
 
 .home-brand-title {
