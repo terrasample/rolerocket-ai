@@ -345,6 +345,18 @@ h3,
   margin-bottom: 16px;
 }
 
+.vet-verify-link {
+  color: #d4f08a;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  white-space: nowrap;
+}
+
+.vet-verify-link:hover {
+  color: #ecfccb;
+}
+
 .feature-master-list {
   columns: 2;
   column-gap: 24px;

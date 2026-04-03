@@ -2310,6 +2310,7 @@ app.post('/api/create-checkout-session', authenticateToken, async (req, res) => 
 
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
+      allow_promotion_codes: true,
       payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${process.env.CLIENT_URL}/dashboard.html?success=true`,
