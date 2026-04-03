@@ -540,20 +540,21 @@ body[data-dashboard-mode='starter'] .progressive-module {
 
 .pricing-top {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 18px;
   margin-bottom: 18px;
 }
 
 .price-card {
-  background: rgba(255, 255, 255, 0.98);
+  background: linear-gradient(145deg, #0b1628 0%, #0e2044 55%, #0c4a6e 100%);
   padding: 24px 20px 20px;
   border-radius: 20px;
-  border: 1px solid #ddd;
+  border: 1px solid rgba(99, 190, 245, 0.26);
   text-align: left;
   box-shadow:
-    0 14px 30px rgba(15, 23, 42, 0.06),
-    0 2px 8px rgba(15, 23, 42, 0.03);
+    0 24px 52px rgba(8, 47, 73, 0.34),
+    0 2px 0 rgba(255, 255, 255, 0.04) inset,
+    0 0 0 1px rgba(14, 165, 233, 0.08) inset;
   transition:
     transform 0.22s ease,
     box-shadow 0.22s ease,
@@ -561,20 +562,32 @@ body[data-dashboard-mode='starter'] .progressive-module {
   position: relative;
   overflow: hidden;
   min-height: 340px;
+  display: flex;
+  flex-direction: column;
+  color: #dbeafe;
+}
+
+.price-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, transparent 60%);
+  pointer-events: none;
 }
 
 .price-card:hover {
   transform: translateY(-6px);
   box-shadow:
-    0 22px 40px rgba(15, 23, 42, 0.09),
-    0 4px 14px rgba(15, 23, 42, 0.04);
+    0 28px 54px rgba(8, 47, 73, 0.42),
+    0 4px 14px rgba(15, 23, 42, 0.06);
 }
 
 .price-card.plan-focus {
-  border-color: #0c4a6e;
+  border-color: #7dd3fc;
   box-shadow:
-    0 24px 44px rgba(14, 165, 233, 0.18),
-    0 6px 18px rgba(15, 23, 42, 0.06);
+    0 24px 44px rgba(14, 165, 233, 0.26),
+    0 6px 18px rgba(15, 23, 42, 0.1);
 }
 
 .plan-guide {
@@ -858,18 +871,19 @@ body[data-dashboard-mode='starter'] .progressive-module {
   margin: 8px 0 8px;
   font-size: 1.25rem;
   letter-spacing: -0.02em;
+  color: #ffffff;
 }
 
 .price-amount {
   font-size: 2.2rem;
   font-weight: 800;
   margin-bottom: 8px;
-  color: #111827;
+  color: #ffffff;
 }
 
 .price-original {
   text-decoration: line-through;
-  color: #94a3b8;
+  color: #93c5fd;
   font-size: 0.72em;
   margin-right: 8px;
   font-weight: 700;
@@ -878,14 +892,14 @@ body[data-dashboard-mode='starter'] .progressive-module {
 .price-amount span {
   font-size: 14px;
   font-weight: 500;
-  color: #6b7280;
+  color: #bfdbfe;
   margin-left: 4px;
 }
 
 .limited-offer-note {
   margin-top: -2px;
   margin-bottom: 12px;
-  color: #0369a1;
+  color: #7dd3fc;
   font-size: 0.82rem;
   font-weight: 700;
 }
@@ -893,7 +907,7 @@ body[data-dashboard-mode='starter'] .progressive-module {
 .price-subtext {
   margin-top: 0;
   margin-bottom: 16px;
-  color: #6b7280;
+  color: #bfdbfe;
   min-height: 38px;
   font-size: 14px;
 }
@@ -906,7 +920,7 @@ body[data-dashboard-mode='starter'] .progressive-module {
 .price-card li {
   font-size: 14px;
   margin-bottom: 8px;
-  color: #374151;
+  color: #dbeafe;
   line-height: 1.45;
 }
 
@@ -988,7 +1002,7 @@ body[data-dashboard-mode='starter'] .progressive-module {
 }
 
 .price-card.free {
-  border-color: #d1d5db;
+  border-color: rgba(191, 219, 254, 0.34);
 }
 
 .price-card.pro {
@@ -996,16 +1010,15 @@ body[data-dashboard-mode='starter'] .progressive-module {
 }
 
 .price-card.premium {
-  border: 2px solid #0ea5e9;
+  border: 2px solid #38bdf8;
 }
 
 .price-card.elite {
-  border: 2px solid #111827;
+  border: 2px solid #93c5fd;
 }
 
 .price-card.lifetime {
-  border: 2px solid #f59e0b;
-  background: linear-gradient(180deg, #fffaf0 0%, #ffffff 100%);
+  border: 2px solid #fbbf24;
 }
 
 .coach-strip {
