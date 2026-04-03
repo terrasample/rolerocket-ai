@@ -199,18 +199,7 @@
       </section>
 
       <!-- Removed in-demand jobs section to make space for Invite & Earn card -->
-      <section class="marketing-grid" aria-label="Invite & Earn" style="justify-content:center; margin-top: 32px;">
-        <article class="marketing-card premium" style="max-width:420px;margin:0 auto;text-align:center;">
-          <h3 style="font-size:1.3rem;margin-bottom:10px;">🎁 Invite & Earn</h3>
-          <p>Invite friends to RoleRocket AI and earn rewards for every successful referral! Share your unique link and get free months, upgrades, or exclusive perks when your invitees subscribe.</p>
-          <ul class="reward-list" style="margin:14px 0 0 0;">
-            <li>1 friend = 1 free month</li>
-            <li>3 friends = Premium upgrade</li>
-            <li>5+ friends = Elite perks & swag</li>
-          </ul>
-          <button style="margin-top:18px;">Get My Invite Link</button>
-        </article>
-      </section>
+      <!-- Invite & Earn card is now only at the bottom of the homepage -->
 
       <section class="marketing-card" aria-label="What job seekers want to know">
         <h3>What Job Seekers Want To Know Right Now</h3>
@@ -273,17 +262,44 @@
           <a href="pricing.html">Compare Plans</a>
         </div>
       </section>
+      <!-- Invite & Earn card moved to bottom -->
+      <section class="marketing-grid" aria-label="Invite & Earn" style="justify-content:center; margin-top: 32px;">
+        <article class="marketing-card premium" style="max-width:420px;margin:0 auto;text-align:center;">
+          <h3 style="font-size:1.3rem;margin-bottom:10px;">🎁 Invite & Earn</h3>
+          <p>Invite friends to RoleRocket AI and earn rewards for every successful referral! Share your unique link and get free months, upgrades, or exclusive perks when your invitees subscribe.</p>
+          <ul class="reward-list" style="margin:14px 0 0 0;">
+            <li>1 friend = 1 free month</li>
+            <li>3 friends = Premium upgrade</li>
+            <li>5+ friends = Elite perks & swag</li>
+          </ul>
+          <button style="margin-top:18px;">Get My Invite Link</button>
+        </article>
+      </section>
 
       <script>
-        // Mobile menu toggle
-        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-        const sidebarNav = document.getElementById('sidebarNav');
-        if (mobileMenuBtn && sidebarNav) {
-          mobileMenuBtn.addEventListener('click', function () {
-            const expanded = this.getAttribute('aria-expanded') === 'true';
-            this.setAttribute('aria-expanded', !expanded);
-            sidebarNav.classList.toggle('sidebar-open');
-          });
+        // Mobile menu toggle (robust, always works)
+        function setupMobileMenu() {
+          const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+          const sidebarNav = document.getElementById('sidebarNav');
+          if (mobileMenuBtn && sidebarNav) {
+            mobileMenuBtn.addEventListener('click', function () {
+              const expanded = this.getAttribute('aria-expanded') === 'true';
+              this.setAttribute('aria-expanded', !expanded);
+              sidebarNav.classList.toggle('sidebar-open');
+            });
+            // Close sidebar when a link is clicked (for mobile UX)
+            sidebarNav.querySelectorAll('a').forEach(function(link) {
+              link.addEventListener('click', function() {
+                sidebarNav.classList.remove('sidebar-open');
+                mobileMenuBtn.setAttribute('aria-expanded', 'false');
+              });
+            });
+          }
+        }
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', setupMobileMenu);
+        } else {
+          setupMobileMenu();
         }
 
         (function loadHomepageStats() {
