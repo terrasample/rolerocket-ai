@@ -103,8 +103,12 @@ h3,
 }
 
 .home-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   text-align: center;
-  padding: 52px 24px 50px;
+  padding: 0 24px;
 }
 
 .home-brand-title {
@@ -115,7 +119,8 @@ h3,
   font-size: clamp(7.8rem, 16.8vw, 10.8rem);
   font-weight: 900;
   color: #dc2626;
-  line-height: 1.1;
+  line-height: 0.82;
+  margin: 0;
 }
 
 .home-brand-rocket {
@@ -124,10 +129,11 @@ h3,
 }
 
 .home-brand-subtitle {
-  margin: 8px auto 0;
+  margin: 0 auto;
   font-size: 1rem;
   max-width: none;
   color: #bfdbfe;
+  text-align: center;
 }
 
 .layout {
