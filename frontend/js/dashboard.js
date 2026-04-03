@@ -747,6 +747,29 @@ function applyLocks() {
       card.classList.add('locked-card');
     }
   });
+
+  updatePlanAccessChips();
+}
+
+function updatePlanAccessChips() {
+  document.querySelectorAll('[data-plan-lock-chip]').forEach((chip) => {
+    const plan = normalizePlan(chip.dataset.planLockChip || 'free');
+
+    if (plan === currentUserPlan) {
+      chip.textContent = 'Current Plan';
+      chip.className = 'plan-lock-chip current';
+      return;
+    }
+
+    if (hasPlan(plan)) {
+      chip.textContent = 'Unlocked';
+      chip.className = 'plan-lock-chip unlocked';
+      return;
+    }
+
+    chip.textContent = 'Locked';
+    chip.className = 'plan-lock-chip locked';
+  });
 }
 
 function setDashboardMode(mode, options = {}) {
