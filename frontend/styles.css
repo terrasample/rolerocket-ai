@@ -102,6 +102,32 @@ h3,
   filter: drop-shadow(0 10px 20px rgba(14, 165, 233, 0.3));
 }
 
+.home-hero {
+  text-align: center;
+  padding: 22px 24px;
+}
+
+.home-brand-title {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: clamp(2rem, 4.4vw, 2.8rem);
+  line-height: 1.1;
+}
+
+.home-brand-rocket {
+  font-size: 1.07em;
+  filter: drop-shadow(0 8px 16px rgba(14, 165, 233, 0.35));
+}
+
+.home-brand-subtitle {
+  margin: 8px auto 0;
+  font-size: 1rem;
+  max-width: none;
+  color: #bfdbfe;
+}
+
 .layout {
   display: flex;
   min-height: calc(100vh - 120px);
