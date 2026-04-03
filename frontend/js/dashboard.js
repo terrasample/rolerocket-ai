@@ -292,6 +292,7 @@ function removeUrlQueryParams(paramNames = []) {
 function closeVeteranDiscountPopup() {
   if (!veteranDiscountModalEl) return;
   veteranDiscountModalEl.hidden = true;
+  veteranDiscountModalEl.setAttribute('aria-hidden', 'true');
 }
 
 async function copyVeteranCode() {
@@ -308,6 +309,10 @@ async function copyVeteranCode() {
 
 async function maybeShowVeteranDiscountPopup(user, { force = false } = {}) {
   if (!user?.veteranVerified) return;
+
+  // Only show this modal when explicitly requested (for example after verification callback).
+  // Prevents popup from becoming the first thing users see on normal dashboard visits.
+  if (!force) return;
 
   const userId = String(user._id || user.id || 'me').trim();
   const storageKey = `${VETERAN_POPUP_STORAGE_KEY}:${userId}`;
@@ -330,6 +335,7 @@ async function maybeShowVeteranDiscountPopup(user, { force = false } = {}) {
 
   veteranDiscountCodeValueEl.textContent = code;
   veteranDiscountModalEl.hidden = false;
+  veteranDiscountModalEl.setAttribute('aria-hidden', 'false');
 }
 
 veteranCopyCodeBtn?.addEventListener('click', copyVeteranCode);

@@ -1,0 +1,55 @@
+<svg width="860" height="220" viewBox="0 0 860 220" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">RoleRocket AI Logo</title>
+  <desc id="desc">A modern blue gradient rocket mark with the text RoleRocket AI</desc>
+
+  <defs>
+    <linearGradient id="bgGlow" x1="24" y1="24" x2="204" y2="204" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0EA5E9"/>
+      <stop offset="1" stop-color="#1D4ED8"/>
+    </linearGradient>
+    <linearGradient id="rocketBody" x1="80" y1="38" x2="146" y2="140" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#BAE6FD"/>
+      <stop offset="1" stop-color="#E0F2FE"/>
+    </linearGradient>
+    <linearGradient id="finGrad" x1="58" y1="112" x2="154" y2="168" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1D4ED8"/>
+      <stop offset="1" stop-color="#0C4A6E"/>
+    </linearGradient>
+    <linearGradient id="flameGrad" x1="112" y1="156" x2="112" y2="194" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FDE68A"/>
+      <stop offset="1" stop-color="#F97316"/>
+    </linearGradient>
+    <filter id="softShadow" x="0" y="0" width="240" height="240" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#0F172A" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <g filter="url(#softShadow)">
+    <rect x="24" y="24" width="180" height="180" rx="36" fill="url(#bgGlow)"/>
+
+    <path d="M112 38C126 48 143 71 146 98C147 106 145 114 141 121L132 137C129 143 123 147 116 147H108C101 147 95 143 92 137L83 121C79 114 77 106 78 98C81 71 98 48 112 38Z" fill="url(#rocketBody)"/>
+    <path d="M90 115L68 134C63 138 60 145 61 152L62 163L81 153L94 130L90 115Z" fill="url(#finGrad)"/>
+    <path d="M134 115L156 134C161 138 164 145 163 152L162 163L143 153L130 130L134 115Z" fill="url(#finGrad)"/>
+
+    <circle cx="112" cy="90" r="16" fill="#0369A1"/>
+    <circle cx="112" cy="90" r="9" fill="#BAE6FD"/>
+
+    <path d="M112 147L124 166C126 169 126 174 123 177L112 190L101 177C98 174 98 169 100 166L112 147Z" fill="url(#flameGrad)"/>
+    <path d="M112 155L118 167C119 169 119 172 117 174L112 180L107 174C105 172 105 169 106 167L112 155Z" fill="#FFF7ED"/>
+
+    <path d="M72 64L63 60M70 80L58 80M72 96L63 100" stroke="#DBEAFE" stroke-width="4" stroke-linecap="round"/>
+    <path d="M152 64L161 60M154 80L166 80M152 96L161 100" stroke="#DBEAFE" stroke-width="4" stroke-linecap="round"/>
+  </g>
+
+  <g transform="translate(240 0)">
+    <text x="0" y="105" fill="#0F172A" font-size="64" font-weight="800" font-family="Manrope, Plus Jakarta Sans, Segoe UI, sans-serif" letter-spacing="-1.2">
+      RoleRocket
+    </text>
+    <text x="548" y="105" fill="#0369A1" font-size="64" font-weight="800" font-family="Manrope, Plus Jakarta Sans, Segoe UI, sans-serif" letter-spacing="-1.2">
+      AI
+    </text>
+    <text x="2" y="145" fill="#334155" font-size="22" font-weight="600" font-family="Plus Jakarta Sans, Segoe UI, sans-serif" letter-spacing="0.2">
+      Your AI Career System
+    </text>
+  </g>
+</svg>

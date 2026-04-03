@@ -2316,6 +2316,24 @@ app.put('/api/jobs/:id/status', authenticateToken, async (req, res) => {
   }
 });
 
+app.delete('/api/jobs/:id', authenticateToken, async (req, res) => {
+  try {
+    const job = await Job.findOneAndDelete({
+      _id: req.params.id,
+      userId: req.user.userId
+    });
+
+    if (!job) {
+      return res.status(404).json({ error: 'Job not found' });
+    }
+
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('Delete job error:', err);
+    return res.status(500).json({ error: 'Failed to delete job' });
+  }
+});
+
 app.post('/api/apply/one-click', authenticateToken, async (req, res) => {
   try {
     const user = await User.findById(req.user.userId);
