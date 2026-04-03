@@ -334,7 +334,7 @@
           throw new Error('Could not save session in this browser.');
         }
         setStoredUser(data.user || { email });
-        window.location.replace('dashboard.html');
+        window.location.replace('index.html');
       } catch (err) {
         let apiTarget = 'unknown';
         try { apiTarget = getApiBase(); } catch {}
