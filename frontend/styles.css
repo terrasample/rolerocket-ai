@@ -108,16 +108,17 @@ h3,
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 72px 24px;
+  padding: 44px 24px;
 }
 
 .home-brand-title {
-  display: inline-flex;
+  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 0;
   font-family: 'Cinzel', 'Playfair Display', Georgia, serif;
-  font-size: clamp(7.8rem, 16.8vw, 10.8rem);
+  font-size: clamp(8.6rem, 17.8vw, 11.8rem);
   font-weight: 800;
   letter-spacing: 0.02em;
   background: linear-gradient(180deg, #fff8dc 0%, #facc15 46%, #b45309 100%);
@@ -128,17 +129,18 @@ h3,
     0 2px 0 rgba(255, 255, 255, 0.2),
     0 14px 26px rgba(250, 204, 21, 0.28),
     0 20px 40px rgba(0, 0, 0, 0.35);
-  line-height: 0.62;
+  line-height: 1;
   margin: 0;
 }
 
 .home-brand-rocket {
-  font-size: 3.54em;
+  font-size: 4.2rem;
+  line-height: 1.1;
   filter: drop-shadow(0 8px 16px rgba(14, 165, 233, 0.35));
 }
 
 .home-brand-subtitle {
-  margin: 0 auto;
+  margin: 6px auto 0;
   font-family: 'Playfair Display', Georgia, serif;
   font-size: clamp(1.25rem, 1.8vw, 1.6rem);
   font-weight: 600;
@@ -2790,6 +2792,80 @@ pre {
   .trust-strip {
     grid-template-columns: 1fr;
   }
+}
+
+/* ─── Feature Video Placeholders ─────────────────────────────────────────── */
+.feature-video-wrap {
+  margin: 14px 0 12px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #0c1426;
+  border: 1px solid rgba(125, 211, 252, 0.22);
+  aspect-ratio: 16 / 9;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: #7dd3fc;
+  text-align: center;
+  padding: 16px;
+  position: relative;
+}
+
+.feature-video-wrap iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: 14px;
+}
+
+.feature-video-icon {
+  font-size: 2.4rem;
+  line-height: 1;
+}
+
+.feature-video-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #93c5fd;
+}
+
+.feature-video-note {
+  font-size: 0.74rem;
+  color: #4b6a9b;
+  margin: 0;
+  max-width: 220px;
+  line-height: 1.5;
+}
+
+/* ─── Checkout Button States ─────────────────────────────────────────────── */
+.checkout-btn {
+  width: 100%;
+  padding: 13px 18px;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  background: linear-gradient(135deg, #1d4ed8, #0284c7);
+  color: #fff;
+  transition: opacity 0.2s, transform 0.15s;
+  margin-top: 8px;
+}
+
+.checkout-btn:hover:not(:disabled) {
+  opacity: 0.88;
+  transform: translateY(-1px);
+}
+
+.checkout-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
 }
 
 /* ─── Legal Pages ──────────────────────────────────────────────────────────── */

@@ -9,7 +9,7 @@
 <body>
   <a class="skip-link" href="#mainContent">Skip to main content</a>
   <div class="hero home-hero">
-    <h1 class="home-brand-title">Role<span class="home-brand-rocket" aria-hidden="true">🚀</span>Rocket AI</h1>
+    <h1 class="home-brand-title"><span class="home-brand-rocket" aria-hidden="true">🚀</span><span>RoleRocket AI</span></h1>
     <p class="home-brand-subtitle">Pricing</p>
   </div>
 
@@ -49,7 +49,7 @@
         <p>For fast application output and better role targeting.</p>
         <p class="veteran-tier-note">Veteran discount available after verification. <a href="https://www.id.me/individuals/military" target="_blank" rel="noopener noreferrer">Please verify your military status.</a></p>
         <div class="pricing-top">
-          <article class="price-card pro"><div class="plan-pill popular-pill">PRO ACCESS</div><h3>Pro Builder</h3><div class="price-amount">$19<span>/month</span></div><ul><li>Everything in Free</li><li>Resume Generator</li><li>Cover Letter AI</li><li>Job Match Analysis</li><li>LinkedIn Optimization</li><li>Role-targeted messaging</li><li>Application quality lift</li><li>Faster application drafting</li><li>Consistent role targeting</li></ul><a href="signup.html"><button>Unlock Pro</button></a></article>
+          <article class="price-card pro"><div class="plan-pill popular-pill">PRO ACCESS</div><h3>Pro Builder</h3><div class="price-amount">$19<span>/month</span></div><ul><li>Everything in Free</li><li>Resume Generator</li><li>Cover Letter AI</li><li>Job Match Analysis</li><li>LinkedIn Optimization</li><li>Role-targeted messaging</li><li>Application quality lift</li><li>Faster application drafting</li><li>Consistent role targeting</li></ul><button class="checkout-btn" data-checkout="pro" onclick="handleCheckout('pro')">Unlock Pro →</button></article>
         </div>
       </section>
 
@@ -58,7 +58,7 @@
         <p>For candidates who want stronger ATS performance and faster execution.</p>
         <p class="veteran-tier-note">Veteran discount available after verification. <a href="https://www.id.me/individuals/military" target="_blank" rel="noopener noreferrer">Please verify your military status.</a></p>
         <div class="pricing-top">
-          <article class="price-card premium"><div class="plan-pill premium-pill">PREMIUM ACCESS</div><h3>Premium Performance</h3><div class="price-amount">$39<span>/month</span></div><ul><li>Everything in Pro</li><li>ATS Optimizer</li><li>Interview Prep AI</li><li>1-Click Apply</li><li>AI Resume Rewrite</li><li>Deeper answer refinement</li><li>Stronger recruiter readiness</li><li>Faster conversion workflow</li><li>Higher-volume output lane</li></ul><a href="signup.html"><button>Unlock Premium</button></a></article>
+          <article class="price-card premium"><div class="plan-pill premium-pill">PREMIUM ACCESS</div><h3>Premium Performance</h3><div class="price-amount">$39<span>/month</span></div><ul><li>Everything in Pro</li><li>ATS Optimizer</li><li>Interview Prep AI</li><li>1-Click Apply</li><li>AI Resume Rewrite</li><li>Deeper answer refinement</li><li>Stronger recruiter readiness</li><li>Faster conversion workflow</li><li>Higher-volume output lane</li></ul><button class="checkout-btn" data-checkout="premium" onclick="handleCheckout('premium')">Unlock Premium →</button></article>
         </div>
       </section>
 
@@ -67,7 +67,7 @@
         <p>For high-stakes professionals who need coaching, interview simulation, and executive presence support.</p>
         <p class="veteran-tier-note">Veteran discount available after verification. <a href="https://www.id.me/individuals/military" target="_blank" rel="noopener noreferrer">Please verify your military status.</a></p>
         <div class="pricing-top">
-          <article class="price-card elite"><div class="plan-pill elite-pill">ELITE ACCESS</div><h3>Elite Strategy</h3><div class="price-amount">$79<span>/month</span></div><ul><li>Everything in Premium</li><li>Career Coach AI</li><li>Premium strategy guidance</li><li>High-stakes role targeting</li><li>AI Interview Simulation Call</li><li>Post-call feedback and pointers</li><li>Scenario-based practice rounds</li><li>Executive presence coaching</li><li>Customized AI pointers</li><li>Priority strategy support</li></ul><a href="signup.html"><button>Unlock Elite</button></a></article>
+          <article class="price-card elite"><div class="plan-pill elite-pill">ELITE ACCESS</div><h3>Elite Strategy</h3><div class="price-amount">$79<span>/month</span></div><ul><li>Everything in Premium</li><li>Career Coach AI</li><li>Premium strategy guidance</li><li>High-stakes role targeting</li><li>AI Interview Simulation Call</li><li>Post-call feedback and pointers</li><li>Scenario-based practice rounds</li><li>Executive presence coaching</li><li>Customized AI pointers</li><li>Priority strategy support</li></ul><button class="checkout-btn" data-checkout="elite" onclick="handleCheckout('elite')">Unlock Elite →</button></article>
         </div>
       </section>
 
@@ -76,12 +76,41 @@
         <p>One-time purchase with everything unlocked permanently.</p>
         <p class="veteran-tier-note">Veteran discount available after verification. <a href="https://www.id.me/individuals/military" target="_blank" rel="noopener noreferrer">Please verify your military status.</a></p>
         <div class="pricing-top">
-          <article class="price-card lifetime"><div class="plan-pill founders-pill" id="lifetimePricingPill">LIFETIME LIMITED</div><h3>Lifetime All-In</h3><div class="price-amount" id="lifetimePricingAmount"><span class="price-original" id="lifetimePricingOriginal">$249</span> $199<span> one-time</span></div><p class="limited-offer-note" id="lifetimePricingOfferNote">Limited offer: $199 for the first 50 customers. Then returns to $249.</p><ul><li>All Free features</li><li>All Pro features</li><li>All Premium features</li><li>All Elite features</li><li>AI Interview Simulation Call</li><li>Executive presence coaching</li><li>Career Coach AI</li><li>LinkedIn Optimization</li><li>No monthly payments</li><li>Future updates included</li><li>Permanent access</li><li>Locked only before purchase</li></ul><a href="signup.html"><button>Claim Lifetime</button></a></article>
+          <article class="price-card lifetime"><div class="plan-pill founders-pill" id="lifetimePricingPill">LIFETIME LIMITED</div><h3>Lifetime All-In</h3><div class="price-amount" id="lifetimePricingAmount"><span class="price-original" id="lifetimePricingOriginal">$249</span> $199<span> one-time</span></div><p class="limited-offer-note" id="lifetimePricingOfferNote">Limited offer: $199 for the first 50 customers. Then returns to $249.</p><ul><li>All Free features</li><li>All Pro features</li><li>All Premium features</li><li>All Elite features</li><li>AI Interview Simulation Call</li><li>Executive presence coaching</li><li>Career Coach AI</li><li>LinkedIn Optimization</li><li>No monthly payments</li><li>Future updates included</li><li>Permanent access</li><li>Locked only before purchase</li></ul><button class="checkout-btn" data-checkout="lifetime" onclick="handleCheckout('lifetime')">Claim Lifetime →</button></article>
         </div>
       </section>
     </main>
   </div>
   <script>
+    async function handleCheckout(plan) {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        window.location.href = 'login.html?redirect=pricing&plan=' + plan;
+        return;
+      }
+      const btn = document.querySelector(`[data-checkout="${plan}"]`);
+      const original = btn ? btn.textContent : '';
+      if (btn) { btn.textContent = 'Redirecting to Stripe...'; btn.disabled = true; }
+      try {
+        const endpoint = plan === 'lifetime' ? '/api/create-lifetime-checkout' : '/api/create-checkout-session';
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ plan })
+        });
+        const data = await res.json();
+        if (data.url) {
+          window.location.href = data.url;
+        } else {
+          alert(data.error || 'Checkout failed. Please try again.');
+          if (btn) { btn.textContent = original; btn.disabled = false; }
+        }
+      } catch (e) {
+        alert('Could not start checkout. Please try again.');
+        if (btn) { btn.textContent = original; btn.disabled = false; }
+      }
+    }
+
     (async function syncLifetimeOfferUi() {
       try {
         const res = await fetch('/api/lifetime-offer-status', { headers: { Accept: 'application/json' } });
