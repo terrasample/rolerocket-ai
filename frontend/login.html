@@ -207,6 +207,22 @@
     const waitlistMessage = document.getElementById('loginWaitlistMessage');
     const query = new URLSearchParams(window.location.search);
 
+    if (query.get('relogin') === '1') {
+      if (typeof clearStoredToken === 'function') {
+        clearStoredToken();
+      } else {
+        localStorage.removeItem('token');
+        sessionStorage.removeItem('token');
+      }
+      if (typeof clearStoredUser === 'function') {
+        clearStoredUser();
+      } else {
+        localStorage.removeItem('user');
+        sessionStorage.removeItem('user');
+      }
+      message.textContent = 'Session cleared. Please log in again.';
+    }
+
     if (query.get('verify') === 'check-email') {
       message.textContent = 'Check your inbox and verify your email before logging in.';
       const prefEmail = query.get('email');
