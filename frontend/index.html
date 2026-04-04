@@ -129,6 +129,21 @@
       <a class="sidebar-link-btn" href="ai-recruiter-assist.html">AI Recruiter Assist</a>
       <a class="sidebar-link-btn" href="products.html">Products</a>
       <a class="sidebar-link-btn" href="pricing.html">Pricing</a>
+      <hr />
+      <p id="planBadge">Free Plan</p>
+      <a class="sidebar-link-btn" href="login.html">💳 Manage Billing</a>
+      <a class="sidebar-link-btn" href="account.html">👤 Account</a>
+      <a class="sidebar-link-btn" href="login.html?relogin=1">Logout</a>
+    </aside>
+    <div class="sidebar-overlay" id="sidebarOverlay" tabindex="-1" aria-hidden="true"></div>
+      <h2 aria-label="RoleRocket AI"></h2>
+      <a class="sidebar-link-btn active" href="index.html">Home</a>
+      <a class="sidebar-link-btn" href="about-us.html">About Us</a>
+      <a class="sidebar-link-btn" href="features.html">Features</a>
+      <a class="sidebar-link-btn" href="job-tracking.html">Find, Apply, Track & More</a>
+      <a class="sidebar-link-btn" href="ai-recruiter-assist.html">AI Recruiter Assist</a>
+      <a class="sidebar-link-btn" href="products.html">Products</a>
+      <a class="sidebar-link-btn" href="pricing.html">Pricing</a>
 
       <hr />
 
@@ -272,7 +287,7 @@
             <li>3 friends = Premium upgrade</li>
             <li>5+ friends = Elite perks & swag</li>
           </ul>
-          <button style="margin-top:18px;">Get My Invite Link</button>
+          <button id="inviteLinkBtn" style="margin-top:18px;">Get My Invite Link</button>
         </article>
       </section>
 
@@ -281,18 +296,29 @@
         function setupMobileMenu() {
           const mobileMenuBtn = document.getElementById('mobileMenuBtn');
           const sidebarNav = document.getElementById('sidebarNav');
-          if (mobileMenuBtn && sidebarNav) {
+          const sidebarOverlay = document.getElementById('sidebarOverlay');
+          if (mobileMenuBtn && sidebarNav && sidebarOverlay) {
+            function openSidebar() {
+              sidebarNav.classList.add('sidebar-open');
+              sidebarOverlay.style.display = 'block';
+              mobileMenuBtn.setAttribute('aria-expanded', 'true');
+            }
+            function closeSidebar() {
+              sidebarNav.classList.remove('sidebar-open');
+              sidebarOverlay.style.display = 'none';
+              mobileMenuBtn.setAttribute('aria-expanded', 'false');
+            }
             mobileMenuBtn.addEventListener('click', function () {
-              const expanded = this.getAttribute('aria-expanded') === 'true';
-              this.setAttribute('aria-expanded', !expanded);
-              sidebarNav.classList.toggle('sidebar-open');
+              if (sidebarNav.classList.contains('sidebar-open')) {
+                closeSidebar();
+              } else {
+                openSidebar();
+              }
             });
+            sidebarOverlay.addEventListener('click', closeSidebar);
             // Close sidebar when a link is clicked (for mobile UX)
             sidebarNav.querySelectorAll('a').forEach(function(link) {
-              link.addEventListener('click', function() {
-                sidebarNav.classList.remove('sidebar-open');
-                mobileMenuBtn.setAttribute('aria-expanded', 'false');
-              });
+              link.addEventListener('click', closeSidebar);
             });
           }
         }
@@ -301,6 +327,35 @@
         } else {
           setupMobileMenu();
         }
+
+        // Invite Link Button Logic
+        document.addEventListener('DOMContentLoaded', function () {
+          var inviteBtn = document.getElementById('inviteLinkBtn');
+          if (inviteBtn) {
+            inviteBtn.addEventListener('click', async function () {
+              let token = localStorage.getItem('token');
+              if (!token) {
+                alert('Please log in to get your invite link.');
+                window.location.href = 'login.html';
+                return;
+              }
+              try {
+                let res = await fetch('/api/referral', { headers: { Authorization: 'Bearer ' + token } });
+                let data = await res.json();
+                if (!data.referralCode) throw new Error('No referral code found');
+                let link = window.location.origin + '/signup.html?ref=' + encodeURIComponent(data.referralCode);
+                if (navigator.share) {
+                  await navigator.share({ title: 'Join me on RoleRocket AI!', text: 'Sign up and get rewards:', url: link });
+                } else {
+                  await navigator.clipboard.writeText(link);
+                  alert('Your invite link has been copied! Share it with friends: ' + link);
+                }
+              } catch (e) {
+                alert('Could not get your invite link. Please try again.');
+              }
+            });
+          }
+        });
 
         (function loadHomepageStats() {
           const format = (n) => Number(n || 0).toLocaleString();
