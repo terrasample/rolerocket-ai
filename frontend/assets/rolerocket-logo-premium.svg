@@ -1,0 +1,68 @@
+<svg width="900" height="280" viewBox="0 0 900 280" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="logoTitle logoDesc">
+  <title id="logoTitle">RoleRocket AI</title>
+  <desc id="logoDesc">RoleRocket AI – Your AI Career System</desc>
+
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="900" y2="280" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e3a5f"/>
+    </linearGradient>
+    <linearGradient id="goldText" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#fff8dc"/>
+      <stop offset="46%" stop-color="#facc15"/>
+      <stop offset="100%" stop-color="#b45309"/>
+    </linearGradient>
+    <linearGradient id="goldTextAbsolute" x1="0" y1="60" x2="0" y2="200" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#fff8dc"/>
+      <stop offset="46%" stop-color="#facc15"/>
+      <stop offset="100%" stop-color="#b45309"/>
+    </linearGradient>
+    <linearGradient id="rocketGlow" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#fde68a"/>
+      <stop offset="100%" stop-color="#f97316"/>
+    </linearGradient>
+    <filter id="goldGlow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#facc15" flood-opacity="0.35"/>
+    </filter>
+    <filter id="subtleGlow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#0ea5e9" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Dark background with rounded corners -->
+  <rect width="900" height="280" rx="24" fill="url(#bg)"/>
+
+  <!-- Subtle top edge highlight -->
+  <rect x="0" y="0" width="900" height="2" rx="1" fill="#facc1530"/>
+
+  <!-- Gold border accent -->
+  <rect x="1" y="1" width="898" height="278" rx="23" fill="none" stroke="#facc15" stroke-width="1.5" stroke-opacity="0.25"/>
+
+  <!-- Rocket emoji region (left side decorative) -->
+  <text x="52" y="168" font-size="96" text-anchor="middle" filter="url(#goldGlow)">🚀</text>
+
+  <!-- Main brand name -->
+  <text
+    x="152" y="164"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-size="88"
+    font-weight="800"
+    letter-spacing="-1"
+    fill="url(#goldTextAbsolute)"
+    filter="url(#goldGlow)"
+  >RoleRocket AI</text>
+
+  <!-- Subtitle -->
+  <text
+    x="154" y="210"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-size="26"
+    font-weight="600"
+    letter-spacing="2"
+    fill="#93c5fd"
+    filter="url(#subtleGlow)"
+  >Your AI Career System</text>
+
+  <!-- Decorative divider line under subtitle -->
+  <line x1="154" y1="228" x2="740" y2="228" stroke="#facc15" stroke-width="1" stroke-opacity="0.3"/>
+</svg>

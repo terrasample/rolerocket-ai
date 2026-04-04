@@ -109,6 +109,10 @@ function queueEmailVerificationEmail({ to, name, verifyUrl }) {
   });
 }
 
+
+// Expose email verification queue globally for use in routes
+global.queueEmailVerificationEmail = queueEmailVerificationEmail;
+
 const { runATSAnalysis } = require('./services/atsScorer');
 
 const User = require('./models/User');
@@ -119,7 +123,11 @@ const Telemetry = require('./models/Telemetry');
 const RoleProfile = require('./models/RoleProfile');
 const LifetimeSale = require('./models/LifetimeSale');
 
+
+// Register email verification route
 const app = express();
+app.use('/api/verify', require('./routes/verifyEmail'));
+
 const PORT = process.env.PORT || 5000;
 
 const openai = new OpenAI({

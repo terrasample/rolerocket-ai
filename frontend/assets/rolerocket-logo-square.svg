@@ -1,0 +1,57 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="sqTitle">
+  <title id="sqTitle">RoleRocket AI</title>
+
+  <defs>
+    <linearGradient id="sqBg" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e3a5f"/>
+    </linearGradient>
+    <linearGradient id="sqGold" x1="0" y1="120" x2="0" y2="400" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#fff8dc"/>
+      <stop offset="46%" stop-color="#facc15"/>
+      <stop offset="100%" stop-color="#b45309"/>
+    </linearGradient>
+    <filter id="sqGlow" x="-15%" y="-15%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="4" stdDeviation="10" flood-color="#facc15" flood-opacity="0.4"/>
+    </filter>
+    <filter id="sqSubGlow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#0ea5e9" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" rx="72" fill="url(#sqBg)"/>
+
+  <!-- Gold border -->
+  <rect x="2" y="2" width="508" height="508" rx="70" fill="none" stroke="#facc15" stroke-width="2" stroke-opacity="0.3"/>
+
+  <!-- Rocket -->
+  <text x="256" y="240" font-size="160" text-anchor="middle" filter="url(#sqGlow)">🚀</text>
+
+  <!-- RoleRocket AI text -->
+  <text
+    x="256" y="340"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-size="52"
+    font-weight="800"
+    letter-spacing="-0.5"
+    text-anchor="middle"
+    fill="url(#sqGold)"
+    filter="url(#sqGlow)"
+  >RoleRocket AI</text>
+
+  <!-- Subtitle -->
+  <text
+    x="256" y="382"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-size="20"
+    font-weight="600"
+    letter-spacing="1.5"
+    text-anchor="middle"
+    fill="#93c5fd"
+    filter="url(#sqSubGlow)"
+  >Your AI Career System</text>
+
+  <!-- Bottom accent line -->
+  <line x1="160" y1="400" x2="352" y2="400" stroke="#facc15" stroke-width="1.5" stroke-opacity="0.35"/>
+</svg>

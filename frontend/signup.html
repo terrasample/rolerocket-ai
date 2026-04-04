@@ -70,8 +70,19 @@
           <input id="signupName" type="text" placeholder="Full name" required />
           <input id="signupEmail" type="email" placeholder="Email address" autocomplete="email" required />
           <input id="signupPassword" type="password" placeholder="Create password" autocomplete="new-password" minlength="8" required />
+          <input id="signupReferral" type="hidden" />
           <button id="signupSubmitBtn" type="submit" class="auth-submit-btn">Create Free Account</button>
         </form>
+        <script>
+        // Autofill referral code from URL
+        (function() {
+          const params = new URLSearchParams(window.location.search);
+          const ref = params.get('ref');
+          if (ref) {
+            document.getElementById('signupReferral').value = ref;
+          }
+        })();
+        </script>
 
         <div id="signupWaitlistBox" class="auth-waitlist-box" style="display:none;">
           <p><strong>Signup is temporarily unavailable.</strong> Leave your email and we will prioritize your access.</p>
@@ -106,8 +117,10 @@
   <script src="js/api-base.js"></script>
   <script src="js/auth-storage.js"></script>
   <script>
+    // Remove auto-login/redirect after signup. User must log in manually.
     if (getStoredToken()) {
-      window.location.replace('dashboard.html');
+      // Optionally, redirect to home or show a message, but do NOT auto-login to dashboard.
+      // window.location.replace('index.html');
     }
 
     // Keep wrong-origin diagnostics in the console only to avoid alarming real users.

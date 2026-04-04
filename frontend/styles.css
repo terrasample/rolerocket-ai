@@ -1,3 +1,39 @@
+/* Sidebar mobile menu overlay and animation */
+@media (max-width: 900px) {
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: -260px;
+    width: 240px;
+    height: 100vh;
+    background: #0f172a;
+    box-shadow: 2px 0 16px #0002;
+    z-index: 1001;
+    transition: left 0.25s cubic-bezier(.4,0,.2,1);
+    overflow-y: auto;
+    padding-top: 60px;
+  }
+  .sidebar.sidebar-open {
+    left: 0;
+  }
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0,0,0,0.32);
+    z-index: 1000;
+  }
+  .sidebar.sidebar-open ~ .sidebar-overlay {
+    display: block;
+  }
+  /* Hide any homepage tabs on mobile, only show menu button */
+  .homepage-tabs, .homepage-tabs-wrap, .homepage-tab, .homepage-tab-content, .homepage-tablist {
+    display: none !important;
+  }
+}
 /* Top business name bar for homepage */
 .business-bar {
   width: 100%;
@@ -330,6 +366,7 @@ h3,
 .layout {
   display: flex;
   min-height: calc(100vh - 120px);
+  background: linear-gradient(180deg, #111827 0%, #1f2937 100%);
 }
 
 .sidebar {
@@ -472,6 +509,10 @@ h3,
 
 .marketing-main {
   max-width: 1200px;
+  margin-left: 0;
+  margin-right: auto;
+  justify-content: flex-start;
+  align-items: flex-start;
 }
 
 .marketing-hero-card {
@@ -499,6 +540,7 @@ h3,
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 14px;
   margin-bottom: 16px;
+  justify-content: flex-start;
 }
 
 .marketing-card {
