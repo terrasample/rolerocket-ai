@@ -163,8 +163,11 @@
           renderProfile(storedUser);
           return;
         }
-
-        document.getElementById('profileLoading').textContent = 'Failed to load account info.';
+        let msg = 'Failed to load account info.';
+        if (err && err.message) {
+          msg += ' Error: ' + err.message;
+        }
+        document.getElementById('profileLoading').textContent = msg;
       }
     }
 
