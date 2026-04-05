@@ -4,7 +4,13 @@ const authenticateToken = require('../middleware/auth'); // JWT middleware
 const Resume = require('../models/Resume'); // MongoDB model
 const OpenAI = require('openai');
 const multer = require('multer');
+
 const { extractTextFromPDF, extractTextFromDocx } = require('../pdfWordUtils');
+const { extractTextFromPDFWithOCR } = require('../ocrUtils');
+
+// Configure multer for memory storage
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
 
 // Initialize OpenAI
 if (!process.env.OPENAI_API_KEY) {
@@ -17,18 +23,37 @@ router.post('/upload', authenticateToken, upload.single('resumeFile'), async (re
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
   let text = '';
   const mime = req.file.mimetype;
-  if (mime === 'application/pdf') {
-    text = await extractTextFromPDF(req.file.buffer);
-  } else if (mime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-    text = await extractTextFromDocx(req.file.buffer);
-  } else if (mime.startsWith('text/')) {
-    text = req.file.buffer.toString('utf8');
-  } else {
-    return res.status(400).json({ error: 'Unsupported file type' });
+  // Use Buffer for pdf-parse and mammoth, ArrayBuffer for pdfjs-dist (OCR)
+  // Utility: Convert Node.js Buffer to ArrayBuffer for pdfjs-dist
+  function toArrayBuffer(buffer) {
+    return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
   }
-  if (!text.trim()) return res.status(400).json({ error: 'Could not extract text from file' });
-  await Resume.create({ userId: req.user.userId, content: text, type: 'Resume', createdAt: new Date() });
-  res.json({ message: 'Resume uploaded and saved', content: text });
+  try {
+    if (mime === 'application/pdf') {
+      // pdf-parse expects Buffer
+      text = await extractTextFromPDF(req.file.buffer);
+      if (!text.trim()) {
+        // pdfjs-dist expects ArrayBuffer for OCR
+        text = await extractTextFromPDFWithOCR(toArrayBuffer(req.file.buffer));
+      }
+    } else if (mime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+      // mammoth expects Buffer
+      text = await extractTextFromDocx(req.file.buffer);
+    } else if (mime.startsWith('text/')) {
+      text = req.file.buffer.toString('utf8');
+    } else {
+      return res.status(400).json({ error: 'Unsupported file type' });
+    }
+    if (!text.trim()) {
+      console.error('Resume upload error: Could not extract text from file. Mime:', mime, 'Size:', req.file.size);
+      return res.status(400).json({ error: 'Could not extract text from file. Please ensure your file is a valid, text-based or image-based PDF, or DOCX.' });
+    }
+    await Resume.create({ userId: req.user.userId, content: text, type: 'Resume', createdAt: new Date() });
+    res.json({ message: 'Resume uploaded and saved', content: text });
+  } catch (err) {
+    console.error('Resume upload error:', err);
+    return res.status(500).json({ error: 'Failed to process resume file. ' + (err.message || '') });
+  }
 });
 
 // ----------------------

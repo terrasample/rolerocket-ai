@@ -1,4 +1,7 @@
-
+// Ensure API utilities are available
+if (typeof apiUrl !== 'function') {
+  throw new Error('apiUrl is not defined. Make sure api-base.js is loaded before dashboard.js');
+}
 const token = typeof getStoredToken === 'function' ? getStoredToken() : localStorage.getItem('token');
 
 if (!token) {
@@ -7,6 +10,65 @@ if (!token) {
 
 // ─── Session Timeout Auto-Logout ─────────────────────────────
 const SESSION_TIMEOUT_MINUTES = 30; // Set timeout duration here
+// ─── RoleRocket Dashboard (Personalized) ─────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
+  // Resume
+  const resumeEl = document.getElementById('dashboardResumeContent');
+  if (resumeEl) {
+    try {
+      const res = await fetch('/api/resume', { headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      if (data.resumes && data.resumes.length > 0) {
+        resumeEl.textContent = data.resumes[0].content;
+      } else {
+        resumeEl.textContent = 'No resume saved yet.';
+      }
+    } catch (err) {
+      resumeEl.textContent = 'Could not load resume.';
+    }
+  }
+
+  // Jobs Applied
+  const jobsListEl = document.getElementById('dashboardJobsList');
+  if (jobsListEl) {
+    try {
+      const res = await fetch('/api/jobs/applied', { headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      if (Array.isArray(data.jobs) && data.jobs.length > 0) {
+        jobsListEl.innerHTML = data.jobs.map(job => `<li><strong>${escapeHtml(job.title)}</strong> at ${escapeHtml(job.company)}<br><span style='color:#6b7280;font-size:0.95em;'>${escapeHtml(job.status || 'Applied')}</span></li>`).join('');
+      } else {
+        jobsListEl.innerHTML = '<li>No jobs applied yet.</li>';
+      }
+    } catch (err) {
+      jobsListEl.innerHTML = '<li>Could not load jobs.</li>';
+    }
+  }
+
+  // Personal Tips
+  const tipsEl = document.getElementById('dashboardTips');
+  if (tipsEl) {
+    try {
+      const res = await fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      const plan = (data.user && data.user.plan) || 'free';
+      let tips = '';
+      if (plan === 'pro') {
+        tips = '<ul><li>Use Resume Generator for tailored resumes.</li><li>Try Cover Letter AI for each application.</li></ul>';
+      } else if (plan === 'premium') {
+        tips = '<ul><li>Optimize your resume with ATS Optimizer.</li><li>Use Interview Prep AI for upcoming interviews.</li></ul>';
+      } else if (plan === 'elite') {
+        tips = '<ul><li>Leverage Career Coach AI for strategy.</li><li>Review premium insights for your applications.</li></ul>';
+      } else if (plan === 'lifetime') {
+        tips = '<ul><li>Enjoy all features with permanent access.</li><li>Stay updated for new releases.</li></ul>';
+      } else {
+        tips = '<ul><li>Upgrade your plan to unlock more personalized tips!</li></ul>';
+      }
+      tipsEl.innerHTML = tips;
+    } catch (err) {
+      tipsEl.textContent = 'Could not load tips.';
+    }
+  }
+});
 const SESSION_TIMEOUT_MS = SESSION_TIMEOUT_MINUTES * 60 * 1000;
 let sessionTimeoutTimer = null;
 
@@ -664,7 +726,9 @@ const sessionId = (() => {
   return next;
 })();
 
-const telemetryQueue = [];
+// Only declare telemetryQueue if not already declared (prevents duplicate errors)
+window.telemetryQueue = window.telemetryQueue || [];
+const telemetryQueue = window.telemetryQueue;
 
 function setOfflineBanner(offline) {
   if (!offlineBanner) return;
@@ -1027,7 +1091,7 @@ async function loadUserPlan() {
 
     if (data.user) {
       currentUserPlan = normalizePlan(data.user.plan || 'free');
-      planBadgeEl.textContent = formatPlan(currentUserPlan);
+      if (planBadgeEl) planBadgeEl.textContent = formatPlan(currentUserPlan);
       renderPlanGuide(currentUserPlan === 'free' ? 'pro' : currentUserPlan);
       applyLocks();
       updateTodayRail();
@@ -1042,7 +1106,7 @@ async function loadUserPlan() {
     }
   } catch {
     currentUserPlan = 'free';
-    planBadgeEl.textContent = 'Free Plan';
+    if (planBadgeEl) planBadgeEl.textContent = 'Free Plan';
     renderPlanGuide('pro');
     applyLocks();
     updateTodayRail();
@@ -1094,7 +1158,7 @@ async function refreshPlanAfterCheckout(maxAttempts = 4) {
       const nextPlan = normalizePlan(data.user?.plan || 'free');
 
       currentUserPlan = nextPlan;
-      planBadgeEl.textContent = formatPlan(currentUserPlan);
+      if (planBadgeEl) planBadgeEl.textContent = formatPlan(currentUserPlan);
       applyLocks();
 
       if (nextPlan !== 'free') {
@@ -1116,6 +1180,15 @@ async function handleCheckoutRedirectState() {
   const isLifetimeSuccess = params.get('lifetime') === 'true';
 
   if (!isSubscriptionSuccess && !isLifetimeSuccess) return;
+
+  // Restore last page in history so back arrow works as expected
+  try {
+    const lastPage = sessionStorage.getItem('rr_last_page_before_checkout');
+    if (lastPage) {
+      window.history.replaceState({}, document.title, lastPage);
+      sessionStorage.removeItem('rr_last_page_before_checkout');
+    }
+  } catch (e) {}
 
   setCheckoutBanner('Payment received. Verifying your plan unlock...', 'processing');
   track('checkout_returned', 'checkout', {
@@ -1872,6 +1945,7 @@ window.upgrade = async function upgrade(plan, triggerBtn) {
     });
 
     if (data.url) {
+      try { sessionStorage.setItem('rr_last_page_before_checkout', window.location.href); } catch (e) {}
       track('checkout_redirect_ready', 'checkout', { plan: normalizedPlan || 'unknown' });
       window.location.href = data.url;
     } else {
@@ -1897,6 +1971,7 @@ window.lifetime = async function lifetime(triggerBtn) {
     });
 
     if (data.url) {
+      try { sessionStorage.setItem('rr_last_page_before_checkout', window.location.href); } catch (e) {}
       track('checkout_redirect_ready', 'checkout', { plan: 'lifetime' });
       window.location.href = data.url;
     } else {
@@ -1951,8 +2026,10 @@ document.getElementById('billingBtn')?.addEventListener('click', async () => {
   btn.textContent = 'Loading...';
   try {
     const data = await api('/api/create-portal-session', { method: 'POST' });
-    if (data.url) window.location.href = data.url;
-    else throw new Error(data.error || 'Could not open billing portal');
+    if (data.url) {
+      try { sessionStorage.setItem('rr_last_page_before_checkout', window.location.href); } catch (e) {}
+      window.location.href = data.url;
+    } else throw new Error(data.error || 'Could not open billing portal');
   } catch (err) {
     showToast(err.message || 'Failed to open billing portal', 'error');
     btn.disabled = false;

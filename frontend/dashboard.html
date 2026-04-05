@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Dashboard | RoleRocket AI</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <a class="skip-link" href="#dashboardMain">Skip to main content</a>
+  <div class="hero">
+    <h1>My Dashboard</h1>
+    <p>Welcome to your personalized dashboard. Here you can view your resume, track jobs you’ve applied to, and get tips tailored to your plan.</p>
+  </div>
+  <div class="layout">
+    <aside class="sidebar" aria-label="Primary navigation">
+      <h2 aria-label="RoleRocket AI"></h2>
+      <a class="sidebar-link-btn" href="index.html">Home</a>
+      <a class="sidebar-link-btn" href="about-us.html">About Us</a>
+      <a class="sidebar-link-btn" href="features.html">Features</a>
+      <a class="sidebar-link-btn" href="job-tracking.html">Job Tracking</a>
+      <a class="sidebar-link-btn" href="products.html">Products</a>
+      <a class="sidebar-link-btn" href="pricing.html">Pricing</a>
+      <a class="sidebar-link-btn active" href="dashboard.html">My Dashboard</a>
+      <hr />
+      <p id="planBadge">Free Plan</p>
+      <a class="sidebar-link-btn" href="login.html">💳 Manage Billing</a>
+      <a class="sidebar-link-btn" href="account.html">👤 Account</a>
+      <a class="sidebar-link-btn" href="login.html?relogin=1">Logout</a>
+    </aside>
+    <div class="main" id="dashboardMain" tabindex="-1">
+      <div class="grid" style="max-width: 800px;">
+        <!-- Charts Row -->
+        <div class="card" style="margin-bottom:18px;">
+          <h3 style="margin-bottom:10px;">📈 Applications per Week</h3>
+          <canvas id="appsPerWeekChart" height="80"></canvas>
+        </div>
+        <div class="card" style="margin-bottom:18px;">
+          <h3 style="margin-bottom:10px;">📊 Application Status Breakdown</h3>
+          <canvas id="statusBreakdownChart" height="80"></canvas>
+        </div>
+        <!-- Resume Section (with upload/save) -->
+        <div class="card">
+          <h3>📄 Your Resume</h3>
+          <textarea id="resumeText" rows="8" style="width:100%;max-width:100%;margin-bottom:8px;" placeholder="Paste your resume here or upload a file..."></textarea>
+          <input type="file" id="resumeFile" accept=".txt,.pdf,.doc,.docx" style="margin-bottom:8px;" />
+          <button id="saveResumeBtn" class="auth-submit-btn" style="margin-bottom:8px;">Save Resume</button>
+          <div id="resumeSaveMsg" style="font-size:0.95em;margin-bottom:8px;"></div>
+          <div id="latestResumeBlock" style="margin-top:10px;">
+            <strong>Latest Saved Resume:</strong>
+            <pre id="latestResumeContent" style="background:#fffbe6;padding:14px;border-radius:8px;max-height:400px;overflow:auto;font-size:1.15em;color:#1e293b;font-family: 'Fira Mono', 'Consolas', 'Menlo', monospace; border:2px solid #f59e42;"></pre>
+            <div id="noResumeMsg" style="display:none;font-size:1.3em;font-weight:900;color:#dc2626;background:#fff0f0;padding:18px 12px;margin:12px 0 0 0;border-radius:8px;text-align:center;box-shadow:0 2px 12px #fca5a5a0;">No resume saved yet.</div>
+          </div>
+        </div>
+
+        <!-- Referral Code Section -->
+        <div class="card">
+          <h3>🔗 Your Referral Code</h3>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <input id="dashboardReferralCode" type="text" readonly style="font-size:1.1em;padding:8px 12px;border-radius:8px;border:1.5px solid #cbd5e1;background:#f8fafc;width:220px;" value="Loading..." />
+            <button id="copyDashboardReferralBtn" class="auth-submit-btn" style="padding:8px 18px;">Copy</button>
+          </div>
+          <div id="dashboardReferralMsg" style="font-size:0.95em;margin-top:8px;color:#16a34a;"></div>
+        </div>
+        <!-- Jobs Applied Section -->
+        <div class="card">
+          <h3>📝 Recent Applications</h3>
+          <ul id="dashboardJobsList" style="padding-left:18px;"><li>Loading...</li></ul>
+        </div>
+        <!-- Personal Tips Section -->
+        <div class="card">
+          <h3>💡 Personal Tips</h3>
+          <div id="dashboardTips">Loading...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <footer class="site-footer">
+    &copy; 2026 RoleRocket AI &nbsp;&middot;&nbsp;
+    <a href="privacy.html">Privacy Policy</a>
+    <a href="terms.html">Terms of Service</a>
+  </footer>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="js/api-base.js"></script>
+  <script src="js/auth-storage.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script src="js/dashboard-charts.js"></script>
+</body>
+</html>

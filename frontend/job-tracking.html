@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Find, Apply, Track & More | RoleRocket AI</title>
   <link rel="stylesheet" href="styles.css" />
+  <script src="js/api-base.js"></script>
+  <script src="js/import-resume.js"></script>
+  <script src="js/api-base.js"></script>
+  <script src="js/dashboard.js"></script>
 </head>
 <body>
   <a class="skip-link" href="#mainContent">Skip to main content</a>
@@ -29,6 +33,7 @@
       <p id="planBadge">Free Plan</p>
       <a class="sidebar-link-btn" href="login.html?relogin=1">Login</a>
       <a class="sidebar-link-btn" href="login.html">💳 Manage Billing</a>
+      <a class="sidebar-link-btn" href="dashboard.html">My Dashboard</a>
       <a class="sidebar-link-btn" href="account.html">👤 Account</a>
       <a class="sidebar-link-btn" href="login.html?relogin=1">Logout</a>
     </aside>
@@ -45,9 +50,9 @@
           <div class="tracker-tools">
             <input id="jobTitle" placeholder="Job title" aria-label="Job title" />
             <input id="jobLocation" placeholder="Location" aria-label="Job location" />
-            <textarea id="jobResume" placeholder="Paste resume for stronger matching or import below" rows="5" aria-label="Resume for matching"></textarea>
+            <textarea id="resumeText" placeholder="Paste resume for stronger matching or import below" rows="5" aria-label="Resume for matching"></textarea>
             <div class="tracker-btn-row">
-              <button id="importResumeBtn" type="button">Import Resume</button>
+              <button id="importResumeBtn" type="button">Import from Dashboard</button>
               <input type="file" id="importResumeFile" accept=".txt,.md,.rtf,.pdf,.doc,.docx" style="display:none" />
               <button id="findJobsBtn">Search Roles</button>
               <button id="linkedinSearchBtn" class="secondary-btn">Search LinkedIn</button>

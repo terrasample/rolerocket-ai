@@ -24,6 +24,7 @@
       <a class="sidebar-link-btn" href="job-tracking.html">Job Tracking</a>
       <a class="sidebar-link-btn" href="products.html">Products</a>
       <a class="sidebar-link-btn" href="pricing.html">Pricing</a>
+        <a class="sidebar-link-btn" href="dashboard.html">My Dashboard</a>
       <hr />
       <p id="planBadge">Free Plan</p>
       <a class="sidebar-link-btn" href="login.html">💳 Manage Billing</a>
@@ -42,18 +43,7 @@
             <p><strong>Name:</strong> <span id="accountName">—</span></p>
             <p><strong>Email:</strong> <span id="accountEmail">—</span></p>
             <p><strong>Plan:</strong> <span id="accountPlan" style="font-weight:700;color:#7c3aed;">—</span></p>
-            <div style="margin-top:14px;">
-                <!-- Resume Upload/Save -->
-                <h4 style="margin-bottom:6px;">Resume</h4>
-                <textarea id="resumeText" rows="8" style="width:100%;max-width:100%;margin-bottom:8px;" placeholder="Paste your resume here or upload a file..."></textarea>
-                <input type="file" id="resumeFile" accept=".txt,.pdf,.doc,.docx" style="margin-bottom:8px;" />
-                <button id="saveResumeBtn" class="auth-submit-btn" style="margin-bottom:8px;">Save Resume</button>
-                <div id="resumeSaveMsg" style="font-size:0.95em;margin-bottom:8px;"></div>
-                <div id="latestResumeBlock" style="margin-top:10px;">
-                  <strong>Latest Saved Resume:</strong>
-                  <pre id="latestResumeContent" style="background:#f3f4f6;padding:8px;border-radius:6px;max-height:200px;overflow:auto;"></pre>
-                </div>
-            </div>
+
           </div>
         </div>
 
@@ -101,7 +91,6 @@
     const TOKEN = getStoredToken();
     if (!TOKEN) window.location.href = 'login.html';
 
-    const sidebarBillingBtn = document.getElementById('billingBtn');
     const portalBtn = document.getElementById('portalBtn');
     const portalMessage = document.getElementById('portalMessage');
     const referralInput = document.getElementById('accountReferral');
@@ -122,11 +111,6 @@
       if (portalBtn) {
         portalBtn.disabled = isLoading;
         portalBtn.textContent = isLoading ? 'Loading...' : 'Open Billing Portal';
-      }
-
-      if (sidebarBillingBtn) {
-        sidebarBillingBtn.disabled = isLoading;
-        sidebarBillingBtn.textContent = isLoading ? 'Loading...' : '💳 Manage Billing';
       }
     }
 
@@ -162,6 +146,7 @@
     }
 
     // Load profile
+
     async function loadProfile() {
       try {
         const data = await api('/api/me');
@@ -175,6 +160,20 @@
         }
         document.getElementById('profileLoading').textContent = msg;
         document.getElementById('profileInfo').style.display = 'none';
+        // Log error for debugging
+        console.error('Account info load error:', err);
+      }
+    }
+
+    // Show/hide no resume message based on content
+    function updateResumeDisplay(content) {
+      const pre = document.getElementById('latestResumeContent');
+      if (content && content.trim()) {
+        pre.textContent = content;
+        showNoResumeMsg(false);
+      } else {
+        pre.textContent = '';
+        showNoResumeMsg(true);
       }
     }
 
@@ -231,12 +230,16 @@
       }
     }
 
-    portalBtn.addEventListener('click', openBillingPortal);
 
-    // Billing portal from sidebar
-    sidebarBillingBtn.addEventListener('click', openBillingPortal);
 
-    copyReferralBtn?.addEventListener('click', copyReferralCode);
+    if (portalBtn) {
+      portalBtn.addEventListener('click', openBillingPortal);
+    }
+
+    // Referral button (guard for null)
+    if (copyReferralBtn) {
+      copyReferralBtn.addEventListener('click', copyReferralCode);
+    }
 
     window.addEventListener('pageshow', () => {
       setBillingButtonState(false);
@@ -263,10 +266,14 @@
     });
 
     // Logout
-    document.getElementById('logoutBtn').addEventListener('click', () => {
-      clearStoredToken();
-      window.location.href = 'index.html';
-    });
+
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', () => {
+        clearStoredToken();
+        window.location.href = 'index.html';
+      });
+    }
 
     setBillingButtonState(false);
     loadProfile();
@@ -278,6 +285,7 @@
     const resumeSaveMsg = document.getElementById('resumeSaveMsg');
     const latestResumeContent = document.getElementById('latestResumeContent');
 
+
     async function fetchLatestResume() {
       try {
         const token = getStoredToken();
@@ -288,8 +296,10 @@
         } else {
           latestResumeContent.textContent = 'No resume saved yet.';
         }
-      } catch {
+      } catch (err) {
         latestResumeContent.textContent = 'Could not load resume.';
+        // Log error for debugging
+        console.error('Resume load error:', err);
       }
     }
 

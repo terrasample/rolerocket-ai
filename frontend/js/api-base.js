@@ -58,4 +58,10 @@
 
   global.getApiBase = getApiBase;
   global.apiUrl = apiUrl;
+
+  // Utility to show/hide the no resume message
+  global.showNoResumeMsg = function(show) {
+    const msg = document.getElementById('noResumeMsg');
+    if (msg) msg.style.display = show ? 'block' : 'none';
+  };
 })(window);

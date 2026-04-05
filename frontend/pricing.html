@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Pricing | RoleRocket AI</title>
   <link rel="stylesheet" href="styles.css" />
+  <script src="js/api-base.js"></script>
+  <script src="js/api-base.js"></script>
+  <script src="js/dashboard.js"></script>
 </head>
 <body>
   <a class="skip-link" href="#mainContent">Skip to main content</a>
@@ -26,6 +29,7 @@
       <p id="planBadge">Free Plan</p>
       <a class="sidebar-link-btn" href="login.html?relogin=1">Login</a>
       <a class="sidebar-link-btn" href="login.html">💳 Manage Billing</a>
+      <a class="sidebar-link-btn" href="dashboard.html">My Dashboard</a>
       <a class="sidebar-link-btn" href="account.html">👤 Account</a>
       <a class="sidebar-link-btn" href="login.html?relogin=1">Logout</a>
     </aside>
@@ -49,7 +53,7 @@
         <p>For fast application output and better role targeting.</p>
         <p class="veteran-tier-note">Veteran discount available after verification. <a href="https://www.id.me/individuals/military" target="_blank" rel="noopener noreferrer">Please verify your military status.</a></p>
         <div class="pricing-top">
-          <article class="price-card pro"><div class="plan-pill popular-pill">PRO ACCESS</div><h3>Pro Builder</h3><div class="price-amount">$19<span>/month</span> <span style="color:#64748b;font-size:0.9em;">or</span> $190<span>/year</span></div><ul><li>Everything in Free</li><li>Resume Generator</li><li>Cover Letter AI</li><li>Job Match Analysis</li><li>LinkedIn Optimization</li><li>Role-targeted messaging</li><li>Application quality lift</li><li>Faster application drafting</li><li>Consistent role targeting</li></ul><button class="checkout-btn" data-checkout="pro" onclick="handleCheckout('pro')">Unlock Pro →</button> <button class="checkout-btn" data-checkout="pro_yearly" onclick="handleCheckout('pro_yearly')">Unlock Pro Yearly →</button></article>
+          <article class="price-card pro"><div class="plan-pill popular-pill">PRO ACCESS</div><h3>Pro Builder</h3><div class="price-amount">$19<span>/month</span> <span style="color:#64748b;font-size:0.9em;">or</span> $190<span>/year</span> <span class="savings-pill" style="color:#059669;font-size:0.9em;margin-left:8px;">Save 17%</span></div><ul><li>Everything in Free</li><li>Resume Generator</li><li>Cover Letter AI</li><li>Job Match Analysis</li><li>LinkedIn Optimization</li><li>Role-targeted messaging</li><li>Application quality lift</li><li>Faster application drafting</li><li>Consistent role targeting</li></ul><button class="checkout-btn" data-checkout="pro" onclick="handleCheckout('pro')">Unlock Pro →</button> <button class="checkout-btn" data-checkout="pro_yearly" onclick="handleCheckout('pro_yearly')">Unlock Pro Yearly →</button></article>
         </div>
       </section>
 
@@ -58,7 +62,7 @@
         <p>For candidates who want stronger ATS performance and faster execution.</p>
         <p class="veteran-tier-note">Veteran discount available after verification. <a href="https://www.id.me/individuals/military" target="_blank" rel="noopener noreferrer">Please verify your military status.</a></p>
         <div class="pricing-top">
-          <article class="price-card premium"><div class="plan-pill premium-pill">PREMIUM ACCESS</div><h3>Premium Performance</h3><div class="price-amount">$39<span>/month</span> <span style="color:#64748b;font-size:0.9em;">or</span> $390<span>/year</span></div><ul><li>Everything in Pro</li><li>ATS Optimizer</li><li>Interview Prep AI</li><li>1-Click Apply</li><li>AI Resume Rewrite</li><li>Deeper answer refinement</li><li>Stronger recruiter readiness</li><li>Faster conversion workflow</li><li>Higher-volume output lane</li></ul><button class="checkout-btn" data-checkout="premium" onclick="handleCheckout('premium')">Unlock Premium →</button> <button class="checkout-btn" data-checkout="premium_yearly" onclick="handleCheckout('premium_yearly')">Unlock Premium Yearly →</button></article>
+          <article class="price-card premium"><div class="plan-pill premium-pill">PREMIUM ACCESS</div><h3>Premium Performance</h3><div class="price-amount">$39<span>/month</span> <span style="color:#64748b;font-size:0.9em;">or</span> $390<span>/year</span> <span class="savings-pill" style="color:#059669;font-size:0.9em;margin-left:8px;">Save 17%</span></div><ul><li>Everything in Pro</li><li>ATS Optimizer</li><li>Interview Prep AI</li><li>1-Click Apply</li><li>AI Resume Rewrite</li><li>Deeper answer refinement</li><li>Stronger recruiter readiness</li><li>Faster conversion workflow</li><li>Higher-volume output lane</li></ul><button class="checkout-btn" data-checkout="premium" onclick="handleCheckout('premium')">Unlock Premium →</button> <button class="checkout-btn" data-checkout="premium_yearly" onclick="handleCheckout('premium_yearly')">Unlock Premium Yearly →</button></article>
         </div>
       </section>
 
@@ -67,7 +71,7 @@
         <p>For high-stakes professionals who need coaching, interview simulation, and executive presence support.</p>
         <p class="veteran-tier-note">Veteran discount available after verification. <a href="https://www.id.me/individuals/military" target="_blank" rel="noopener noreferrer">Please verify your military status.</a></p>
         <div class="pricing-top">
-          <article class="price-card elite"><div class="plan-pill elite-pill">ELITE ACCESS</div><h3>Elite Strategy</h3><div class="price-amount">$79<span>/month</span> <span style="color:#64748b;font-size:0.9em;">or</span> $790<span>/year</span></div><ul><li>Everything in Premium</li><li>Career Coach AI</li><li>Premium strategy guidance</li><li>High-stakes role targeting</li><li>AI Interview Simulation Call</li><li>Post-call feedback and pointers</li><li>Scenario-based practice rounds</li><li>Executive presence coaching</li><li>Customized AI pointers</li><li>Priority strategy support</li></ul><button class="checkout-btn" data-checkout="elite" onclick="handleCheckout('elite')">Unlock Elite →</button> <button class="checkout-btn" data-checkout="elite_yearly" onclick="handleCheckout('elite_yearly')">Unlock Elite Yearly →</button></article>
+          <article class="price-card elite"><div class="plan-pill elite-pill">ELITE ACCESS</div><h3>Elite Strategy</h3><div class="price-amount">$79<span>/month</span> <span style="color:#64748b;font-size:0.9em;">or</span> $790<span>/year</span> <span class="savings-pill" style="color:#059669;font-size:0.9em;margin-left:8px;">Save 17%</span></div><ul><li>Everything in Premium</li><li>Career Coach AI</li><li>Premium strategy guidance</li><li>High-stakes role targeting</li><li>AI Interview Simulation Call</li><li>Post-call feedback and pointers</li><li>Scenario-based practice rounds</li><li>Executive presence coaching</li><li>Customized AI pointers</li><li>Priority strategy support</li></ul><button class="checkout-btn" data-checkout="elite" onclick="handleCheckout('elite')">Unlock Elite →</button> <button class="checkout-btn" data-checkout="elite_yearly" onclick="handleCheckout('elite_yearly')">Unlock Elite Yearly →</button></article>
         </div>
       </section>
 
@@ -75,7 +79,7 @@
         <h2>AI Recruiter Assist</h2>
         <p>Premium recruiter tool for enhanced candidate selection.</p>
         <div class="pricing-top">
-          <article class="price-card recruiter"><div class="plan-pill premium-pill">AI RECRUITER ASSIST</div><h3>AI Recruiter Assist</h3><div class="price-amount">$99<span>/month</span> <span style="color:#64748b;font-size:0.9em;">or</span> $990<span>/year</span></div><ul><li>Top 3 candidate ranking by job role</li><li>Resume match scoring</li><li>Premium recruiter dashboard</li><li>Unlock advanced recruiter tools</li></ul><button class="checkout-btn" data-checkout="recruiter" onclick="handleCheckout('recruiter')">Subscribe</button> <button class="checkout-btn" data-checkout="recruiter_yearly" onclick="handleCheckout('recruiter_yearly')">Subscribe Yearly</button></article>
+          <article class="price-card recruiter"><div class="plan-pill premium-pill">AI RECRUITER ASSIST</div><h3>AI Recruiter Assist</h3><div class="price-amount">$99<span>/month</span> <span style="color:#64748b;font-size:0.9em;">or</span> $990<span>/year</span> <span class="savings-pill" style="color:#059669;font-size:0.9em;margin-left:8px;">Save 17%</span></div><ul><li>Top 3 candidate ranking by job role</li><li>Resume match scoring</li><li>Premium recruiter dashboard</li><li>Unlock advanced recruiter tools</li></ul><button class="checkout-btn" data-checkout="recruiter" onclick="handleCheckout('recruiter')">Subscribe</button> <button class="checkout-btn" data-checkout="recruiter_yearly" onclick="handleCheckout('recruiter_yearly')">Subscribe Yearly</button></article>
         </div>
       </section>
 

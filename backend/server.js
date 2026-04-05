@@ -128,11 +128,27 @@ const LifetimeSale = require('./models/LifetimeSale');
 const app = express();
 app.use('/api/verify', require('./routes/verifyEmail'));
 
+// Register resume API route BEFORE static file serving
+app.use('/api/resume', require('./routes/resume'));
+
 const PORT = process.env.PORT || 5000;
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
+
+
+// DEBUG: Print Stripe-related environment variables at startup
+console.log('--- Stripe Environment Variables ---');
+console.log('STRIPE_SECRET_KEY:', process.env.STRIPE_SECRET_KEY ? '[set]' : '[missing]');
+console.log('STRIPE_PRO_PRICE_ID:', process.env.STRIPE_PRO_PRICE_ID);
+console.log('STRIPE_PREMIUM_PRICE_ID:', process.env.STRIPE_PREMIUM_PRICE_ID);
+console.log('STRIPE_ELITE_PRICE_ID:', process.env.STRIPE_ELITE_PRICE_ID);
+console.log('STRIPE_LIFETIME_PRICE_ID:', process.env.STRIPE_LIFETIME_PRICE_ID);
+console.log('STRIPE_LIFETIME_REGULAR_PRICE_ID:', process.env.STRIPE_LIFETIME_REGULAR_PRICE_ID);
+console.log('STRIPE_VETERAN_COUPON_ID:', process.env.STRIPE_VETERAN_COUPON_ID);
+console.log('CLIENT_URL:', process.env.CLIENT_URL);
+console.log('------------------------------------');
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -140,8 +156,13 @@ const LIFETIME_PRICE_ID = process.env.STRIPE_LIFETIME_PRICE_ID || '';
 const LIFETIME_REGULAR_PRICE_ID = String(process.env.STRIPE_LIFETIME_REGULAR_PRICE_ID || '').trim();
 const LIFETIME_DISCOUNT_LIMIT = Math.max(1, Number(process.env.LIFETIME_DISCOUNT_LIMIT || 50));
 const PRO_PRICE_ID = process.env.STRIPE_PRO_PRICE_ID || '';
+const PRO_YEARLY_PRICE_ID = process.env.STRIPE_PRO_YEARLY_PRICE_ID || '';
 const PREMIUM_PRICE_ID = process.env.STRIPE_PREMIUM_PRICE_ID || '';
+const PREMIUM_YEARLY_PRICE_ID = process.env.STRIPE_PREMIUM_YEARLY_PRICE_ID || '';
 const ELITE_PRICE_ID = process.env.STRIPE_ELITE_PRICE_ID || '';
+const ELITE_YEARLY_PRICE_ID = process.env.STRIPE_ELITE_YEARLY_PRICE_ID || '';
+const RECRUITER_MONTHLY_PRICE_ID = process.env.STRIPE_RECRUITER_MONTHLY_PRICE_ID || '';
+const RECRUITER_YEARLY_PRICE_ID = process.env.STRIPE_RECRUITER_YEARLY_PRICE_ID || '';
 const STRIPE_VETERAN_COUPON_ID = String(process.env.STRIPE_VETERAN_COUPON_ID || '').trim();
 const VETERAN_DISCOUNT_CODE = String(process.env.VETERAN_DISCOUNT_CODE || 'VETERAN10').trim();
 const IDME_CALLBACK_TOKEN = String(process.env.IDME_CALLBACK_TOKEN || '').trim();

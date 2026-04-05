@@ -1,5 +1,4 @@
-const token = typeof getStoredToken === 'function' ? getStoredToken() : localStorage.getItem('token');
-
+(function() {
 if (!token) {
   window.location.href = 'login.html';
 }
@@ -118,13 +117,27 @@ document.getElementById('importResumeBtn')?.addEventListener('click', () => {
 document.getElementById('importResumeFile')?.addEventListener('change', async (e) => {
   const file = e.target.files && e.target.files[0] ? e.target.files[0] : null;
   if (!file) return;
-  // Only allow text-based resumes for now
-  if (!file.type.startsWith('text/') && !/\.(txt|md|rtf)$/i.test(file.name)) {
-    alert('Only TXT, MD, and RTF files are supported for import.');
-    return;
+  const textarea = document.getElementById('jobResume');
+  textarea.value = 'Parsing resume...';
+  const formData = new FormData();
+  formData.append('resumeFile', file);
+  try {
+    const res = await fetch('/api/resume/upload', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData
+    });
+    const data = await res.json();
+    if (res.ok && data.content) {
+      textarea.value = data.content;
+    } else {
+      textarea.value = '';
+      alert(data.error || 'Could not extract text from resume.');
+    }
+  } catch (err) {
+    textarea.value = '';
+    alert('Resume upload failed.');
   }
-  const text = await file.text();
-  document.getElementById('jobResume').value = text;
 });
 
 // Export Resume logic (PDF)
@@ -145,7 +158,6 @@ document.getElementById('exportResumeBtn')?.addEventListener('click', () => {
 });
 
 // Show export button after jobs are populated
-const jobsListEl = document.getElementById('jobsList');
 const observer = new MutationObserver(() => {
   const exportBtn = document.getElementById('exportResumeBtn');
   if (jobsListEl && jobsListEl.children.length > 0) {
@@ -403,3 +415,4 @@ document.getElementById('googleJobsBtn')?.addEventListener('click', () => {
 });
 
 loadTracker();
+})();
