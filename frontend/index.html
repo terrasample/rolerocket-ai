@@ -167,6 +167,63 @@
         </div>
       </section>
 
+      <!-- 5 Most In-Demand Jobs Section (moved above stats) -->
+      <section class="marketing-card" aria-label="5 Most In-Demand Jobs" style="margin-bottom:24px;">
+        <h3 style="text-align:center;">5 Most In-Demand Jobs by Industry</h3>
+        <div class="marketing-grid" style="justify-content:center;">
+          <article class="marketing-card tier-feature pro">
+            <h4>Technology</h4>
+            <ul>
+              <li>Software Engineer</li>
+              <li>Data Scientist</li>
+              <li>Cloud Architect</li>
+              <li>Cybersecurity Analyst</li>
+              <li>DevOps Engineer</li>
+            </ul>
+          </article>
+          <article class="marketing-card tier-feature premium">
+            <h4>Healthcare</h4>
+            <ul>
+              <li>Registered Nurse</li>
+              <li>Medical Technologist</li>
+              <li>Physical Therapist</li>
+              <li>Healthcare Administrator</li>
+              <li>Pharmacist</li>
+            </ul>
+          </article>
+          <article class="marketing-card tier-feature elite">
+            <h4>Finance</h4>
+            <ul>
+              <li>Financial Analyst</li>
+              <li>Accountant</li>
+              <li>Risk Manager</li>
+              <li>Investment Banker</li>
+              <li>Compliance Officer</li>
+            </ul>
+          </article>
+          <article class="marketing-card tier-feature pro">
+            <h4>Education</h4>
+            <ul>
+              <li>Teacher</li>
+              <li>School Administrator</li>
+              <li>Instructional Designer</li>
+              <li>Academic Advisor</li>
+              <li>Special Education Specialist</li>
+            </ul>
+          </article>
+          <article class="marketing-card tier-feature premium">
+            <h4>Retail</h4>
+            <ul>
+              <li>Store Manager</li>
+              <li>Merchandiser</li>
+              <li>Inventory Analyst</li>
+              <li>Customer Experience Lead</li>
+              <li>Loss Prevention Specialist</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
       <section class="marketing-card premium-stats-section" aria-label="Live platform statistics">
         <div class="premium-stats-header" style="text-align:center;">
           <h3>Real platform activity</h3>
@@ -202,42 +259,6 @@
           </div>
         </div>
         <p class="stats-footnote" id="statsFootnote" style="text-align:center;">Loading live stats...</p>
-              <!-- 5 Most In-Demand Jobs Section -->
-              <section class="marketing-card" aria-label="5 Most In-Demand Jobs" style="margin-top:24px;">
-                <h3 style="text-align:center;">5 Most In-Demand Jobs by Industry</h3>
-                <div class="marketing-grid" style="justify-content:center;">
-                  <article class="marketing-card tier-feature pro">
-                    <h4>Technology</h4>
-                    <ul>
-                      <li>Software Engineer</li>
-                      <li>Data Scientist</li>
-                      <li>Cloud Architect</li>
-                      <li>Cybersecurity Analyst</li>
-                      <li>DevOps Engineer</li>
-                    </ul>
-                  </article>
-                  <article class="marketing-card tier-feature premium">
-                    <h4>Healthcare</h4>
-                    <ul>
-                      <li>Registered Nurse</li>
-                      <li>Medical Technologist</li>
-                      <li>Physical Therapist</li>
-                      <li>Healthcare Administrator</li>
-                      <li>Pharmacist</li>
-                    </ul>
-                  </article>
-                  <article class="marketing-card tier-feature elite">
-                    <h4>Finance</h4>
-                    <ul>
-                      <li>Financial Analyst</li>
-                      <li>Accountant</li>
-                      <li>Risk Manager</li>
-                      <li>Investment Banker</li>
-                      <li>Compliance Officer</li>
-                    </ul>
-                  </article>
-                  <article class="marketing-card tier-feature pro">
-                    <h4>Education</h4>
                     <ul>
                       <li>Teacher</li>
                       <li>Instructional Designer</li>
@@ -334,6 +355,51 @@
           <button id="inviteLinkBtn" style="margin-top:18px;">Get My Invite Link</button>
         </article>
       </section>
+
+      <!-- Unlock Pro Button (visible on homepage) -->
+      <section class="marketing-card tier-feature pro" style="margin: 32px 0; text-align: center;">
+        <h2>Unlock Pro</h2>
+        <p>Get all Pro features instantly: Resume Generator, Cover Letter AI, Job Match Analysis, LinkedIn Optimization, and more.</p>
+        <button id="unlockProBtn" class="checkout-btn" style="font-size:1.2em;padding:16px 32px;margin-top:12px;">Unlock Pro →</button>
+        <div style="margin-top:10px;font-size:0.95em;color:#64748b;">No recurring fees until you choose. Cancel anytime.</div>
+      </section>
+
+      <script src="js/dashboard.js"></script>
+      <script>
+      if (typeof initMobileSidebar === 'function') {
+        initMobileSidebar();
+      }
+      document.getElementById('unlockProBtn')?.addEventListener('click', async function() {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          window.location.href = 'login.html?redirect=index&plan=pro';
+          return;
+        }
+        const btn = this;
+        const original = btn.textContent;
+        btn.textContent = 'Redirecting to Stripe...';
+        btn.disabled = true;
+        try {
+          const res = await fetch('/api/create-checkout-session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ plan: 'pro' })
+          });
+          const data = await res.json();
+          if (data.url) {
+            window.location.href = data.url;
+          } else {
+            alert(data.error || 'Checkout failed. Please try again.');
+            btn.textContent = original;
+            btn.disabled = false;
+          }
+        } catch (e) {
+          alert('Could not start checkout. Please try again.');
+          btn.textContent = original;
+          btn.disabled = false;
+        }
+      });
+      </script>
     </main>
   </div>
 </body>

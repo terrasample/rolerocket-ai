@@ -207,6 +207,13 @@
     const waitlistMessage = document.getElementById('loginWaitlistMessage');
     const query = new URLSearchParams(window.location.search);
 
+
+    // Show session expired message if auto-logged out
+    if (sessionStorage.getItem('session_expired') === '1') {
+      message.textContent = 'You were logged out due to inactivity. Please log in again.';
+      sessionStorage.removeItem('session_expired');
+    }
+
     if (query.get('relogin') === '1') {
       if (typeof clearStoredToken === 'function') {
         clearStoredToken();

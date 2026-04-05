@@ -43,7 +43,16 @@
             <p><strong>Email:</strong> <span id="accountEmail">—</span></p>
             <p><strong>Plan:</strong> <span id="accountPlan" style="font-weight:700;color:#7c3aed;">—</span></p>
             <div style="margin-top:14px;">
-                <!-- Referral code removed -->
+                <!-- Resume Upload/Save -->
+                <h4 style="margin-bottom:6px;">Resume</h4>
+                <textarea id="resumeText" rows="8" style="width:100%;max-width:100%;margin-bottom:8px;" placeholder="Paste your resume here or upload a file..."></textarea>
+                <input type="file" id="resumeFile" accept=".txt,.pdf,.doc,.docx" style="margin-bottom:8px;" />
+                <button id="saveResumeBtn" class="auth-submit-btn" style="margin-bottom:8px;">Save Resume</button>
+                <div id="resumeSaveMsg" style="font-size:0.95em;margin-bottom:8px;"></div>
+                <div id="latestResumeBlock" style="margin-top:10px;">
+                  <strong>Latest Saved Resume:</strong>
+                  <pre id="latestResumeContent" style="background:#f3f4f6;padding:8px;border-radius:6px;max-height:200px;overflow:auto;"></pre>
+                </div>
             </div>
           </div>
         </div>
@@ -122,13 +131,15 @@
     }
 
     function renderProfile(user) {
-      document.getElementById('accountName').textContent = user?.name || '—';
-      document.getElementById('accountEmail').textContent = user?.email || '—';
-      const plan = String(user?.plan || 'free');
+      const name = user && typeof user.name === 'string' ? user.name : '—';
+      const email = user && typeof user.email === 'string' ? user.email : '—';
+      const plan = user && typeof user.plan === 'string' ? user.plan : 'free';
+      document.getElementById('accountName').textContent = name;
+      document.getElementById('accountEmail').textContent = email;
       document.getElementById('accountPlan').textContent = plan.charAt(0).toUpperCase() + plan.slice(1);
-      referralInput.value = user?.referralCode || '';
-      copyReferralBtn.disabled = !referralInput.value;
-      copyReferralMessage.textContent = '';
+      if (referralInput) referralInput.value = user?.referralCode || '';
+      if (copyReferralBtn) copyReferralBtn.disabled = !referralInput.value;
+      if (copyReferralMessage) copyReferralMessage.textContent = '';
       document.getElementById('profileLoading').style.display = 'none';
       document.getElementById('profileInfo').style.display = 'block';
     }
@@ -158,16 +169,12 @@
         setStoredUser(user);
         renderProfile(user);
       } catch (err) {
-        const storedUser = typeof getStoredUser === 'function' ? getStoredUser() : null;
-        if (storedUser) {
-          renderProfile(storedUser);
-          return;
-        }
         let msg = 'Failed to load account info.';
         if (err && err.message) {
           msg += ' Error: ' + err.message;
         }
         document.getElementById('profileLoading').textContent = msg;
+        document.getElementById('profileInfo').style.display = 'none';
       }
     }
 
@@ -263,6 +270,102 @@
 
     setBillingButtonState(false);
     loadProfile();
+
+    // Resume upload/save logic
+    const resumeText = document.getElementById('resumeText');
+    const resumeFile = document.getElementById('resumeFile');
+    const saveResumeBtn = document.getElementById('saveResumeBtn');
+    const resumeSaveMsg = document.getElementById('resumeSaveMsg');
+    const latestResumeContent = document.getElementById('latestResumeContent');
+
+    async function fetchLatestResume() {
+      try {
+        const token = getStoredToken();
+        const res = await fetch('/api/resume', { headers: { Authorization: `Bearer ${token}` } });
+        const data = await res.json();
+        if (data.resumes && data.resumes.length > 0) {
+          latestResumeContent.textContent = data.resumes[0].content;
+        } else {
+          latestResumeContent.textContent = 'No resume saved yet.';
+        }
+      } catch {
+        latestResumeContent.textContent = 'Could not load resume.';
+      }
+    }
+
+    saveResumeBtn?.addEventListener('click', async () => {
+      const text = resumeText.value.trim();
+      if (!text) {
+        resumeSaveMsg.textContent = 'Please paste your resume or upload a file.';
+        resumeSaveMsg.style.color = '#dc2626';
+        return;
+      }
+      saveResumeBtn.disabled = true;
+      resumeSaveMsg.textContent = 'Saving...';
+      resumeSaveMsg.style.color = '#64748b';
+      try {
+        const token = getStoredToken();
+        const res = await fetch('/api/resume', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ content: text })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          resumeSaveMsg.textContent = 'Resume saved!';
+          resumeSaveMsg.style.color = '#16a34a';
+          fetchLatestResume();
+        } else {
+          resumeSaveMsg.textContent = data.error || 'Failed to save resume.';
+          resumeSaveMsg.style.color = '#dc2626';
+        }
+      } catch {
+        resumeSaveMsg.textContent = 'Failed to save resume.';
+        resumeSaveMsg.style.color = '#dc2626';
+      } finally {
+        saveResumeBtn.disabled = false;
+      }
+    });
+
+    resumeFile?.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (file.type === 'application/pdf' || file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+        // Upload to backend for parsing
+        const formData = new FormData();
+        formData.append('resumeFile', file);
+        const token = getStoredToken();
+        resumeSaveMsg.textContent = 'Parsing and saving...';
+        resumeSaveMsg.style.color = '#64748b';
+        try {
+          const res = await fetch('/api/resume/upload', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` },
+            body: formData
+          });
+          const data = await res.json();
+          if (res.ok) {
+            resumeText.value = data.content;
+            resumeSaveMsg.textContent = 'Resume uploaded and parsed!';
+            resumeSaveMsg.style.color = '#16a34a';
+            fetchLatestResume();
+          } else {
+            resumeSaveMsg.textContent = data.error || 'Failed to parse file.';
+            resumeSaveMsg.style.color = '#dc2626';
+          }
+        } catch {
+          resumeSaveMsg.textContent = 'Failed to upload/parse file.';
+          resumeSaveMsg.style.color = '#dc2626';
+        }
+      } else if (file.type.startsWith('text/')) {
+        const text = await file.text();
+        resumeText.value = text;
+      } else {
+        resumeText.value = 'Unsupported file type. Please use .txt, .pdf, or .docx.';
+      }
+    });
+
+    document.addEventListener('DOMContentLoaded', fetchLatestResume);
   </script>
 
 </body>

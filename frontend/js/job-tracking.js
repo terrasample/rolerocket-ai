@@ -63,8 +63,17 @@ function createSearchJobCard(job) {
   const locationEl = document.createElement('small');
   locationEl.textContent = `📍 ${job.location || 'Unknown Location'}`;
 
+
   const matchEl = document.createElement('small');
   matchEl.textContent = `🔥 Match: ${job.matchScore || 0}%`;
+
+  const ageEl = document.createElement('small');
+  if (job.postedAgo) {
+    ageEl.textContent = `🕒 Posted: ${job.postedAgo}`;
+  } else if (job.postedAt) {
+    // fallback: show date
+    ageEl.textContent = `🕒 Posted: ${new Date(job.postedAt).toLocaleDateString()}`;
+  }
 
   const actions = document.createElement('div');
   actions.className = 'job-card-actions';
@@ -98,8 +107,54 @@ function createSearchJobCard(job) {
     }
   });
 
+
   actions.append(viewLink, saveBtn, readyBtn);
-  wrapper.append(titleEl, document.createElement('br'), companyEl, document.createElement('br'), locationEl, document.createElement('br'), matchEl, document.createElement('br'), actions);
+  wrapper.append(titleEl, document.createElement('br'), companyEl, document.createElement('br'), locationEl, document.createElement('br'), matchEl, document.createElement('br'), ageEl, document.createElement('br'), actions);
+// Import Resume logic
+document.getElementById('importResumeBtn')?.addEventListener('click', () => {
+  document.getElementById('importResumeFile').click();
+});
+
+document.getElementById('importResumeFile')?.addEventListener('change', async (e) => {
+  const file = e.target.files && e.target.files[0] ? e.target.files[0] : null;
+  if (!file) return;
+  // Only allow text-based resumes for now
+  if (!file.type.startsWith('text/') && !/\.(txt|md|rtf)$/i.test(file.name)) {
+    alert('Only TXT, MD, and RTF files are supported for import.');
+    return;
+  }
+  const text = await file.text();
+  document.getElementById('jobResume').value = text;
+});
+
+// Export Resume logic (PDF)
+document.getElementById('exportResumeBtn')?.addEventListener('click', () => {
+  const text = document.getElementById('jobResume').value;
+  if (!text) {
+    alert('No resume to export.');
+    return;
+  }
+  // Use jsPDF for PDF export
+  if (window.jsPDF) {
+    const doc = new window.jsPDF();
+    doc.text(text, 10, 10);
+    doc.save('resume.pdf');
+  } else {
+    alert('PDF export requires jsPDF.');
+  }
+});
+
+// Show export button after jobs are populated
+const jobsListEl = document.getElementById('jobsList');
+const observer = new MutationObserver(() => {
+  const exportBtn = document.getElementById('exportResumeBtn');
+  if (jobsListEl && jobsListEl.children.length > 0) {
+    exportBtn.style.display = '';
+  } else {
+    exportBtn.style.display = 'none';
+  }
+});
+observer.observe(jobsListEl, { childList: true });
 
   return wrapper;
 }

@@ -2493,8 +2493,13 @@ app.post('/api/create-checkout-session', authenticateToken, async (req, res) => 
 
     const planToPriceMap = {
       pro: PRO_PRICE_ID,
+      pro_yearly: PRO_YEARLY_PRICE_ID,
       premium: PREMIUM_PRICE_ID,
-      elite: ELITE_PRICE_ID
+      premium_yearly: PREMIUM_YEARLY_PRICE_ID,
+      elite: ELITE_PRICE_ID,
+      elite_yearly: ELITE_YEARLY_PRICE_ID,
+      recruiter: RECRUITER_MONTHLY_PRICE_ID,
+      recruiter_yearly: RECRUITER_YEARLY_PRICE_ID
     };
 
     const priceId = normalizedPriceId || planToPriceMap[normalizedPlan];

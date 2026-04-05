@@ -3,12 +3,33 @@ const router = express.Router();
 const authenticateToken = require('../middleware/auth'); // JWT middleware
 const Resume = require('../models/Resume'); // MongoDB model
 const OpenAI = require('openai');
+const multer = require('multer');
+const { extractTextFromPDF, extractTextFromDocx } = require('../pdfWordUtils');
 
 // Initialize OpenAI
 if (!process.env.OPENAI_API_KEY) {
   console.error('❌ OPENAI_API_KEY not set in environment variables');
 }
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || '' });
+
+// Upload resume file (PDF/DOCX/TXT)
+router.post('/upload', authenticateToken, upload.single('resumeFile'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+  let text = '';
+  const mime = req.file.mimetype;
+  if (mime === 'application/pdf') {
+    text = await extractTextFromPDF(req.file.buffer);
+  } else if (mime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+    text = await extractTextFromDocx(req.file.buffer);
+  } else if (mime.startsWith('text/')) {
+    text = req.file.buffer.toString('utf8');
+  } else {
+    return res.status(400).json({ error: 'Unsupported file type' });
+  }
+  if (!text.trim()) return res.status(400).json({ error: 'Could not extract text from file' });
+  await Resume.create({ userId: req.user.userId, content: text, type: 'Resume', createdAt: new Date() });
+  res.json({ message: 'Resume uploaded and saved', content: text });
+});
 
 // ----------------------
 // Generate AI Resume

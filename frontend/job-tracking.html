@@ -45,11 +45,14 @@
           <div class="tracker-tools">
             <input id="jobTitle" placeholder="Job title" aria-label="Job title" />
             <input id="jobLocation" placeholder="Location" aria-label="Job location" />
-            <textarea id="jobResume" placeholder="Paste resume for stronger matching" rows="5" aria-label="Resume for matching"></textarea>
+            <textarea id="jobResume" placeholder="Paste resume for stronger matching or import below" rows="5" aria-label="Resume for matching"></textarea>
             <div class="tracker-btn-row">
+              <button id="importResumeBtn" type="button">Import Resume</button>
+              <input type="file" id="importResumeFile" accept=".txt,.md,.rtf,.pdf,.doc,.docx" style="display:none" />
               <button id="findJobsBtn">Search Roles</button>
               <button id="linkedinSearchBtn" class="secondary-btn">Search LinkedIn</button>
               <button id="googleJobsBtn" class="secondary-btn">Search Google Jobs</button>
+              <button id="exportResumeBtn" type="button" style="display:none">Export Resume (PDF)</button>
             </div>
           </div>
           <div id="jobsList"></div>
@@ -106,57 +109,57 @@
       </section>
 
       <section class="marketing-card in-demand-section" aria-label="Top in-demand jobs by industry">
-        <h3>Top 5 in-demand jobs in 5 industries (global)</h3>
-        <div class="demand-grid">
-          <article class="demand-card">
+        <h3>Top 5 In-Demand Jobs by Industry</h3>
+        <div class="marketing-grid" style="justify-content:center;">
+          <article class="marketing-card tier-feature pro">
             <h4>Healthcare</h4>
-            <ol>
+            <ul>
               <li>Registered Nurse</li>
               <li>Nurse Practitioner</li>
               <li>Medical Laboratory Technologist</li>
               <li>Healthcare Data Analyst</li>
               <li>Physical Therapist</li>
-            </ol>
+            </ul>
           </article>
-          <article class="demand-card">
+          <article class="marketing-card tier-feature premium">
             <h4>Technology</h4>
-            <ol>
+            <ul>
               <li>Software Engineer</li>
               <li>Data Scientist</li>
               <li>Cybersecurity Analyst</li>
               <li>Cloud DevOps Engineer</li>
               <li>Product Manager</li>
-            </ol>
+            </ul>
           </article>
-          <article class="demand-card">
+          <article class="marketing-card tier-feature elite">
             <h4>Aviation</h4>
-            <ol>
+            <ul>
               <li>Aircraft Maintenance Technician</li>
               <li>Commercial Pilot</li>
               <li>Flight Operations Analyst</li>
               <li>Air Traffic Controller</li>
               <li>Avionics Engineer</li>
-            </ol>
+            </ul>
           </article>
-          <article class="demand-card">
+          <article class="marketing-card tier-feature pro">
             <h4>Finance</h4>
-            <ol>
+            <ul>
               <li>Financial Analyst</li>
               <li>Risk Manager</li>
               <li>Compliance Officer</li>
               <li>Investment Associate</li>
               <li>Fintech Product Analyst</li>
-            </ol>
+            </ul>
           </article>
-          <article class="demand-card">
+          <article class="marketing-card tier-feature premium">
             <h4>Energy & Infrastructure</h4>
-            <ol>
+            <ul>
               <li>Electrical Engineer</li>
               <li>Renewable Energy Technician</li>
               <li>Project Controls Manager</li>
               <li>Grid Systems Analyst</li>
               <li>Environmental Compliance Specialist</li>
-            </ol>
+            </ul>
           </article>
         </div>
       </section>

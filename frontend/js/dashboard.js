@@ -1,8 +1,34 @@
+
 const token = typeof getStoredToken === 'function' ? getStoredToken() : localStorage.getItem('token');
 
 if (!token) {
   window.location.href = 'login.html';
 }
+
+// ─── Session Timeout Auto-Logout ─────────────────────────────
+const SESSION_TIMEOUT_MINUTES = 30; // Set timeout duration here
+const SESSION_TIMEOUT_MS = SESSION_TIMEOUT_MINUTES * 60 * 1000;
+let sessionTimeoutTimer = null;
+
+function resetSessionTimeout() {
+  if (sessionTimeoutTimer) clearTimeout(sessionTimeoutTimer);
+  sessionTimeoutTimer = setTimeout(() => {
+    if (typeof clearStoredToken === 'function') {
+      clearStoredToken();
+    } else {
+      localStorage.removeItem('token');
+    }
+    // Optionally, add a message to show on login page
+    sessionStorage.setItem('session_expired', '1');
+    window.location.href = 'login.html';
+  }, SESSION_TIMEOUT_MS);
+}
+
+// Reset timer on user activity
+['click', 'mousemove', 'keydown', 'scroll', 'touchstart'].forEach(evt => {
+  window.addEventListener(evt, resetSessionTimeout, { passive: true });
+});
+resetSessionTimeout();
 
 const jobsListEl = document.getElementById('jobsList');
 const topJobsEl = document.getElementById('topJobs');
@@ -603,7 +629,7 @@ function initSavedResumeManager() {
 }
 
 function initMobileSidebar() {
-  const menuToggleBtn = document.getElementById('menuToggleBtn');
+  const menuToggleBtn = document.getElementById('mobileMenuBtn');
   const sidebarOverlay = document.getElementById('sidebarOverlay');
   const sidebar = document.querySelector('.sidebar');
   if (!menuToggleBtn || !sidebarOverlay || !sidebar) return;
