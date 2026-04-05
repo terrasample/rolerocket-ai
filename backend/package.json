@@ -30,7 +30,8 @@
     "pdf-parse": "^1.1.1",
     "pdfjs-dist": "^5.6.205",
     "pdfkit": "^0.18.0",
-    "stripe": "^21.0.1"
+    "stripe": "^21.0.1",
+    "tesseract.js": "^7.0.0"
   },
   "engines": {
     "node": ">=20 <21"
