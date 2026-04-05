@@ -1,6 +1,6 @@
 // OCR utility for extracting text from image-based PDFs
 const Tesseract = require('tesseract.js');
-const pdfjsLib = require('pdfjs-dist/legacy/build/pdf.js');
+const pdfjsLib = require('pdfjs-dist/build/pdf.js');
 
 async function extractTextFromPDFWithOCR(buffer) {
   // Load PDF
