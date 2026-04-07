@@ -176,9 +176,9 @@
     </div>
   </section>
 
-  <!-- Price Card Section -->
+  <!-- Candidate Pricing Section -->
   <section class="price-card-section" style="background: linear-gradient(135deg, #0f172a 0%, #1f2937 52%, #0c4a6e 100%); padding: 48px 0 40px 0; margin-top: 32px; border-top: 1.5px solid #1e293b;">
-    <h2 style="text-align:center; color:#facc15; font-size:2.1rem; margin-bottom:32px;">Price That Scales With You</h2>
+    <h2 style="text-align:center; color:#2563eb; font-size:2.1rem; margin-bottom:32px;">Candidate Pricing</h2>
     <div class="marketing-grid" style="max-width:1200px; margin:0 auto; gap:24px;">
       <article class="price-card free">
         <div class="plan-pill starter-pill">FREE ACCESS</div>
@@ -213,7 +213,7 @@
           <li>Faster application drafting</li>
           <li>Consistent role targeting</li>
         </ul>
-        <a href="signup.html"><button>Unlock Pro</button></a>
+        <button class="checkout-btn" data-checkout="pro" onclick="handleCheckout('pro')">Unlock Pro →</button> <button class="checkout-btn" data-checkout="pro_yearly" onclick="handleCheckout('pro_yearly')">Unlock Pro Yearly →</button>
       </article>
 
       <article class="price-card premium">
@@ -231,7 +231,7 @@
           <li>Faster conversion workflow</li>
           <li>Higher-volume output lane</li>
         </ul>
-        <a href="signup.html"><button>Unlock Premium</button></a>
+        <button class="checkout-btn" data-checkout="premium" onclick="handleCheckout('premium')">Unlock Premium →</button> <button class="checkout-btn" data-checkout="premium_yearly" onclick="handleCheckout('premium_yearly')">Unlock Premium Yearly →</button>
       </article>
 
       <article class="price-card elite">
@@ -250,32 +250,40 @@
           <li>Customized AI pointers</li>
           <li>Priority strategy support</li>
         </ul>
-        <a href="signup.html"><button>Unlock Elite</button></a>
+        <button class="checkout-btn" data-checkout="elite" onclick="handleCheckout('elite')">Unlock Elite →</button> <button class="checkout-btn" data-checkout="elite_yearly" onclick="handleCheckout('elite_yearly')">Unlock Elite Yearly →</button>
       </article>
 
-      <article class="price-card recruiter">
-        <div class="plan-pill premium-pill">AI RECRUITER ASSIST</div>
-        <h3>AI Recruiter Assist</h3>
-        <div class="price-amount">$99<span>/month</span> <span style="color:#64748b;font-size:0.9em;">or</span> $990<span>/year</span> <span class="savings-pill" style="color:#059669;font-size:0.9em;margin-left:8px;">Save 17%</span></div>
-        <ul>
-          <li>Top 3 candidate ranking by job role</li>
-          <li>Resume match scoring</li>
-          <li>Premium recruiter dashboard</li>
-          <li>Unlock advanced recruiter tools</li>
-        </ul>
-        <a href="signup.html"><button>Subscribe</button></a>
-      </article>
-
-      <article class="marketing-card tier-feature lifetime">
-        <div class="plan-pill" style="background:#facc15;color:#1e293b;">LIFETIME</div>
-        <h3>Lifetime</h3>
-        <div class="price-amount">$299<span>/one-time</span></div>
+      <!-- Founders Deal Lifetime Membership -->
+      <article class="price-card founders-lifetime">
+        <div class="plan-pill" id="lifetimePricingPill" style="background:#facc15;color:#1e293b;">FOUNDERS DEAL</div>
+        <h3>Founders Deal Lifetime Membership</h3>
+        <div class="price-amount" id="lifetimePricingAmount"><span class="price-original">$249</span> $199<span> one-time</span></div>
         <ul>
           <li>All Elite features</li>
           <li>Lifetime access</li>
           <li>Exclusive updates</li>
         </ul>
-        <a href="signup.html"><button>Select</button></a>
+        <div id="lifetimePricingOfferNote" style="color:#facc15;font-size:1em;margin-bottom:8px;">Limited offer: $199 for the first 50 customers. 50 spots left.</div>
+        <button class="checkout-btn" data-checkout="founders_lifetime" onclick="handleCheckout('founders_lifetime')">Get Founders Deal</button>
+      </article>
+    </div>
+  </section>
+
+  <!-- Recruiter Pricing Section -->
+  <section class="price-card-section" style="background: linear-gradient(135deg, #0f172a 0%, #1e2937 52%, #0c4a6e 100%); padding: 48px 0 40px 0; margin-top: 32px; border-top: 1.5px solid #1e293b;">
+    <h2 style="text-align:center; color:#059669; font-size:2.1rem; margin-bottom:32px;">Recruiter Pricing</h2>
+    <div class="marketing-grid" style="max-width:1200px; margin:0 auto; gap:24px;">
+      <article class="price-card recruiter"><div class="plan-pill premium-pill">AI RECRUITER ASSIST</div><h3>AI Recruiter Assist</h3><div class="price-amount">$99<span>/month</span> <span style="color:#64748b;font-size:0.9em;">or</span> $990<span>/year</span> <span class="savings-pill" style="color:#059669;font-size:0.9em;margin-left:8px;">Save 17%</span></div><ul><li>Top 3 candidate ranking by job role</li><li>Resume match scoring</li><li>Premium recruiter dashboard</li><li>Unlock advanced recruiter tools</li></ul><button class="checkout-btn" data-checkout="recruiter" onclick="handleCheckout('recruiter')">Subscribe</button> <button class="checkout-btn" data-checkout="recruiter_yearly" onclick="handleCheckout('recruiter_yearly')">Subscribe Yearly</button></article>
+      <article class="price-card recruiter-lifetime">
+        <div class="plan-pill" style="background:#facc15;color:#1e293b;">LIFETIME MEMBERSHIP</div>
+        <h3>Recruiter Lifetime Membership</h3>
+        <div class="price-amount">$499<span> one-time</span></div>
+        <ul>
+          <li>All Recruiter Assist features</li>
+          <li>Lifetime access</li>
+          <li>Priority support</li>
+        </ul>
+        <button class="checkout-btn" data-checkout="recruiter_lifetime" onclick="handleCheckout('recruiter_lifetime')">Get Lifetime Membership</button>
       </article>
     </div>
   </section>
