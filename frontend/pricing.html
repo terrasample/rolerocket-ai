@@ -82,8 +82,13 @@
   <script>
     async function handleCheckout(plan) {
       const token = localStorage.getItem('token');
+      // Check for referral code in URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const referral = urlParams.get('referral') || '';
       if (!token) {
-        window.location.href = 'login.html?redirect=pricing&plan=' + plan;
+        let signupUrl = 'signup.html?plan=' + encodeURIComponent(plan);
+        if (referral) signupUrl += '&referral=' + encodeURIComponent(referral);
+        window.location.href = signupUrl;
         return;
       }
       const btn = document.querySelector(`[data-checkout="${plan}"]`);
@@ -111,17 +116,17 @@
         alert('Could not start checkout. Please try again.');
         if (btn) { btn.textContent = original; btn.disabled = false; }
       }
-        // Show plan details on click for accessibility
-        document.querySelectorAll('.checkout-btn').forEach(btn => {
-          btn.addEventListener('focus', e => {
-            const card = btn.closest('.price-card');
-            if (card) card.classList.add('plan-focus');
-          });
-          btn.addEventListener('blur', e => {
-            const card = btn.closest('.price-card');
-            if (card) card.classList.remove('plan-focus');
-          });
+      // Show plan details on click for accessibility
+      document.querySelectorAll('.checkout-btn').forEach(btn => {
+        btn.addEventListener('focus', e => {
+          const card = btn.closest('.price-card');
+          if (card) card.classList.add('plan-focus');
         });
+        btn.addEventListener('blur', e => {
+          const card = btn.closest('.price-card');
+          if (card) card.classList.remove('plan-focus');
+        });
+      });
     }
 
     (async function syncLifetimeOfferUi() {

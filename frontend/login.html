@@ -482,5 +482,63 @@
     });
   </script>
 
+  <!-- Add handleCheckout for pricing buttons -->
+  <script>
+    function handleCheckout(plan) {
+      const token = localStorage.getItem('token');
+      // Check for referral code in URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const referral = urlParams.get('referral') || '';
+      if (!token) {
+        let signupUrl = 'signup.html?plan=' + encodeURIComponent(plan);
+        if (referral) signupUrl += '&referral=' + encodeURIComponent(referral);
+        window.location.href = signupUrl;
+        return;
+      }
+      const btn = document.querySelector(`[data-checkout="${plan}"]`);
+      const original = btn ? btn.textContent : '';
+      if (btn) { btn.textContent = 'Redirecting to Stripe...'; btn.disabled = true; }
+      try {
+        const endpoint = plan === 'lifetime' ? '/api/create-lifetime-checkout' : '/api/create-checkout-session';
+        fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ plan })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.url) {
+            window.location.href = data.url;
+          } else {
+            let msg = data.error || 'Checkout failed. Please try again.';
+            if (msg.includes('Unknown plan')) {
+              msg = 'This plan is currently unavailable. Please contact support or check your plan configuration.';
+            }
+            alert(msg);
+            if (btn) { btn.textContent = original; btn.disabled = false; }
+          }
+        })
+        .catch(() => {
+          alert('Could not start checkout. Please try again.');
+          if (btn) { btn.textContent = original; btn.disabled = false; }
+        });
+      } catch (e) {
+        alert('Could not start checkout. Please try again.');
+        if (btn) { btn.textContent = original; btn.disabled = false; }
+      }
+      // Show plan details on click for accessibility
+      document.querySelectorAll('.checkout-btn').forEach(btn => {
+        btn.addEventListener('focus', e => {
+          const card = btn.closest('.price-card');
+          if (card) card.classList.add('plan-focus');
+        });
+        btn.addEventListener('blur', e => {
+          const card = btn.closest('.price-card');
+          if (card) card.classList.remove('plan-focus');
+        });
+      });
+    }
+  </script>
+
 </body>
 </html>
