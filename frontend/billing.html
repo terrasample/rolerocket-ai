@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Manage Billing | RoleRocket AI</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="hero">
+    <h1>Manage Billing</h1>
+    <p>View and manage your subscription, payment methods, and invoices.</p>
+  </div>
+  <div class="layout">
+    <aside class="sidebar" aria-label="Primary navigation">
+      <!-- ...existing sidebar links... -->
+      <a class="sidebar-link-btn" href="dashboard.html">My Dashboard</a>
+      <a class="sidebar-link-btn active" href="billing.html">Manage Billing</a>
+      <a class="sidebar-link-btn" href="account.html">Account</a>
+      <a class="sidebar-link-btn" href="login.html?relogin=1">Logout</a>
+    </aside>
+    <div class="main" id="billingMain" tabindex="-1">
+      <div class="card" style="max-width:600px;margin:auto;">
+        <h2>Your Subscription</h2>
+        <div id="billingStatus">Loading...</div>
+        <button id="openPortalBtn" class="auth-submit-btn" style="margin-top:18px;">Open Billing Portal</button>
+        <div id="billingMsg" style="margin-top:12px;font-size:0.98em;"></div>
+      </div>
+    </div>
+  </div>
+  <footer class="site-footer">
+    &copy; 2026 RoleRocket AI &nbsp;&middot;&nbsp;
+    <a href="privacy.html">Privacy Policy</a>
+    <a href="terms.html">Terms of Service</a>
+  </footer>
+  <script src="js/api-base.js"></script>
+  <script src="js/auth-storage.js"></script>
+  <script src="js/billing.js"></script>
+</body>
+</html>

@@ -12,22 +12,150 @@ if (!token) {
 const SESSION_TIMEOUT_MINUTES = 30; // Set timeout duration here
 // ─── RoleRocket Dashboard (Personalized) ─────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
-  // Resume
-  const resumeEl = document.getElementById('dashboardResumeContent');
-  if (resumeEl) {
+  // Resume (dashboard)
+  const resumeTextarea = document.getElementById('resumeText');
+  const saveResumeBtn = document.getElementById('saveResumeBtn');
+  const resumeSaveMsg = document.getElementById('resumeSaveMsg');
+  const latestResumeContent = document.getElementById('latestResumeContent');
+  const noResumeMsg = document.getElementById('noResumeMsg');
+
+  async function loadDashboardResume() {
+    if (!latestResumeContent) return;
     try {
       const res = await fetch('/api/resume', { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
       if (data.resumes && data.resumes.length > 0) {
-        resumeEl.textContent = data.resumes[0].content;
+        latestResumeContent.textContent = data.resumes[0].content;
+        if (noResumeMsg) noResumeMsg.style.display = 'none';
       } else {
-        resumeEl.textContent = 'No resume saved yet.';
+        latestResumeContent.textContent = '';
+        if (noResumeMsg) noResumeMsg.style.display = '';
       }
     } catch (err) {
-      resumeEl.textContent = 'Could not load resume.';
+      latestResumeContent.textContent = '';
+      if (noResumeMsg) noResumeMsg.style.display = '';
     }
   }
 
+  if (saveResumeBtn && resumeTextarea) {
+    saveResumeBtn.addEventListener('click', async () => {
+      const content = String(resumeTextarea.value || '').trim();
+      if (!content) {
+        resumeSaveMsg.textContent = 'Paste your resume before saving.';
+        resumeSaveMsg.style.color = '#dc2626';
+        return;
+      }
+      saveResumeBtn.disabled = true;
+      resumeSaveMsg.textContent = 'Saving...';
+      resumeSaveMsg.style.color = '#1e293b';
+      try {
+        const res = await fetch('/api/resume/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ content, title: 'Dashboard Resume' })
+        });
+        if (!res.ok) throw new Error('Failed to save resume');
+        resumeSaveMsg.textContent = 'Resume saved!';
+        resumeSaveMsg.style.color = '#16a34a';
+        await loadDashboardResume();
+      } catch (err) {
+        resumeSaveMsg.textContent = 'Save failed: ' + err.message;
+        resumeSaveMsg.style.color = '#dc2626';
+      } finally {
+        saveResumeBtn.disabled = false;
+      }
+    });
+  }
+  await loadDashboardResume();
+
+  // Referral Code
+  const referralInput = document.getElementById('dashboardReferralCode');
+  const referralMsg = document.getElementById('dashboardReferralMsg');
+  const copyReferralBtn = document.getElementById('copyDashboardReferralBtn');
+  async function loadReferralCode() {
+    if (!referralInput) return;
+    referralInput.value = 'Loading...';
+    try {
+      const res = await fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      if (data.user && data.user.referralCode) {
+        referralInput.value = data.user.referralCode;
+      } else {
+        referralInput.value = 'Not available';
+      }
+    } catch (err) {
+      referralInput.value = 'Error';
+    }
+  }
+  if (copyReferralBtn && referralInput) {
+    copyReferralBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(referralInput.value);
+        if (referralMsg) {
+          referralMsg.textContent = 'Copied!';
+          referralMsg.style.color = '#16a34a';
+          setTimeout(() => { referralMsg.textContent = ''; }, 2000);
+        }
+      } catch {
+        if (referralMsg) {
+          referralMsg.textContent = 'Copy failed.';
+          referralMsg.style.color = '#dc2626';
+        }
+      }
+    });
+  }
+  await loadReferralCode();
+
+    // AI Recruiter Assist Subscribe
+    const aiRecruiterAssistBtn = document.getElementById('aiRecruiterAssistSubscribeBtn');
+    const aiRecruiterAssistMsg = document.getElementById('aiRecruiterAssistMsg');
+    if (aiRecruiterAssistBtn) {
+      aiRecruiterAssistBtn.addEventListener('click', async () => {
+        aiRecruiterAssistBtn.disabled = true;
+        aiRecruiterAssistMsg.textContent = 'Subscribing...';
+        aiRecruiterAssistMsg.style.color = '#1e293b';
+        try {
+          const res = await fetch('/api/ai-recruiter-assist/subscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          });
+          if (!res.ok) throw new Error('Subscription failed');
+          aiRecruiterAssistMsg.textContent = 'Subscribed! You now have access to AI Recruiter Assist.';
+          aiRecruiterAssistMsg.style.color = '#16a34a';
+          aiRecruiterAssistBtn.style.display = 'none';
+        } catch (err) {
+          aiRecruiterAssistMsg.textContent = 'Subscribe failed: ' + (err.message || 'Unknown error');
+          aiRecruiterAssistMsg.style.color = '#dc2626';
+        } finally {
+          aiRecruiterAssistBtn.disabled = false;
+        }
+      });
+    }
+
+    // Job Tracker Section
+    const dashboardJobTracker = document.getElementById('dashboardJobTracker');
+    if (dashboardJobTracker) {
+      dashboardJobTracker.textContent = 'Loading...';
+      try {
+        const res = await fetch('/api/jobs/tracker', { headers: { Authorization: `Bearer ${token}` } });
+        const data = await res.json();
+        if (data && typeof data === 'object') {
+          const stats = [
+            { label: 'Saved', value: data.saved || 0, color: '#f59e42' },
+            { label: 'Ready', value: data.ready || 0, color: '#38bdf8' },
+            { label: 'Applied', value: data.applied || 0, color: '#16a34a' },
+            { label: 'Interview', value: data.interview || 0, color: '#fbbf24' },
+            { label: 'Offer', value: data.offer || 0, color: '#a3e635' },
+            { label: 'Rejected', value: data.rejected || 0, color: '#dc2626' },
+          ];
+          dashboardJobTracker.innerHTML = stats.map(s => `<span style=\"display:inline-block;margin-right:18px;font-weight:600;color:${s.color}\">${s.label}: ${s.value}</span>`).join('');
+        } else {
+          dashboardJobTracker.textContent = 'No job tracking data.';
+        }
+      } catch (err) {
+        dashboardJobTracker.textContent = 'Could not load job tracker.';
+      }
+    }
   // Jobs Applied
   const jobsListEl = document.getElementById('dashboardJobsList');
   if (jobsListEl) {
