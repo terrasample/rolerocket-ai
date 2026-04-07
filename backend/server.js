@@ -1,3 +1,12 @@
+// Global error handlers for debugging fatal errors
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+  process.exit(1);
+});
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
+});
 require('dotenv').config();
 
 const { getWelcomeEmailHtml } = require('./scripts/welcome-email-template');
@@ -11,7 +20,25 @@ const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const OpenAI = require('openai');
 const Stripe = require('stripe');
+const rateLimit = require('express-rate-limit');
 const nodemailer = require('nodemailer');
+
+// ─── Rate Limiting ──────────────────────────────────────────────────────────
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // limit each IP to 10 requests per windowMs
+  message: { error: 'Too many requests, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+const paymentLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { error: 'Too many payment attempts, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
 
 let mailTransporter = null;
 
@@ -1191,7 +1218,7 @@ function getEmailVerificationUrl(rawToken) {
   return `${baseUrl}/verify-email.html?token=${rawToken}`;
 }
 
-app.post('/api/auth/signup', async (req, res) => {
+app.post('/api/auth/signup', authLimiter, async (req, res) => {
   try {
     if (ensureDbReady(res, 'Signup') !== true) return;
 
@@ -1348,7 +1375,7 @@ app.post('/api/auth/signup', async (req, res) => {
   }
 });
 
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', authLimiter, async (req, res) => {
   try {
     if (ensureDbReady(res, 'Login') !== true) return;
 
@@ -1402,7 +1429,7 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-app.post('/api/auth/verify-email', async (req, res) => {
+app.post('/api/auth/verify-email', authLimiter, async (req, res) => {
   try {
     if (ensureDbReady(res, 'Email verify') !== true) return;
 
@@ -1435,7 +1462,7 @@ app.post('/api/auth/verify-email', async (req, res) => {
   }
 });
 
-app.post('/api/auth/resend-verification', async (req, res) => {
+app.post('/api/auth/resend-verification', authLimiter, async (req, res) => {
   try {
     if (ensureDbReady(res, 'Resend verification') !== true) return;
 
@@ -1473,18 +1500,6 @@ app.post('/api/auth/resend-verification', async (req, res) => {
   }
 });
 
-app.get('/api/me', authenticateToken, async (req, res) => {
-  try {
-    const user = await User.findById(req.user.userId).select('-password');
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    return res.json({ user });
-  } catch (err) {
-    console.error('User load error:', err);
-    return res.status(500).json({ error: 'Failed to load user' });
-  }
-});
 
 app.get('/api/veteran/status', authenticateToken, async (req, res) => {
   try {
@@ -2472,6 +2487,22 @@ app.post('/api/resume/save', authenticateToken, async (req, res) => {
   }
 });
 
+
+// Compatibility: GET /api/resume returns latest resume in array for dashboard.js
+app.get('/api/resume', authenticateToken, async (req, res) => {
+  try {
+    const latest = await Resume.findOne({ userId: req.user.userId }).sort({ createdAt: -1 });
+    if (latest) {
+      return res.json({ resumes: [latest] });
+    } else {
+      return res.json({ resumes: [] });
+    }
+  } catch (err) {
+    console.error('Resume load error:', err);
+    return res.status(500).json({ error: 'Load failed' });
+  }
+});
+
 app.get('/api/resume/list', authenticateToken, async (req, res) => {
   try {
     const resumes = await Resume.find({ userId: req.user.userId }).sort({ createdAt: -1 });
@@ -2492,7 +2523,7 @@ app.get('/api/resume/latest', authenticateToken, async (req, res) => {
   }
 });
 
-app.post('/api/create-checkout-session', authenticateToken, async (req, res) => {
+app.post('/api/create-checkout-session', paymentLimiter, authenticateToken, async (req, res) => {
   try {
     const { plan, priceId: requestedPriceId } = req.body || {};
     const userId = String(req.user?.userId || '').trim();
@@ -2582,7 +2613,7 @@ app.post('/api/create-checkout-session', authenticateToken, async (req, res) => 
   }
 });
 
-app.post('/api/create-lifetime-checkout', authenticateToken, async (req, res) => {
+app.post('/api/create-lifetime-checkout', paymentLimiter, authenticateToken, async (req, res) => {
   try {
     const offerStatus = await getLifetimeOfferStatus();
     const selectedLifetimePriceId = offerStatus.offerActive ? LIFETIME_PRICE_ID : LIFETIME_REGULAR_PRICE_ID;
@@ -2642,7 +2673,7 @@ app.post('/api/create-lifetime-checkout', authenticateToken, async (req, res) =>
 });
 
 // ─── Forgot Password ────────────────────────────────────────────────────────
-app.post('/api/auth/forgot-password', async (req, res) => {
+app.post('/api/auth/forgot-password', authLimiter, async (req, res) => {
   try {
     if (ensureDbReady(res, 'Forgot password') !== true) return;
 
@@ -2670,7 +2701,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
 });
 
 // ─── Reset Password ──────────────────────────────────────────────────────────
-app.post('/api/auth/reset-password', async (req, res) => {
+app.post('/api/auth/reset-password', authLimiter, async (req, res) => {
   try {
     if (ensureDbReady(res, 'Reset password') !== true) return;
 

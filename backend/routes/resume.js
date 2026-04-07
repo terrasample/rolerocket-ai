@@ -1,16 +1,56 @@
+
 const express = require('express');
 const router = express.Router();
 const authenticateToken = require('../middleware/auth'); // JWT middleware
 const Resume = require('../models/Resume'); // MongoDB model
 const OpenAI = require('openai');
 const multer = require('multer');
-
 const { extractTextFromPDF, extractTextFromDocx } = require('../pdfWordUtils');
 const { extractTextFromPDFWithOCR } = require('../ocrUtils');
 
-// Configure multer for memory storage
+// Configure multer for memory storage (must be before any route uses 'upload')
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
+
+// Save resume content (for dashboard) - supports file upload or pasted text
+router.post('/save', authenticateToken, upload.single('resumeFile'), async (req, res) => {
+  try {
+    let content = req.body.content || '';
+    let fileParsed = false;
+    // If a file is uploaded, parse it
+    if (req.file) {
+      const mime = req.file.mimetype;
+      function toArrayBuffer(buffer) {
+        return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+      }
+      if (mime === 'application/pdf') {
+        content = await extractTextFromPDF(req.file.buffer);
+        if (!content.trim()) {
+          content = await extractTextFromPDFWithOCR(toArrayBuffer(req.file.buffer));
+        }
+        fileParsed = true;
+      } else if (mime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+        content = await extractTextFromDocx(req.file.buffer);
+        fileParsed = true;
+      } else if (mime.startsWith('text/')) {
+        content = req.file.buffer.toString('utf8');
+        fileParsed = true;
+      } else {
+        return res.status(400).json({ error: 'Unsupported file type' });
+      }
+    }
+    if (!content.trim()) {
+      return res.status(400).json({ error: fileParsed ? 'Could not extract text from file.' : 'Resume content required' });
+    }
+    await Resume.create({ userId: req.user.userId, content, type: 'Resume', title: req.body.title || 'Dashboard Resume', createdAt: new Date() });
+    res.json({ message: 'Resume saved!' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to save resume' });
+  }
+});
+
+
+
 
 // Initialize OpenAI
 if (!process.env.OPENAI_API_KEY) {

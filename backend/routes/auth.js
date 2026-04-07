@@ -113,4 +113,31 @@ router.post('/login', loginLimiter, async (req, res) => {
   }
 });
 
+// ----------------------
+// Get Current User Info (for /api/me)
+// ----------------------
+const authenticateToken = require('../middleware/auth');
+router.get('/me', authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    // If referralCode is missing, generate and save one
+    if (!user.referralCode) {
+      user.referralCode = (user.name?.split(' ')[0] || 'REF') + Math.floor(100000 + Math.random() * 900000);
+      await user.save();
+    }
+    res.json({
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      plan: user.plan,
+      isSubscribed: user.isSubscribed,
+      referralCode: user.referralCode,
+      veteranVerified: user.veteranVerified
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch user info' });
+  }
+});
+
 module.exports = router;
