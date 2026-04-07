@@ -27,7 +27,7 @@
         <a class="sidebar-link-btn" href="dashboard.html">My Dashboard</a>
       <hr />
       <p id="planBadge">Free Plan</p>
-      <a class="sidebar-link-btn" href="login.html">💳 Manage Billing</a>
+      <!-- <a class="sidebar-link-btn" href="login.html">💳 Manage Billing</a> -->
       <a class="sidebar-link-btn" href="account.html">👤 Account</a>
       <a class="sidebar-link-btn" href="login.html?relogin=1">Logout</a>
     </aside>
@@ -150,7 +150,11 @@
     async function loadProfile() {
       try {
         const data = await api('/api/me');
-        const user = data.user || data;
+        let user = data.user || data;
+        // Defensive: If user is not an object, show error
+        if (!user || typeof user !== 'object' || !user.email) {
+          throw new Error('Account data is missing or invalid.');
+        }
         setStoredUser(user);
         renderProfile(user);
       } catch (err) {

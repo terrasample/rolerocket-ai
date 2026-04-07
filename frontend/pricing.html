@@ -28,7 +28,7 @@
       <hr />
       <p id="planBadge">Free Plan</p>
       <a class="sidebar-link-btn" href="login.html?relogin=1">Login</a>
-      <a class="sidebar-link-btn" href="login.html">💳 Manage Billing</a>
+      <!-- <a class="sidebar-link-btn" href="login.html">💳 Manage Billing</a> -->
       <a class="sidebar-link-btn" href="dashboard.html">My Dashboard</a>
       <a class="sidebar-link-btn" href="account.html">👤 Account</a>
       <a class="sidebar-link-btn" href="login.html?relogin=1">Logout</a>
@@ -95,11 +95,14 @@
       const original = btn ? btn.textContent : '';
       if (btn) { btn.textContent = 'Redirecting to Stripe...'; btn.disabled = true; }
       try {
-        const endpoint = plan === 'lifetime' ? '/api/create-lifetime-checkout' : '/api/create-checkout-session';
+        // Map UI plan names to backend/Stripe plan keys
+        let planKey = plan;
+        if (plan === 'founders_lifetime') planKey = 'lifetime';
+        const endpoint = planKey === 'lifetime' ? '/api/create-lifetime-checkout' : '/api/create-checkout-session';
         const res = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({ plan })
+          body: JSON.stringify({ plan: planKey })
         });
         const data = await res.json();
         if (data.url) {
