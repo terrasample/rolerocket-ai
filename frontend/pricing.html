@@ -97,8 +97,17 @@
       try {
         // Map UI plan names to backend/Stripe plan keys
         let planKey = plan;
+        if (plan === 'pro') planKey = 'pro_monthly';
+        if (plan === 'pro_yearly') planKey = 'pro_yearly';
+        if (plan === 'premium') planKey = 'premium_monthly';
+        if (plan === 'premium_yearly') planKey = 'premium_yearly';
+        if (plan === 'elite') planKey = 'elite_monthly';
+        if (plan === 'elite_yearly') planKey = 'elite_yearly';
         if (plan === 'founders_lifetime') planKey = 'lifetime';
-        const endpoint = planKey === 'lifetime' ? '/api/create-lifetime-checkout' : '/api/create-checkout-session';
+        if (plan === 'recruiter') planKey = 'recruiter_monthly';
+        if (plan === 'recruiter_yearly') planKey = 'recruiter_yearly';
+        if (plan === 'recruiter_lifetime') planKey = 'recruiter_lifetime';
+        const endpoint = planKey === 'lifetime' || planKey === 'recruiter_lifetime' ? '/api/create-lifetime-checkout' : '/api/create-checkout-session';
         const res = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
