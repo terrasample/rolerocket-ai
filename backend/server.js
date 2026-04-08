@@ -1,24 +1,12 @@
-// ─── TEMPORARY: Admin-only endpoint to backfill referral codes ─────────────
-const ADMIN_BACKFILL_SECRET = process.env.ADMIN_BACKFILL_SECRET || 'changeme';
+// Move all requires/imports to the top
+
+
 const UserModel = require('./models/User');
-app.post('/api/admin/backfill-referral-codes', async (req, res) => {
-  const { secret } = req.body || {};
-  if (secret !== ADMIN_BACKFILL_SECRET) {
-    return res.status(403).json({ error: 'Forbidden' });
-  }
-  let updated = 0;
-  try {
-    const users = await UserModel.find({ $or: [ { referralCode: { $exists: false } }, { referralCode: null }, { referralCode: '' } ] });
-    for (const user of users) {
-      user.referralCode = crypto.randomBytes(4).toString('hex').toUpperCase();
-      await user.save();
-      updated++;
-    }
-    res.json({ ok: true, updated });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+// ...existing code...
+
+
+
+// ...existing code...
 // Global error handlers for debugging fatal errors
 process.on('uncaughtException', (err) => {
   console.error('Uncaught Exception:', err);
@@ -30,7 +18,7 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 require('dotenv').config();
 
-const { getWelcomeEmailHtml } = require('./scripts/welcome-email-template');
+
 
 const express = require('express');
 const path = require('path');
@@ -173,11 +161,37 @@ const LifetimeSale = require('./models/LifetimeSale');
 
 
 // Register email verification route
-const app = express();
-app.use('/api/verify', require('./routes/verifyEmail'));
 
+const app = express();
+app.use(express.json({ limit: '2mb' }));
+app.use('/api/verify', require('./routes/verifyEmail'));
 // Register resume API route BEFORE static file serving
 app.use('/api/resume', require('./routes/resume'));
+
+// Register the admin-only endpoint strictly after app is defined
+
+// ...existing code...
+
+// Place this block after 'const app = express();' and before module.exports or server start
+const ADMIN_BACKFILL_SECRET = process.env.ADMIN_BACKFILL_SECRET || 'changeme';
+app.post('/api/admin/backfill-referral-codes', async (req, res) => {
+  const { secret } = req.body || {};
+  if (secret !== ADMIN_BACKFILL_SECRET) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  let updated = 0;
+  try {
+    const users = await UserModel.find({ $or: [ { referralCode: { $exists: false } }, { referralCode: null }, { referralCode: '' } ] });
+    for (const user of users) {
+      user.referralCode = crypto.randomBytes(4).toString('hex').toUpperCase();
+      await user.save();
+      updated++;
+    }
+    res.json({ ok: true, updated });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 const PORT = process.env.PORT || 5000;
 
