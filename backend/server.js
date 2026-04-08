@@ -1,3 +1,24 @@
+// ─── TEMPORARY: Admin-only endpoint to backfill referral codes ─────────────
+const ADMIN_BACKFILL_SECRET = process.env.ADMIN_BACKFILL_SECRET || 'changeme';
+const UserModel = require('./models/User');
+app.post('/api/admin/backfill-referral-codes', async (req, res) => {
+  const { secret } = req.body || {};
+  if (secret !== ADMIN_BACKFILL_SECRET) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  let updated = 0;
+  try {
+    const users = await UserModel.find({ $or: [ { referralCode: { $exists: false } }, { referralCode: null }, { referralCode: '' } ] });
+    for (const user of users) {
+      user.referralCode = crypto.randomBytes(4).toString('hex').toUpperCase();
+      await user.save();
+      updated++;
+    }
+    res.json({ ok: true, updated });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 // Global error handlers for debugging fatal errors
 process.on('uncaughtException', (err) => {
   console.error('Uncaught Exception:', err);
