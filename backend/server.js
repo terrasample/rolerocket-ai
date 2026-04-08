@@ -2569,8 +2569,8 @@ app.post('/api/create-checkout-session', paymentLimiter, authenticateToken, asyn
       allow_promotion_codes: !shouldApplyVeteranDiscount,
       payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${process.env.CLIENT_URL}/dashboard.html?success=true`,
-      cancel_url: `${process.env.CLIENT_URL}/dashboard.html`,
+      success_url: `${process.env.CLIENT_URL}/index.html?success=true`,
+      cancel_url: `${process.env.CLIENT_URL}/index.html`,
       metadata: {
         userId,
         plan: normalizedPlan || 'custom',
@@ -2655,8 +2655,8 @@ app.post('/api/create-lifetime-checkout', paymentLimiter, authenticateToken, asy
       allow_promotion_codes: !shouldApplyVeteranDiscount,
       payment_method_types: ['card'],
       line_items: [{ price: selectedPriceId, quantity: 1 }],
-      success_url: `${process.env.CLIENT_URL}/dashboard.html?lifetime=true`,
-      cancel_url: `${process.env.CLIENT_URL}/dashboard.html`,
+      success_url: `${process.env.CLIENT_URL}/index.html?lifetime=true`,
+      cancel_url: `${process.env.CLIENT_URL}/index.html`,
       metadata: {
         userId: req.user.userId,
         type: normalizedPlan === 'recruiter_lifetime' ? 'recruiter_lifetime' : 'lifetime',
