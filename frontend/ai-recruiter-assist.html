@@ -25,10 +25,11 @@
       <a class="sidebar-link-btn" href="login.html?relogin=1">Logout</a>
     </aside>
     <main class="main marketing-main" id="mainContent" tabindex="-1">
-      <section class="marketing-hero-card" style="text-align:center;">
-        <h2>AI Recruiter Assist</h2>
-        <p>Find the top 3 most qualified candidates for any job role, instantly ranked by resume match. Unlock this dashboard with a subscription to access premium recruiting insights.</p>
-      </section>
+      <div class="hero home-hero">
+        <h1 class="home-brand-title"><span class="home-brand-rocket" aria-hidden="true">🚀</span><span>RoleRocket AI</span></h1>
+        <p class="home-brand-subtitle">AI Recruiter Assist</p>
+      </div>
+      <button onclick="window.history.back()" class="back-arrow-btn" aria-label="Go back" style="margin:12px 0 0 12px;background:none;border:none;cursor:pointer;font-size:1.6em;color:#2563eb;"><span aria-hidden="true">&#8592;</span> Back</button>
         <section class="recruiter-cards marketing-grid">
           <article class="marketing-card tier-feature premium">
             <h3>Top Candidate Ranking</h3>
@@ -43,13 +44,23 @@
             <p>Send personalized messages to top candidates with one click.</p>
           </article>
         </section>
-      <section class="marketing-card locked-card" style="max-width:540px;margin:0 auto;text-align:center;position:relative;">
+      <section class="price-card recruiter locked-card" style="max-width:540px;margin:0 auto 32px auto;text-align:center;position:relative;box-shadow:0 8px 32px #0ea5e950;">
+        <div class="plan-pill premium-pill">AI RECRUITER ASSIST</div>
+        <h3>AI Recruiter Assist</h3>
+        <div class="price-amount">$99<span>/month</span> <span style="color:#64748b;font-size:0.9em;">or</span> $990<span>/year</span> <span class="savings-pill" style="color:#059669;font-size:0.9em;margin-left:8px;">Save 17%</span></div>
+        <ul>
+          <li>Top 3 candidate ranking by job role</li>
+          <li>Resume match scoring</li>
+          <li>Premium recruiter dashboard</li>
+          <li>Unlock advanced recruiter tools</li>
+        </ul>
+        <button class="checkout-btn" data-checkout="recruiter" onclick="window.location.href='pricing.html#recruiter'">Subscribe</button>
+        <button class="checkout-btn" data-checkout="recruiter_yearly" onclick="window.location.href='pricing.html#recruiter'" style="margin-left:8px;">Subscribe Yearly</button>
         <div class="locked-overlay">
           <div class="locked-message">
             <strong>This dashboard is locked</strong>
             <p>Subscribe to AI Recruiter Assist to unlock candidate rankings and advanced recruiter tools.</p>
             <img src="assets/locked.png" alt="Locked" style="width:80px;margin:18px auto 0 auto;display:block;opacity:0.7;" />
-            <a href="pricing.html" class="sidebar-link-btn" style="margin-top:18px;display:inline-block;">View Pricing</a>
           </div>
         </div>
         <div style="opacity:0.3;pointer-events:none;">
