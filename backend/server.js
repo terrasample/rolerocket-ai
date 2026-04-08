@@ -168,30 +168,7 @@ app.use('/api/verify', require('./routes/verifyEmail'));
 // Register resume API route BEFORE static file serving
 app.use('/api/resume', require('./routes/resume'));
 
-// Register the admin-only endpoint strictly after app is defined
-
-// ...existing code...
-
-// Place this block after 'const app = express();' and before module.exports or server start
-const ADMIN_BACKFILL_SECRET = process.env.ADMIN_BACKFILL_SECRET || 'changeme';
-app.post('/api/admin/backfill-referral-codes', async (req, res) => {
-  const { secret } = req.body || {};
-  if (secret !== ADMIN_BACKFILL_SECRET) {
-    return res.status(403).json({ error: 'Forbidden' });
-  }
-  let updated = 0;
-  try {
-    const users = await UserModel.find({ $or: [ { referralCode: { $exists: false } }, { referralCode: null }, { referralCode: '' } ] });
-    for (const user of users) {
-      user.referralCode = crypto.randomBytes(4).toString('hex').toUpperCase();
-      await user.save();
-      updated++;
-    }
-    res.json({ ok: true, updated });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+// (REMOVED) Admin-only endpoint for backfilling referral codes has been disabled for security.
 
 const PORT = process.env.PORT || 5000;
 
