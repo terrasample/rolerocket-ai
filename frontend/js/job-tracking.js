@@ -361,7 +361,7 @@ document.getElementById('findJobsBtn')?.addEventListener('click', async () => {
       body: JSON.stringify({
         title: document.getElementById('jobTitle').value.trim(),
         location: document.getElementById('jobLocation').value.trim(),
-        resume: document.getElementById('jobResume').value
+        resume: document.getElementById('resumeText').value
       })
     });
 
