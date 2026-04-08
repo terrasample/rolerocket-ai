@@ -181,6 +181,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 const LIFETIME_PRICE_ID = process.env.STRIPE_LIFETIME_PRICE_ID || '';
 const LIFETIME_REGULAR_PRICE_ID = String(process.env.STRIPE_LIFETIME_REGULAR_PRICE_ID || '').trim();
+const RECRUITER_LIFETIME_PRICE_ID = process.env.STRIPE_RECRUITER_LIFETIME_PRICE_ID || '';
 const LIFETIME_DISCOUNT_LIMIT = Math.max(1, Number(process.env.LIFETIME_DISCOUNT_LIMIT || 50));
 const PRO_PRICE_ID = process.env.STRIPE_PRO_PRICE_ID || '';
 const PRO_YEARLY_PRICE_ID = process.env.STRIPE_PRO_YEARLY_PRICE_ID || '';
@@ -2613,31 +2614,37 @@ app.post('/api/create-checkout-session', paymentLimiter, authenticateToken, asyn
   }
 });
 
+
 app.post('/api/create-lifetime-checkout', paymentLimiter, authenticateToken, async (req, res) => {
   try {
-    const offerStatus = await getLifetimeOfferStatus();
-    const selectedLifetimePriceId = offerStatus.offerActive ? LIFETIME_PRICE_ID : LIFETIME_REGULAR_PRICE_ID;
+    const { plan } = req.body || {};
+    const normalizedPlan = plan ? String(plan).toLowerCase().trim() : '';
+    let selectedPriceId = null;
+    let offerStatus = null;
 
-    if (!selectedLifetimePriceId) {
-      return res.status(400).json({
-        error: offerStatus.offerActive
-          ? 'Missing STRIPE_LIFETIME_PRICE_ID (limited $199 offer price).'
-          : 'Missing STRIPE_LIFETIME_REGULAR_PRICE_ID ($249 regular price).'
-      });
+    if (normalizedPlan === 'recruiter_lifetime') {
+      selectedPriceId = RECRUITER_LIFETIME_PRICE_ID;
+      if (!selectedPriceId) {
+        return res.status(400).json({ error: 'Missing STRIPE_RECRUITER_LIFETIME_PRICE_ID.' });
+      }
+    } else {
+      offerStatus = await getLifetimeOfferStatus();
+      selectedPriceId = offerStatus.offerActive ? LIFETIME_PRICE_ID : LIFETIME_REGULAR_PRICE_ID;
+      if (!selectedPriceId) {
+        return res.status(400).json({
+          error: offerStatus.offerActive
+            ? 'Missing STRIPE_LIFETIME_PRICE_ID (limited $199 offer price).'
+            : 'Missing STRIPE_LIFETIME_REGULAR_PRICE_ID ($249 regular price).'
+        });
+      }
     }
 
-    const price = await stripe.prices.retrieve(selectedLifetimePriceId, {
-      expand: ['product']
-    });
-
+    const price = await stripe.prices.retrieve(selectedPriceId, { expand: ['product'] });
     if (!price.active) {
       return res.status(400).json({ error: 'Lifetime price is not active in Stripe.' });
     }
-
     if (price.type !== 'one_time') {
-      return res.status(400).json({
-        error: `Lifetime price must be a one-time price, but Stripe says it is "${price.type}".`
-      });
+      return res.status(400).json({ error: `Lifetime price must be a one-time price, but Stripe says it is "${price.type}".` });
     }
 
     const user = await User.findById(req.user.userId).select('veteranVerified');
@@ -2647,24 +2654,21 @@ app.post('/api/create-lifetime-checkout', paymentLimiter, authenticateToken, asy
       mode: 'payment',
       allow_promotion_codes: !shouldApplyVeteranDiscount,
       payment_method_types: ['card'],
-      line_items: [{ price: selectedLifetimePriceId, quantity: 1 }],
+      line_items: [{ price: selectedPriceId, quantity: 1 }],
       success_url: `${process.env.CLIENT_URL}/dashboard.html?lifetime=true`,
       cancel_url: `${process.env.CLIENT_URL}/dashboard.html`,
       metadata: {
         userId: req.user.userId,
-        type: 'lifetime',
-        lifetimeOfferActive: offerStatus.offerActive ? 'true' : 'false',
-        lifetimePriceId: selectedLifetimePriceId,
+        type: normalizedPlan === 'recruiter_lifetime' ? 'recruiter_lifetime' : 'lifetime',
+        lifetimeOfferActive: offerStatus?.offerActive ? 'true' : 'false',
+        lifetimePriceId: selectedPriceId,
         veteranDiscountApplied: shouldApplyVeteranDiscount ? 'true' : 'false'
       }
     };
-
     if (shouldApplyVeteranDiscount) {
       sessionPayload.discounts = [{ coupon: STRIPE_VETERAN_COUPON_ID }];
     }
-
     const session = await stripe.checkout.sessions.create(sessionPayload);
-
     return res.json({ url: session.url });
   } catch (err) {
     console.error('Lifetime checkout error:', err);
