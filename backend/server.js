@@ -2801,6 +2801,17 @@ app.delete('/api/account', authenticateToken, async (req, res) => {
 
 // Ensure Google Search Console verification succeeds for both root and
 // accidental URL-prefix checks under /sitemap.xml/.
+// ─── Authenticated User Info ──────────────────────────────────────────────
+app.get('/api/me', authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId).select('-password');
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    res.json({ user });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to load user' });
+  }
+});
+
 app.get('/google1e7a24f124416c47.html', (_req, res) => {
   return res.type('text/plain').send('google-site-verification: google1e7a24f124416c47.html');
 });
