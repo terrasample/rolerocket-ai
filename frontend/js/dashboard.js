@@ -24,16 +24,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
       const res = await fetch('/api/resume', { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
-      if (data.resumes && data.resumes.length > 0) {
+      if (data.resumes && data.resumes.length > 0 && data.resumes[0].content) {
         latestResumeContent.textContent = data.resumes[0].content;
         if (noResumeMsg) noResumeMsg.style.display = 'none';
       } else {
         latestResumeContent.textContent = '';
-        if (noResumeMsg) noResumeMsg.style.display = '';
+        if (noResumeMsg) {
+          noResumeMsg.textContent = 'No resume found. Please upload or paste your resume.';
+          noResumeMsg.style.display = '';
+        }
       }
     } catch (err) {
       latestResumeContent.textContent = '';
-      if (noResumeMsg) noResumeMsg.style.display = '';
+      if (noResumeMsg) {
+        noResumeMsg.textContent = 'Error loading resume. Please try again.';
+        noResumeMsg.style.display = '';
+      }
     }
   }
 
@@ -82,11 +88,37 @@ document.addEventListener('DOMContentLoaded', async () => {
         referralInput.value = data.user.referralCode;
       } else {
         referralInput.value = 'Not available';
+        if (referralMsg) {
+          referralMsg.textContent = 'Referral code not found. Please check your account.';
+          referralMsg.style.color = '#dc2626';
+        }
       }
     } catch (err) {
       referralInput.value = 'Error';
+      if (referralMsg) {
+        referralMsg.textContent = 'Error loading referral code.';
+        referralMsg.style.color = '#dc2626';
+      }
     }
   }
+    // Job Tracker Section
+    const jobTrackerEl = document.getElementById('dashboardJobTracker');
+    async function loadJobTracker() {
+      if (!jobTrackerEl) return;
+      jobTrackerEl.textContent = 'Loading...';
+      try {
+        const res = await fetch('/api/jobs', { headers: { Authorization: `Bearer ${token}` } });
+        const data = await res.json();
+        if (data.jobs && Array.isArray(data.jobs) && data.jobs.length > 0) {
+          jobTrackerEl.innerHTML = '<ul>' + data.jobs.map(job => `<li>${job.title || 'Untitled'} @ ${job.company || 'Unknown'} (${job.status || 'saved'})</li>`).join('') + '</ul>';
+        } else {
+          jobTrackerEl.textContent = 'No jobs found. Start tracking your applications!';
+        }
+      } catch (err) {
+        jobTrackerEl.textContent = 'Error loading jobs. Please try again.';
+      }
+    }
+    await loadJobTracker();
   if (copyReferralBtn && referralInput) {
     copyReferralBtn.addEventListener('click', async () => {
       try {
