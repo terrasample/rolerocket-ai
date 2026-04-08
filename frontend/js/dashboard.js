@@ -84,15 +84,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
       const res = await fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
-      if (data.user && data.user.referralCode) {
-        referralInput.value = data.user.referralCode;
-      } else {
-        referralInput.value = 'Not available';
-        if (referralMsg) {
-          referralMsg.textContent = 'Referral code not found. Please check your account.';
-          referralMsg.style.color = '#dc2626';
-        }
-      }
+          if (data.user && data.user.referralCode) {
+            referralInput.value = data.user.referralCode;
+            referralMsg.textContent = '';
+          } else {
+            referralInput.value = '';
+            referralMsg.innerHTML = 'Referral code not found.<br>If you just signed up, please refresh this page.<br>If the issue persists, <a href="contact-us.html" style="color:#2563eb;text-decoration:underline;">contact support</a>.';
+          }
     } catch (err) {
       referralInput.value = 'Error';
       if (referralMsg) {
