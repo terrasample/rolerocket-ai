@@ -220,6 +220,16 @@
 
     // Billing portal
     async function openBillingPortal() {
+      // Block Stripe for admin/lifetime/subscribed
+      try {
+        const me = await api('/api/me', { method: 'GET' });
+        const user = me.user || {};
+        if (user.isAdmin === true || user.plan === 'lifetime' || user.isSubscribed === true) {
+          portalMessage.textContent = 'You already have full access. No payment required.';
+          setBillingButtonState(false);
+          return;
+        }
+      } catch {}
       portalMessage.textContent = '';
       setBillingButtonState(true);
       try {

@@ -1,25 +1,5 @@
-// Move all requires/imports to the top
 
-
-const UserModel = require('./models/User');
-// ...existing code...
-
-
-
-// ...existing code...
-// Global error handlers for debugging fatal errors
-process.on('uncaughtException', (err) => {
-  console.error('Uncaught Exception:', err);
-  process.exit(1);
-});
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-  process.exit(1);
-});
 require('dotenv').config();
-
-
-
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
@@ -31,6 +11,74 @@ const OpenAI = require('openai');
 const Stripe = require('stripe');
 const rateLimit = require('express-rate-limit');
 const nodemailer = require('nodemailer');
+
+
+
+
+const app = express();
+app.use(express.json({ limit: '2mb' }));
+app.use(cors());
+
+console.log('DEBUG: server.js script started');
+
+// --- PATCH: Always return isAdmin for admin emails in /api/me ---
+app.get('/api/me', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization || '';
+    const token = authHeader.startsWith('Bearer ')
+      ? authHeader.slice(7)
+      : authHeader;
+    if (!token) return res.status(401).json({ error: 'No token' });
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (err) {
+      return res.status(403).json({ error: 'Invalid token' });
+    }
+    const user = await User.findById(decoded.userId).lean();
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    const email = String(user.email || '').toLowerCase();
+    const isAdmin = ADMIN_EMAILS.length && ADMIN_EMAILS.includes(email);
+    return res.json({
+      user: {
+        ...user,
+        isAdmin,
+        plan: isAdmin ? 'lifetime' : user.plan,
+        isSubscribed: isAdmin ? true : user.isSubscribed
+      }
+    });
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to load user info' });
+  }
+});
+
+
+// ...existing code...
+
+// Start the Express server
+// Start the Express server (must be at the end)
+// Start the Express server (must be at the end)
+// (moved to end of file)
+
+
+
+
+
+// ...existing code...
+
+// Global error handlers for debugging fatal errors
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+  process.exit(1);
+});
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
+});
+
+
+
+
 
 // ─── Rate Limiting ──────────────────────────────────────────────────────────
 const authLimiter = rateLimit({
@@ -85,7 +133,7 @@ async function sendEmail({ to, subject, html }) {
     to,
     subject,
     html
-  }), 8000, 'sendEmail');
+  }), 8000, 'sendMail');
 }
 
 function queuePasswordResetEmail({ to, resetUrl }) {
@@ -93,12 +141,14 @@ function queuePasswordResetEmail({ to, resetUrl }) {
     try {
       await sendEmail({
         to,
-        subject: 'Reset your RoleRocket AI password',
+        subject: 'Reset your password for RoleRocket AI',
         html: `
-          <h2>Password Reset</h2>
-          <p>Click the link below to reset your password. This link expires in 1 hour.</p>
-          <a href="${resetUrl}" style="background:#0284c7;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block;">Reset Password</a>
-          <p style="margin-top:16px;color:#888;">If you didn't request this, ignore this email.</p>
+          <div style="font-family:Segoe UI,Arial,sans-serif;color:#0f172a;line-height:1.6;max-width:640px;">
+            <h2 style="margin:0 0 10px;">Reset your password</h2>
+            <p>Click the link below to reset your password. This link expires in 1 hour.</p>
+            <a href="${resetUrl}" style="background:#0284c7;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block;">Reset Password</a>
+            <p style="margin-top:16px;color:#888;">If you didn't request this, ignore this email.</p>
+          </div>
         `
       });
     } catch (err) {
@@ -162,8 +212,7 @@ const LifetimeSale = require('./models/LifetimeSale');
 
 // Register email verification route
 
-const app = express();
-app.use(express.json({ limit: '2mb' }));
+
 app.use('/api/verify', require('./routes/verifyEmail'));
 // Register resume API route BEFORE static file serving
 app.use('/api/resume', require('./routes/resume'));
@@ -594,6 +643,11 @@ function getPlanLevel(plan) {
 
 function hasRequiredPlan(user, requiredPlan) {
   if (!user) return false;
+  // Admins always have access to everything
+  const email = String(user.email || '').toLowerCase();
+  if (ADMIN_EMAILS.length && ADMIN_EMAILS.includes(email)) {
+    return true;
+  }
   return getPlanLevel(user.plan || 'free') >= getPlanLevel(requiredPlan);
 }
 
@@ -1417,6 +1471,15 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
       return res.status(403).json({ error: 'Please verify your email before logging in.' });
     }
 
+    // If admin, always set plan to 'lifetime' and isSubscribed true
+    let plan = user.plan;
+    let isSubscribed = user.isSubscribed;
+    const isAdmin = ADMIN_EMAILS.length && ADMIN_EMAILS.includes(normalizedEmail);
+    if (isAdmin) {
+      plan = 'lifetime';
+      isSubscribed = true;
+    }
+
     const token = jwt.sign(
       { userId: user._id },
       process.env.JWT_SECRET,
@@ -1429,8 +1492,8 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
         _id: user._id,
         name: user.name,
         email: user.email,
-        isSubscribed: user.isSubscribed,
-        plan: user.plan,
+        isSubscribed,
+        plan,
         referralCode: user.referralCode,
         referralCount: user.referralCount,
         emailVerified: user.emailVerified !== false
@@ -2573,9 +2636,24 @@ app.post('/api/create-checkout-session', paymentLimiter, authenticateToken, asyn
       return res.status(400).json({ error: 'Unknown plan. Check your .env Stripe price IDs.' });
     }
 
-    const user = await User.findById(userId).select('veteranVerified');
+    const user = await User.findById(userId).select('email plan veteranVerified');
+    const email = String(user?.email || '').toLowerCase();
+    const isAdmin = ADMIN_EMAILS && ADMIN_EMAILS.includes(email);
+    const isLifetime = (user?.plan || '').toLowerCase() === 'lifetime';
+    // DEBUG LOGGING
+    console.log('[CHECKOUT DEBUG]', {
+      userId,
+      email,
+      plan: user?.plan,
+      ADMIN_EMAILS,
+      isAdmin,
+      isLifetime
+    });
+    if (isAdmin || isLifetime) {
+      console.log('[CHECKOUT BLOCKED] Admin or Lifetime user attempted checkout:', email, user?.plan);
+      return res.status(403).json({ error: 'Already Unlocked' });
+    }
     const shouldApplyVeteranDiscount = Boolean(user?.veteranVerified && STRIPE_VETERAN_COUPON_ID);
-
     const sessionPayload = {
       mode: 'subscription',
       allow_promotion_codes: !shouldApplyVeteranDiscount,
@@ -2596,24 +2674,18 @@ app.post('/api/create-checkout-session', paymentLimiter, authenticateToken, asyn
         }
       }
     };
-
     if (shouldApplyVeteranDiscount) {
       sessionPayload.discounts = [{ coupon: STRIPE_VETERAN_COUPON_ID }];
     }
-
     const session = await stripe.checkout.sessions.create(sessionPayload);
-
     let checkoutUrl = session.url;
-
     if (!checkoutUrl && session.id) {
       const refreshed = await stripe.checkout.sessions.retrieve(session.id);
       checkoutUrl = refreshed?.url;
     }
-
     if (!checkoutUrl) {
       return res.status(500).json({ error: 'Stripe did not return a checkout URL.' });
     }
-
     return res.json({ url: checkoutUrl });
   } catch (err) {
     console.error('Subscription checkout error:', err);
@@ -2659,9 +2731,14 @@ app.post('/api/create-lifetime-checkout', paymentLimiter, authenticateToken, asy
       return res.status(400).json({ error: `Lifetime price must be a one-time price, but Stripe says it is "${price.type}".` });
     }
 
-    const user = await User.findById(req.user.userId).select('veteranVerified');
+    const user = await User.findById(req.user.userId).select('email plan veteranVerified');
+    const email = String(user?.email || '').toLowerCase();
+    const isAdmin = ADMIN_EMAILS && ADMIN_EMAILS.includes(email);
+    const isLifetime = (user?.plan || '').toLowerCase() === 'lifetime';
+    if (isAdmin || isLifetime) {
+      return res.status(403).json({ error: 'Already Unlocked' });
+    }
     const shouldApplyVeteranDiscount = Boolean(user?.veteranVerified && STRIPE_VETERAN_COUPON_ID);
-
     const sessionPayload = {
       mode: 'payment',
       allow_promotion_codes: !shouldApplyVeteranDiscount,
@@ -2836,15 +2913,19 @@ app.get('/{*path}', (req, res) => {
   return res.sendFile(path.join(__dirname, '../frontend/index.html'));
 });
 
+
 if (process.env.NODE_ENV !== 'test') {
   app.listen(PORT, () => {
-    console.log(`\ud83d\ude80 Server running on port ${PORT}`);
+    console.log(`🚀 Server running on port ${PORT}`);
     setTimeout(() => {
       prewarmJobSearches().catch((err) => {
         console.warn('Job prewarm failed:', err.message);
       });
     }, 500);
+    console.log('DEBUG: app.listen callback completed');
   });
 }
+
+console.log('DEBUG: server.js script end (should not reach here if server stays running)');
 
 module.exports = app;

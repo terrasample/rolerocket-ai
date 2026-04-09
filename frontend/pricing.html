@@ -84,20 +84,44 @@
   <script>
     async function handleCheckout(plan) {
       const token = localStorage.getItem('token');
-      // Check for referral code in URL
       const urlParams = new URLSearchParams(window.location.search);
       const referral = urlParams.get('referral') || '';
+      const btn = document.querySelector(`[data-checkout="${plan}"]`);
+      // Helper to block and update UI for admin/lifetime/subscribed
+      async function blockIfAdminOrLifetime() {
+        let user = null;
+        try {
+          const res = await fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } });
+          const data = await res.json();
+          user = data.user || null;
+        } catch {}
+        const isAdmin = user && user.isAdmin === true;
+        const isLifetime = user && String(user.plan) === 'lifetime';
+        const isSubscribed = user && user.isSubscribed === true;
+        if (isAdmin || isLifetime || isSubscribed) {
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'Already Unlocked';
+            btn.onclick = function() {
+              window.location.href = 'dashboard.html';
+            };
+          }
+          alert('You already have full access. Redirecting to dashboard.');
+          window.location.href = 'dashboard.html';
+          return true;
+        }
+        return false;
+      }
       if (!token) {
         let signupUrl = 'signup.html?plan=' + encodeURIComponent(plan);
         if (referral) signupUrl += '&referral=' + encodeURIComponent(referral);
         window.location.href = signupUrl;
         return;
       }
-      const btn = document.querySelector(`[data-checkout="${plan}"]`);
+      if (await blockIfAdminOrLifetime()) return;
       const original = btn ? btn.textContent : '';
       if (btn) { btn.textContent = 'Redirecting to Stripe...'; btn.disabled = true; }
       try {
-        // Map UI plan names to backend/Stripe plan keys (now 1:1)
         let planKey = plan;
         if (plan === 'founders_lifetime') planKey = 'lifetime';
         const endpoint = planKey === 'lifetime' || planKey === 'recruiter_lifetime' ? '/api/create-lifetime-checkout' : '/api/create-checkout-session';
@@ -107,6 +131,15 @@
           body: JSON.stringify({ plan: planKey })
         });
         const data = await res.json();
+        // If backend blocks admin/lifetime, never redirect
+        if (data.error && (data.error.toLowerCase().includes('already unlocked') || data.error.toLowerCase().includes('admin') || data.error.toLowerCase().includes('lifetime'))) {
+          if (btn) {
+            btn.disabled = true;
+            btn.textContent = 'Already Unlocked';
+          }
+          alert('You already have full access. No payment required.');
+          return;
+        }
         if (data.url) {
           window.location.href = data.url;
         } else {
@@ -133,6 +166,35 @@
         });
       });
     }
+
+    // On page load, disable upgrade buttons for admin/lifetime robustly
+    async function disableUpgradeForAdminLifetime() {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      let user = null;
+      try {
+        const res = await fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } });
+        const data = await res.json();
+        user = data.user || null;
+      } catch {}
+      const adminEmails = ["terrasample@yahoo.com"];
+      const isAdmin = user && adminEmails.includes(String(user.email || '').toLowerCase());
+      const isLifetime = user && String(user.plan) === 'lifetime';
+      if (isAdmin || isLifetime) {
+        document.querySelectorAll('.checkout-btn').forEach(btn => {
+          btn.disabled = false;
+          btn.textContent = 'Already Unlocked';
+          btn.onclick = function() {
+            window.location.href = 'dashboard.html';
+          };
+        });
+      }
+    }
+    document.addEventListener('DOMContentLoaded', disableUpgradeForAdminLifetime);
+    // Also run after login or token change
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'token') disableUpgradeForAdminLifetime();
+    });
 
     (async function syncLifetimeOfferUi() {
       try {

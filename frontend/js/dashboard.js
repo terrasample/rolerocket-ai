@@ -19,6 +19,38 @@ document.addEventListener('DOMContentLoaded', async () => {
   const latestResumeContent = document.getElementById('latestResumeContent');
   const noResumeMsg = document.getElementById('noResumeMsg');
 
+    // --- PATCH: Always show all feature sections for admin/lifetime/subscribed users ---
+    try {
+      const res = await fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      const isAdmin = data.user && (data.user.isAdmin === true || (data.user.email && ["terrasample@yahoo.com"].includes(data.user.email.toLowerCase())));
+      const isLifetime = data.user && data.user.plan === 'lifetime';
+      const isSubscribed = data.user && data.user.isSubscribed === true;
+      if (isAdmin || isLifetime || isSubscribed) {
+        // Show all feature cards/sections if hidden
+        document.querySelectorAll('.card, .feature-content, .pro-feature, .premium-feature, .elite-feature').forEach(el => {
+          el.style.display = '';
+          el.style.opacity = '1';
+          el.style.pointerEvents = 'auto';
+        });
+        // Remove any lock/overlay/upgrade/paywall classes
+        document.querySelectorAll('.feature-locked, .locked-overlay, .paywall, .upgrade-btn, .pro-lock, .premium-lock, .elite-lock').forEach(el => {
+          el.classList.remove('feature-locked', 'locked-overlay', 'paywall', 'upgrade-btn', 'pro-lock', 'premium-lock', 'elite-lock');
+          el.style.pointerEvents = 'auto';
+          el.style.opacity = '1';
+          el.style.filter = '';
+          el.style.display = '';
+        });
+        // Hide all upgrade/checkout/stripe buttons
+        document.querySelectorAll('.checkout-btn, .upgrade-btn, .stripe-btn').forEach(el => {
+          el.style.display = 'none';
+        });
+        // Optionally update any banners/messages
+        const unlockMsg = document.getElementById('unlockStatusMsg');
+        if (unlockMsg) unlockMsg.textContent = 'All features unlocked (admin/lifetime/subscribed)';
+      }
+    } catch (e) { /* ignore errors */ }
+
   async function loadDashboardResume() {
     if (!latestResumeContent) return;
     try {
@@ -210,7 +242,35 @@ document.addEventListener('DOMContentLoaded', async () => {
       const data = await res.json();
       const plan = (data.user && data.user.plan) || 'free';
       let tips = '';
-      if (plan === 'pro') {
+      // --- PATCH: Always unlock features for admin/lifetime/subscribed users ---
+      const isAdmin = data.user && (data.user.isAdmin === true || (data.user.email && ["terrasample@yahoo.com"].includes(data.user.email.toLowerCase())));
+      const isLifetime = data.user && data.user.plan === 'lifetime';
+      const isSubscribed = data.user && data.user.isSubscribed === true;
+      if (isAdmin || isLifetime || isSubscribed) {
+        console.log('[DEBUG] Features forcibly unlocked for admin/lifetime/subscribed:', { email: data.user && data.user.email, plan: data.user && data.user.plan, isSubscribed: data.user && data.user.isSubscribed });
+        // Remove all feature locks, overlays, and enable all premium/pro/elite UI
+        document.querySelectorAll('.feature-locked, .locked-overlay, .paywall, .upgrade-btn, .pro-lock, .premium-lock, .elite-lock').forEach(el => {
+          el.classList.remove('feature-locked', 'locked-overlay', 'paywall', 'upgrade-btn', 'pro-lock', 'premium-lock', 'elite-lock');
+          el.style.pointerEvents = 'auto';
+          el.style.opacity = '1';
+          el.style.filter = '';
+          el.style.display = '';
+        });
+        // Show all feature content
+        document.querySelectorAll('.feature-content, .pro-feature, .premium-feature, .elite-feature').forEach(el => {
+          el.style.display = '';
+          el.style.opacity = '1';
+          el.style.pointerEvents = 'auto';
+        });
+        // Hide all upgrade/checkout/stripe buttons
+        document.querySelectorAll('.checkout-btn, .upgrade-btn, .stripe-btn').forEach(el => {
+          el.style.display = 'none';
+        });
+        // Optionally update any banners/messages
+        const unlockMsg = document.getElementById('unlockStatusMsg');
+        if (unlockMsg) unlockMsg.textContent = 'All features unlocked (admin/lifetime/subscribed)';
+        tips = '<ul><li>All features unlocked (admin/lifetime/subscribed).</li></ul>';
+      } else if (plan === 'pro') {
         tips = '<ul><li>Use Resume Generator for tailored resumes.</li><li>Try Cover Letter AI for each application.</li></ul>';
       } else if (plan === 'premium') {
         tips = '<ul><li>Optimize your resume with ATS Optimizer.</li><li>Use Interview Prep AI for upcoming interviews.</li></ul>';
@@ -1058,6 +1118,8 @@ function planLevel(plan) {
 }
 
 function hasPlan(requiredPlan) {
+  // Always unlock for admin/lifetime/isSubscribed
+  if (currentUserPlan === 'lifetime' || window.currentUserIsSubscribed || window.currentUserIsAdmin) return true;
   return planLevel(currentUserPlan) >= planLevel(requiredPlan);
 }
 
@@ -1068,10 +1130,18 @@ function formatPlan(plan) {
 function applyLocks() {
   const lockableCards = document.querySelectorAll('.lockable');
 
+
   lockableCards.forEach((card) => {
     const requiredPlan = card.dataset.plan;
-
-    if (hasPlan(requiredPlan)) {
+    // Always unlock for admin/lifetime/isSubscribed
+    if (currentUserPlan === 'lifetime' || window.currentUserIsSubscribed || window.currentUserIsAdmin) {
+      card.classList.remove('locked-card');
+      // Remove any overlay or disable state
+      const overlay = card.querySelector('.locked-overlay');
+      if (overlay) overlay.remove();
+      card.classList.remove('disabled');
+      card.style.pointerEvents = '';
+    } else if (hasPlan(requiredPlan)) {
       card.classList.remove('locked-card');
     } else {
       card.classList.add('locked-card');
@@ -1079,6 +1149,18 @@ function applyLocks() {
   });
 
   updatePlanAccessChips();
+
+  // Remove any global lock overlays for lifetime
+  if (currentUserPlan === 'lifetime') {
+    document.querySelectorAll('.locked-overlay, .feature-locked, .paywall-banner, .upgrade-banner').forEach(el => el.style.display = 'none');
+    // Enable all feature buttons
+    document.querySelectorAll('button, a').forEach(el => {
+      if (el.classList.contains('locked-btn') || el.classList.contains('paywall-btn')) {
+        el.disabled = false;
+        el.classList.remove('locked-btn', 'paywall-btn');
+      }
+    });
+  }
 }
 
 function updatePlanAccessChips() {
@@ -1249,11 +1331,29 @@ async function loadUserPlan() {
 
     if (data.user) {
       currentUserPlan = normalizePlan(data.user.plan || 'free');
+      window.currentUserIsSubscribed = !!data.user.isSubscribed;
+      window.currentUserIsAdmin = (data.user.email && (data.user.email === 'terrasample@yahoo.com'));
       if (planBadgeEl) planBadgeEl.textContent = formatPlan(currentUserPlan);
       renderPlanGuide(currentUserPlan === 'free' ? 'pro' : currentUserPlan);
       applyLocks();
       updateTodayRail();
       track('user_plan_loaded', 'activation', { plan: currentUserPlan });
+
+      // Hide all upgrade/paywall/stripe buttons for lifetime plan, admin, or any isSubscribed user
+      if (currentUserPlan === 'lifetime' || window.currentUserIsSubscribed || window.currentUserIsAdmin) {
+        const upgradeBtns = document.querySelectorAll('[id*="UpgradeCta"], .upgrade-btn, .paywall-btn, .stripe-btn, .unlock-btn');
+        upgradeBtns.forEach(btn => btn.style.display = 'none');
+        // Optionally hide any banners or messages
+        const banners = document.querySelectorAll('.upgrade-banner, .paywall-banner, .stripe-banner');
+        banners.forEach(b => b.style.display = 'none');
+        // Unlock all features visually and functionally
+        applyLocks();
+      }
+
+      // If just upgraded, force reload or redirect to dashboard to show unlocked state
+      if (window.location.search.includes('upgraded=1') && (currentUserPlan === 'lifetime' || window.currentUserIsSubscribed || window.currentUserIsAdmin)) {
+        window.location.href = 'dashboard.html';
+      }
 
       const params = new URLSearchParams(window.location.search);
       const forceVeteranPopup = params.get('veteran') === 'verified';
@@ -2080,6 +2180,16 @@ const priceIdToPlanMap = {
 
 window.upgrade = async function upgrade(plan, triggerBtn) {
   const btn = triggerBtn || null;
+  // Block Stripe redirect for lifetime/admin users
+  if (
+    (typeof currentUserPlan !== 'undefined' && currentUserPlan === 'lifetime') ||
+    window.currentUserIsAdmin === true ||
+    window.currentUserIsSubscribed === true
+  ) {
+    showToast('You already have full access. No payment required.', 'info');
+    if (btn) clearButtonLoading(btn);
+    return;
+  }
   if (btn) setButtonLoading(btn, 'Opening checkout...');
   track('upgrade_click', 'checkout', { planInput: plan });
   try {
@@ -2120,6 +2230,16 @@ window.upgrade = async function upgrade(plan, triggerBtn) {
 
 window.lifetime = async function lifetime(triggerBtn) {
   const btn = triggerBtn || null;
+  // Block Stripe redirect for lifetime/admin users
+  if (
+    (typeof currentUserPlan !== 'undefined' && currentUserPlan === 'lifetime') ||
+    window.currentUserIsAdmin === true ||
+    window.currentUserIsSubscribed === true
+  ) {
+    showToast('You already have full access. No payment required.', 'info');
+    if (btn) clearButtonLoading(btn);
+    return;
+  }
   if (btn) setButtonLoading(btn, 'Opening checkout...');
   track('upgrade_click', 'checkout', { planInput: 'lifetime' });
   try {

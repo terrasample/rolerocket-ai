@@ -32,6 +32,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (openPortalBtn) {
     openPortalBtn.addEventListener('click', async () => {
+      // Block Stripe for admin/lifetime/subscribed
+      try {
+        const res = await fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } });
+        const data = await res.json();
+        const user = data.user || {};
+        if (user.isAdmin === true || user.plan === 'lifetime' || user.isSubscribed === true) {
+          billingMsg.textContent = 'You already have full access. No payment required.';
+          billingMsg.style.color = '#16a34a';
+          openPortalBtn.disabled = true;
+          return;
+        }
+      } catch {}
       openPortalBtn.disabled = true;
       billingMsg.textContent = 'Opening billing portal...';
       billingMsg.style.color = '#1e293b';
