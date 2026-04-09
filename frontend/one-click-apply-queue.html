@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>1-Click Apply Queue | RoleRocket AI</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="hero">
+    <h1>1-Click Apply Queue</h1>
+    <p>Send your best matches into the ready queue and execute applications quickly when timing matters.</p>
+  </div>
+  <div class="card" style="max-width:540px;margin:32px auto;">
+    <label for="applyRole"><strong>Target Role</strong></label>
+    <input id="applyRole" type="text" style="width:100%;margin-bottom:12px;" placeholder="e.g. Product Manager" />
+    <label for="applyQueue"><strong>Jobs to Queue (comma separated)</strong></label>
+    <textarea id="applyQueue" rows="4" style="width:100%;margin-bottom:12px;" placeholder="Paste or list job titles/links..."></textarea>
+    <button id="queueApplyBtn" class="auth-submit-btn" style="width:100%;">Queue Applications</button>
+    <div id="applyQueueResult" style="margin-top:18px;min-height:80px;"></div>
+  </div>
+  <script src="js/api-base.js"></script>
+  <script src="js/auth-storage.js"></script>
+  <script src="js/dashboard.js"></script>
+</body>
+</html>
