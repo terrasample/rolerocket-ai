@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Career Coach | RoleRocket AI</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="hero">
+    <h1>AI Career Coach</h1>
+    <p>Get strategic direction, next-best moves, and salary trajectory insights for your career path. (Demo page – customize as needed!)</p>
+  </div>
+  <div class="card" style="max-width:540px;margin:32px auto;">
+    <label for="careerRole"><strong>Target Role or Path</strong></label>
+    <input id="careerRole" type="text" style="width:100%;margin-bottom:12px;" placeholder="e.g. Senior Product Manager" />
+    <label for="careerGoals"><strong>Your Career Goals (optional)</strong></label>
+    <textarea id="careerGoals" rows="4" style="width:100%;margin-bottom:12px;" placeholder="Describe your goals, challenges, or questions..."></textarea>
+    <button id="careerCoachBtn" class="auth-submit-btn" style="width:100%;">Get Career Coaching</button>
+    <div id="careerCoachResult" style="margin-top:18px;min-height:80px;"></div>
+  </div>
+  <script src="js/api-base.js"></script>
+  <script src="js/auth-storage.js"></script>
+  <script src="js/dashboard.js"></script>
+</body>
+</html>

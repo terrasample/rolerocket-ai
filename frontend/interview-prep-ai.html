@@ -11,14 +11,75 @@
     <h1>Interview Prep AI</h1>
     <p>Generate likely interview questions, answer themes, and smart questions to ask the interviewer for your target role.</p>
   </div>
-  <div class="card" style="max-width:500px;margin:32px auto;">
-    <label for="interviewRole"><strong>Role Title</strong></label>
-    <input id="interviewRole" type="text" style="width:100%;margin-bottom:12px;" placeholder="e.g. Product Manager" />
-    <label for="interviewJobDescription"><strong>Job Description (optional)</strong></label>
-    <textarea id="interviewJobDescription" rows="5" style="width:100%;margin-bottom:12px;" placeholder="Paste the job description here..."></textarea>
-    <button id="interviewPrepBtn" class="auth-submit-btn" style="width:100%;">Generate Interview Prep</button>
-    <div id="interviewPrepResult" style="margin-top:18px;min-height:80px;"></div>
+  <div class="card premium-interview-card" style="max-width:540px;margin:40px auto 32px auto;box-shadow:0 8px 32px #0ea5e950;">
+    <label for="interviewRole" style="font-size:1.1em;"><strong>Role Title</strong></label>
+    <input id="interviewRole" type="text" class="premium-input" placeholder="e.g. Product Manager" />
+    <label for="interviewJobDescription" style="font-size:1.1em;"><strong>Job Description (optional)</strong></label>
+    <textarea id="interviewJobDescription" rows="5" class="premium-input" placeholder="Paste the job description here..."></textarea>
+    <button id="interviewPrepBtn" class="auth-submit-btn premium-btn">Generate Interview Prep</button>
+    <div id="interviewPrepResult" class="premium-result" style="margin-top:24px;min-height:120px;"></div>
   </div>
+  <style>
+    .premium-interview-card {
+      background: linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%);
+      border: 2px solid #0ea5e9;
+      border-radius: 22px;
+      box-shadow: 0 12px 40px #0ea5e930;
+      padding: 32px 28px 28px 28px;
+    }
+    .premium-input {
+      font-size: 1.13em;
+      border: 1.5px solid #bae6fd;
+      background: #f0f9ff;
+      margin-bottom: 16px;
+      border-radius: 12px;
+      padding: 12px 14px;
+      color: #0c4a6e;
+      font-family: var(--font-body);
+    }
+    .premium-btn {
+      font-size: 1.15em;
+      font-weight: 700;
+      border-radius: 12px;
+      box-shadow: 0 4px 18px #0ea5e930;
+      background: linear-gradient(90deg, #0ea5e9 0%, #0284c7 100%);
+      transition: box-shadow 0.18s, filter 0.18s;
+    }
+    .premium-btn:hover {
+      filter: brightness(1.08);
+      box-shadow: 0 8px 32px #0ea5e950;
+    }
+    .premium-result {
+      background: #fff;
+      border-radius: 18px;
+      box-shadow: 0 4px 24px #0ea5e91a;
+      padding: 24px 18px 18px 18px;
+      border: 1.5px solid #bae6fd;
+      font-size: 1.13em;
+      color: #0c4a6e;
+      min-height: 120px;
+    }
+    .premium-result .ai-question {
+      background: linear-gradient(90deg, #e0f2fe 0%, #f8fafc 100%);
+      border-left: 4px solid #0ea5e9;
+      border-radius: 12px;
+      margin-bottom: 18px;
+      padding: 16px 16px 10px 18px;
+      font-size: 1.12em;
+      font-weight: 700;
+      color: #0c4a6e;
+      box-shadow: 0 2px 10px #0ea5e91a;
+    }
+    .premium-result .ai-theme {
+      background: #f0f9ff;
+      border-radius: 10px;
+      margin-bottom: 14px;
+      padding: 10px 14px;
+      font-size: 1em;
+      color: #0369a1;
+      border-left: 3px solid #bae6fd;
+    }
+  </style>
   <script src="js/api-base.js"></script>
   <script src="js/auth-storage.js"></script>
   <script src="js/dashboard.js"></script>
