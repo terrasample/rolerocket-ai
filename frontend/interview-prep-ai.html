@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Interview Prep AI | RoleRocket AI</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="hero">
+    <h1>Interview Prep AI</h1>
+    <p>Generate likely interview questions, answer themes, and smart questions to ask the interviewer for your target role.</p>
+  </div>
+  <div class="card" style="max-width:500px;margin:32px auto;">
+    <label for="interviewRole"><strong>Role Title</strong></label>
+    <input id="interviewRole" type="text" style="width:100%;margin-bottom:12px;" placeholder="e.g. Product Manager" />
+    <label for="interviewJobDescription"><strong>Job Description (optional)</strong></label>
+    <textarea id="interviewJobDescription" rows="5" style="width:100%;margin-bottom:12px;" placeholder="Paste the job description here..."></textarea>
+    <button id="interviewPrepBtn" class="auth-submit-btn" style="width:100%;">Generate Interview Prep</button>
+    <div id="interviewPrepResult" style="margin-top:18px;min-height:80px;"></div>
+  </div>
+  <script src="js/api-base.js"></script>
+  <script src="js/auth-storage.js"></script>
+  <script src="js/dashboard.js"></script>
+</body>
+</html>
