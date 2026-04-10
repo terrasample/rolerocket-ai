@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Resume Optimizer | RoleRocket AI</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to main content</a>
+  <div class="hero">
+    <h1>Resume Optimizer</h1>
+    <p>Rewrite and improve your resume for clarity, strength, and professionalism.</p>
+    <button onclick="window.history.back()" class="back-arrow-btn" aria-label="Go back" style="margin:12px 0 0 12px;background:none;border:none;cursor:pointer;font-size:1.6em;color:#2563eb;"><span aria-hidden="true">&#8592;</span> Back</button>
+  </div>
+  <main id="main" class="main" tabindex="-1">
+    <div class="card" style="max-width:600px;margin:auto;">
+      <label for="resumeJobTitle"><strong>Target Job Title</strong></label>
+      <input id="resumeJobTitle" type="text" style="width:100%;margin-bottom:10px;" placeholder="e.g. Data Scientist" />
+      <label for="resumeCompany"><strong>Company</strong></label>
+      <input id="resumeCompany" type="text" style="width:100%;margin-bottom:10px;" placeholder="e.g. Acme Corp" />
+      <label for="resumeBase"><strong>Your Baseline Resume (paste or upload)</strong></label>
+      <textarea id="resumeBase" rows="6" style="width:100%;margin-bottom:10px;" placeholder="Paste your baseline resume here..."></textarea>
+      <button id="rewriteResumeBtn" class="auth-submit-btn" style="margin-bottom:10px;">Rewrite Resume</button>
+      <button id="downloadResumePdfBtn" class="auth-submit-btn" style="width:100%;margin-top:10px;background:#f59e42;color:#1e293b;display:none;">Download as PDF</button>
+      <button id="saveResumeBtn" class="auth-submit-btn" style="width:100%;margin-top:10px;background:#38bdf8;color:#1e293b;">Save Resume</button>
+      <div id="resumeOutput" style="margin-top:18px;"></div>
+    </div>
+  </main>
+  <footer class="site-footer">
+    &copy; 2026 RoleRocket AI &nbsp;&middot;&nbsp;
+    <a href="privacy.html">Privacy Policy</a>
+    <a href="terms.html">Terms of Service</a>
+  </footer>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="js/resume-generator.js"></script>
+</body>
+</html>
