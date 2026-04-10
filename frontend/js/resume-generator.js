@@ -1,3 +1,34 @@
+// PDF download logic for Resume Optimizer
+document.addEventListener('DOMContentLoaded', function () {
+  const downloadBtn = document.getElementById('downloadResumePdfBtn');
+  const output = document.getElementById('resumeOutput');
+  let lastResume = '';
+  // Patch: Show download button after rewrite
+  const rewriteBtn = document.getElementById('rewriteResumeBtn');
+  if (rewriteBtn) {
+    rewriteBtn.addEventListener('click', function () {
+      setTimeout(() => {
+        const pre = output.querySelector('pre');
+        if (pre) {
+          lastResume = pre.textContent;
+          downloadBtn.style.display = '';
+        }
+      }, 500);
+    });
+  }
+  if (downloadBtn) {
+    downloadBtn.onclick = function() {
+      if (!lastResume) return;
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      const text = lastResume.replace(/\n/g, '\n');
+      doc.setFont('helvetica');
+      doc.setFontSize(12);
+      doc.text(text, 10, 20, { maxWidth: 180 });
+      doc.save('resume.pdf');
+    };
+  }
+});
 // Resume Generator Logic
 
 document.addEventListener('DOMContentLoaded', function () {
