@@ -38,13 +38,14 @@
             <h3>Real platform activity</h3>
             <p>Live data from real usage across RoleRocket AI.</p>
           </div>
-          <div class="premium-stats-grid" style="flex-wrap:wrap;gap:32px;">
-            <div class="stats-chart-wrap" style="min-width:260px;max-width:340px;">
+          <div class="premium-stats-grid" style="display:flex;flex-wrap:wrap;gap:32px;justify-content:center;align-items:stretch;">
+            <div class="stats-chart-wrap" style="min-width:260px;max-width:340px;flex:1 1 320px;display:flex;flex-direction:column;align-items:center;">
               <div
                 class="stats-pie"
                 id="statsPie"
                 role="img"
                 aria-label="Usage distribution for resumes built, jobs tracked, and applications logged"
+                style="margin-bottom:18px;"
               ></div>
               <ul class="stats-legend" aria-label="Usage legend" style="font-size:1.1em;">
                 <li><span class="swatch resumes" aria-hidden="true"></span>Resumes built <strong id="legendResumes">--</strong></li>
@@ -52,16 +53,16 @@
                 <li><span class="swatch applications" aria-hidden="true"></span>Applications logged <strong id="legendApplications">--</strong></li>
               </ul>
             </div>
-            <div class="stats-kpis" aria-label="Key platform totals" style="min-width:220px;">
-              <article class="stat-kpi">
+            <div class="stats-kpis" aria-label="Key platform totals" style="min-width:220px;flex:1 1 220px;display:flex;flex-direction:column;justify-content:center;gap:18px;">
+              <article class="stat-kpi" style="margin-bottom:0;">
                 <span class="kpi-label">Total users</span>
                 <strong id="statUsers">--</strong>
               </article>
-              <article class="stat-kpi">
+              <article class="stat-kpi" style="margin-bottom:0;">
                 <span class="kpi-label">Active paid members</span>
                 <strong id="statSubscribers">--</strong>
               </article>
-              <article class="stat-kpi">
+              <article class="stat-kpi" style="margin-bottom:0;">
                 <span class="kpi-label">Total recorded activity</span>
                 <strong id="statActivity">--</strong>
               </article>
