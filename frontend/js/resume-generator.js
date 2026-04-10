@@ -17,9 +17,13 @@ document.addEventListener('DOMContentLoaded', function () {
       // Send a single jobDescription field for backend compatibility
       const jobDescription = `Job Title: ${jobTitle}\nCompany: ${company}`;
       const resume = baseResume;
+      // Always send Authorization header if token is present
+      const token = typeof getStoredToken === 'function' ? getStoredToken() : localStorage.getItem('token');
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
       const res = await fetch('/api/resume/generate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ jobDescription, resume })
       });
       const data = await res.json();

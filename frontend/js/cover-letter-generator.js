@@ -16,9 +16,13 @@ document.addEventListener('DOMContentLoaded', function () {
     try {
       // Send a single jobDescription field for backend compatibility
       const jobDescription = `Job Title: ${jobTitle}\nCompany: ${company}`;
+      // Always send Authorization header if token is present
+      const token = typeof getStoredToken === 'function' ? getStoredToken() : localStorage.getItem('token');
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
       const res = await fetch('/api/cover-letter/generate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ jobDescription, resume })
       });
       const data = await res.json();
