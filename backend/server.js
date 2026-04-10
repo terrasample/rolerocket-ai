@@ -58,6 +58,8 @@ app.get('/api/me', async (req, res) => {
 
 // Register ATS API routes
 app.use('/api/ats', require('./routes/ats'));
+// Register Cover Letter API route
+app.use('/api/cover-letter', require('./routes/coverLetter'));
 
 // Start the Express server
 // Start the Express server (must be at the end)
