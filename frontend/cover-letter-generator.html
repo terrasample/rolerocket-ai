@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cover Letter Generator | RoleRocket AI</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to main content</a>
+  <div class="hero">
+    <h1>Cover Letter Generator</h1>
+    <p>Generate a tailored cover letter for your target job in seconds.</p>
+  </div>
+  <main id="main" class="main" tabindex="-1">
+    <div class="card" style="max-width:600px;margin:auto;">
+      <label for="coverJobTitle"><strong>Target Job Title</strong></label>
+      <input id="coverJobTitle" type="text" style="width:100%;margin-bottom:10px;" placeholder="e.g. Software Engineer" />
+      <label for="coverCompany"><strong>Company</strong></label>
+      <input id="coverCompany" type="text" style="width:100%;margin-bottom:10px;" placeholder="e.g. Acme Corp" />
+      <label for="coverResume"><strong>Your Resume (paste or upload)</strong></label>
+      <textarea id="coverResume" rows="6" style="width:100%;margin-bottom:10px;" placeholder="Paste your resume here..."></textarea>
+      <button id="generateCoverBtn" class="auth-submit-btn" style="margin-bottom:10px;">Generate Cover Letter</button>
+      <div id="coverLetterOutput" style="margin-top:18px;"></div>
+    </div>
+  </main>
+  <footer class="site-footer">
+    &copy; 2026 RoleRocket AI &nbsp;&middot;&nbsp;
+    <a href="privacy.html">Privacy Policy</a>
+    <a href="terms.html">Terms of Service</a>
+  </footer>
+  <script src="js/cover-letter-generator.js"></script>
+</body>
+</html>

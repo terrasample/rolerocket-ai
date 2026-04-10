@@ -1,0 +1,32 @@
+// Cover Letter Generator Logic
+
+document.addEventListener('DOMContentLoaded', function () {
+  const generateBtn = document.getElementById('generateCoverBtn');
+  const output = document.getElementById('coverLetterOutput');
+
+  generateBtn.addEventListener('click', async function () {
+    const jobTitle = document.getElementById('coverJobTitle').value.trim();
+    const company = document.getElementById('coverCompany').value.trim();
+    const resume = document.getElementById('coverResume').value.trim();
+    if (!jobTitle || !company || !resume) {
+      output.innerHTML = '<div style="color:#dc2626;">Please fill in all fields.</div>';
+      return;
+    }
+    output.innerHTML = 'Generating cover letter...';
+    try {
+      const res = await fetch('/api/cover-letter/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobTitle, company, resume })
+      });
+      const data = await res.json();
+      if (res.ok && data.coverLetter) {
+        output.innerHTML = `<pre style="background:#f8fafc;padding:14px;border-radius:8px;">${data.coverLetter}</pre>`;
+      } else {
+        output.innerHTML = `<div style="color:#dc2626;">${data.error || 'Failed to generate cover letter.'}</div>`;
+      }
+    } catch (err) {
+      output.innerHTML = '<div style="color:#dc2626;">Error generating cover letter.</div>';
+    }
+  });
+});
