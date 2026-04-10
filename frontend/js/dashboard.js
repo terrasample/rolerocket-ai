@@ -12,6 +12,13 @@ if (!token) {
 const SESSION_TIMEOUT_MINUTES = 30; // Set timeout duration here
 // ─── RoleRocket Dashboard (Personalized) ─────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
+  // Scroll to resume section if hash is present
+  if (window.location.hash === '#resume' || window.location.hash === '#resumeText') {
+    setTimeout(() => {
+      const resumeSection = document.getElementById('resumeText');
+      if (resumeSection) resumeSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 200);
+  }
   // Resume (dashboard)
   const resumeTextarea = document.getElementById('resumeText');
   const saveResumeBtn = document.getElementById('saveResumeBtn');

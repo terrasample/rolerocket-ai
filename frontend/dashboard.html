@@ -100,7 +100,7 @@
         <!-- --- BEGIN: Features (Alphabetical, by Tier) --- -->
         <!-- FREE TIER -->
         <div class="marketing-card free-feature">
-          <div class="feature-link" onclick="window.location.href='dashboard.html#resume'" style="cursor:pointer;">
+          <div class="feature-link" onclick="window.location.href='dashboard.html#resumeText'; setTimeout(() => { const el = document.getElementById('resumeText'); if (el) el.scrollIntoView({behavior:'smooth',block:'center'}); }, 300);" style="cursor:pointer;">
             <h3 class="feature-title">Resume Upload & Save</h3>
             <p>Upload and save your resume for easy access and updates.</p>
           </div>
