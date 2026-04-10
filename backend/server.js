@@ -53,7 +53,11 @@ app.get('/api/me', async (req, res) => {
 });
 
 
+
 // ...existing code...
+
+// Register ATS API routes
+app.use('/api/ats', require('./routes/ats'));
 
 // Start the Express server
 // Start the Express server (must be at the end)
@@ -2492,55 +2496,7 @@ app.post('/api/apply/one-click', authenticateToken, async (req, res) => {
   }
 });
 
-app.post('/api/ats/analyze', authenticateToken, async (req, res) => {
-  try {
-    const { jobDescription, resume } = req.body;
-    if (!jobDescription || !resume) {
-      return res.status(400).json({ error: 'jobDescription and resume are required' });
-    }
 
-    const analysis = runATSAnalysis(jobDescription, resume);
-    return res.json({ analysis });
-  } catch (err) {
-    console.error('ATS analyze error:', err);
-    return res.status(500).json({ error: 'ATS failed' });
-  }
-});
-
-app.post('/api/ats/rewrite', authenticateToken, async (req, res) => {
-  try {
-    const { jobDescription, resume } = req.body;
-    if (!jobDescription || !resume) {
-      return res.status(400).json({ error: 'jobDescription and resume are required' });
-    }
-
-    const user = await User.findById(req.user.userId);
-    if (!hasRequiredPlan(user, 'premium')) {
-      return res.status(403).json({ error: 'Upgrade to Premium to use AI resume rewrite.' });
-    }
-
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: 'Rewrite resume to be ATS optimized, strong, measurable, and professional.'
-        },
-        {
-          role: 'user',
-          content: `Job Description:\n${jobDescription}\n\nResume:\n${resume}`
-        }
-      ]
-    });
-
-    return res.json({
-      rewritten: completion.choices[0].message.content
-    });
-  } catch (err) {
-    console.error('ATS rewrite error:', err);
-    return res.status(500).json({ error: 'Rewrite failed' });
-  }
-});
 
 app.post('/api/resume/save', authenticateToken, async (req, res) => {
   try {

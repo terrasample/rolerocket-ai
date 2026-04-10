@@ -53,15 +53,24 @@ function renderRewrites(items) {
   `).join('');
 }
 
+
+function setOptimizerStatus(msg, isError = false) {
+  const el = document.getElementById('optimizerStatus');
+  if (el) {
+    el.textContent = msg;
+    el.style.color = isError ? '#dc2626' : '#2563eb';
+  }
+}
+
 document.getElementById('runATSBtn')?.addEventListener('click', async () => {
   const jobDescription = document.getElementById('atsJobDescription').value.trim();
   const resume = document.getElementById('atsResume').value.trim();
-
+  setOptimizerStatus('Analyzing resume...');
   if (!jobDescription || !resume) {
     alert('Paste both the job description and the resume.');
+    setOptimizerStatus('');
     return;
   }
-
   try {
     const res = await fetch(apiUrl('/api/ats/analyze'), {
       method: 'POST',
@@ -71,28 +80,88 @@ document.getElementById('runATSBtn')?.addEventListener('click', async () => {
       },
       body: JSON.stringify({ jobDescription, resume })
     });
-
     const data = await res.json();
-
     if (!res.ok) {
       throw new Error(data.error || 'Failed to run ATS analysis');
     }
-
     const analysis = data.analysis;
-
     document.getElementById('atsScore').textContent = analysis.atsScore || 0;
-    document.getElementById('keywordScore').textContent = analysis.keywordScore || 0;
-    document.getElementById('sectionScore').textContent = analysis.sectionScore || 0;
-    document.getElementById('formattingScore').textContent = analysis.formattingScore || 0;
-
     renderTags('matchedKeywords', analysis.matchedKeywords, 'No matched keywords yet.');
     renderTags('missingKeywords', analysis.missingKeywords, 'No missing keywords found.');
     renderList('formattingWarnings', analysis.formattingWarnings, 'No formatting warnings.');
     renderList('quickFixes', analysis.quickFixes, 'No quick fixes suggested.');
     renderRewrites(analysis.rewrittenBullets);
+    setOptimizerStatus('Analysis complete.');
   } catch (err) {
     console.error(err);
-    alert(err.message || 'Failed to analyze ATS score');
+    setOptimizerStatus(err.message || 'Failed to analyze ATS score', true);
+  }
+});
+
+document.getElementById('rewriteBtn')?.addEventListener('click', async () => {
+  const jobDescription = document.getElementById('atsJobDescription').value.trim();
+  const resume = document.getElementById('atsResume').value.trim();
+  setOptimizerStatus('Rewriting resume...');
+  if (!jobDescription || !resume) {
+    alert('Paste both the job description and the resume.');
+    setOptimizerStatus('');
+    return;
+  }
+  try {
+    const res = await fetch(apiUrl('/api/ats/rewrite'), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ jobDescription, resume })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Failed to rewrite resume');
+    }
+    document.getElementById('rewriteOutput').textContent = data.rewritten || 'No rewrite result.';
+    setOptimizerStatus('Rewrite complete. Review and Apply Fix if satisfied.');
+  } catch (err) {
+    console.error(err);
+    setOptimizerStatus(err.message || 'Failed to rewrite resume', true);
+  }
+});
+
+document.getElementById('applyFixBtn')?.addEventListener('click', () => {
+  const output = document.getElementById('rewriteOutput').textContent.trim();
+  if (!output) {
+    alert('No rewritten resume to apply.');
+    return;
+  }
+  document.getElementById('atsResume').value = output;
+  setOptimizerStatus('Applied AI rewrite to resume.');
+});
+
+document.getElementById('saveResumeBtn')?.addEventListener('click', async () => {
+  const resume = document.getElementById('atsResume').value.trim();
+  if (!resume) {
+    alert('No resume content to save.');
+    return;
+  }
+  setOptimizerStatus('Saving resume...');
+  try {
+    const res = await fetch(apiUrl('/api/resume/save'), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ content: resume, title: 'ATS Optimized Resume' })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Failed to save resume');
+    }
+    setOptimizerStatus('Resume saved!');
+  } catch (err) {
+    console.error(err);
+    setOptimizerStatus(err.message || 'Failed to save resume', true);
   }
 });
 

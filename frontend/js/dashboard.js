@@ -2119,8 +2119,8 @@ document.getElementById('careerCoachBtn')?.addEventListener('click', async () =>
     const data = await api('/api/career-coach', {
       method: 'POST',
       body: JSON.stringify({
-        resume: document.getElementById('careerCoachResume').value,
-        goals: document.getElementById('careerCoachGoals').value
+        role: document.getElementById('careerRole').value,
+        goals: document.getElementById('careerGoals').value
       })
     });
 
