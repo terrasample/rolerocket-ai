@@ -33,26 +33,26 @@
       <button onclick="window.history.back()" class="back-arrow-btn" aria-label="Go back" style="margin:12px 0 0 12px;background:none;border:none;cursor:pointer;font-size:1.6em;color:#2563eb;"><span aria-hidden="true">&#8592;</span> Back</button>
       <div class="grid" style="max-width: 900px;">
         <!-- Real platform activity (moved from homepage) -->
-        <div class="marketing-card premium-stats-section" aria-label="Live platform statistics" style="margin-bottom:24px;">
+        <div class="marketing-card premium-stats-section" aria-label="Live platform statistics" style="margin-bottom:24px;min-width:340px;max-width:1000px;">
           <div class="premium-stats-header" style="text-align:center;">
             <h3>Real platform activity</h3>
             <p>Live data from real usage across RoleRocket AI.</p>
           </div>
-          <div class="premium-stats-grid">
-            <div class="stats-chart-wrap">
+          <div class="premium-stats-grid" style="flex-wrap:wrap;gap:32px;">
+            <div class="stats-chart-wrap" style="min-width:260px;max-width:340px;">
               <div
                 class="stats-pie"
                 id="statsPie"
                 role="img"
                 aria-label="Usage distribution for resumes built, jobs tracked, and applications logged"
               ></div>
-              <ul class="stats-legend" aria-label="Usage legend">
+              <ul class="stats-legend" aria-label="Usage legend" style="font-size:1.1em;">
                 <li><span class="swatch resumes" aria-hidden="true"></span>Resumes built <strong id="legendResumes">--</strong></li>
                 <li><span class="swatch jobs" aria-hidden="true"></span>Jobs tracked <strong id="legendJobs">--</strong></li>
                 <li><span class="swatch applications" aria-hidden="true"></span>Applications logged <strong id="legendApplications">--</strong></li>
               </ul>
             </div>
-            <div class="stats-kpis" aria-label="Key platform totals">
+            <div class="stats-kpis" aria-label="Key platform totals" style="min-width:220px;">
               <article class="stat-kpi">
                 <span class="kpi-label">Total users</span>
                 <strong id="statUsers">--</strong>

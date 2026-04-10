@@ -14,14 +14,17 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     output.innerHTML = 'Generating resume...';
     try {
-      const res = await fetch('/api/resume-generator/generate', {
+      // Send a single jobDescription field for backend compatibility
+      const jobDescription = `Job Title: ${jobTitle}\nCompany: ${company}`;
+      const resume = baseResume;
+      const res = await fetch('/api/resume/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jobTitle, company, baseResume })
+        body: JSON.stringify({ jobDescription, resume })
       });
       const data = await res.json();
-      if (res.ok && data.resume) {
-        output.innerHTML = `<pre style="background:#f8fafc;padding:14px;border-radius:8px;">${data.resume}</pre>`;
+      if (res.ok && data.result) {
+        output.innerHTML = `<pre style="background:#f8fafc;padding:14px;border-radius:8px;">${data.result}</pre>`;
       } else {
         output.innerHTML = `<div style="color:#dc2626;">${data.error || 'Failed to generate resume.'}</div>`;
       }

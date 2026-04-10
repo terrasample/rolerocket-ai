@@ -14,14 +14,16 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     output.innerHTML = 'Generating cover letter...';
     try {
+      // Send a single jobDescription field for backend compatibility
+      const jobDescription = `Job Title: ${jobTitle}\nCompany: ${company}`;
       const res = await fetch('/api/cover-letter/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jobTitle, company, resume })
+        body: JSON.stringify({ jobDescription, resume })
       });
       const data = await res.json();
-      if (res.ok && data.coverLetter) {
-        output.innerHTML = `<pre style="background:#f8fafc;padding:14px;border-radius:8px;">${data.coverLetter}</pre>`;
+      if (res.ok && data.result) {
+        output.innerHTML = `<pre style="background:#f8fafc;padding:14px;border-radius:8px;">${data.result}</pre>`;
       } else {
         output.innerHTML = `<div style="color:#dc2626;">${data.error || 'Failed to generate cover letter.'}</div>`;
       }
