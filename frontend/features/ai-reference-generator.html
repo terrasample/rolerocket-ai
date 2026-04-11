@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Reference Generator | RoleRocket AI</title>
+  <link rel="stylesheet" href="../styles.css" />
+</head>
+<body>
+  <div class="hero">
+    <h1>AI Reference Generator</h1>
+    <p>Drafts reference letters and manages referee outreach/tracking.</p>
+    <button onclick="window.history.back()" class="back-arrow-btn" aria-label="Go back" style="margin:12px 0 0 12px;background:none;border:none;cursor:pointer;font-size:1.6em;color:#2563eb;"><span aria-hidden="true">&#8592;</span> Back</button>
+  </div>
+  <main class="main" tabindex="-1">
+    <div class="card" style="max-width:600px;margin:auto;">
+      <label for="referenceName"><strong>Referee Name</strong></label>
+      <input id="referenceName" type="text" style="width:100%;margin-bottom:10px;" placeholder="e.g. Jane Smith" />
+      <label for="referenceDetails"><strong>Details/Relationship</strong></label>
+      <input id="referenceDetails" type="text" style="width:100%;margin-bottom:10px;" placeholder="e.g. Former Manager at Acme Corp" />
+      <button id="generateReferenceBtn" class="auth-submit-btn" style="margin-bottom:10px;">Generate Reference Letter</button>
+      <div id="referenceResult" style="margin-top:18px;"></div>
+      <div style="display:flex;gap:12px;justify-content:center;margin-top:18px;">
+        <button id="saveReferencePdfBtn" class="auth-submit-btn" style="background:#38bdf8;color:#1e293b;min-width:140px;">Save as PDF</button>
+        <button id="saveReferenceWordBtn" class="auth-submit-btn" style="background:#6366f1;color:#fff;min-width:140px;">Save as Word</button>
+      </div>
+    </div>
+  </main>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="../js/api-base.js"></script>
+  <script src="../js/auth-storage.js"></script>
+  <script src="../js/dashboard.js"></script>
+  <script>
+    // Placeholder for college style formatting and download logic
+    let lastReference = '';
+    document.getElementById('saveReferencePdfBtn').onclick = function() {
+      if (!lastReference) return;
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(18);
+      doc.text('Reference Letter', 10, 20);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(12);
+      doc.text(lastReference, 10, 32, { maxWidth: 180 });
+      doc.save('reference-letter.pdf');
+    };
+    document.getElementById('saveReferenceWordBtn').onclick = function() {
+      if (!lastReference) return;
+      const blob = new Blob([lastReference], { type: 'application/msword' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'reference-letter.doc';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    };
+  </script>
+</body>
+</html>

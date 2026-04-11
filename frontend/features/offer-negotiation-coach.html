@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Offer Negotiation Coach | RoleRocket AI</title>
+  <link rel="stylesheet" href="../styles.css" />
+</head>
+<body>
+  <div class="hero">
+    <h1>Offer Negotiation Coach</h1>
+    <p>Upload your offer, get AI-powered negotiation scripts, and simulate recruiter calls with real-time feedback.</p>
+    <button onclick="window.history.back()" class="back-arrow-btn" aria-label="Go back" style="margin:12px 0 0 12px;background:none;border:none;cursor:pointer;font-size:1.6em;color:#2563eb;"><span aria-hidden="true">&#8592;</span> Back</button>
+  </div>
+  <main class="main" tabindex="-1">
+    <div class="card" style="max-width:600px;margin:auto;">
+      <label for="offerUpload"><strong>Upload Offer Letter</strong></label>
+      <input id="offerUpload" type="file" style="width:100%;margin-bottom:10px;" />
+      <button id="analyzeOfferBtn" class="auth-submit-btn" style="margin-bottom:10px;">Analyze & Simulate</button>
+      <div id="negotiationResult" style="margin-top:18px;"></div>
+      <div style="display:flex;gap:12px;justify-content:center;margin-top:18px;">
+        <button id="saveNegotiationPdfBtn" class="auth-submit-btn" style="background:#38bdf8;color:#1e293b;min-width:140px;">Save as PDF</button>
+        <button id="saveNegotiationWordBtn" class="auth-submit-btn" style="background:#6366f1;color:#fff;min-width:140px;">Save as Word</button>
+      </div>
+    </div>
+  </main>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="../js/api-base.js"></script>
+  <script src="../js/auth-storage.js"></script>
+  <script src="../js/dashboard.js"></script>
+  <script>
+    // Placeholder for college style formatting and download logic
+    let lastNegotiation = '';
+    document.getElementById('saveNegotiationPdfBtn').onclick = function() {
+      if (!lastNegotiation) return;
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(18);
+      doc.text('Offer Negotiation', 10, 20);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(12);
+      doc.text(lastNegotiation, 10, 32, { maxWidth: 180 });
+      doc.save('offer-negotiation.pdf');
+    };
+    document.getElementById('saveNegotiationWordBtn').onclick = function() {
+      if (!lastNegotiation) return;
+      const blob = new Blob([lastNegotiation], { type: 'application/msword' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'offer-negotiation.doc';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    };
+  </script>
+</body>
+</html>

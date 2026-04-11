@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calendar & Task AI | RoleRocket AI</title>
+  <link rel="stylesheet" href="../styles.css" />
+</head>
+<body>
+  <div class="hero">
+    <h1>Integrated Calendar & Task AI</h1>
+    <p>Sync interviews, deadlines, and get reminders with prep tips—powered by AI.</p>
+    <button onclick="window.history.back()" class="back-arrow-btn" aria-label="Go back" style="margin:12px 0 0 12px;background:none;border:none;cursor:pointer;font-size:1.6em;color:#2563eb;"><span aria-hidden="true">&#8592;</span> Back</button>
+  </div>
+  <main class="main" tabindex="-1">
+    <div class="card" style="max-width:600px;margin:auto;">
+      <label for="calendarEmail"><strong>Connect Calendar Email</strong></label>
+      <input id="calendarEmail" type="email" style="width:100%;margin-bottom:10px;" placeholder="Enter your email address..." />
+      <button id="connectCalendarBtn" class="auth-submit-btn" style="margin-bottom:10px;">Connect Calendar</button>
+      <div id="calendarStatus" style="margin-top:18px;"></div>
+      <div id="calendarEvents" style="margin-top:24px;"></div>
+      <div style="display:flex;gap:12px;justify-content:center;margin-top:18px;">
+        <button id="saveCalendarPdfBtn" class="auth-submit-btn" style="background:#38bdf8;color:#1e293b;min-width:140px;">Save as PDF</button>
+        <button id="saveCalendarWordBtn" class="auth-submit-btn" style="background:#6366f1;color:#fff;min-width:140px;">Save as Word</button>
+      </div>
+    </div>
+  </main>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="../js/api-base.js"></script>
+  <script src="../js/auth-storage.js"></script>
+  <script src="../js/dashboard.js"></script>
+  <script>
+    // Placeholder for college style formatting and download logic
+    let lastCalendar = '';
+    document.getElementById('saveCalendarPdfBtn').onclick = function() {
+      if (!lastCalendar) return;
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(18);
+      doc.text('Calendar & Task AI', 10, 20);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(12);
+      doc.text(lastCalendar, 10, 32, { maxWidth: 180 });
+      doc.save('calendar-tasks.pdf');
+    };
+    document.getElementById('saveCalendarWordBtn').onclick = function() {
+      if (!lastCalendar) return;
+      const blob = new Blob([lastCalendar], { type: 'application/msword' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'calendar-tasks.doc';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    };
+  </script>
+</body>
+</html>

@@ -101,6 +101,7 @@ document.addEventListener('DOMContentLoaded', function () {
   };
 
 
+
   async function startInterview() {
     resultDiv.innerHTML = '<em>Starting interview...</em>';
     interviewState = { step: 0, questions: [], answers: [], feedback: null, sessionId: null };
@@ -139,6 +140,15 @@ document.addEventListener('DOMContentLoaded', function () {
       showQuestion();
     } catch (err) {
       resultDiv.innerHTML = `<span style='color:red;'>${err.message || err}</span>`;
+    }
+  }
+
+  // Fix: Define showQuestion for Start Interview
+  function showQuestion() {
+    if (interviewState.questions && interviewState.questions.length > 0) {
+      resultDiv.innerHTML = `<strong>AI:</strong> ${interviewState.questions[0]}`;
+    } else {
+      resultDiv.innerHTML = '<span style="color:#dc2626;">No interview question received from AI.</span>';
     }
   }
 
@@ -210,23 +220,42 @@ document.addEventListener('DOMContentLoaded', function () {
     );
   }
 
-  if (startBtn) {
-    startBtn.addEventListener('click', startInterview);
-  }
-});
-
-// Helper to get auth token from all possible sources
-function getAuthToken() {
-  try {
-    return (
-      (typeof getStoredToken === 'function' && getStoredToken()) ||
-      localStorage.getItem('token') ||
-      localStorage.getItem('authToken') ||
-      sessionStorage.getItem('token') ||
-      sessionStorage.getItem('authToken') ||
-      ''
-    );
-  } catch {
-    return '';
-  }
-}
+        if (data.firstQuestion) {
+          resultDiv.innerHTML = `<strong>AI:</strong> ${data.firstQuestion}<br><em>🔔 Speak your answer after the beep...</em>`;
+          window.AIInterviewAudio.speakText(data.firstQuestion);
+          // Play beep sound before starting speech recognition
+          const beep = new Audio('https://cdn.jsdelivr.net/gh/terrasample/static-assets/beep-07.mp3');
+          beep.play();
+          beep.onended = () => {
+            if (!window.AIInterviewAudio.startSpeechRecognition) {
+              resultDiv.innerHTML += '<br><span style="color:#dc2626;">Speech recognition not available in this browser.</span>';
+              console.error('Speech recognition not available: window.AIInterviewAudio', window.AIInterviewAudio);
+              startAudioBtn.disabled = false;
+              return;
+            }
+            window.AIInterviewAudio.startSpeechRecognition(async (transcript) => {
+              resultDiv.innerHTML += `<br><strong>You:</strong> ${transcript}<br><em>AI is evaluating your answer...</em>`;
+              // Send answer to backend for feedback
+              const feedbackRes = await fetch('/api/interview-assist', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ role, scenario, question: data.firstQuestion, answer: transcript })
+              });
+              const feedbackData = await feedbackRes.json();
+              if (feedbackData.answer) {
+                resultDiv.innerHTML += `<br><strong>AI Feedback:</strong> ${feedbackData.answer}`;
+                window.AIInterviewAudio.speakText(feedbackData.answer);
+              } else {
+                resultDiv.innerHTML += `<br><span style='color:red;'>No feedback received.</span>`;
+              }
+              startAudioBtn.disabled = false;
+            });
+          };
+        } else {
+          resultDiv.innerHTML = '<span style="color:#dc2626;">Failed to get interview question.</span>';
+          console.error('No firstQuestion in response:', data);
+          startAudioBtn.disabled = false;
+        }

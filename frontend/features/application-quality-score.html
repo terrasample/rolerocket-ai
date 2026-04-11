@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Application Quality Score | RoleRocket AI</title>
+  <link rel="stylesheet" href="../styles.css" />
+</head>
+<body>
+  <div class="hero">
+    <h1>Application Quality Score</h1>
+    <p>AI rates your resume, cover letter, and LinkedIn for each job, with actionable fixes.</p>
+    <button onclick="window.history.back()" class="back-arrow-btn" aria-label="Go back" style="margin:12px 0 0 12px;background:none;border:none;cursor:pointer;font-size:1.6em;color:#2563eb;"><span aria-hidden="true">&#8592;</span> Back</button>
+  </div>
+  <main class="main" tabindex="-1">
+    <div class="card" style="max-width:600px;margin:auto;">
+      <label for="aqsResume"><strong>Paste Resume</strong></label>
+      <textarea id="aqsResume" rows="4" style="width:100%;margin-bottom:10px;" placeholder="Paste your resume here..."></textarea>
+      <label for="aqsCoverLetter"><strong>Paste Cover Letter</strong></label>
+      <textarea id="aqsCoverLetter" rows="4" style="width:100%;margin-bottom:10px;" placeholder="Paste your cover letter here..."></textarea>
+      <label for="aqsLinkedIn"><strong>LinkedIn URL</strong></label>
+      <input id="aqsLinkedIn" type="url" style="width:100%;margin-bottom:10px;" placeholder="Paste your LinkedIn profile URL..." />
+      <button id="scoreApplicationBtn" class="auth-submit-btn" style="margin-bottom:10px;">Score Application</button>
+      <div id="aqsResult" style="margin-top:18px;"></div>
+      <div style="display:flex;gap:12px;justify-content:center;margin-top:18px;">
+        <button id="saveAqsPdfBtn" class="auth-submit-btn" style="background:#38bdf8;color:#1e293b;min-width:140px;">Save as PDF</button>
+        <button id="saveAqsWordBtn" class="auth-submit-btn" style="background:#6366f1;color:#fff;min-width:140px;">Save as Word</button>
+      </div>
+    </div>
+  </main>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="../js/api-base.js"></script>
+  <script src="../js/auth-storage.js"></script>
+  <script src="../js/dashboard.js"></script>
+  <script>
+    // Placeholder for college style formatting and download logic
+    let lastAqs = '';
+    document.getElementById('saveAqsPdfBtn').onclick = function() {
+      if (!lastAqs) return;
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(18);
+      doc.text('Application Quality Score', 10, 20);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(12);
+      doc.text(lastAqs, 10, 32, { maxWidth: 180 });
+      doc.save('application-quality-score.pdf');
+    };
+    document.getElementById('saveAqsWordBtn').onclick = function() {
+      if (!lastAqs) return;
+      const blob = new Blob([lastAqs], { type: 'application/msword' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'application-quality-score.doc';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    };
+  </script>
+</body>
+</html>
