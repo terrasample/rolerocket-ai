@@ -216,30 +216,39 @@ document.getElementById('applyFixBtn')?.addEventListener('click', () => {
   setOptimizerStatus('Applied AI rewrite to resume.');
 });
 
-document.getElementById('saveResumeBtn')?.addEventListener('click', async () => {
+document.getElementById('saveAtsResumePdfBtn')?.addEventListener('click', () => {
   const resume = document.getElementById('atsResume').value.trim();
   if (!resume) {
-    alert('No resume content to save.');
+    setOptimizerStatus('No resume content to save.', true);
     return;
   }
-  setOptimizerStatus('Saving resume...');
-  try {
-    const res = await fetch(apiUrl('/api/resume/save'), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`
-      },
-      body: JSON.stringify({ content: resume, title: 'ATS Optimized Resume' })
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.error || 'Failed to save resume');
-    }
-    setOptimizerStatus('Resume saved!');
-  } catch (err) {
-    console.error(err);
-    setOptimizerStatus(err.message || 'Failed to save resume', true);
+  if (!window.jspdf) {
+    setOptimizerStatus('PDF library not loaded.', true);
+    return;
   }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const text = resume.replace(/\n/g, '\n');
+  doc.setFont('helvetica');
+  doc.setFontSize(12);
+  doc.text(text, 10, 20, { maxWidth: 180 });
+  doc.save('ats-optimized-resume.pdf');
+  setOptimizerStatus('PDF downloaded!');
+});
+
+document.getElementById('saveAtsResumeWordBtn')?.addEventListener('click', () => {
+  const resume = document.getElementById('atsResume').value.trim();
+  if (!resume) {
+    setOptimizerStatus('No resume content to save.', true);
+    return;
+  }
+  const blob = new Blob([resume], { type: 'application/msword' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'ats-optimized-resume.doc';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setOptimizerStatus('Word document downloaded!');
 });
 
