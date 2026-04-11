@@ -1,3 +1,65 @@
+// Add Save as PDF/Word logic
+document.addEventListener('DOMContentLoaded', function () {
+  const savePdfBtn = document.getElementById('saveCareerCoachPdfBtn');
+  const saveWordBtn = document.getElementById('saveCareerCoachWordBtn');
+  const resultDiv = document.getElementById('careerCoachResult');
+  let lastPlan = '';
+
+  // Patch: update lastPlan after result
+  const btn = document.getElementById('careerCoachBtn');
+  btn.addEventListener('click', function () {
+    setTimeout(() => {
+      const pre = resultDiv.querySelector('pre');
+      if (pre) {
+        lastPlan = pre.textContent;
+      }
+    }, 500);
+  });
+
+  if (savePdfBtn) {
+    savePdfBtn.onclick = function() {
+      if (!lastPlan) {
+        resultDiv.innerHTML += '<div style="color:#dc2626;">No plan to save. Please generate first.</div>';
+        return;
+      }
+      if (!window.jspdf) {
+        resultDiv.innerHTML += '<div style="color:#dc2626;">PDF library not loaded.</div>';
+        return;
+      }
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      // Format: Title, then content
+      doc.setFont('helvetica','bold');
+      doc.setFontSize(16);
+      doc.text('Career Coach Focus Plan', 10, 18);
+      doc.setFont('helvetica','normal');
+      doc.setFontSize(12);
+      const text = lastPlan.replace(/\n{2,}/g, '\n');
+      doc.text(text, 10, 30, { maxWidth: 180 });
+      doc.save('career-coach-focus-plan.pdf');
+      resultDiv.innerHTML += '<div style="color:#16a34a;">PDF downloaded.</div>';
+    };
+  }
+
+  if (saveWordBtn) {
+    saveWordBtn.onclick = function() {
+      if (!lastPlan) {
+        resultDiv.innerHTML += '<div style="color:#dc2626;">No plan to save. Please generate first.</div>';
+        return;
+      }
+      // Format: Title, then content
+      const content = 'Career Coach Focus Plan\n\n' + lastPlan;
+      const blob = new Blob([content], { type: 'application/msword' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'career-coach-focus-plan.doc';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      resultDiv.innerHTML += '<div style="color:#16a34a;">Word document downloaded.</div>';
+    };
+  }
+});
 // Career Coach frontend logic
 
 document.addEventListener('DOMContentLoaded', function () {

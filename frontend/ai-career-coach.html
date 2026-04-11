@@ -18,7 +18,10 @@
     <label for="careerGoals"><strong>Your Career Goals (optional)</strong></label>
     <textarea id="careerGoals" rows="4" style="width:100%;margin-bottom:12px;" placeholder="Describe your goals, challenges, or questions..."></textarea>
     <button id="careerCoachBtn" class="auth-submit-btn" style="width:100%;">Get Career Coaching</button>
+    <button id="saveCareerCoachPdfBtn" class="auth-submit-btn" style="width:100%;margin-top:10px;background:#38bdf8;color:#1e293b;">Save as PDF</button>
+    <button id="saveCareerCoachWordBtn" class="auth-submit-btn" style="width:100%;margin-top:10px;background:#6366f1;color:#fff;">Save as Word</button>
     <div id="careerCoachResult" style="margin-top:18px;min-height:80px;background:#fffbe6;padding:22px 18px;border-radius:12px;font-size:1.18em;line-height:1.7;color:#1e293b;font-family:'Inter', 'Segoe UI', Arial, sans-serif;border:2.5px solid #f59e42;box-shadow:0 2px 16px #facc1530;"></div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   </div>
   <script src="js/api-base.js"></script>
   <script src="js/auth-storage.js"></script>

@@ -20,12 +20,17 @@ document.addEventListener('DOMContentLoaded', function () {
     interviewState = { step: 0, questions: [], answers: [], feedback: null, sessionId: null };
     const role = roleInput.value.trim();
     const scenario = scenarioInput.value.trim();
+    const token = getAuthToken ? getAuthToken() : localStorage.getItem('token');
+    if (!token) {
+      resultDiv.innerHTML = '<span style="color:#dc2626;">You must be logged in to start an interview. Please log in and try again.</span>';
+      return;
+    }
     try {
       const res = await fetch('/api/interview-assist', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': getAuthToken() ? `Bearer ${getAuthToken()}` : ''
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ role, scenario, step: 0, answers: [] })
       });
@@ -36,7 +41,7 @@ document.addEventListener('DOMContentLoaded', function () {
       interviewState.step = 0;
       showQuestion();
     } catch (err) {
-      resultDiv.innerHTML = `<span style="color:red;">${err.message}</span>`;
+      resultDiv.innerHTML = `<span style=\"color:red;\">${err.message}</span>`;
     }
   }
 
