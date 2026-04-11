@@ -100,18 +100,19 @@
         <!-- Features Section: Will be rendered dynamically by JS -->
         <section class="dashboard-features-section" id="dashboardFeaturesSection">
           <h2 id="dashboardFeaturesHeader" style="color:#2563eb;margin-top:32px;">Your Features</h2>
-          <div class="dashboard-features-grid" id="dashboardFeaturesGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:24px 20px;margin-bottom:32px;"></div>
+          <div class="dashboard-features-grid" id="dashboardFeaturesGrid"></div>
         </section>
 
-        <!-- Jobs Applied Section -->
-        <div class="card">
-          <h3>📝 Recent Applications</h3>
-          <ul id="dashboardJobsList" style="padding-left:18px;"><li>Loading...</li></ul>
-        </div>
-        <!-- Personal Tips Section -->
-        <div class="card">
-          <h3>💡 Personal Tips</h3>
-          <div id="dashboardTips">Loading...</div>
+        <!-- Bottom Info Cards Row -->
+        <div class="dashboard-bottom-row">
+          <div class="dashboard-sidecard" id="dashboardRecentApps">
+            <h3>📝 Recent Applications</h3>
+            <ul id="dashboardJobsList"><li>Loading...</li></ul>
+          </div>
+          <div class="dashboard-sidecard" id="dashboardTipsCard">
+            <h3>💡 Personal Tips</h3>
+            <div id="dashboardTips">Loading...</div>
+          </div>
         </div>
       </div>
     </div>
