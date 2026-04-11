@@ -20,13 +20,17 @@ document.addEventListener('DOMContentLoaded', function () {
     interviewState = { step: 0, questions: [], answers: [], feedback: null, sessionId: null };
     const role = roleInput.value.trim();
     const scenario = scenarioInput.value.trim();
-    let token = null;
-    if (typeof getAuthToken === 'function') {
+    let token = '';
+    if (typeof getStoredToken === 'function') {
+      token = getStoredToken();
+    } else if (typeof getAuthToken === 'function') {
       token = getAuthToken();
+    } else if (window.getStoredToken) {
+      token = window.getStoredToken();
     } else if (window.getAuthToken) {
       token = window.getAuthToken();
     } else {
-      token = localStorage.getItem('token');
+      token = localStorage.getItem('token') || localStorage.getItem('authToken') || sessionStorage.getItem('token') || sessionStorage.getItem('authToken') || '';
     }
     if (!token) {
       resultDiv.innerHTML = '<span style="color:#dc2626;">You must be logged in to start an interview. Please log in and try again.</span>';
@@ -88,11 +92,23 @@ document.addEventListener('DOMContentLoaded', function () {
     try {
       const role = roleInput.value.trim();
       const scenario = scenarioInput.value.trim();
+      let token = '';
+      if (typeof getStoredToken === 'function') {
+        token = getStoredToken();
+      } else if (typeof getAuthToken === 'function') {
+        token = getAuthToken();
+      } else if (window.getStoredToken) {
+        token = window.getStoredToken();
+      } else if (window.getAuthToken) {
+        token = window.getAuthToken();
+      } else {
+        token = localStorage.getItem('token') || localStorage.getItem('authToken') || sessionStorage.getItem('token') || sessionStorage.getItem('authToken') || '';
+      }
       const res = await fetch('/api/interview-assist', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': getAuthToken() ? `Bearer ${getAuthToken()}` : ''
+          'Authorization': token ? `Bearer ${token}` : ''
         },
         body: JSON.stringify({
           role,
@@ -114,10 +130,17 @@ document.addEventListener('DOMContentLoaded', function () {
   startBtn.addEventListener('click', startInterview);
 });
 
-// Helper to get auth token from localStorage (if available)
+// Helper to get auth token from all possible sources
 function getAuthToken() {
   try {
-    return localStorage.getItem('authToken') || '';
+    return (
+      (typeof getStoredToken === 'function' && getStoredToken()) ||
+      localStorage.getItem('token') ||
+      localStorage.getItem('authToken') ||
+      sessionStorage.getItem('token') ||
+      sessionStorage.getItem('authToken') ||
+      ''
+    );
   } catch {
     return '';
   }
