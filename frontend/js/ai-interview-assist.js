@@ -15,7 +15,12 @@ document.addEventListener('DOMContentLoaded', function () {
       startAudioBtn.disabled = true;
       resultDiv.innerHTML = '<em>Starting audio interview...</em>';
       try {
-        if (!window.AIInterviewAudio) throw new Error('Audio module not loaded.');
+        if (!window.AIInterviewAudio) {
+          resultDiv.innerHTML = '<span style="color:#dc2626;">Audio module not loaded. Please check your deployment or clear your browser cache.</span>';
+          console.error('Audio module not loaded: window.AIInterviewAudio is', window.AIInterviewAudio);
+          startAudioBtn.disabled = false;
+          return;
+        }
         await window.AIInterviewAudio.startAudioStream();
         // Optionally play back local audio
         // localAudio.srcObject = localStream;
@@ -49,6 +54,7 @@ document.addEventListener('DOMContentLoaded', function () {
           setTimeout(() => {
             if (!window.AIInterviewAudio.startSpeechRecognition) {
               resultDiv.innerHTML += '<br><span style="color:#dc2626;">Speech recognition not available in this browser.</span>';
+              console.error('Speech recognition not available: window.AIInterviewAudio', window.AIInterviewAudio);
               startAudioBtn.disabled = false;
               return;
             }
@@ -75,10 +81,12 @@ document.addEventListener('DOMContentLoaded', function () {
           }, 1200);
         } else {
           resultDiv.innerHTML = '<span style="color:#dc2626;">Failed to get interview question.</span>';
+          console.error('No firstQuestion in response:', data);
           startAudioBtn.disabled = false;
         }
       } catch (err) {
         resultDiv.innerHTML = `<span style='color:red;'>${err.message || err}</span>`;
+        console.error('Interview Assist audio error:', err);
         startAudioBtn.disabled = false;
       }
     });
