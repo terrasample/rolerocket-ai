@@ -8,12 +8,14 @@ document.addEventListener('DOMContentLoaded', function () {
   const scenarioInput = document.getElementById('interviewScenario');
   const resultDiv = document.getElementById('interviewAssistResult');
   const localAudio = document.getElementById('localAudio');
+
   // AUDIO INTERVIEW PRACTICE
   if (startAudioBtn) {
-    startAudioBtn.onclick = async function() {
+    startAudioBtn.addEventListener('click', async function() {
       startAudioBtn.disabled = true;
       resultDiv.innerHTML = '<em>Starting audio interview...</em>';
       try {
+        if (!window.AIInterviewAudio) throw new Error('Audio module not loaded.');
         await window.AIInterviewAudio.startAudioStream();
         // Optionally play back local audio
         // localAudio.srcObject = localStream;
@@ -45,6 +47,11 @@ document.addEventListener('DOMContentLoaded', function () {
           resultDiv.innerHTML = `<strong>AI:</strong> ${data.firstQuestion}<br><em>Speak your answer after the beep...</em>`;
           window.AIInterviewAudio.speakText(data.firstQuestion);
           setTimeout(() => {
+            if (!window.AIInterviewAudio.startSpeechRecognition) {
+              resultDiv.innerHTML += '<br><span style="color:#dc2626;">Speech recognition not available in this browser.</span>';
+              startAudioBtn.disabled = false;
+              return;
+            }
             window.AIInterviewAudio.startSpeechRecognition(async (transcript) => {
               resultDiv.innerHTML += `<br><strong>You:</strong> ${transcript}<br><em>AI is evaluating your answer...</em>`;
               // Send answer to backend for feedback
@@ -74,7 +81,7 @@ document.addEventListener('DOMContentLoaded', function () {
         resultDiv.innerHTML = `<span style='color:red;'>${err.message || err}</span>`;
         startAudioBtn.disabled = false;
       }
-    };
+    });
   }
 
   let interviewState = {
@@ -263,7 +270,9 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  startBtn.addEventListener('click', startInterview);
+  if (startBtn) {
+    startBtn.addEventListener('click', startInterview);
+  }
 });
 
 // Helper to get auth token from all possible sources
