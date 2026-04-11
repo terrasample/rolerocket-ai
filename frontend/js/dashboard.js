@@ -139,13 +139,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function createFeatureCard(feature, tier) {
-      const div = document.createElement('div');
-      div.className = `dashboard-feature-card ${tier}`;
-      div.tabIndex = 0;
-      div.style.cursor = 'pointer';
-      div.onclick = () => { window.location.href = feature.url; };
-      div.innerHTML = `<h3>${feature.name}</h3><p>${feature.desc}</p>`;
-      return div;
+      const card = document.createElement('article');
+      card.className = `price-card ${tier}`;
+      card.tabIndex = 0;
+      card.style.cursor = 'pointer';
+      card.onclick = () => { window.location.href = feature.url; };
+      card.onkeypress = (e) => { if (e.key === 'Enter' || e.key === ' ') { window.location.href = feature.url; } };
+      card.setAttribute('role', 'button');
+      card.setAttribute('aria-label', feature.name);
+      card.innerHTML = `
+        <h3>${feature.name}</h3>
+        <p>${feature.desc}</p>
+        <button class="feature-launch-btn" tabindex="-1" style="margin-top:12px;">Open</button>
+      `;
+      card.querySelector('button').onclick = (e) => { e.stopPropagation(); window.location.href = feature.url; };
+      return card;
     }
 
     // Render features on load
