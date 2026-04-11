@@ -38,6 +38,62 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
+  function formatPlanForPdf(text, doc) {
+    // Split by lines and parse markdown-like headers/lists
+    const lines = text.split(/\r?\n/);
+    let y = 20;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(18);
+    doc.text('Career Coach Focus Plan', 10, y);
+    y += 10;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(12);
+    lines.forEach(line => {
+      if (/^### /.test(line)) {
+        y += 8;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(14);
+        doc.text(line.replace(/^### /, ''), 10, y);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(12);
+        y += 6;
+      } else if (/^## /.test(line)) {
+        y += 8;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(13);
+        doc.text(line.replace(/^## /, ''), 10, y);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(12);
+        y += 5;
+      } else if (/^# /.test(line)) {
+        y += 10;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(15);
+        doc.text(line.replace(/^# /, ''), 10, y);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(12);
+        y += 6;
+      } else if (/^\d+\. /.test(line)) {
+        doc.text(line, 14, y);
+        y += 6;
+      } else if (/^- /.test(line)) {
+        doc.text(line.replace(/^- /, '\u2022 '), 18, y);
+        y += 6;
+      } else if (/^\*\*.*\*\*$/.test(line)) {
+        doc.setFont('helvetica', 'bold');
+        doc.text(line.replace(/\*\*/g, ''), 10, y);
+        doc.setFont('helvetica', 'normal');
+        y += 6;
+      } else if (line.trim() === '') {
+        y += 4;
+      } else {
+        doc.text(line, 10, y);
+        y += 6;
+      }
+      if (y > 270) { doc.addPage(); y = 20; }
+    });
+  }
+
   if (savePdfBtn) {
     savePdfBtn.onclick = function() {
       if (!lastPlan) {
@@ -50,16 +106,24 @@ document.addEventListener('DOMContentLoaded', function () {
       }
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
-      doc.setFont('helvetica','bold');
-      doc.setFontSize(16);
-      doc.text('Career Coach Focus Plan', 10, 18);
-      doc.setFont('helvetica','normal');
-      doc.setFontSize(12);
-      const text = lastPlan.replace(/\n{2,}/g, '\n');
-      doc.text(text, 10, 30, { maxWidth: 180 });
+      formatPlanForPdf(lastPlan, doc);
       doc.save('career-coach-focus-plan.pdf');
       resultDiv.innerHTML += '<div style="color:#16a34a;">PDF downloaded.</div>';
     };
+  }
+
+  function formatPlanForWord(text) {
+    // Convert markdown-like to simple Word formatting
+    return (
+      'Career Coach Focus Plan\n\n' +
+      text
+        .replace(/^### (.*)$/gm, '\n\n$1\n' + '-'.repeat(40))
+        .replace(/^## (.*)$/gm, '\n\n$1\n' + '-'.repeat(30))
+        .replace(/^# (.*)$/gm, '\n\n$1\n' + '-'.repeat(20))
+        .replace(/\*\*(.*?)\*\*/g, '$1'.toUpperCase())
+        .replace(/^- /gm, '  • ')
+        .replace(/\n{2,}/g, '\n\n')
+    );
   }
 
   if (saveWordBtn) {
@@ -68,7 +132,7 @@ document.addEventListener('DOMContentLoaded', function () {
         resultDiv.innerHTML += '<div style="color:#dc2626;">No plan to save. Please generate first.</div>';
         return;
       }
-      const content = 'Career Coach Focus Plan\n\n' + lastPlan;
+      const content = formatPlanForWord(lastPlan);
       const blob = new Blob([content], { type: 'application/msword' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
