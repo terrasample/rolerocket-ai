@@ -19,6 +19,61 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  function formatResumeForPdf(text, doc) {
+    const lines = text.split(/\r?\n/);
+    let y = 20;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(18);
+    doc.text('Optimized Resume', 10, y);
+    y += 10;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(12);
+    lines.forEach(line => {
+      if (/^### /.test(line)) {
+        y += 8;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(14);
+        doc.text(line.replace(/^### /, ''), 10, y);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(12);
+        y += 6;
+      } else if (/^## /.test(line)) {
+        y += 8;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(13);
+        doc.text(line.replace(/^## /, ''), 10, y);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(12);
+        y += 5;
+      } else if (/^# /.test(line)) {
+        y += 10;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(15);
+        doc.text(line.replace(/^# /, ''), 10, y);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(12);
+        y += 6;
+      } else if (/^\d+\. /.test(line)) {
+        doc.text(line, 14, y);
+        y += 6;
+      } else if (/^- /.test(line)) {
+        doc.text(line.replace(/^- /, '\u2022 '), 18, y);
+        y += 6;
+      } else if (/^\*\*.*\*\*$/.test(line)) {
+        doc.setFont('helvetica', 'bold');
+        doc.text(line.replace(/\*\*/g, ''), 10, y);
+        doc.setFont('helvetica', 'normal');
+        y += 6;
+      } else if (line.trim() === '') {
+        y += 4;
+      } else {
+        doc.text(line, 10, y);
+        y += 6;
+      }
+      if (y > 270) { doc.addPage(); y = 20; }
+    });
+  }
+
   if (savePdfBtn) {
     savePdfBtn.onclick = function() {
       if (!lastResume) {
@@ -31,13 +86,23 @@ document.addEventListener('DOMContentLoaded', function () {
       }
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
-      const text = lastResume.replace(/\n/g, '\n');
-      doc.setFont('helvetica');
-      doc.setFontSize(12);
-      doc.text(text, 10, 20, { maxWidth: 180 });
+      formatResumeForPdf(lastResume, doc);
       doc.save('resume.pdf');
       output.innerHTML = '<div style="color:#16a34a;">PDF downloaded.</div>';
     };
+  }
+
+  function formatResumeForWord(text) {
+    return (
+      'Optimized Resume\n\n' +
+      text
+        .replace(/^### (.*)$/gm, '\n\n$1\n' + '-'.repeat(40))
+        .replace(/^## (.*)$/gm, '\n\n$1\n' + '-'.repeat(30))
+        .replace(/^# (.*)$/gm, '\n\n$1\n' + '-'.repeat(20))
+        .replace(/\*\*(.*?)\*\*/g, '$1'.toUpperCase())
+        .replace(/^- /gm, '  • ')
+        .replace(/\n{2,}/g, '\n\n')
+    );
   }
 
   if (saveWordBtn) {
@@ -46,7 +111,8 @@ document.addEventListener('DOMContentLoaded', function () {
         output.innerHTML = '<div style="color:#dc2626;">No resume to save. Please rewrite first.</div>';
         return;
       }
-      const blob = new Blob([lastResume], { type: 'application/msword' });
+      const content = formatResumeForWord(lastResume);
+      const blob = new Blob([content], { type: 'application/msword' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = 'resume.doc';

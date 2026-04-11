@@ -2211,10 +2211,6 @@ app.post('/api/interview-assist', authenticateToken, async (req, res) => {
   try {
     const { question, role, resume, history } = req.body || {};
 
-    if (!question || !String(question).trim()) {
-      return res.status(400).json({ error: 'question is required' });
-    }
-
     if (E2E_MOCK_MODE) {
       return res.json({
         type: 'behavioral',
@@ -2227,6 +2223,26 @@ app.post('/api/interview-assist', authenticateToken, async (req, res) => {
     const user = await User.findById(req.user.userId);
     if (!hasRequiredPlan(user, 'elite')) {
       return res.status(403).json({ error: 'Upgrade to Elite to use Interview Assist.' });
+    }
+
+    // If no question is provided, generate a first interview question based on role/scenario
+    if (!question || !String(question).trim()) {
+      // Use OpenAI to generate a first interview question
+      const prompt = `You are an expert interviewer. Given the following role and scenario, generate a single realistic first interview question for a candidate. Only return the question, no preamble or explanation.
+
+Role: ${role || 'N/A'}
+Scenario: ${resume || ''}`;
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: 'You are a helpful assistant.' },
+          { role: 'user', content: prompt }
+        ]
+      });
+      const firstQuestion = (completion.choices[0].message.content || '').trim();
+      return res.json({
+        firstQuestion
+      });
     }
 
     const systemPrompt = `You are a live interview coach helping a candidate answer questions in real-time during an actual job interview.
