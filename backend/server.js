@@ -56,10 +56,15 @@ app.get('/api/me', async (req, res) => {
 
 // ...existing code...
 
+
 // Register ATS API routes
 app.use('/api/ats', require('./routes/ats'));
 // Register Cover Letter API route
 app.use('/api/cover-letter', require('./routes/coverLetter'));
+
+// Register plan-based access control middleware and feature routes
+const planAccess = require('./middleware/planAccess');
+app.use('/api/features', require('./routes/features'));
 
 // Start the Express server
 // Start the Express server (must be at the end)
