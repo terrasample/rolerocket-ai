@@ -49,34 +49,18 @@ document.addEventListener('DOMContentLoaded', function () {
       output.innerHTML = '<div style="color:#dc2626;">No resume to save. Please generate first.</div>';
       return;
     }
-    // Prompt user for file type
-    const format = window.prompt('Save as (enter "pdf" or "word"):', 'pdf');
-    if (!format) return;
-    if (format.toLowerCase() === 'pdf') {
-      if (!window.jspdf) {
-        output.innerHTML = '<div style="color:#dc2626;">PDF library not loaded.</div>';
-        return;
-      }
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
-      const text = lastResume.replace(/\n/g, '\n');
-      doc.setFont('helvetica');
-      doc.setFontSize(12);
-      doc.text(text, 10, 20, { maxWidth: 180 });
-      doc.save('resume.pdf');
-      output.innerHTML = '<div style="color:#16a34a;">PDF downloaded.</div>';
-    } else if (format.toLowerCase() === 'word') {
-      // Save as .docx (Word)
-      const blob = new Blob([lastResume], { type: 'application/msword' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'resume.doc';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      output.innerHTML = '<div style="color:#16a34a;">Word document downloaded.</div>';
-    } else {
-      output.innerHTML = '<div style="color:#dc2626;">Invalid format. Please enter "pdf" or "word".</div>';
+    // Default: Save as PDF, user can change file type in Save As dialog
+    if (!window.jspdf) {
+      output.innerHTML = '<div style="color:#dc2626;">PDF library not loaded.</div>';
+      return;
     }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const text = lastResume.replace(/\n/g, '\n');
+    doc.setFont('helvetica');
+    doc.setFontSize(12);
+    doc.text(text, 10, 20, { maxWidth: 180 });
+    doc.save('resume.pdf');
+    output.innerHTML = '<div style="color:#16a34a;">PDF downloaded.</div>';
   };
 });
