@@ -20,7 +20,14 @@ document.addEventListener('DOMContentLoaded', function () {
     interviewState = { step: 0, questions: [], answers: [], feedback: null, sessionId: null };
     const role = roleInput.value.trim();
     const scenario = scenarioInput.value.trim();
-    const token = getAuthToken ? getAuthToken() : localStorage.getItem('token');
+    let token = null;
+    if (typeof getAuthToken === 'function') {
+      token = getAuthToken();
+    } else if (window.getAuthToken) {
+      token = window.getAuthToken();
+    } else {
+      token = localStorage.getItem('token');
+    }
     if (!token) {
       resultDiv.innerHTML = '<span style="color:#dc2626;">You must be logged in to start an interview. Please log in and try again.</span>';
       return;
