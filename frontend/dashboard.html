@@ -32,7 +32,7 @@
     </aside>
     <div class="main" id="dashboardMain" tabindex="-1">
       <button onclick="window.history.back()" class="back-arrow-btn" aria-label="Go back" style="margin:12px 0 0 12px;background:none;border:none;cursor:pointer;font-size:1.6em;color:#2563eb;"><span aria-hidden="true">&#8592;</span> Back</button>
-      <div class="grid" style="max-width: 900px;">
+      <div class="grid" style="max-width: 1100px;">
         <!-- Real platform activity (moved from homepage) -->
         <div class="marketing-card premium-stats-section" aria-label="Live platform statistics" style="margin-bottom:24px;min-width:340px;max-width:1000px;">
           <div class="premium-stats-header" style="text-align:center;">
@@ -96,78 +96,119 @@
           <div id="dashboardReferralMsg" style="font-size:0.95em;margin-top:8px;color:#16a34a;"></div>
         </div>
 
+        <!-- --- BEGIN: Features by Tier --- -->
+        <section class="dashboard-features-section">
+          <h2 style="color:#2563eb;margin-top:32px;">Candidate Features</h2>
+          <div class="dashboard-features-grid">
+            <!-- FREE TIER -->
+            <div class="dashboard-feature-card free">
+              <h3>Resume Generator</h3>
+              <p>Turn your baseline resume into role-targeted versions without rewriting from scratch.</p>
+            </div>
+            <div class="dashboard-feature-card free">
+              <h3>Cover Letter Generator</h3>
+              <p>Generate role-specific, high-conversion cover letters aligned to your resume and target job.</p>
+            </div>
+            <div class="dashboard-feature-card free">
+              <h3>Job Search & Tracking</h3>
+              <p>Find jobs, track applications, and organize your job search pipeline.</p>
+            </div>
+            <div class="dashboard-feature-card free">
+              <h3>Success Stories (read-only)</h3>
+              <p>Read inspiring success stories from real users who landed their dream jobs.</p>
+            </div>
 
-        <!-- --- BEGIN: Features (Alphabetical, by Tier) --- -->
-        <!-- FREE TIER -->
-        <div class="marketing-card free-feature">
-          <div class="feature-link" onclick="window.location.href='job-search.html'" style="cursor:pointer;">
-            <h3 class="feature-title">Search Roles</h3>
-            <p>Find and explore open roles that match your interests.</p>
-          </div>
-        </div>
+            <!-- PRO TIER -->
+            <div class="dashboard-feature-card pro">
+              <h3>ATS Optimizer</h3>
+              <p>Identify keyword gaps, structure issues, and weak phrasing before you apply.</p>
+            </div>
+            <div class="dashboard-feature-card pro">
+              <h3>Job Market Radar</h3>
+              <p>See trending roles, in-demand skills, and market insights tailored to your profile.</p>
+            </div>
+            <div class="dashboard-feature-card pro">
+              <h3>Application Quality Score</h3>
+              <p>Get a real-time score and actionable tips to improve your application before submitting.</p>
+            </div>
+            <div class="dashboard-feature-card pro">
+              <h3>Resume Optimizer</h3>
+              <p>Instantly improve your resume with AI-driven analysis and personalized suggestions.</p>
+            </div>
+            <div class="dashboard-feature-card pro">
+              <h3>Gamification</h3>
+              <p>Earn badges and rewards as you progress through your job search journey.</p>
+            </div>
 
-        <!-- PRO TIER -->
-        <div class="marketing-card pro-feature">
-          <div class="feature-link" onclick="window.location.href='cover-letter-generator.html'" style="cursor:pointer;">
-            <h3 class="feature-title">Cover Letter Generator</h3>
-            <p>Generate role-specific, high-conversion cover letters aligned to your resume and target job.</p>
+            <!-- PREMIUM TIER -->
+            <div class="dashboard-feature-card premium">
+              <h3>Interview Prep</h3>
+              <p>Generate realistic interview prompts and stronger response frameworks quickly.</p>
+            </div>
+            <div class="dashboard-feature-card premium">
+              <h3>1-Click Apply Queue</h3>
+              <p>Send your best matches into the ready queue and execute quickly when timing matters.</p>
+            </div>
+            <div class="dashboard-feature-card premium">
+              <h3>AI Portfolio Builder</h3>
+              <p>Build a professional portfolio with AI-generated content and design suggestions.</p>
+            </div>
+            <div class="dashboard-feature-card premium">
+              <h3>Networking AI</h3>
+              <p>Get AI-powered networking tips and introductions to relevant professionals.</p>
+            </div>
+            <div class="dashboard-feature-card premium">
+              <h3>AI Reference Generator</h3>
+              <p>Generate professional references and recommendation letters with AI assistance.</p>
+            </div>
+
+            <!-- ELITE TIER -->
+            <div class="dashboard-feature-card elite">
+              <h3>Career Coach</h3>
+              <p>Get strategic direction on positioning, next-best moves, and salary trajectory by role path.</p>
+            </div>
+            <div class="dashboard-feature-card elite">
+              <h3>Career Path Simulator</h3>
+              <p>Simulate different career paths and see potential outcomes based on your choices.</p>
+            </div>
+            <div class="dashboard-feature-card elite">
+              <h3>Offer Negotiation Coach</h3>
+              <p>Get expert negotiation strategies and scripts to maximize your job offers.</p>
+            </div>
+            <div class="dashboard-feature-card elite">
+              <h3>Video Interview Practice</h3>
+              <p>Practice live interview calls with AI and get instant feedback and improvement pointers after each session.</p>
+            </div>
+            <div class="dashboard-feature-card elite">
+              <h3>Calendar & Task AI</h3>
+              <p>AI-powered calendar and task management for your job search workflow.</p>
+            </div>
+            <div class="dashboard-feature-card elite">
+              <h3>AI Application Tracker</h3>
+              <p>Track all your applications, interviews, and offers in one place with AI insights.</p>
+            </div>
+            <div class="dashboard-feature-card elite">
+              <h3>AI Job Agent</h3>
+              <p>Let AI scout and recommend jobs for you, tailored to your goals and preferences.</p>
+            </div>
           </div>
-        </div>
-        <div class="marketing-card pro-feature">
-          <div class="feature-link" onclick="window.location.href='resume-generator.html'" style="cursor:pointer;">
-            <h3 class="feature-title">Resume Generator</h3>
-            <p>Turn your baseline resume into role-targeted versions without rewriting from scratch.</p>
+        </section>
+
+        <!-- Recruiter Features Section -->
+        <section class="dashboard-features-section" style="margin-top:48px;">
+          <h2 style="color:#059669;">Recruiter Features</h2>
+          <div class="dashboard-features-grid">
+            <div class="dashboard-feature-card recruiter">
+              <h3>AI Recruiter Assist</h3>
+              <p>Instantly see the top 3 most qualified candidates for any job role, ranked by resume match. <strong>Available to recruiter subscribers only.</strong></p>
+            </div>
+            <div class="dashboard-feature-card recruiter">
+              <h3>Premium Recruiter Dashboard</h3>
+              <p>Unlock advanced recruiter tools and analytics for talent acquisition.</p>
+            </div>
           </div>
-        </div>
-        <div class="marketing-card pro-feature">
-          <div class="feature-link" onclick="window.location.href='job-tracking.html'" style="cursor:pointer;">
-            <h3 class="feature-title">Job Search & Tracking</h3>
-            <p>Track your job applications and monitor progress in one place.</p>
-          </div>
-        </div>
-        <div class="marketing-card pro-feature">
-          <div class="feature-link" onclick="window.location.href='resume-optimizer.html'" style="cursor:pointer;">
-            <h3 class="feature-title">Resume Optimizer</h3>
-            <p>Rewrite and improve your resume for clarity, strength, and professionalism.<br><em>Focus: Human readability and impact.</em></p>
-          </div>
-        </div>
-        <div class="marketing-card pro-feature">
-          <div class="feature-link" onclick="window.location.href='resume-generator.html'" style="cursor:pointer;">
-            <h3 class="feature-title">Resume Generator</h3>
-            <p>Generate a tailored resume for your target job in seconds.<br><em>Focus: Fast, AI-powered resume creation.</em></p>
-          </div>
-        </div>
-        <div class="marketing-card pro-feature">
-          <div class="feature-link" onclick="window.location.href='optimizer.html'" style="cursor:pointer;">
-            <h3 class="feature-title">ATS Optimizer</h3>
-            <p>Audit your resume for ATS compatibility, keyword gaps, and formatting.<br><em>Focus: Passing automated filters.</em></p>
-          </div>
-        </div>
-        <div class="marketing-card pro-feature">
-          <div class="feature-link" onclick="window.location.href='interview-prep-ai.html'" style="cursor:pointer;">
-            <h3 class="feature-title">Interview Prep</h3>
-            <p>Generate realistic interview prompts and stronger response frameworks quickly.</p>
-          </div>
-        </div>
-        <div class="marketing-card pro-feature">
-          <div class="feature-link" onclick="window.location.href='one-click-apply-queue.html'" style="cursor:pointer;">
-            <h3 class="feature-title">1-Click Apply Queue</h3>
-            <p>Send your best matches into the ready queue and execute quickly when timing matters.</p>
-          </div>
-        </div>
-        <div class="marketing-card pro-feature">
-          <div class="feature-link" onclick="window.location.href='ai-career-coach.html'" style="cursor:pointer;">
-            <h3 class="feature-title">Career Coach</h3>
-            <p>Get strategic direction on positioning, next-best moves, and salary trajectory by role path.</p>
-          </div>
-        </div>
-        <div class="marketing-card pro-feature">
-          <div class="feature-link" onclick="window.location.href='ai-interview-assist.html'" style="cursor:pointer;">
-            <h3 class="feature-title">Interview Assist</h3>
-            <p>Practice live interview calls with AI and get instant feedback and improvement pointers after each session.</p>
-          </div>
-        </div>
-        <!-- --- END: Features (Alphabetical, by Tier) --- -->
+        </section>
+
         <!-- Jobs Applied Section -->
         <div class="card">
           <h3>📝 Recent Applications</h3>
