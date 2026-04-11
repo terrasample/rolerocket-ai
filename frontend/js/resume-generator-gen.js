@@ -2,7 +2,7 @@
 
 document.addEventListener('DOMContentLoaded', function () {
   const generateBtn = document.getElementById('generateResumeBtnGen');
-  const downloadBtn = document.getElementById('downloadResumePdfBtnGen');
+  // Removed downloadBtn logic (no PDF download button)
   const saveBtn = document.getElementById('saveResumeBtnGen');
   const output = document.getElementById('resumeOutputGen');
   let lastResume = '';
@@ -31,33 +31,52 @@ document.addEventListener('DOMContentLoaded', function () {
       if (res.ok && data.result) {
         lastResume = data.result;
         output.innerHTML = `<pre style=\"background:#fffbe6;padding:22px 18px;border-radius:12px;max-height:420px;overflow:auto;font-size:1.18em;line-height:1.7;color:#1e293b;font-family:'Inter', 'Segoe UI', Arial, sans-serif;border:2.5px solid #f59e42;box-shadow:0 2px 16px #facc1530;\">${data.result}</pre>`;
-        if (downloadBtn) downloadBtn.style.display = '';
+        // No PDF download button to show
       } else {
         output.innerHTML = `<div style=\"color:#dc2626;font-size:1.1em;padding:12px 0;\">${data.error || 'Failed to generate resume.'}</div>`;
-        if (downloadBtn) downloadBtn.style.display = 'none';
+        // No PDF download button to hide
       }
     } catch (err) {
       output.innerHTML = '<div style="color:#dc2626;">Error generating resume.</div>';
     }
   });
 
-  downloadBtn.onclick = function() {
-    if (!lastResume) return;
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    const text = lastResume.replace(/\n/g, '\n');
-    doc.setFont('helvetica');
-    doc.setFontSize(12);
-    doc.text(text, 10, 20, { maxWidth: 180 });
-    doc.save('resume.pdf');
-  };
+
+  // Save Resume button: prompt for format and save
 
   saveBtn.onclick = function() {
     if (!lastResume) {
       output.innerHTML = '<div style="color:#dc2626;">No resume to save. Please generate first.</div>';
       return;
     }
-    // Save logic here (e.g., send to backend)
-    output.innerHTML = '<div style="color:#16a34a;">Resume saved (mock).</div>';
+    // Prompt user for file type
+    const format = window.prompt('Save as (enter "pdf" or "word"):', 'pdf');
+    if (!format) return;
+    if (format.toLowerCase() === 'pdf') {
+      if (!window.jspdf) {
+        output.innerHTML = '<div style="color:#dc2626;">PDF library not loaded.</div>';
+        return;
+      }
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      const text = lastResume.replace(/\n/g, '\n');
+      doc.setFont('helvetica');
+      doc.setFontSize(12);
+      doc.text(text, 10, 20, { maxWidth: 180 });
+      doc.save('resume.pdf');
+      output.innerHTML = '<div style="color:#16a34a;">PDF downloaded.</div>';
+    } else if (format.toLowerCase() === 'word') {
+      // Save as .docx (Word)
+      const blob = new Blob([lastResume], { type: 'application/msword' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'resume.doc';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      output.innerHTML = '<div style="color:#16a34a;">Word document downloaded.</div>';
+    } else {
+      output.innerHTML = '<div style="color:#dc2626;">Invalid format. Please enter "pdf" or "word".</div>';
+    }
   };
 });
