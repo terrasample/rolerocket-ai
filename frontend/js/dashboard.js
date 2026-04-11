@@ -12,6 +12,144 @@ if (!token) {
 const SESSION_TIMEOUT_MINUTES = 30; // Set timeout duration here
 // ─── RoleRocket Dashboard (Personalized) ─────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
+    // --- Dynamic Feature Rendering by Plan ---
+    const featureTiers = [
+      {
+        tier: 'free',
+        features: [
+          {
+            name: 'Resume Generator',
+            desc: 'Turn your baseline resume into role-targeted versions without rewriting from scratch.',
+            url: 'resume-generator.html',
+          },
+          {
+            name: 'Cover Letter Generator',
+            desc: 'Generate role-specific, high-conversion cover letters aligned to your resume and target job.',
+            url: 'cover-letter-generator.html',
+          },
+          {
+            name: 'Job Search & Tracking',
+            desc: 'Find jobs, track applications, and organize your job search pipeline.',
+            url: 'job-tracking.html',
+          },
+          {
+            name: 'Success Stories (read-only)',
+            desc: 'Read inspiring success stories from real users who landed their dream jobs.',
+            url: 'success-stories.html',
+          },
+        ],
+      },
+      {
+        tier: 'pro',
+        features: [
+          { name: 'ATS Optimizer', desc: 'Identify keyword gaps, structure issues, and weak phrasing before you apply.', url: 'optimizer.html' },
+          { name: 'Job Market Radar', desc: 'See trending roles, in-demand skills, and market insights tailored to your profile.', url: 'job-market-radar.html' },
+          { name: 'Application Quality Score', desc: 'Get a real-time score and actionable tips to improve your application before submitting.', url: 'application-quality-score.html' },
+          { name: 'Resume Optimizer', desc: 'Instantly improve your resume with AI-driven analysis and personalized suggestions.', url: 'resume-optimizer.html' },
+          { name: 'Gamification', desc: 'Earn badges and rewards as you progress through your job search journey.', url: 'gamification.html' },
+        ],
+      },
+      {
+        tier: 'premium',
+        features: [
+          { name: 'Interview Prep', desc: 'Generate realistic interview prompts and stronger response frameworks quickly.', url: 'interview-prep-ai.html' },
+          { name: '1-Click Apply Queue', desc: 'Send your best matches into the ready queue and execute quickly when timing matters.', url: 'one-click-apply-queue.html' },
+          { name: 'AI Portfolio Builder', desc: 'Build a professional portfolio with AI-generated content and design suggestions.', url: 'ai-portfolio-builder.html' },
+          { name: 'Networking AI', desc: 'Get AI-powered networking tips and introductions to relevant professionals.', url: 'networking-ai.html' },
+          { name: 'AI Reference Generator', desc: 'Generate professional references and recommendation letters with AI assistance.', url: 'ai-reference-generator.html' },
+        ],
+      },
+      {
+        tier: 'elite',
+        features: [
+          { name: 'Career Coach', desc: 'Get strategic direction on positioning, next-best moves, and salary trajectory by role path.', url: 'ai-career-coach.html' },
+          { name: 'Career Path Simulator', desc: 'Simulate different career paths and see potential outcomes based on your choices.', url: 'career-path-simulator.html' },
+          { name: 'Offer Negotiation Coach', desc: 'Get expert negotiation strategies and scripts to maximize your job offers.', url: 'offer-negotiation-coach.html' },
+          { name: 'Video Interview Practice', desc: 'Practice live interview calls with AI and get instant feedback and improvement pointers after each session.', url: 'video-interview-practice.html' },
+          { name: 'Calendar & Task AI', desc: 'AI-powered calendar and task management for your job search workflow.', url: 'calendar-task-ai.html' },
+          { name: 'AI Application Tracker', desc: 'Track all your applications, interviews, and offers in one place with AI insights.', url: 'ai-application-tracker.html' },
+          { name: 'AI Job Agent', desc: 'Let AI scout and recommend jobs for you, tailored to your goals and preferences.', url: 'ai-job-agent.html' },
+        ],
+      },
+    ];
+
+    const recruiterFeatures = [
+      { name: 'AI Recruiter Assist', desc: 'Instantly see the top 3 most qualified candidates for any job role, ranked by resume match. Available to recruiter subscribers only.', url: 'ai-recruiter-assist.html' },
+      { name: 'Premium Recruiter Dashboard', desc: 'Unlock advanced recruiter tools and analytics for talent acquisition.', url: 'recruiter-dashboard.html' },
+    ];
+
+    function getTierOrder(tier) {
+      const order = ['free', 'pro', 'premium', 'elite', 'lifetime'];
+      return order.indexOf(tier);
+    }
+
+    async function renderDashboardFeatures() {
+      const featuresSection = document.getElementById('dashboardFeaturesSection');
+      const featuresGrid = document.getElementById('dashboardFeaturesGrid');
+      const featuresHeader = document.getElementById('dashboardFeaturesHeader');
+      if (!featuresSection || !featuresGrid) return;
+      featuresGrid.innerHTML = '';
+      let userPlan = 'free';
+      let isAdmin = false;
+      let isLifetime = false;
+      let isSubscribed = false;
+      let isRecruiter = false;
+      try {
+        const res = await fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } });
+        const data = await res.json();
+        userPlan = (data.user && data.user.plan) || 'free';
+        isAdmin = data.user && (data.user.isAdmin === true || (data.user.email && ["terrasample@yahoo.com"].includes(data.user.email.toLowerCase())));
+        isLifetime = data.user && data.user.plan === 'lifetime';
+        isSubscribed = data.user && data.user.isSubscribed === true;
+        isRecruiter = userPlan && String(userPlan).toLowerCase().includes('recruiter');
+      } catch {}
+
+      // If admin/lifetime/subscribed, show everything
+      if (isAdmin || isLifetime || isSubscribed) {
+        featuresHeader.textContent = 'All Features (Unlocked)';
+        // Show all candidate features
+        featureTiers.forEach(tier => {
+          tier.features.forEach(f => {
+            featuresGrid.appendChild(createFeatureCard(f, tier.tier));
+          });
+        });
+        // Show recruiter features
+        recruiterFeatures.forEach(f => {
+          featuresGrid.appendChild(createFeatureCard(f, 'recruiter'));
+        });
+        return;
+      }
+
+      // Show only features for the user's plan and lower
+      let maxTierIdx = getTierOrder(userPlan);
+      if (userPlan === 'lifetime') maxTierIdx = getTierOrder('elite');
+      if (maxTierIdx === -1) maxTierIdx = 0;
+      featuresHeader.textContent = 'Your Features';
+      for (let i = 0; i <= maxTierIdx; ++i) {
+        featureTiers[i].features.forEach(f => {
+          featuresGrid.appendChild(createFeatureCard(f, featureTiers[i].tier));
+        });
+      }
+      // Show recruiter features only for recruiter plans
+      if (isRecruiter) {
+        recruiterFeatures.forEach(f => {
+          featuresGrid.appendChild(createFeatureCard(f, 'recruiter'));
+        });
+      }
+    }
+
+    function createFeatureCard(feature, tier) {
+      const div = document.createElement('div');
+      div.className = `dashboard-feature-card ${tier}`;
+      div.tabIndex = 0;
+      div.style.cursor = 'pointer';
+      div.onclick = () => { window.location.href = feature.url; };
+      div.innerHTML = `<h3>${feature.name}</h3><p>${feature.desc}</p>`;
+      return div;
+    }
+
+    // Render features on load
+    renderDashboardFeatures();
   // Scroll to resume section if hash is present
   if (window.location.hash === '#resume' || window.location.hash === '#resumeText') {
     setTimeout(() => {
