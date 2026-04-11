@@ -1,3 +1,49 @@
+/* Dashboard Features Grid - Consistent and Responsive */
+.dashboard-features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+  gap: 28px 22px;
+  margin-bottom: 32px;
+  align-items: stretch;
+}
+
+/* Dashboard Feature Card - Use price-card style, always visible */
+.dashboard-features-section .price-card {
+  min-height: 210px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 16px #2563eb18;
+  border: 2px solid #e0e7ef;
+  padding: 28px 22px 22px 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  transition: box-shadow 0.18s, border 0.18s, transform 0.12s;
+  opacity: 1 !important;
+  color: #1e293b;
+  cursor: pointer;
+}
+.dashboard-features-section .price-card:hover, .dashboard-features-section .price-card:focus {
+  box-shadow: 0 6px 32px #2563eb33;
+  border: 2px solid #2563eb;
+  transform: translateY(-2px) scale(1.03);
+  outline: none;
+}
+.dashboard-features-section .price-card h3 {
+  font-size: 1.25em;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: #2563eb;
+}
+.dashboard-features-section .price-card p {
+  font-size: 1.08em;
+  color: #334155;
+  margin-bottom: 0;
+}
+.dashboard-features-section .feature-launch-btn {
+  margin-top: auto;
+}
 /* Feature launch button for dashboard feature cards */
 .feature-launch-btn {
   display: inline-block;
