@@ -7,11 +7,42 @@
 }
 /* Force dashboard features grid to always use 3 columns on desktop */
 /* Dashboard features grid matches Pricing tab: responsive, never too skinny */
+/* Dashboard Features Section: Flex row layout for cards, matching top section */
 .dashboard-features-section .pricing-top {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 18px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
   margin-bottom: 18px;
+  justify-content: flex-start;
+  align-items: stretch;
+}
+
+/* Feature cards: consistent width, responsive */
+.dashboard-features-section .price-card {
+  flex: 1 1 320px;
+  min-width: 280px;
+  max-width: 340px;
+  margin: 0;
+}
+
+@media (max-width: 1000px) {
+  .dashboard-features-section .price-card {
+    flex: 1 1 45%;
+    min-width: 220px;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 700px) {
+  .dashboard-features-section .pricing-top {
+    flex-direction: column;
+    gap: 18px;
+  }
+  .dashboard-features-section .price-card {
+    flex: 1 1 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
 }
 /* Ensure feature cards fill columns */
 .dashboard-features-section .price-card {
