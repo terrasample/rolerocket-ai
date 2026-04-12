@@ -142,7 +142,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function createFeatureCard(feature, tier) {
       const card = document.createElement('article');
-      card.className = `price-card ${tier}`;
+      card.className = `marketing-card tier-feature ${tier}`;
       card.tabIndex = 0;
       card.style.cursor = 'pointer';
       card.onclick = () => { window.location.href = feature.url; };
@@ -150,11 +150,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       card.setAttribute('role', 'button');
       card.setAttribute('aria-label', feature.name);
       card.innerHTML = `
-        <h3>${feature.name}</h3>
+        <h3 class="feature-title">${feature.name}</h3>
         <p>${feature.desc}</p>
-        <button class="feature-launch-btn" tabindex="-1" style="margin-top:12px;">Open</button>
       `;
-      card.querySelector('button').onclick = (e) => { e.stopPropagation(); window.location.href = feature.url; };
       return card;
     }
 
