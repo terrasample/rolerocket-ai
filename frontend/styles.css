@@ -5,22 +5,28 @@
   margin: 0 auto;
   padding: 0 24px;
 }
-/* Only one .dashboard-features-grid block, matching Pricing tab */
-.dashboard-features-grid {
+/* Force dashboard features grid to always use 3 columns on desktop */
+.dashboard-features-section .pricing-top {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, 1fr) !important;
   gap: 18px;
   margin-bottom: 18px;
 }
 @media (max-width: 900px) {
-  .dashboard-features-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .dashboard-features-section .pricing-top {
+    grid-template-columns: repeat(2, 1fr) !important;
   }
 }
 @media (max-width: 600px) {
-  .dashboard-features-grid {
-    grid-template-columns: 1fr;
+  .dashboard-features-section .pricing-top {
+    grid-template-columns: 1fr !important;
   }
+}
+/* Ensure feature cards fill columns */
+.dashboard-features-section .price-card {
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
 }
 /* Remove all dashboard-specific .price-card overrides. Use only .price-card for cards. */
 .dashboard-bottom-row {
