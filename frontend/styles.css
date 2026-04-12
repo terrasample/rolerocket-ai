@@ -147,11 +147,6 @@
   color: #334155;
 }
 /* Dashboard Features Grid - Consistent and Responsive */
-.dashboard-features-section .price-card {
-  min-width: 0;
-  max-width: 100%;
-  width: 100%;
-}
 
 /* Dashboard Feature Card - Use price-card style, always visible */
 /* Dashboard Feature Card - Match screenshot style */
