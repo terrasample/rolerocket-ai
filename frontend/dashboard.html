@@ -30,7 +30,7 @@
         <a class="sidebar-link-btn" href="login.html?relogin=1">Logout</a>
       </nav>
     </aside>
-    <div class="main" id="dashboardMain" tabindex="-1">
+    <main class="main marketing-main" id="dashboardMain" tabindex="-1">
       <button onclick="window.history.back()" class="back-arrow-btn" aria-label="Go back" style="margin:12px 0 0 12px;background:none;border:none;cursor:pointer;font-size:1.6em;color:#2563eb;"><span aria-hidden="true">&#8592;</span> Back</button>
       <div class="grid" style="max-width: 1100px;">
         <!-- Real platform activity (moved from homepage) -->
@@ -98,14 +98,12 @@
 
         <!-- --- BEGIN: Features by Tier --- -->
         <!-- Features Section: Will be rendered dynamically by JS -->
-        <section class="dashboard-features-section" id="dashboardFeaturesSection">
-          <div class="dashboard-features-container">
-            <h2 id="dashboardFeaturesHeader" style="color:#2563eb;margin-top:32px;margin-bottom:18px;">Your Features</h2>
-            <div id="dashboardFeaturesGrid" class="marketing-grid"></div>
-          </div>
+        <section id="dashboardFeaturesSection">
+          <h2 id="dashboardFeaturesHeader" style="color:#2563eb;margin-top:32px;margin-bottom:18px;">Your Features</h2>
+          <div id="dashboardFeaturesGrid" class="marketing-grid"></div>
         </section>
       </div>
-    </div>
+    </main>
   </div>
   <footer class="site-footer">
     &copy; 2026 RoleRocket AI &nbsp;&middot;&nbsp;
