@@ -74,8 +74,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     ];
 
     const recruiterFeatures = [
-      { name: 'AI Recruiter Assist', desc: 'Instantly see the top 3 most qualified candidates for any job role, ranked by resume match. Available to recruiter subscribers only.', url: 'ai-recruiter-assist.html' },
-      { name: 'Premium Recruiter Dashboard', desc: 'Unlock advanced recruiter tools and analytics for talent acquisition.', url: 'recruiter-dashboard.html' },
+      { name: 'AI Recruiter Assist', desc: 'Instantly see the top 3 most qualified candidates for any job role, ranked by resume match. Includes the Premium Recruiter Dashboard and advanced recruiter tools. Available to recruiter subscribers only.', url: 'ai-recruiter-assist.html' },
     ];
 
     function getTierOrder(tier) {

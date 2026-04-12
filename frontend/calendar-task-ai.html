@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calendar & Task AI | RoleRocket AI</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="js/jspdf-loader.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#mainContent">Skip to main content</a>
+  <div class="hero contact-hero">
+    <h1 class="home-brand-title"><span class="home-brand-rocket" aria-hidden="true">🚀</span><span>RoleRocket AI</span></h1>
+    <p class="home-brand-subtitle">Calendar & Task AI</p>
+  </div>
+  <div class="layout">
+    <aside class="sidebar" aria-label="Primary navigation">
+      <a class="sidebar-link-btn" href="index.html">Home</a>
+      <a class="sidebar-link-btn" href="features.html">Features</a>
+      <a class="sidebar-link-btn" href="dashboard.html">My Dashboard</a>
+    </aside>
+    <main class="main marketing-main" id="mainContent" tabindex="-1">
+      <section class="marketing-card tier-feature elite" style="max-width:700px;margin:0 auto 32px auto;text-align:center;">
+        <h2 class="feature-title">Calendar & Task AI</h2>
+        <p>AI-powered calendar and task management for your job search workflow.</p>
+        <textarea id="calendarTaskText" style="width:100%;max-width:600px;height:180px;margin:18px 0;">Sample Calendar & Task Plan:
+- Monday: Apply to 3 jobs, update resume
+- Wednesday: Network with 2 contacts
+- Friday: Practice interview questions
+        </textarea>
+        <div style="margin:18px 0;">
+          <button id="downloadCalendarTaskPdfBtn" class="feature-launch-btn" style="margin-right:12px;">Download as PDF</button>
+          <button id="downloadCalendarTaskWordBtn" class="feature-launch-btn">Download as Word</button>
+        </div>
+        <div id="calendarTaskOutput"></div>
+      </section>
+    </main>
+  </div>
+  <script src="js/calendar-task-ai.js"></script>
+</body>
+</html>

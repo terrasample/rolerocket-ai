@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Career Path Simulator | RoleRocket AI</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="js/jspdf-loader.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#mainContent">Skip to main content</a>
+  <div class="hero contact-hero">
+    <h1 class="home-brand-title"><span class="home-brand-rocket" aria-hidden="true">🚀</span><span>RoleRocket AI</span></h1>
+    <p class="home-brand-subtitle">Career Path Simulator</p>
+  </div>
+  <div class="layout">
+    <aside class="sidebar" aria-label="Primary navigation">
+      <a class="sidebar-link-btn" href="index.html">Home</a>
+      <a class="sidebar-link-btn" href="features.html">Features</a>
+      <a class="sidebar-link-btn" href="dashboard.html">My Dashboard</a>
+    </aside>
+    <main class="main marketing-main" id="mainContent" tabindex="-1">
+      <section class="marketing-card tier-feature elite" style="max-width:700px;margin:0 auto 32px auto;text-align:center;">
+        <h2 class="feature-title">Career Path Simulator</h2>
+        <p>Simulate different career paths and see potential outcomes based on your choices.</p>
+        <textarea id="careerPathText" style="width:100%;max-width:600px;height:180px;margin:18px 0;">Sample Career Path Simulation:
+- Path 1: Senior Engineer → Lead Engineer → Engineering Manager
+- Path 2: Product Analyst → Product Manager → Director of Product
+- Insights: Management track offers higher salary, technical track offers more flexibility
+        </textarea>
+        <div style="margin:18px 0;">
+          <button id="downloadCareerPathPdfBtn" class="feature-launch-btn" style="margin-right:12px;">Download as PDF</button>
+          <button id="downloadCareerPathWordBtn" class="feature-launch-btn">Download as Word</button>
+        </div>
+        <div id="careerPathOutput"></div>
+      </section>
+    </main>
+  </div>
+  <script src="js/career-path-simulator.js"></script>
+</body>
+</html>

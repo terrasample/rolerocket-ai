@@ -3,6 +3,7 @@ document.getElementById('analyzeResumeBtn')?.addEventListener('click', async () 
   const jobDescription = document.getElementById('atsJobDescription').value.trim();
   const resume = document.getElementById('atsResume').value.trim();
   setOptimizerStatus('Analyzing resume...');
+  showLoadingSpinner(true);
   if (!jobDescription || !resume) {
     alert('Paste both the job description and the resume.');
     setOptimizerStatus('');
@@ -17,9 +18,14 @@ document.getElementById('analyzeResumeBtn')?.addEventListener('click', async () 
       },
       body: JSON.stringify({ jobDescription, resume })
     });
-    const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.error || 'Failed to run ATS analysis');
+    let data;
+    try {
+      data = await res.json();
+    } catch (jsonErr) {
+      throw new Error('Invalid server response. Please try again later.');
+    }
+    if (!res.ok || !data || !data.analysis) {
+      throw new Error((data && data.error) || 'Failed to run ATS analysis. Please check your input and try again.');
     }
     const analysis = data.analysis;
     document.getElementById('atsScore').textContent = analysis.atsScore || 0;
@@ -32,12 +38,45 @@ document.getElementById('analyzeResumeBtn')?.addEventListener('click', async () 
   } catch (err) {
     console.error(err);
     setOptimizerStatus(err.message || 'Failed to analyze ATS score', true);
+    alert(err.message || 'Failed to analyze ATS score.');
+  } finally {
+    showLoadingSpinner(false);
   }
 });
 
 document.getElementById('applyFixBtn')?.addEventListener('click', () => {
   // Example: Apply quick fixes (mock logic)
-  setOptimizerStatus('Applied quick fixes to resume. (mock)');
+  setOptimizerStatus('Applying quick fixes...');
+  showLoadingSpinner(true);
+  setTimeout(() => {
+    setOptimizerStatus('Applied quick fixes to resume. (mock)');
+    showLoadingSpinner(false);
+  }, 800);
+
+// Show/hide a loading spinner overlay
+function showLoadingSpinner(show) {
+  let spinner = document.getElementById('atsLoadingSpinner');
+  if (!spinner) {
+    spinner = document.createElement('div');
+    spinner.id = 'atsLoadingSpinner';
+    spinner.style.position = 'fixed';
+    spinner.style.top = '0';
+    spinner.style.left = '0';
+    spinner.style.width = '100vw';
+    spinner.style.height = '100vh';
+    spinner.style.background = 'rgba(255,255,255,0.6)';
+    spinner.style.display = 'flex';
+    spinner.style.alignItems = 'center';
+    spinner.style.justifyContent = 'center';
+    spinner.style.zIndex = '9999';
+    spinner.innerHTML = '<div style="border:8px solid #e0e7ef;border-top:8px solid #2563eb;border-radius:50%;width:60px;height:60px;animation:spin 1s linear infinite;"></div>';
+    document.body.appendChild(spinner);
+    const style = document.createElement('style');
+    style.innerHTML = '@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }';
+    document.head.appendChild(style);
+  }
+  spinner.style.display = show ? 'flex' : 'none';
+}
 });
 
 document.getElementById('saveAtsResumeBtn')?.addEventListener('click', async () => {
