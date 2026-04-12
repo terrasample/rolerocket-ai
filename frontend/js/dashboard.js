@@ -88,8 +88,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       const featuresGrid = document.getElementById('dashboardFeaturesGrid');
       const featuresHeader = document.getElementById('dashboardFeaturesHeader');
       if (!featuresSection || !featuresGrid) return;
-      // Ensure the flex class is present
-      featuresGrid.classList.add('dashboard-features-flex');
+      // Ensure the grid class is present
+      featuresGrid.classList.add('pricing-top');
       featuresGrid.innerHTML = '';
       let userPlan = 'free';
       let isAdmin = false;
