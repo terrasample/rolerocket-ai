@@ -41,57 +41,44 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   function formatCoverForPdf(text, doc) {
+    // College-style: 1-inch margins, 12pt, double-spaced, left-aligned, readable font
     const lines = text.split(/\r?\n/);
-    let y = 20;
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(18);
-    doc.text('Generated Cover Letter', 10, y);
-    y += 10;
-    doc.setFont('helvetica', 'normal');
+    const marginLeft = 25; // ~1 inch
+    const marginTop = 28; // ~1 inch
+    const lineHeight = 12 * 2; // double-spaced, 12pt font
+    let y = marginTop;
+    doc.setFont('times', 'normal');
+    doc.setFontSize(12);
+    // Title
+    doc.setFont('times', 'bold');
+    doc.setFontSize(16);
+    doc.text('Cover Letter', marginLeft, y);
+    y += lineHeight * 1.5;
+    doc.setFont('times', 'normal');
     doc.setFontSize(12);
     lines.forEach(line => {
-      if (/^### /.test(line)) {
-        y += 8;
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(14);
-        doc.text(line.replace(/^### /, ''), 10, y);
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(12);
-        y += 6;
-      } else if (/^## /.test(line)) {
-        y += 8;
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(13);
-        doc.text(line.replace(/^## /, ''), 10, y);
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(12);
-        y += 5;
-      } else if (/^# /.test(line)) {
-        y += 10;
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(15);
-        doc.text(line.replace(/^# /, ''), 10, y);
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(12);
-        y += 6;
-      } else if (/^\d+\. /.test(line)) {
-        doc.text(line, 14, y);
-        y += 6;
-      } else if (/^- /.test(line)) {
-        doc.text(line.replace(/^- /, '\u2022 '), 18, y);
-        y += 6;
-      } else if (/^\*\*.*\*\*$/.test(line)) {
-        doc.setFont('helvetica', 'bold');
-        doc.text(line.replace(/\*\*/g, ''), 10, y);
-        doc.setFont('helvetica', 'normal');
-        y += 6;
-      } else if (line.trim() === '') {
-        y += 4;
+      if (/^\s*$/.test(line)) {
+        y += lineHeight; // blank line = double space
+      } else if (/^Dear /.test(line) || /^To /.test(line)) {
+        doc.setFont('times', 'bold');
+        doc.text(line, marginLeft, y);
+        doc.setFont('times', 'normal');
+        y += lineHeight;
+      } else if (/^Sincerely|Warm regards|Best regards|Yours truly|Yours sincerely/.test(line)) {
+        y += lineHeight * 0.7;
+        doc.setFont('times', 'bold');
+        doc.text(line, marginLeft, y);
+        doc.setFont('times', 'normal');
+        y += lineHeight;
       } else {
-        doc.text(line, 10, y);
-        y += 6;
+        // Wrap long lines
+        const splitLines = doc.splitTextToSize(line, 160);
+        splitLines.forEach(wrapLine => {
+          doc.text(wrapLine, marginLeft, y);
+          y += lineHeight;
+        });
       }
-      if (y > 270) { doc.addPage(); y = 20; }
+      if (y > 270) { doc.addPage(); y = marginTop; }
     });
   }
 
@@ -114,16 +101,22 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function formatCoverForWord(text) {
-    return (
-      'Generated Cover Letter\n\n' +
-      text
-        .replace(/^### (.*)$/gm, '\n\n$1\n' + '-'.repeat(40))
-        .replace(/^## (.*)$/gm, '\n\n$1\n' + '-'.repeat(30))
-        .replace(/^# (.*)$/gm, '\n\n$1\n' + '-'.repeat(20))
-        .replace(/\*\*(.*?)\*\*/g, '$1'.toUpperCase())
-        .replace(/^- /gm, '  • ')
-        .replace(/\n{2,}/g, '\n\n')
-    );
+    // College-style: 1-inch margins, 12pt, double-spaced, left-aligned, readable font
+    let formatted = '';
+    const lines = text.split(/\r?\n/);
+    formatted += 'Cover Letter\n\n';
+    lines.forEach(line => {
+      if (/^\s*$/.test(line)) {
+        formatted += '\n';
+      } else if (/^Dear /.test(line) || /^To /.test(line)) {
+        formatted += line + '\n';
+      } else if (/^Sincerely|Warm regards|Best regards|Yours truly|Yours sincerely/.test(line)) {
+        formatted += '\n' + line + '\n';
+      } else {
+        formatted += line + '\n\n';
+      }
+    });
+    return formatted;
   }
 
   if (saveWordBtn) {
