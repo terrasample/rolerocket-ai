@@ -1,10 +1,26 @@
 // Job Market Radar Download Logic
 
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', async function () {
   const pdfBtn = document.getElementById('downloadMarketRadarPdfBtn');
   const wordBtn = document.getElementById('downloadMarketRadarWordBtn');
   const textArea = document.getElementById('marketRadarText');
   const output = document.getElementById('marketRadarOutput');
+
+  // Personalized report fetch logic
+  const token = localStorage.getItem('token');
+  if (token && typeof apiUrl === 'function') {
+    try {
+      const res = await fetch(apiUrl('/api/job-market-radar'), {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.report) {
+          textArea.value = data.report;
+        }
+      }
+    } catch (e) { /* fallback to sample */ }
+  }
 
   function formatRadarForPdf(text, doc) {
     const lines = text.split(/\r?\n/);

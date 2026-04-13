@@ -1,10 +1,26 @@
 // Calendar & Task AI Download Logic
 
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', async function () {
   const pdfBtn = document.getElementById('downloadCalendarTaskPdfBtn');
   const wordBtn = document.getElementById('downloadCalendarTaskWordBtn');
   const textArea = document.getElementById('calendarTaskText');
   const output = document.getElementById('calendarTaskOutput');
+
+  // Personalized report fetch logic
+  const token = localStorage.getItem('token');
+  if (token && typeof apiUrl === 'function') {
+    try {
+      const res = await fetch(apiUrl('/api/calendar-task-ai'), {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.report) {
+          textArea.value = data.report;
+        }
+      }
+    } catch (e) { /* fallback to sample */ }
+  }
 
   function formatCalendarTaskForPdf(text, doc) {
     const lines = text.split(/\r?\n/);

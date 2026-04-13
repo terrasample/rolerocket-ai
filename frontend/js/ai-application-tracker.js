@@ -1,10 +1,26 @@
 // AI Application Tracker Download Logic
 
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', async function () {
   const pdfBtn = document.getElementById('downloadApplicationTrackerPdfBtn');
   const wordBtn = document.getElementById('downloadApplicationTrackerWordBtn');
   const textArea = document.getElementById('applicationTrackerText');
   const output = document.getElementById('applicationTrackerOutput');
+
+  // Personalized report fetch logic
+  const token = localStorage.getItem('token');
+  if (token && typeof apiUrl === 'function') {
+    try {
+      const res = await fetch(apiUrl('/api/ai-application-tracker'), {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.report) {
+          textArea.value = data.report;
+        }
+      }
+    } catch (e) { /* fallback to sample */ }
+  }
 
   function formatApplicationTrackerForPdf(text, doc) {
     const lines = text.split(/\r?\n/);

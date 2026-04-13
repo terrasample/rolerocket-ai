@@ -1,10 +1,26 @@
 // Networking AI Download Logic
 
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', async function () {
   const pdfBtn = document.getElementById('downloadNetworkingAiPdfBtn');
   const wordBtn = document.getElementById('downloadNetworkingAiWordBtn');
   const textArea = document.getElementById('networkingAiText');
   const output = document.getElementById('networkingAiOutput');
+
+  // Personalized report fetch logic
+  const token = localStorage.getItem('token');
+  if (token && typeof apiUrl === 'function') {
+    try {
+      const res = await fetch(apiUrl('/api/networking-ai'), {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.report) {
+          textArea.value = data.report;
+        }
+      }
+    } catch (e) { /* fallback to sample */ }
+  }
 
   function formatNetworkingAiForPdf(text, doc) {
     const lines = text.split(/\r?\n/);

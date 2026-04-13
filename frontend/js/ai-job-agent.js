@@ -1,10 +1,26 @@
 // AI Job Agent Download Logic
 
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', async function () {
   const pdfBtn = document.getElementById('downloadJobAgentPdfBtn');
   const wordBtn = document.getElementById('downloadJobAgentWordBtn');
   const textArea = document.getElementById('jobAgentText');
   const output = document.getElementById('jobAgentOutput');
+
+  // Personalized report fetch logic
+  const token = localStorage.getItem('token');
+  if (token && typeof apiUrl === 'function') {
+    try {
+      const res = await fetch(apiUrl('/api/ai-job-agent'), {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.report) {
+          textArea.value = data.report;
+        }
+      }
+    } catch (e) { /* fallback to sample */ }
+  }
 
   function formatJobAgentForPdf(text, doc) {
     const lines = text.split(/\r?\n/);

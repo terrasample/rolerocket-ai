@@ -1,10 +1,26 @@
 // Video Interview Practice Download Logic
 
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', async function () {
   const pdfBtn = document.getElementById('downloadVideoInterviewPdfBtn');
   const wordBtn = document.getElementById('downloadVideoInterviewWordBtn');
   const textArea = document.getElementById('videoInterviewText');
   const output = document.getElementById('videoInterviewOutput');
+
+  // Personalized report fetch logic
+  const token = localStorage.getItem('token');
+  if (token && typeof apiUrl === 'function') {
+    try {
+      const res = await fetch(apiUrl('/api/video-interview-practice'), {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.report) {
+          textArea.value = data.report;
+        }
+      }
+    } catch (e) { /* fallback to sample */ }
+  }
 
   function formatVideoInterviewForPdf(text, doc) {
     const lines = text.split(/\r?\n/);

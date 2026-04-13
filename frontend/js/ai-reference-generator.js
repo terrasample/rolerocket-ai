@@ -1,10 +1,26 @@
 // AI Reference Generator Download Logic
 
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', async function () {
   const pdfBtn = document.getElementById('downloadReferenceGenPdfBtn');
   const wordBtn = document.getElementById('downloadReferenceGenWordBtn');
   const textArea = document.getElementById('referenceGenText');
   const output = document.getElementById('referenceGenOutput');
+
+  // Personalized report fetch logic
+  const token = localStorage.getItem('token');
+  if (token && typeof apiUrl === 'function') {
+    try {
+      const res = await fetch(apiUrl('/api/ai-reference-generator'), {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.report) {
+          textArea.value = data.report;
+        }
+      }
+    } catch (e) { /* fallback to sample */ }
+  }
 
   function formatReferenceGenForPdf(text, doc) {
     const lines = text.split(/\r?\n/);

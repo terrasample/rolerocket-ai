@@ -1,10 +1,26 @@
 // Career Path Simulator Download Logic
 
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', async function () {
   const pdfBtn = document.getElementById('downloadCareerPathPdfBtn');
   const wordBtn = document.getElementById('downloadCareerPathWordBtn');
   const textArea = document.getElementById('careerPathText');
   const output = document.getElementById('careerPathOutput');
+
+  // Personalized report fetch logic
+  const token = localStorage.getItem('token');
+  if (token && typeof apiUrl === 'function') {
+    try {
+      const res = await fetch(apiUrl('/api/career-path-simulator'), {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.report) {
+          textArea.value = data.report;
+        }
+      }
+    } catch (e) { /* fallback to sample */ }
+  }
 
   function formatCareerPathForPdf(text, doc) {
     const lines = text.split(/\r?\n/);
