@@ -55,23 +55,32 @@ document.addEventListener('DOMContentLoaded', function () {
       webcamToggleWrap.style.display = 'none';
       return;
     }
-    // Listen for toggle changes during session
+    // Listen for toggle changes during session (only affect video track, not question)
     if (webcamToggle) {
       webcamToggle.onchange = function() {
-        if (mediaStream) {
-          mediaStream.getTracks().forEach(track => track.stop());
+        const userVideo = document.getElementById('userVideo');
+        if (!mediaStream) return;
+        // Toggle video track enabled/disabled
+        const videoTrack = mediaStream.getVideoTracks()[0];
+        if (videoTrack) {
+          if (webcamToggle.checked) {
+            videoTrack.enabled = true;
+            userVideo.style.display = '';
+          } else {
+            videoTrack.enabled = false;
+            userVideo.style.display = 'none';
+          }
         }
-        startVideoCall();
       };
     }
-    runInterview(questions);
-    startInterviewTimer();
+    runInterviewWithDelay(questions);
   }
 
   // Interview Q&A flow
+
   let interviewTimer = null;
   let interviewTimeLeft = 120;
-  function runInterview(questions) {
+  function runInterviewWithDelay(questions) {
     let current = 0;
     let answers = [];
     function askNext() {
@@ -82,31 +91,44 @@ document.addEventListener('DOMContentLoaded', function () {
       const q = questions[current];
       qaContainer.innerHTML = `<div style='margin:18px 0;'><strong>AI Recruiter:</strong> <span style='color:#2563eb;'>${q}</span><br><textarea id='answerBox' style='width:100%;max-width:600px;height:80px;margin:12px 0;'></textarea><br><button id='submitAnswerBtn' class='feature-launch-btn'>Submit Answer</button></div>`;
       speakAI(q);
+      // Start 2-minute timer for this question
+      interviewTimeLeft = 120;
+      timerDiv.textContent = `Time left: 2:00`;
+      if (interviewTimer) clearInterval(interviewTimer);
+      let answered = false;
+      interviewTimer = setInterval(() => {
+        interviewTimeLeft--;
+        let min = Math.floor(interviewTimeLeft / 60);
+        let sec = interviewTimeLeft % 60;
+        timerDiv.textContent = `Time left: ${min}:${sec.toString().padStart(2, '0')}`;
+        if (interviewTimeLeft <= 0) {
+          clearInterval(interviewTimer);
+          timerDiv.textContent = 'Time is up!';
+          // If not answered, push empty answer
+          if (!answered) {
+            const answer = document.getElementById('answerBox').value.trim();
+            answers.push({ q, a: answer });
+          }
+          setTimeout(() => {
+            current++;
+            askNext();
+          }, 800);
+        }
+      }, 1000);
       document.getElementById('submitAnswerBtn').onclick = function() {
+        if (answered) return;
+        answered = true;
         const answer = document.getElementById('answerBox').value.trim();
         answers.push({ q, a: answer });
-        current++;
-        askNext();
+        clearInterval(interviewTimer);
+        timerDiv.textContent = 'Waiting for next question...';
+        setTimeout(() => {
+          current++;
+          askNext();
+        }, 800);
       };
     }
     askNext();
-  }
-
-  function startInterviewTimer() {
-    interviewTimeLeft = 120;
-    timerDiv.textContent = `Time left: 2:00`;
-    interviewTimer = setInterval(() => {
-      interviewTimeLeft--;
-      let min = Math.floor(interviewTimeLeft / 60);
-      let sec = interviewTimeLeft % 60;
-      timerDiv.textContent = `Time left: ${min}:${sec.toString().padStart(2, '0')}`;
-      if (interviewTimeLeft <= 0) {
-        clearInterval(interviewTimer);
-        timerDiv.textContent = 'Time is up!';
-        qaContainer.innerHTML = '';
-        endInterview();
-      }
-    }, 1000);
   }
 
   // End interview, show feedback and stop video

@@ -59,39 +59,56 @@
   function bindDownloadButtons() {
     pdfBtn = document.getElementById('downloadReferenceGenPdfBtn');
     wordBtn = document.getElementById('downloadReferenceGenWordBtn');
+    // Always get the latest textarea (may be re-rendered)
     textArea = document.getElementById('referenceGenText');
     if (pdfBtn) {
       pdfBtn.onclick = function() {
-        const text = textArea.value.trim();
+        const ta = document.getElementById('referenceGenText');
+        const text = ta ? ta.value.trim() : '';
         if (!text) {
           output.innerHTML += '<div style="color:#dc2626;">No reference letter to download.</div>';
           return;
         }
-        if (!window.jspdf) {
+        if (!window.jspdf || !window.jspdf.jsPDF) {
           output.innerHTML += '<div style="color:#dc2626;">PDF library not loaded.</div>';
           return;
         }
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        formatReferenceGenForPdf(text, doc);
-        doc.save('reference-letter.pdf');
-        output.innerHTML += '<div style="color:#16a34a;">PDF downloaded.</div>';
+        try {
+          const { jsPDF } = window.jspdf;
+          const doc = new jsPDF();
+          formatReferenceGenForPdf(text, doc);
+          doc.save('reference-letter.pdf');
+          output.innerHTML += '<div style="color:#16a34a;">PDF downloaded.</div>';
+        } catch (e) {
+          output.innerHTML += '<div style="color:#dc2626;">PDF download failed.</div>';
+        }
       };
     }
     if (wordBtn) {
       wordBtn.onclick = function() {
-        const text = textArea.value.trim();
+        const ta = document.getElementById('referenceGenText');
+        const text = ta ? ta.value.trim() : '';
         if (!text) {
           output.innerHTML += '<div style="color:#dc2626;">No reference letter to download.</div>';
           return;
         }
-        const content = 'Reference Letter\n\n' + text;
-        const blob = new Blob([content], { type: 'application/msword' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = 'reference-letter.doc';
-        a.click();
-        output.innerHTML += '<div style="color:#16a34a;">Word document downloaded.</div>';
+        try {
+          const content = 'Reference Letter\n\n' + text;
+          const blob = new Blob([content], { type: 'application/msword' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'reference-letter.doc';
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+          }, 100);
+          output.innerHTML += '<div style="color:#16a34a;">Word document downloaded.</div>';
+        } catch (e) {
+          output.innerHTML += '<div style="color:#dc2626;">Word download failed.</div>';
+        }
       };
     }
   }
