@@ -1,44 +1,52 @@
 // AI Reference Generator Download Logic
-
-document.addEventListener('DOMContentLoaded', async function () {
-  let pdfBtn = document.getElementById('downloadReferenceGenPdfBtn');
-  let wordBtn = document.getElementById('downloadReferenceGenWordBtn');
-  let textArea = document.getElementById('referenceGenText');
-  const output = document.getElementById('referenceGenOutput');
-  const startBtn = document.getElementById('startReferenceGenBtn');
-  const container = document.getElementById('referenceGenContainer');
-
-  // Personalized report fetch logic
-  const token = localStorage.getItem('token');
-  if (token && typeof apiUrl === 'function') {
-    try {
-      const res = await fetch(apiUrl('/api/ai-reference-generator'), {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data && data.report) {
-          textArea.value = data.report;
+    if (pdfBtn) {
+      pdfBtn.onclick = function() {
+        const text = textArea.value.trim();
+        if (!text) {
+          output.innerHTML += '<div style="color:#dc2626;">No reference letter to download.</div>';
+          return;
         }
-      }
-    } catch (e) { /* fallback to sample */ }
-  }
-
-  function formatReferenceGenForPdf(text, doc) {
-    const lines = text.split(/\r?\n/);
-    let y = 28;
-    doc.setFont('times', 'bold');
-    doc.setFontSize(16);
-    doc.text('Reference Letter', 25, y);
-    y += 24;
-    doc.setFont('times', 'normal');
-    doc.setFontSize(12);
-    const lineHeight = 24;
-    lines.forEach(line => {
-      if (/^\s*$/.test(line)) {
-        y += lineHeight / 2;
-      } else {
-        const splitLines = doc.splitTextToSize(line, 160);
+        if (!window.jspdf || !window.jspdf.jsPDF) {
+          output.innerHTML += '<div style="color:#dc2626;">PDF library not loaded.</div>';
+          return;
+        }
+        try {
+          const { jsPDF } = window.jspdf;
+          const doc = new jsPDF();
+          formatReferenceGenForPdf(text, doc);
+          doc.save('reference-letter.pdf');
+          output.innerHTML += '<div style="color:#16a34a;">PDF downloaded.</div>';
+        } catch (e) {
+          output.innerHTML += '<div style="color:#dc2626;">PDF download failed.</div>';
+        }
+      };
+    }
+    if (wordBtn) {
+      wordBtn.onclick = function() {
+        const text = textArea.value.trim();
+        if (!text) {
+          output.innerHTML += '<div style="color:#dc2626;">No reference letter to download.</div>';
+          return;
+        }
+        try {
+          const content = 'Reference Letter\n\n' + text;
+          const blob = new Blob([content], { type: 'application/msword' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'reference-letter.doc';
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+          }, 100);
+          output.innerHTML += '<div style="color:#16a34a;">Word document downloaded.</div>';
+        } catch (e) {
+          output.innerHTML += '<div style="color:#dc2626;">Word download failed.</div>';
+        }
+      };
+    }
         splitLines.forEach(wrapLine => {
           doc.text(wrapLine, 25, y);
           y += lineHeight / 1.5;

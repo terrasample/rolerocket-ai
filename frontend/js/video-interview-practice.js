@@ -3,14 +3,21 @@ document.addEventListener('DOMContentLoaded', function () {
   const startBtn = document.getElementById('startInterviewBtn');
   const videoCallContainer = document.getElementById('videoCallContainer');
   const qaContainer = document.getElementById('interviewQAContainer');
+  const audioOnlyToggle = document.getElementById('audioOnlyToggle');
+  const timerDiv = document.getElementById('interviewTimer');
   let mediaStream = null;
 
   // Interview questions
-  const questions = [
+  const questionsBank = [
     'Tell me about yourself.',
     'Describe a challenge you faced at work and how you handled it.',
     'Why are you interested in this role?',
     'What is your greatest strength?',
+    'What is your biggest weakness?',
+    'Where do you see yourself in 5 years?',
+    'How do you handle stress and pressure?',
+    'Give an example of teamwork.',
+    'Why should we hire you?',
     'Do you have any questions for us?'
   ];
 
@@ -31,20 +38,29 @@ document.addEventListener('DOMContentLoaded', function () {
     videoCallContainer.style.display = 'flex';
     qaContainer.style.display = 'block';
     output.innerHTML = '';
-    // Start webcam
+    timerDiv.style.display = 'block';
+    // Shuffle and pick 5 random questions
+    const questions = questionsBank.slice().sort(() => Math.random() - 0.5).slice(0, 5);
+    // Start webcam or audio only
+    let audioOnly = audioOnlyToggle && audioOnlyToggle.checked;
     try {
-      mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      mediaStream = await navigator.mediaDevices.getUserMedia({ video: !audioOnly, audio: true });
       const userVideo = document.getElementById('userVideo');
       userVideo.srcObject = mediaStream;
+      userVideo.style.display = audioOnly ? 'none' : '';
     } catch (err) {
       qaContainer.innerHTML = '<div style="color:#dc2626;">Could not access webcam/microphone. Please allow access and refresh.</div>';
+      timerDiv.style.display = 'none';
       return;
     }
-    runInterview();
+    runInterview(questions);
+    startInterviewTimer();
   }
 
   // Interview Q&A flow
-  function runInterview() {
+  let interviewTimer = null;
+  let interviewTimeLeft = 120;
+  function runInterview(questions) {
     let current = 0;
     let answers = [];
     function askNext() {
@@ -65,8 +81,29 @@ document.addEventListener('DOMContentLoaded', function () {
     askNext();
   }
 
+  function startInterviewTimer() {
+    interviewTimeLeft = 120;
+    timerDiv.textContent = `Time left: 2:00`;
+    interviewTimer = setInterval(() => {
+      interviewTimeLeft--;
+      let min = Math.floor(interviewTimeLeft / 60);
+      let sec = interviewTimeLeft % 60;
+      timerDiv.textContent = `Time left: ${min}:${sec.toString().padStart(2, '0')}`;
+      if (interviewTimeLeft <= 0) {
+        clearInterval(interviewTimer);
+        timerDiv.textContent = 'Time is up!';
+        qaContainer.innerHTML = '';
+        endInterview();
+      }
+    }, 1000);
+  }
+
   // End interview, show feedback and stop video
-  function endInterview(answers) {
+  function endInterview(answers = []) {
+    if (interviewTimer) {
+      clearInterval(interviewTimer);
+      timerDiv.style.display = 'none';
+    }
     if (mediaStream) {
       mediaStream.getTracks().forEach(track => track.stop());
     }
