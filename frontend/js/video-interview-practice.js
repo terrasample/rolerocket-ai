@@ -5,6 +5,8 @@ document.addEventListener('DOMContentLoaded', async function () {
   const wordBtn = document.getElementById('downloadVideoInterviewWordBtn');
   const textArea = document.getElementById('videoInterviewText');
   const output = document.getElementById('videoInterviewOutput');
+  const startBtn = document.getElementById('startInterviewBtn');
+  const practiceContainer = document.getElementById('interviewPracticeContainer');
 
   // Personalized report fetch logic
   const token = localStorage.getItem('token');
@@ -79,6 +81,49 @@ document.addEventListener('DOMContentLoaded', async function () {
       a.download = 'video-interview-feedback.doc';
       a.click();
       output.innerHTML = '<div style="color:#16a34a;">Word document downloaded.</div>';
+    };
+  }
+
+  // --- Interview Practice CTA logic ---
+  if (startBtn && practiceContainer) {
+    startBtn.onclick = function() {
+      startBtn.style.display = 'none';
+      practiceContainer.style.display = 'none';
+      output.innerHTML = '';
+
+      // Mock interview flow
+      const questions = [
+        'Tell me about yourself.',
+        'Describe a challenge you faced at work and how you handled it.',
+        'Why are you interested in this role?',
+        'What is your greatest strength?',
+        'Do you have any questions for us?'
+      ];
+      let current = 0;
+      let answers = [];
+
+      function showQuestion() {
+        if (current >= questions.length) {
+          // Simulate feedback
+          setTimeout(() => {
+            output.innerHTML = `<div style="margin:18px 0;"><strong>AI Feedback:</strong><br>Great job! You communicated clearly and provided relevant examples. For even better results, try to be more concise and use the STAR method for behavioral questions.<br><br><button id='restartInterviewBtn' class='feature-launch-btn'>Practice Again</button></div>`;
+            document.getElementById('restartInterviewBtn').onclick = function() {
+              output.innerHTML = '';
+              startBtn.style.display = '';
+              practiceContainer.style.display = '';
+            };
+          }, 1200);
+          return;
+        }
+        output.innerHTML = `<div style='margin:18px 0;'><strong>Interview Question ${current+1}:</strong><br>${questions[current]}<br><textarea id='answerBox' style='width:100%;max-width:600px;height:80px;margin:12px 0;'></textarea><br><button id='submitAnswerBtn' class='feature-launch-btn'>Submit Answer</button></div>`;
+        document.getElementById('submitAnswerBtn').onclick = function() {
+          const answer = document.getElementById('answerBox').value.trim();
+          answers.push({ q: questions[current], a: answer });
+          current++;
+          showQuestion();
+        };
+      }
+      showQuestion();
     };
   }
 });

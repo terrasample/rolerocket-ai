@@ -24,7 +24,6 @@
       <section class="marketing-card tier-feature premium" style="max-width:700px;margin:0 auto 32px auto;text-align:center;">
         <h2 class="feature-title">AI Reference Generator</h2>
         <p>Generate professional references and recommendation letters with AI assistance.</p>
-        <textarea id="referenceGenText" style="width:100%;max-width:600px;height:180px;margin:18px 0;">Sample Reference Letter:
 To Whom It May Concern,
 
 I am pleased to recommend Jane Doe for the position of Product Manager. Jane consistently demonstrated leadership, initiative, and a strong work ethic during her time at our company.
@@ -32,9 +31,20 @@ I am pleased to recommend Jane Doe for the position of Product Manager. Jane con
 Sincerely,
 John Smith
         </textarea>
-        <div style="margin:18px 0;">
-          <button id="downloadReferenceGenPdfBtn" class="feature-launch-btn" style="margin-right:12px;">Download as PDF</button>
-          <button id="downloadReferenceGenWordBtn" class="feature-launch-btn">Download as Word</button>
+        <button id="startReferenceGenBtn" class="feature-launch-btn" style="margin-bottom:18px;">Start Reference Generation</button>
+        <div id="referenceGenContainer">
+          <textarea id="referenceGenText" style="width:100%;max-width:600px;height:180px;margin:18px 0;">Sample Reference Letter:
+To Whom It May Concern,
+
+I am pleased to recommend Jane Doe for the position of Product Manager. Jane consistently demonstrated leadership, initiative, and a strong work ethic during her time at our company.
+
+Sincerely,
+John Smith
+          </textarea>
+          <div style="margin:18px 0;">
+            <button id="downloadReferenceGenPdfBtn" class="feature-launch-btn" style="margin-right:12px;">Download as PDF</button>
+            <button id="downloadReferenceGenWordBtn" class="feature-launch-btn">Download as Word</button>
+          </div>
         </div>
         <div id="referenceGenOutput"></div>
       </section>
