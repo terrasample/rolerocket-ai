@@ -64,7 +64,26 @@ app.use('/api/cover-letter', require('./routes/coverLetter'));
 
 // Register plan-based access control middleware and feature routes
 const planAccess = require('./middleware/planAccess');
-app.use('/api/features', require('./routes/features'));
+const authenticateToken = (req, res, next) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) {
+    return res.status(401).json({ error: 'No token' });
+  }
+  try {
+    const decoded = require('jsonwebtoken').verify(token, process.env.JWT_SECRET);
+    req.user = {
+      ...decoded,
+      userId: decoded.userId || decoded.id || decoded._id || decoded.sub || null
+    };
+    if (!req.user.userId) {
+      return res.status(403).json({ error: 'Invalid token payload' });
+    }
+    return next();
+  } catch {
+    return res.status(403).json({ error: 'Invalid token' });
+  }
+};
+app.use('/api/features', authenticateToken, require('./routes/features'));
 
 // Start the Express server
 // Start the Express server (must be at the end)
