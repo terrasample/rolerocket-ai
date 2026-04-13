@@ -72,33 +72,55 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     videoCallContainer.style.display = 'none';
     qaContainer.style.display = 'none';
-    // Organize feedback (placeholder, can be AI-generated)
-    const feedback = {
-      strengths: [
-        'Clear communication',
-        'Relevant examples',
-        'Confident delivery'
-      ],
-      improvement: [
-        'Be more concise in some answers',
-        'Stronger closing statements',
-        'Expand on teamwork experiences'
-      ],
-      aiTips: [
-        'Practice the STAR method for behavioral questions',
-        'Maintain eye contact and positive body language',
-        'Pause briefly before answering to organize your thoughts'
-      ]
-    };
+
+    // Analyze answers for realistic feedback
+    let strengths = [];
+    let improvement = [];
+    let aiTips = [
+      'Practice the STAR method for behavioral questions',
+      'Maintain eye contact and positive body language',
+      'Pause briefly before answering to organize your thoughts'
+    ];
+
+    let wordCount = 0;
+    let gaveExamples = false;
+    let askedQuestions = false;
+    let mentionedStrength = false;
+    let mentionedChallenge = false;
+
+    answers.forEach(({q, a}) => {
+      const wc = a.split(/\s+/).filter(Boolean).length;
+      wordCount += wc;
+      if (/example|for instance|such as|like|e\.g\./i.test(a)) gaveExamples = true;
+      if (/team|collaborat|group|together|we|us/i.test(a)) strengths.push('Teamwork/collaboration');
+      if (/communicat|present|speak|talk|write/i.test(a)) strengths.push('Communication skills');
+      if (/lead|manage|organize|plan/i.test(a)) strengths.push('Leadership/organization');
+      if (/challenge|problem|difficult|issue|overcome/i.test(a)) mentionedChallenge = true;
+      if (/strength|good at|best at|excel/i.test(a)) mentionedStrength = true;
+      if (q.toLowerCase().includes('questions for us') && a.length > 5) askedQuestions = true;
+      if (wc < 10) improvement.push('Expand your answers with more detail');
+      if (wc > 60) improvement.push('Be more concise in your responses');
+    });
+    if (!gaveExamples) improvement.push('Provide specific examples to support your answers');
+    if (!askedQuestions) improvement.push('Ask thoughtful questions at the end of the interview');
+    if (!mentionedStrength) improvement.push('Highlight your strengths clearly');
+    if (!mentionedChallenge) improvement.push('Describe a challenge you faced and how you handled it');
+    if (wordCount < 60) improvement.push('Give more complete answers overall');
+    if (strengths.length === 0) strengths.push('Willingness to participate');
+
+    // Remove duplicates
+    strengths = [...new Set(strengths)];
+    improvement = [...new Set(improvement)];
+
     let feedbackHtml = `<div style='margin:18px 0;'><strong>AI Interview Feedback Report</strong><br><div style='text-align:left;max-width:600px;margin:0 auto;'>`;
     feedbackHtml += `<h4 style='color:#16a34a;margin-bottom:4px;'>Strengths:</h4><ul>`;
-    feedback.strengths.forEach(s => { feedbackHtml += `<li>${s}</li>`; });
+    strengths.forEach(s => { feedbackHtml += `<li>${s}</li>`; });
     feedbackHtml += `</ul>`;
     feedbackHtml += `<h4 style='color:#f59e42;margin-bottom:4px;'>Areas to Improve:</h4><ul>`;
-    feedback.improvement.forEach(i => { feedbackHtml += `<li>${i}</li>`; });
+    improvement.forEach(i => { feedbackHtml += `<li>${i}</li>`; });
     feedbackHtml += `</ul>`;
     feedbackHtml += `<h4 style='color:#2563eb;margin-bottom:4px;'>AI Tips:</h4><ul>`;
-    feedback.aiTips.forEach(t => { feedbackHtml += `<li>${t}</li>`; });
+    aiTips.forEach(t => { feedbackHtml += `<li>${t}</li>`; });
     feedbackHtml += `</ul></div>`;
     feedbackHtml += `<button id='restartInterviewBtn' class='feature-launch-btn'>Practice Again</button></div>`;
     output.innerHTML = feedbackHtml;

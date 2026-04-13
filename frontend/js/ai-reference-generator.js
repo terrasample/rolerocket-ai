@@ -1,9 +1,9 @@
 // AI Reference Generator Download Logic
 
 document.addEventListener('DOMContentLoaded', async function () {
-  const pdfBtn = document.getElementById('downloadReferenceGenPdfBtn');
-  const wordBtn = document.getElementById('downloadReferenceGenWordBtn');
-  const textArea = document.getElementById('referenceGenText');
+  let pdfBtn = document.getElementById('downloadReferenceGenPdfBtn');
+  let wordBtn = document.getElementById('downloadReferenceGenWordBtn');
+  let textArea = document.getElementById('referenceGenText');
   const output = document.getElementById('referenceGenOutput');
   const startBtn = document.getElementById('startReferenceGenBtn');
   const container = document.getElementById('referenceGenContainer');
@@ -48,41 +48,46 @@ document.addEventListener('DOMContentLoaded', async function () {
     });
   }
 
-  if (pdfBtn) {
-    pdfBtn.onclick = function() {
-      const text = textArea.value.trim();
-      if (!text) {
-        output.innerHTML = '<div style="color:#dc2626;">No reference letter to download.</div>';
-        return;
-      }
-      if (!window.jspdf) {
-        output.innerHTML = '<div style="color:#dc2626;">PDF library not loaded.</div>';
-        return;
-      }
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
-      formatReferenceGenForPdf(text, doc);
-      doc.save('reference-letter.pdf');
-      output.innerHTML = '<div style="color:#16a34a;">PDF downloaded.</div>';
-    };
+  function bindDownloadButtons() {
+    pdfBtn = document.getElementById('downloadReferenceGenPdfBtn');
+    wordBtn = document.getElementById('downloadReferenceGenWordBtn');
+    textArea = document.getElementById('referenceGenText');
+    if (pdfBtn) {
+      pdfBtn.onclick = function() {
+        const text = textArea.value.trim();
+        if (!text) {
+          output.innerHTML += '<div style="color:#dc2626;">No reference letter to download.</div>';
+          return;
+        }
+        if (!window.jspdf) {
+          output.innerHTML += '<div style="color:#dc2626;">PDF library not loaded.</div>';
+          return;
+        }
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        formatReferenceGenForPdf(text, doc);
+        doc.save('reference-letter.pdf');
+        output.innerHTML += '<div style="color:#16a34a;">PDF downloaded.</div>';
+      };
+    }
+    if (wordBtn) {
+      wordBtn.onclick = function() {
+        const text = textArea.value.trim();
+        if (!text) {
+          output.innerHTML += '<div style="color:#dc2626;">No reference letter to download.</div>';
+          return;
+        }
+        const content = 'Reference Letter\n\n' + text;
+        const blob = new Blob([content], { type: 'application/msword' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'reference-letter.doc';
+        a.click();
+        output.innerHTML += '<div style="color:#16a34a;">Word document downloaded.</div>';
+      };
+    }
   }
-
-  if (wordBtn) {
-    wordBtn.onclick = function() {
-      const text = textArea.value.trim();
-      if (!text) {
-        output.innerHTML = '<div style="color:#dc2626;">No reference letter to download.</div>';
-        return;
-      }
-      const content = 'Reference Letter\n\n' + text;
-      const blob = new Blob([content], { type: 'application/msword' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'reference-letter.doc';
-      a.click();
-      output.innerHTML = '<div style="color:#16a34a;">Word document downloaded.</div>';
-    };
-  }
+  bindDownloadButtons();
 
   // --- Reference Generation CTA logic ---
   if (startBtn && container) {
@@ -112,43 +117,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         </div>
         <button id='restartRefBtn' class='feature-launch-btn'>Start Again</button></div>`;
         // Re-bind download buttons for the generated letter
-        const pdfBtn = document.getElementById('downloadReferenceGenPdfBtn');
-        const wordBtn = document.getElementById('downloadReferenceGenWordBtn');
-        const textArea = document.getElementById('referenceGenText');
-        if (pdfBtn) {
-          pdfBtn.onclick = function() {
-            const text = textArea.value.trim();
-            if (!text) {
-              output.innerHTML += '<div style="color:#dc2626;">No reference letter to download.</div>';
-              return;
-            }
-            if (!window.jspdf) {
-              output.innerHTML += '<div style="color:#dc2626;">PDF library not loaded.</div>';
-              return;
-            }
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            formatReferenceGenForPdf(text, doc);
-            doc.save('reference-letter.pdf');
-            output.innerHTML += '<div style="color:#16a34a;">PDF downloaded.</div>';
-          };
-        }
-        if (wordBtn) {
-          wordBtn.onclick = function() {
-            const text = textArea.value.trim();
-            if (!text) {
-              output.innerHTML += '<div style="color:#dc2626;">No reference letter to download.</div>';
-              return;
-            }
-            const content = 'Reference Letter\n\n' + text;
-            const blob = new Blob([content], { type: 'application/msword' });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = 'reference-letter.doc';
-            a.click();
-            output.innerHTML += '<div style="color:#16a34a;">Word document downloaded.</div>';
-          };
-        }
+        bindDownloadButtons();
         document.getElementById('restartRefBtn').onclick = function() {
           output.innerHTML = '';
           startBtn.style.display = '';

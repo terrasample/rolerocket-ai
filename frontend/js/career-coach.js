@@ -7,7 +7,8 @@ document.addEventListener('DOMContentLoaded', function () {
   const resultDiv = document.getElementById('careerCoachResult');
   let lastPlan = '';
 
-  btn.addEventListener('click', async function () {
+    if (coachBtn) {
+      coachBtn.onclick = async function () {
     const role = roleInput.value.trim();
     const goals = goalsInput.value.trim();
     if (!role) {
@@ -38,6 +39,21 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
+    const resumeInput = document.getElementById('resumeUpload');
+    const resumeFileName = document.getElementById('resumeFileName');
+    let resumeFile = null;
+
+    if (resumeInput) {
+      resumeInput.onchange = function (e) {
+        if (resumeInput.files && resumeInput.files[0]) {
+          resumeFile = resumeInput.files[0];
+          resumeFileName.textContent = `Selected: ${resumeFile.name}`;
+        } else {
+          resumeFile = null;
+          resumeFileName.textContent = '';
+        }
+      };
+    }
   function formatPlanForPdf(text, doc) {
     // Split by lines and parse markdown-like headers/lists
     const lines = text.split(/\r?\n/);
