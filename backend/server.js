@@ -609,30 +609,7 @@ if (process.env.NODE_ENV !== 'test') {
     });
 }
 
-const authenticateToken = (req, res, next) => {
-  const token = req.headers.authorization?.split(' ')[1];
 
-  if (!token) {
-    return res.status(401).json({ error: 'No token' });
-  }
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    req.user = {
-      ...decoded,
-      userId: decoded.userId || decoded.id || decoded._id || decoded.sub || null
-    };
-
-    if (!req.user.userId) {
-      return res.status(403).json({ error: 'Invalid token payload' });
-    }
-
-    return next();
-  } catch {
-    return res.status(403).json({ error: 'Invalid token' });
-  }
-};
 
 async function requireAnalyticsAccess(req, res, next) {
   try {
