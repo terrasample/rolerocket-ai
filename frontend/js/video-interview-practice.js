@@ -3,8 +3,9 @@ document.addEventListener('DOMContentLoaded', function () {
   const startBtn = document.getElementById('startInterviewBtn');
   const videoCallContainer = document.getElementById('videoCallContainer');
   const qaContainer = document.getElementById('interviewQAContainer');
-  const audioOnlyToggle = document.getElementById('audioOnlyToggle');
   const timerDiv = document.getElementById('interviewTimer');
+  const webcamToggleWrap = document.getElementById('webcamToggleWrap');
+  const webcamToggle = document.getElementById('webcamToggle');
   let mediaStream = null;
 
   // Interview questions
@@ -39,19 +40,29 @@ document.addEventListener('DOMContentLoaded', function () {
     qaContainer.style.display = 'block';
     output.innerHTML = '';
     timerDiv.style.display = 'block';
+    webcamToggleWrap.style.display = 'flex';
     // Shuffle and pick 5 random questions
     const questions = questionsBank.slice().sort(() => Math.random() - 0.5).slice(0, 5);
-    // Start webcam or audio only
-    let audioOnly = audioOnlyToggle && audioOnlyToggle.checked;
+    let useWebcam = webcamToggle ? webcamToggle.checked : true;
     try {
-      mediaStream = await navigator.mediaDevices.getUserMedia({ video: !audioOnly, audio: true });
+      mediaStream = await navigator.mediaDevices.getUserMedia({ video: useWebcam, audio: true });
       const userVideo = document.getElementById('userVideo');
       userVideo.srcObject = mediaStream;
-      userVideo.style.display = audioOnly ? 'none' : '';
+      userVideo.style.display = useWebcam ? '' : 'none';
     } catch (err) {
       qaContainer.innerHTML = '<div style="color:#dc2626;">Could not access webcam/microphone. Please allow access and refresh.</div>';
       timerDiv.style.display = 'none';
+      webcamToggleWrap.style.display = 'none';
       return;
+    }
+    // Listen for toggle changes during session
+    if (webcamToggle) {
+      webcamToggle.onchange = function() {
+        if (mediaStream) {
+          mediaStream.getTracks().forEach(track => track.stop());
+        }
+        startVideoCall();
+      };
     }
     runInterview(questions);
     startInterviewTimer();
@@ -109,6 +120,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     videoCallContainer.style.display = 'none';
     qaContainer.style.display = 'none';
+    webcamToggleWrap.style.display = 'none';
 
     // Analyze answers for realistic feedback
     let strengths = [];
