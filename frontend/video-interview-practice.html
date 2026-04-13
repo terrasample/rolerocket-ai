@@ -25,17 +25,17 @@
         <h2 class="feature-title">Video Interview Practice</h2>
         <p>Practice live interview calls with AI and get instant feedback and improvement pointers after each session.</p>
         <button id="startInterviewBtn" class="feature-launch-btn" style="margin-bottom:18px;">Start Video Interview Practice</button>
-        <div id="interviewPracticeContainer">
-          <textarea id="videoInterviewText" style="width:100%;max-width:600px;height:180px;margin:18px 0;">Sample Interview Feedback:
-  - Strengths: Clear communication, relevant examples
-  - Areas to improve: More concise answers, stronger closing
-  - AI tip: Practice STAR method for behavioral questions
-          </textarea>
-          <div style="margin:18px 0;">
-            <button id="downloadVideoInterviewPdfBtn" class="feature-launch-btn" style="margin-right:12px;">Download as PDF</button>
-            <button id="downloadVideoInterviewWordBtn" class="feature-launch-btn">Download as Word</button>
+        <div id="videoCallContainer" style="display:none;justify-content:center;align-items:center;gap:32px;margin:24px 0;">
+          <div style="display:flex;flex-direction:column;align-items:center;">
+            <video id="userVideo" autoplay muted playsinline style="width:220px;height:165px;background:#222;border-radius:12px;border:2px solid #2563eb;"></video>
+            <div style="margin-top:8px;font-weight:bold;">You</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;">
+            <img id="aiRecruiterAvatar" src="assets/ai-recruiter-animated.gif" alt="AI Recruiter" style="width:120px;height:120px;border-radius:50%;border:2px solid #facc15;background:#fff;object-fit:cover;" />
+            <div style="margin-top:8px;font-weight:bold;">AI Recruiter</div>
           </div>
         </div>
+        <div id="interviewQAContainer" style="display:none;margin:24px 0;"></div>
         <div id="videoInterviewOutput"></div>
       </section>
     </main>
