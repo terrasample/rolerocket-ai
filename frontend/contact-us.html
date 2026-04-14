@@ -130,6 +130,11 @@
         <button type="submit">Send Message</button>
         <div class="contact-success" id="contactSuccess" style="display:none;"></div>
       </form>
+      <div class="marketing-card" style="max-width:520px;margin:0 auto 24px auto;background:#0f172a;color:#e2e8f0;border:1px solid #334155;">
+        <h3 style="margin-top:0;color:#facc15;">Billing and Refund Help</h3>
+        <p style="margin-bottom:10px;line-height:1.7;">Refunds are reviewed manually. For the fastest review, include your account email, the charge date, and your Stripe receipt or invoice details.</p>
+        <p style="margin:0;"><a href="refund-policy.html" style="color:#93c5fd;font-weight:700;">Read the refund policy</a></p>
+      </div>
       <div class="contact-social">
         <a href="mailto:Prince@rolerocketai.com" title="Email"><i class="fa-solid fa-envelope"></i></a>
         <a href="https://twitter.com/rolerocketai" target="_blank" title="Twitter"><i class="fa-brands fa-twitter"></i></a>
@@ -139,6 +144,19 @@
     </main>
   </div>
   <script>
+    (function prefillRefundSupport() {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('topic') !== 'refund') return;
+      const subjectInput = document.getElementById('subject');
+      const messageInput = document.getElementById('message');
+      if (subjectInput && !subjectInput.value) {
+        subjectInput.value = 'Refund Request';
+      }
+      if (messageInput && !messageInput.value) {
+        messageInput.value = 'Account email: \nCharge date: \nReceipt or invoice ID: \nReason for request: ';
+      }
+    })();
+
     document.getElementById('contactForm').addEventListener('submit', async function(e) {
       e.preventDefault();
       const name = document.getElementById('name').value.trim();

@@ -5,6 +5,7 @@ Allow: /signup.html
 Allow: /login.html
 Allow: /privacy.html
 Allow: /terms.html
+Allow: /refund-policy.html
 Allow: /forgot-password.html
 Allow: /styles.css
 Allow: /sitemap.xml
