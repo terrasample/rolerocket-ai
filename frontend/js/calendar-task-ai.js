@@ -1,84 +1,134 @@
-// Calendar & Task AI Download Logic
-
-document.addEventListener('DOMContentLoaded', async function () {
+document.addEventListener('DOMContentLoaded', function () {
+  const roleInput = document.getElementById('calendarRoleInput');
+  const hoursInput = document.getElementById('calendarHoursInput');
+  const constraintsInput = document.getElementById('calendarConstraintsInput');
+  const generateBtn = document.getElementById('generateCalendarTaskBtn');
+  const resultWrap = document.getElementById('calendarTaskResult');
+  const downloadsWrap = document.getElementById('calendarTaskDownloads');
   const pdfBtn = document.getElementById('downloadCalendarTaskPdfBtn');
   const wordBtn = document.getElementById('downloadCalendarTaskWordBtn');
   const textArea = document.getElementById('calendarTaskText');
   const output = document.getElementById('calendarTaskOutput');
 
-  // Personalized report fetch logic
-  const token = localStorage.getItem('token');
-  if (token && typeof apiUrl === 'function') {
-    try {
-      const res = await fetch(apiUrl('/api/calendar-task-ai'), {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data && data.report) {
-          textArea.value = data.report;
-        }
-      }
-    } catch (e) { /* fallback to sample */ }
+  function setMessage(message, color) {
+    output.innerHTML = message ? `<div style="margin-top:12px;color:${color};">${message}</div>` : '';
   }
 
-  function formatCalendarTaskForPdf(text, doc) {
-    const lines = text.split(/\r?\n/);
-    let y = 28;
+  function slugify(value) {
+    return String(value || 'calendar-task-plan')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'calendar-task-plan';
+  }
+
+  function getFileBaseName() {
+    return slugify(`${roleInput?.value || 'calendar'}-${hoursInput?.value || 'tasks'}`);
+  }
+
+  function formatPdf(text, doc) {
+    let y = 24;
     doc.setFont('times', 'bold');
     doc.setFontSize(16);
-    doc.text('Calendar & Task Plan', 25, y);
-    y += 24;
+    doc.text('Calendar & Task AI Plan', 20, y);
+    y += 12;
     doc.setFont('times', 'normal');
     doc.setFontSize(12);
-    const lineHeight = 24;
-    lines.forEach(line => {
-      if (/^\s*$/.test(line)) {
-        y += lineHeight / 2;
-      } else {
-        const splitLines = doc.splitTextToSize(line, 160);
-        splitLines.forEach(wrapLine => {
-          doc.text(wrapLine, 25, y);
-          y += lineHeight / 1.5;
-        });
-      }
-      if (y > 270) { doc.addPage(); y = 28; }
+    text.split('\n').forEach((line) => {
+      const wrapped = line.trim() ? doc.splitTextToSize(line, 170) : [''];
+      wrapped.forEach((part) => {
+        if (y > 275) {
+          doc.addPage();
+          y = 24;
+        }
+        doc.text(part, 20, y);
+        y += 8;
+      });
     });
   }
 
+  function downloadBlob(blob, fileName) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 100);
+  }
+
+  function buildWeeklyPlan(goal, hours, constraints) {
+    const normalizedHours = hours || '6-8 hours';
+    const notes = constraints
+      .split(/[\n.]/)
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .slice(0, 3);
+
+    return [
+      `Calendar & Task Plan for ${goal || 'your job search week'}`,
+      '',
+      `Available time: ${normalizedHours}`,
+      `Priority constraints: ${notes.join('; ') || 'Keep momentum across applications, networking, and prep.'}`,
+      '',
+      'Suggested weekly rhythm:',
+      '- Monday: shortlist top roles, tailor one resume, and submit your highest-fit application.',
+      '- Tuesday: networking outreach block and follow-ups on pending applications.',
+      '- Wednesday: interview prep or portfolio proof-building for priority roles.',
+      '- Thursday: second application sprint plus recruiter follow-up messages.',
+      '- Friday: review outcomes, clean your tracker, and plan the next week.',
+      '',
+      'Task focus:',
+      `- Protect at least one uninterrupted block for ${goal || 'high-fit applications'}.`,
+      '- Keep one short admin block for tracking, reminders, and follow-ups.',
+      '- End the week by deciding what to stop, continue, and double down on.'
+    ].join('\n');
+  }
+
+  if (generateBtn) {
+    generateBtn.onclick = function () {
+      textArea.value = buildWeeklyPlan(
+        roleInput?.value.trim(),
+        hoursInput?.value.trim(),
+        constraintsInput?.value.trim()
+      );
+      resultWrap.style.display = 'block';
+      downloadsWrap.style.display = 'block';
+      setMessage('Weekly plan generated and ready to download.', '#16a34a');
+    };
+  }
+
   if (pdfBtn) {
-    pdfBtn.onclick = function() {
+    pdfBtn.onclick = function () {
       const text = textArea.value.trim();
       if (!text) {
-        output.innerHTML = '<div style="color:#dc2626;">No plan to download.</div>';
+        setMessage('Generate the plan before downloading.', '#dc2626');
         return;
       }
-      if (!window.jspdf) {
-        output.innerHTML = '<div style="color:#dc2626;">PDF library not loaded.</div>';
+      if (!window.jspdf || !window.jspdf.jsPDF) {
+        setMessage('PDF library not loaded.', '#dc2626');
         return;
       }
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
-      formatCalendarTaskForPdf(text, doc);
-      doc.save('calendar-task-plan.pdf');
-      output.innerHTML = '<div style="color:#16a34a;">PDF downloaded.</div>';
+      formatPdf(text, doc);
+      doc.save(`${getFileBaseName()}.pdf`);
+      setMessage('PDF downloaded.', '#16a34a');
     };
   }
 
   if (wordBtn) {
-    wordBtn.onclick = function() {
+    wordBtn.onclick = function () {
       const text = textArea.value.trim();
       if (!text) {
-        output.innerHTML = '<div style="color:#dc2626;">No plan to download.</div>';
+        setMessage('Generate the plan before downloading.', '#dc2626');
         return;
       }
-      const content = 'Calendar & Task Plan\n\n' + text;
-      const blob = new Blob([content], { type: 'application/msword' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'calendar-task-plan.doc';
-      a.click();
-      output.innerHTML = '<div style="color:#16a34a;">Word document downloaded.</div>';
+      const html = `<!DOCTYPE html><html><body>${text.split('\n').map((line) => `<p>${line || '&nbsp;'}</p>`).join('')}</body></html>`;
+      downloadBlob(new Blob(['\ufeff', html], { type: 'application/msword' }), `${getFileBaseName()}.doc`);
+      setMessage('Word document downloaded.', '#16a34a');
     };
   }
 });
