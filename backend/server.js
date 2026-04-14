@@ -1147,6 +1147,100 @@ function warmJobSearchCache({ title, location, resume }) {
   return task;
 }
 
+const IN_DEMAND_JOBS_CACHE_MS = 24 * 60 * 60 * 1000;
+const inDemandJobsCache = {
+  createdAt: 0,
+  payload: null
+};
+
+const IN_DEMAND_JOB_QUERIES = [
+  { industry: 'Technology', title: 'software engineer', location: 'United States' },
+  { industry: 'Healthcare', title: 'registered nurse', location: 'United States' },
+  { industry: 'Finance', title: 'financial analyst', location: 'United States' },
+  { industry: 'Education', title: 'instructional designer', location: 'United States' },
+  { industry: 'Manufacturing', title: 'industrial engineer', location: 'United States' },
+  { industry: 'Retail', title: 'store manager', location: 'United States' }
+];
+
+function buildFallbackIndustryJobs() {
+  return {
+    Technology: ['Software Engineer', 'Data Engineer', 'Cloud Engineer', 'Cybersecurity Analyst', 'DevOps Engineer'],
+    Healthcare: ['Registered Nurse', 'Medical Assistant', 'Physical Therapist', 'Healthcare Administrator', 'Radiologic Technologist'],
+    Finance: ['Financial Analyst', 'Accountant', 'Risk Analyst', 'Compliance Analyst', 'Controller'],
+    Education: ['Instructional Designer', 'Teacher', 'School Counselor', 'Curriculum Specialist', 'Special Education Teacher'],
+    Manufacturing: ['Industrial Engineer', 'Production Supervisor', 'Quality Engineer', 'Maintenance Technician', 'Supply Chain Analyst'],
+    Retail: ['Store Manager', 'Merchandising Manager', 'Inventory Planner', 'Customer Experience Manager', 'Loss Prevention Manager']
+  };
+}
+
+function normalizeJobTitleForDemand(title) {
+  return String(title || '')
+    .replace(/\([^)]*\)/g, ' ')
+    .replace(/\[[^\]]*\]/g, ' ')
+    .replace(/[-|/:].*$/, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function getTopDemandTitles(jobs, fallbackTitles) {
+  const counts = new Map();
+
+  jobs.forEach((job) => {
+    const normalizedTitle = normalizeJobTitleForDemand(job?.title);
+    if (!normalizedTitle) {
+      return;
+    }
+    counts.set(normalizedTitle, (counts.get(normalizedTitle) || 0) + 1);
+  });
+
+  const topTitles = Array.from(counts.entries())
+    .sort((left, right) => right[1] - left[1])
+    .slice(0, 5)
+    .map(([title]) => title);
+
+  if (topTitles.length >= 5) {
+    return topTitles;
+  }
+
+  fallbackTitles.forEach((title) => {
+    if (topTitles.length < 5 && !topTitles.includes(title)) {
+      topTitles.push(title);
+    }
+  });
+
+  return topTitles;
+}
+
+async function buildInDemandJobsPayload() {
+  const fallback = buildFallbackIndustryJobs();
+  const results = await Promise.all(
+    IN_DEMAND_JOB_QUERIES.map(async ({ industry, title, location }) => {
+      try {
+        const { jobs } = await searchJobsFast({ title, location, resume: '' });
+        return [industry, getTopDemandTitles(jobs, fallback[industry] || [])];
+      } catch (error) {
+        return [industry, fallback[industry] || []];
+      }
+    })
+  );
+
+  return {
+    updatedAt: new Date().toISOString(),
+    industries: Object.fromEntries(results)
+  };
+}
+
+async function getInDemandJobsPayload() {
+  if (inDemandJobsCache.payload && Date.now() - inDemandJobsCache.createdAt < IN_DEMAND_JOBS_CACHE_MS) {
+    return { payload: inDemandJobsCache.payload, fromCache: true };
+  }
+
+  const payload = await buildInDemandJobsPayload();
+  inDemandJobsCache.createdAt = Date.now();
+  inDemandJobsCache.payload = payload;
+  return { payload, fromCache: false };
+}
+
 function getInstantJobs({ title, location, resume }) {
   const cacheKey = getJobSearchCacheKey({ title, location, resume });
   const cached = jobSearchCache.get(cacheKey);
@@ -2350,6 +2444,25 @@ app.post('/api/jobs/find', authenticateToken, async (req, res) => {
   } catch (err) {
     console.error('Find jobs error:', err);
     return res.status(500).json({ error: 'Failed to find jobs' });
+  }
+});
+
+app.get('/api/in-demand-jobs', async (_req, res) => {
+  try {
+    const { payload, fromCache } = await getInDemandJobsPayload();
+    return res.json({
+      ...payload,
+      cacheTtlMs: IN_DEMAND_JOBS_CACHE_MS,
+      fromCache
+    });
+  } catch (error) {
+    return res.status(200).json({
+      updatedAt: new Date().toISOString(),
+      industries: buildFallbackIndustryJobs(),
+      cacheTtlMs: IN_DEMAND_JOBS_CACHE_MS,
+      fromCache: false,
+      fallback: true
+    });
   }
 });
 

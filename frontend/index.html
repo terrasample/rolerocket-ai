@@ -174,68 +174,9 @@
       <!-- 5 Most In-Demand Jobs Section (moved above stats) -->
       <section class="marketing-card" aria-label="5 Most In-Demand Jobs" style="margin-bottom:24px;">
         <h3 style="text-align:center;">5 Most In-Demand Jobs by Industry</h3>
-        <div class="marketing-grid" style="justify-content:center;">
-          <article class="marketing-card tier-feature pro">
-            <h4>Technology</h4>
-            <ul>
-              <li>Software Engineer</li>
-              <li>Data Scientist</li>
-              <li>Cloud Architect</li>
-              <li>Cybersecurity Analyst</li>
-              <li>DevOps Engineer</li>
-            </ul>
-          </article>
-          <article class="marketing-card tier-feature premium">
-            <h4>Healthcare</h4>
-            <ul>
-              <li>Registered Nurse</li>
-              <li>Medical Technologist</li>
-              <li>Physical Therapist</li>
-              <li>Healthcare Administrator</li>
-              <li>Pharmacist</li>
-            </ul>
-          </article>
-          <article class="marketing-card tier-feature elite">
-            <h4>Finance</h4>
-            <ul>
-              <li>Financial Analyst</li>
-              <li>Accountant</li>
-              <li>Risk Manager</li>
-              <li>Investment Banker</li>
-              <li>Compliance Officer</li>
-            </ul>
-          </article>
-          <article class="marketing-card tier-feature pro">
-            <h4>Education</h4>
-            <ul>
-              <li>Teacher</li>
-              <li>Instructional Designer</li>
-              <li>School Counselor</li>
-              <li>Special Education Specialist</li>
-              <li>Education Administrator</li>
-            </ul>
-          </article>
-          <article class="marketing-card tier-feature premium">
-            <h4>Manufacturing</h4>
-            <ul>
-              <li>Production Supervisor</li>
-              <li>Quality Control Inspector</li>
-              <li>Industrial Engineer</li>
-              <li>Maintenance Technician</li>
-              <li>Supply Chain Analyst</li>
-            </ul>
-          </article>
-          <article class="marketing-card tier-feature premium">
-            <h4>Retail</h4>
-            <ul>
-              <li>Store Manager</li>
-              <li>Merchandiser</li>
-              <li>Inventory Analyst</li>
-              <li>Customer Experience Lead</li>
-              <li>Loss Prevention Specialist</li>
-            </ul>
-          </article>
-        </div>
+        <div id="jobsByIndustry" class="marketing-grid" style="justify-content:center;"></div>
+        <div id="jobsByIndustryMeta" style="margin-top:12px;text-align:center;color:#93c5fd;font-size:0.95rem;"></div>
+        <div id="jobsByIndustryError" style="display:none;margin-top:12px;text-align:center;color:#fca5a5;"></div>
       </section>
 
       <!-- Real platform activity moved to dashboard.html -->
@@ -263,32 +204,17 @@
       <section class="marketing-grid" aria-label="Tier highlights">
         <article class="marketing-card tier-feature pro">
           <h3>Pro Tier Highlights</h3>
-          <ul>
-            <li>Resume Generator</li>
-            <li>Cover Letter AI</li>
-            <li>Job Match Analysis</li>
-            <li>LinkedIn Optimization</li>
-          </ul>
+          <ul id="proTierHighlights"></ul>
         </article>
 
         <article class="marketing-card tier-feature premium">
           <h3>Premium Tier Highlights</h3>
-          <ul>
-            <li>ATS Optimizer</li>
-            <li>Interview Prep AI</li>
-            <li>1-Click Apply Workflow</li>
-            <li>AI Resume Rewrite</li>
-          </ul>
+          <ul id="premiumTierHighlights"></ul>
         </article>
 
         <article class="marketing-card tier-feature elite">
           <h3>Elite Tier Highlights</h3>
-          <ul>
-            <li>Career Coach AI</li>
-            <li>AI Interview Simulation Call + post-call feedback and pointers</li>
-            <li>Level up and build your executive presence with customized AI pointers</li>
-            <li>Priority strategy support</li>
-          </ul>
+          <ul id="eliteTierHighlights"></ul>
         </article>
       </section>
 
@@ -325,6 +251,7 @@
       </section>
 
       <script src="js/dashboard.js"></script>
+      <script src="js/in-demand-jobs.js"></script>
       <script>
       if (typeof initMobileSidebar === 'function') {
         initMobileSidebar();

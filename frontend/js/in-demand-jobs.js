@@ -1,39 +1,100 @@
-// Fetch and render the 5 most in-demand jobs by industry, updating daily
 document.addEventListener('DOMContentLoaded', async function () {
-  const container = document.getElementById('jobsByIndustry');
-  if (!container) return;
-  try {
-    // Example API endpoint for daily jobs (replace with real endpoint if available)
-    const res = await fetch('/api/in-demand-jobs');
-    let data;
-    if (res.ok) {
-      data = await res.json();
-    } else {
-      // fallback static data
-      data = {
-        Technology: ["Software Engineer","Data Scientist","Cloud Architect","Cybersecurity Analyst","DevOps Engineer"],
-        Healthcare: ["Registered Nurse","Medical Technologist","Physical Therapist","Healthcare Administrator","Pharmacist"],
-        Finance: ["Financial Analyst","Accountant","Risk Manager","Investment Banker","Compliance Officer"],
-        Education: ["Teacher","Instructional Designer","School Counselor","Special Education Specialist","Education Administrator"],
-        Manufacturing: ["Production Supervisor","Quality Control Inspector","Industrial Engineer","Maintenance Technician","Supply Chain Analyst"],
-        Retail: ["Store Manager","Merchandiser","Inventory Analyst","Customer Experience Lead","Loss Prevention Specialist"]
-      };
-    }
-    container.innerHTML = '';
-    Object.entries(data).forEach(([industry, jobs]) => {
-      const card = document.createElement('div');
-      card.style.background = 'linear-gradient(135deg,#0ea5e9 0%,#1e293b 100%)';
-      card.style.borderRadius = '18px';
-      card.style.padding = '22px 28px';
-      card.style.margin = '8px';
-      card.style.minWidth = '220px';
-      card.style.maxWidth = '260px';
-      card.style.flex = '1 1 220px';
-      card.style.boxShadow = '0 2px 12px #2563eb30';
-      card.innerHTML = `<h4 style='color:#fff;font-size:1.1em;margin-bottom:10px;'>${industry}</h4><ul style='color:#fff;text-align:left;padding-left:18px;'>${jobs.map(j=>`<li>${j}</li>`).join('')}</ul>`;
-      container.appendChild(card);
+  const jobsContainer = document.getElementById('jobsByIndustry');
+  const jobsMeta = document.getElementById('jobsByIndustryMeta');
+  const jobsError = document.getElementById('jobsByIndustryError');
+
+  const homepageTierHighlights = {
+    pro: [
+      'ATS Optimizer',
+      'Job Market Radar',
+      'Application Quality Score',
+      'Resume Optimizer'
+    ],
+    premium: [
+      'Interview Prep',
+      '1-Click Apply Queue',
+      'AI Portfolio Builder',
+      'AI Reference Generator'
+    ],
+    elite: [
+      'Career Coach',
+      'Career Path Simulator',
+      'Offer Negotiation Coach',
+      'Video Interview Practice'
+    ]
+  };
+
+  const tierToneByIndustry = {
+    Technology: 'pro',
+    Healthcare: 'premium',
+    Finance: 'elite',
+    Education: 'pro',
+    Manufacturing: 'premium',
+    Retail: 'elite'
+  };
+
+  function renderTierHighlights() {
+    Object.entries(homepageTierHighlights).forEach(([tier, features]) => {
+      const list = document.getElementById(`${tier}TierHighlights`);
+      if (!list) {
+        return;
+      }
+
+      list.innerHTML = features.map((feature) => `<li>${feature}</li>`).join('');
     });
-  } catch (e) {
-    container.innerHTML = '<div style="color:#dc2626;">Could not load jobs data.</div>';
+  }
+
+  function renderJobs(industries) {
+    if (!jobsContainer) {
+      return;
+    }
+
+    jobsContainer.innerHTML = '';
+    Object.entries(industries).forEach(([industry, jobs]) => {
+      const article = document.createElement('article');
+      article.className = `marketing-card tier-feature ${tierToneByIndustry[industry] || 'premium'}`;
+      article.innerHTML = `
+        <h4>${industry}</h4>
+        <ul>${jobs.map((job) => `<li>${job}</li>`).join('')}</ul>
+      `;
+      jobsContainer.appendChild(article);
+    });
+  }
+
+  function formatUpdatedDate(isoString) {
+    const date = new Date(isoString);
+    if (Number.isNaN(date.getTime())) {
+      return 'Updated recently';
+    }
+
+    return `Updated daily from live job sources. Last refresh: ${date.toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    })}`;
+  }
+
+  renderTierHighlights();
+
+  if (!jobsContainer) {
+    return;
+  }
+
+  try {
+    const response = await fetch('/api/in-demand-jobs', { cache: 'no-store' });
+    const data = await response.json();
+    renderJobs(data.industries || {});
+    if (jobsMeta) {
+      jobsMeta.textContent = formatUpdatedDate(data.updatedAt);
+    }
+    if (jobsError) {
+      jobsError.style.display = 'none';
+      jobsError.textContent = '';
+    }
+  } catch (error) {
+    if (jobsError) {
+      jobsError.style.display = 'block';
+      jobsError.textContent = 'Live job trends are temporarily unavailable. Please check back shortly.';
+    }
   }
 });
