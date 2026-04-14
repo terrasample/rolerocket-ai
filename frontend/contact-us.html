@@ -131,7 +131,7 @@
         <div class="contact-success" id="contactSuccess" style="display:none;"></div>
       </form>
       <div class="contact-social">
-        <a href="mailto:support@rolerocketai.com" title="Email"><i class="fa-solid fa-envelope"></i></a>
+        <a href="mailto:Prince@rolerocketai.com" title="Email"><i class="fa-solid fa-envelope"></i></a>
         <a href="https://twitter.com/rolerocketai" target="_blank" title="Twitter"><i class="fa-brands fa-twitter"></i></a>
         <a href="https://linkedin.com/company/rolerocketai" target="_blank" title="LinkedIn"><i class="fa-brands fa-linkedin"></i></a>
         <a href="https://github.com/terrasample/rolerocket-ai" target="_blank" title="GitHub"><i class="fa-brands fa-github"></i></a>
@@ -147,11 +147,24 @@
       const message = document.getElementById('message').value.trim();
       const successDiv = document.getElementById('contactSuccess');
       if (!name || !email || !subject || !message) return;
-      // Simulate sending (replace with backend integration if needed)
-      successDiv.textContent = 'Thank you, ' + name + '! Your message has been sent. We will get back to you soon.';
-      successDiv.style.display = 'block';
-      this.reset();
-      setTimeout(() => { successDiv.style.display = 'none'; }, 8000);
+      try {
+        const res = await fetch('/api/contact', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, subject, message })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Could not send your message.');
+        successDiv.textContent = 'Thank you, ' + name + '! Your message has been sent to Prince@rolerocketai.com.';
+        successDiv.style.display = 'block';
+        successDiv.style.color = '#16a34a';
+        this.reset();
+        setTimeout(() => { successDiv.style.display = 'none'; }, 8000);
+      } catch (error) {
+        successDiv.textContent = error.message || 'Could not send your message.';
+        successDiv.style.display = 'block';
+        successDiv.style.color = '#dc2626';
+      }
     });
   </script>
 </body>

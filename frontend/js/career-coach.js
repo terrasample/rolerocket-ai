@@ -58,35 +58,35 @@ document.addEventListener('DOMContentLoaded', function () {
     // Split by lines and parse markdown-like headers/lists
     const lines = text.split(/\r?\n/);
     let y = 20;
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(18);
+    doc.setFont('times', 'bold');
+    doc.setFontSize(12);
     doc.text('Career Coach Focus Plan', 10, y);
     y += 10;
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('times', 'normal');
     doc.setFontSize(12);
     lines.forEach(line => {
       if (/^### /.test(line)) {
         y += 8;
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(14);
+        doc.setFont('times', 'bold');
+        doc.setFontSize(12);
         doc.text(line.replace(/^### /, ''), 10, y);
-        doc.setFont('helvetica', 'normal');
+        doc.setFont('times', 'normal');
         doc.setFontSize(12);
         y += 6;
       } else if (/^## /.test(line)) {
         y += 8;
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(13);
+        doc.setFont('times', 'bold');
+        doc.setFontSize(12);
         doc.text(line.replace(/^## /, ''), 10, y);
-        doc.setFont('helvetica', 'normal');
+        doc.setFont('times', 'normal');
         doc.setFontSize(12);
         y += 5;
       } else if (/^# /.test(line)) {
         y += 10;
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(15);
+        doc.setFont('times', 'bold');
+        doc.setFontSize(12);
         doc.text(line.replace(/^# /, ''), 10, y);
-        doc.setFont('helvetica', 'normal');
+        doc.setFont('times', 'normal');
         doc.setFontSize(12);
         y += 6;
       } else if (/^\d+\. /.test(line)) {
@@ -96,9 +96,9 @@ document.addEventListener('DOMContentLoaded', function () {
         doc.text(line.replace(/^- /, '\u2022 '), 18, y);
         y += 6;
       } else if (/^\*\*.*\*\*$/.test(line)) {
-        doc.setFont('helvetica', 'bold');
+        doc.setFont('times', 'bold');
         doc.text(line.replace(/\*\*/g, ''), 10, y);
-        doc.setFont('helvetica', 'normal');
+        doc.setFont('times', 'normal');
         y += 6;
       } else if (line.trim() === '') {
         y += 4;
@@ -149,7 +149,8 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
       }
       const content = formatPlanForWord(lastPlan);
-      const blob = new Blob([content], { type: 'application/msword' });
+      const html = `<!DOCTYPE html><html><body style="font-family:'Times New Roman', Times, serif;font-size:12pt;line-height:1.5;color:#000;white-space:pre-wrap;">${content.replace(/\n/g, '<br>')}</body></html>`;
+      const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = 'career-coach-focus-plan.doc';

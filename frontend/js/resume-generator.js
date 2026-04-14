@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', function () {
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
       const text = lastResume.replace(/\n/g, '\n');
-      doc.setFont('helvetica');
+      doc.setFont('times');
       doc.setFontSize(12);
       doc.text(text, 10, 20, { maxWidth: 180 });
       doc.save('resume.pdf');
@@ -77,7 +77,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     const text = lastResume.replace(/\n/g, '\n');
-    doc.setFont('helvetica');
+    doc.setFont('times');
     doc.setFontSize(12);
     doc.text(text, 10, 20, { maxWidth: 180 });
     doc.save('resume.pdf');

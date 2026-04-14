@@ -155,35 +155,35 @@ document.addEventListener('DOMContentLoaded', function () {
   function formatInterviewForPdf(text, doc) {
     const lines = text.split(/\r?\n/);
     let y = 20;
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(18);
+    doc.setFont('times', 'bold');
+    doc.setFontSize(12);
     doc.text('Generated Interview Q&A', 10, y);
     y += 10;
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('times', 'normal');
     doc.setFontSize(12);
     lines.forEach(line => {
       if (/^### /.test(line)) {
         y += 8;
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(14);
+        doc.setFont('times', 'bold');
+        doc.setFontSize(12);
         doc.text(line.replace(/^### /, ''), 10, y);
-        doc.setFont('helvetica', 'normal');
+        doc.setFont('times', 'normal');
         doc.setFontSize(12);
         y += 6;
       } else if (/^## /.test(line)) {
         y += 8;
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(13);
+        doc.setFont('times', 'bold');
+        doc.setFontSize(12);
         doc.text(line.replace(/^## /, ''), 10, y);
-        doc.setFont('helvetica', 'normal');
+        doc.setFont('times', 'normal');
         doc.setFontSize(12);
         y += 5;
       } else if (/^# /.test(line)) {
         y += 10;
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(15);
+        doc.setFont('times', 'bold');
+        doc.setFontSize(12);
         doc.text(line.replace(/^# /, ''), 10, y);
-        doc.setFont('helvetica', 'normal');
+        doc.setFont('times', 'normal');
         doc.setFontSize(12);
         y += 6;
       } else if (/^\d+\. /.test(line)) {
@@ -193,9 +193,9 @@ document.addEventListener('DOMContentLoaded', function () {
         doc.text(line.replace(/^- /, '\u2022 '), 18, y);
         y += 6;
       } else if (/^\*\*.*\*\*$/.test(line)) {
-        doc.setFont('helvetica', 'bold');
+        doc.setFont('times', 'bold');
         doc.text(line.replace(/\*\*/g, ''), 10, y);
-        doc.setFont('helvetica', 'normal');
+        doc.setFont('times', 'normal');
         y += 6;
       } else if (line.trim() === '') {
         y += 4;

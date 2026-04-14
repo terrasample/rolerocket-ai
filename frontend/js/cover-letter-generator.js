@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', function () {
     doc.setFontSize(12);
     // Title
     doc.setFont('times', 'bold');
-    doc.setFontSize(16);
+    doc.setFontSize(12);
     doc.text('Cover Letter', marginLeft, y);
     y += lineHeight * 1.5;
     doc.setFont('times', 'normal');
@@ -126,7 +126,8 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
       }
       const content = formatCoverForWord(lastCover);
-      const blob = new Blob([content], { type: 'application/msword' });
+      const html = `<!DOCTYPE html><html><body style="font-family:'Times New Roman', Times, serif;font-size:12pt;line-height:1.5;color:#000;white-space:pre-wrap;">${content.replace(/\n/g, '<br>')}</body></html>`;
+      const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = 'cover-letter.doc';

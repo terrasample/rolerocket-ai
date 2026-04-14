@@ -268,7 +268,7 @@ document.getElementById('saveAtsResumePdfBtn')?.addEventListener('click', () => 
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
   const text = resume.replace(/\n/g, '\n');
-  doc.setFont('helvetica');
+  doc.setFont('times');
   doc.setFontSize(12);
   doc.text(text, 10, 20, { maxWidth: 180 });
   doc.save('ats-optimized-resume.pdf');
@@ -281,7 +281,8 @@ document.getElementById('saveAtsResumeWordBtn')?.addEventListener('click', () =>
     setOptimizerStatus('No resume content to save.', true);
     return;
   }
-  const blob = new Blob([resume], { type: 'application/msword' });
+  const html = `<!DOCTYPE html><html><body style="font-family:'Times New Roman', Times, serif;font-size:12pt;line-height:1.5;color:#000;white-space:pre-wrap;">${resume.replace(/\n/g, '<br>')}</body></html>`;
+  const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'ats-optimized-resume.doc';

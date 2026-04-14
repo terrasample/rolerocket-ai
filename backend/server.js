@@ -570,6 +570,44 @@ app.post('/api/waitlist', async (req, res) => {
   }
 });
 
+app.post('/api/contact', async (req, res) => {
+  try {
+    const name = String(req.body?.name || '').trim();
+    const email = String(req.body?.email || '').trim();
+    const subject = String(req.body?.subject || '').trim();
+    const message = String(req.body?.message || '').trim();
+
+    if (!name || !email || !subject || !message) {
+      return res.status(400).json({ error: 'All fields are required.' });
+    }
+
+    if (!/^\S+@\S+\.\S+$/.test(email)) {
+      return res.status(400).json({ error: 'A valid email is required.' });
+    }
+
+    const contactRecipient = process.env.CONTACT_TO || 'Prince@rolerocketai.com';
+    await sendEmail({
+      to: contactRecipient,
+      subject: `Contact Form: ${subject}`,
+      html: `
+        <div style="font-family:Segoe UI,Arial,sans-serif;color:#0f172a;line-height:1.6;max-width:720px;">
+          <h2 style="margin:0 0 12px;">New RoleRocket AI contact form message</h2>
+          <p><strong>Name:</strong> ${name}</p>
+          <p><strong>Email:</strong> ${email}</p>
+          <p><strong>Subject:</strong> ${subject}</p>
+          <p><strong>Message:</strong></p>
+          <div style="padding:16px;border-radius:10px;background:#f8fafc;border:1px solid #cbd5e1;white-space:pre-wrap;">${message}</div>
+        </div>
+      `
+    });
+
+    return res.json({ ok: true, message: 'Message sent successfully.' });
+  } catch (err) {
+    console.error('Contact form error:', err);
+    return res.status(500).json({ error: 'Could not send your message right now.' });
+  }
+});
+
 function ensureDbReady(res, operation = 'Request') {
   if (mongoose.connection.readyState === 1) return true;
   return res.status(503).json({

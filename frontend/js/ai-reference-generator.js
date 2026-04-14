@@ -139,9 +139,9 @@ document.addEventListener('DOMContentLoaded', function () {
       }
 
       try {
-        const htmlDocument = `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>${text
+        const htmlDocument = `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="font-family:'Times New Roman', Times, serif;font-size:12pt;line-height:1.5;color:#000;">${text
           .split('\n')
-          .map((line) => `<p>${line || '&nbsp;'}</p>`)
+          .map((line) => `<p style="margin:0 0 12pt 0;">${line || '&nbsp;'}</p>`)
           .join('')}</body></html>`;
         const blob = new Blob(['\ufeff', htmlDocument], {
           type: 'application/msword'

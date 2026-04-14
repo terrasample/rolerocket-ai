@@ -59,7 +59,7 @@ document.addEventListener('DOMContentLoaded', function () {
   function formatPdf(text, doc) {
     let y = 24;
     doc.setFont('times', 'bold');
-    doc.setFontSize(16);
+    doc.setFontSize(12);
     doc.text('Job Market Radar Report', 20, y);
     y += 12;
     doc.setFont('times', 'normal');
@@ -141,7 +141,7 @@ document.addEventListener('DOMContentLoaded', function () {
         setMessage('Generate the report before downloading.', '#dc2626');
         return;
       }
-      const html = `<!DOCTYPE html><html><body>${text.split('\n').map((line) => `<p>${line || '&nbsp;'}</p>`).join('')}</body></html>`;
+      const html = `<!DOCTYPE html><html><body style="font-family:'Times New Roman', Times, serif;font-size:12pt;line-height:1.5;color:#000;">${text.split('\n').map((line) => `<p style="margin:0 0 12pt 0;">${line || '&nbsp;'}</p>`).join('')}</body></html>`;
       downloadBlob(new Blob(['\ufeff', html], { type: 'application/msword' }), `${getFileBaseName()}.doc`);
       setMessage('Word document downloaded.', '#16a34a');
     };

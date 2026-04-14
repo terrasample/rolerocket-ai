@@ -232,11 +232,11 @@
       </section>
 
       <!-- Unlock Pro Button (visible on homepage) -->
-      <section class="marketing-card tier-feature pro" style="margin: 32px 0; text-align: center;">
-        <h2>Unlock Pro</h2>
-        <p>Get all Pro features instantly: Resume Generator, Cover Letter AI, Job Match Analysis, LinkedIn Optimization, and more.</p>
+      <section id="nextPlanCta" class="marketing-card tier-feature pro" style="margin: 32px 0; text-align: center;">
+        <h2 id="nextPlanTitle">Unlock Pro</h2>
+        <p id="nextPlanDescription">Get all Pro features instantly: Resume Generator, Cover Letter AI, Job Match Analysis, LinkedIn Optimization, and more.</p>
         <button id="unlockProBtn" class="checkout-btn" style="font-size:1.2em;padding:16px 32px;margin-top:12px;">Unlock Pro →</button>
-        <div style="margin-top:10px;font-size:0.95em;color:#64748b;">No recurring fees until you choose. Cancel anytime.</div>
+        <div id="nextPlanNote" style="margin-top:10px;font-size:0.95em;color:#64748b;">No recurring fees until you choose. Cancel anytime.</div>
       </section>
 
       <script src="js/dashboard.js"></script>
@@ -301,21 +301,129 @@
         }
       });
 
+      const nextPlanConfig = {
+        free: {
+          cardClass: 'pro',
+          title: 'Unlock Pro',
+          description: 'Get all Pro features instantly: Resume Generator, Cover Letter AI, Job Match Analysis, LinkedIn Optimization, and more.',
+          button: 'Unlock Pro →',
+          note: 'No recurring fees until you choose. Cancel anytime.',
+          plan: 'pro',
+          endpoint: '/api/create-checkout-session'
+        },
+        pro: {
+          cardClass: 'premium',
+          title: 'Upgrade to Premium',
+          description: 'Move up to Premium for Interview Prep, 1-Click Apply Queue, AI Portfolio Builder, Networking AI, and AI Reference Generator.',
+          button: 'Unlock Premium →',
+          note: 'Premium adds faster execution and stronger candidate positioning.',
+          plan: 'premium',
+          endpoint: '/api/create-checkout-session'
+        },
+        premium: {
+          cardClass: 'elite',
+          title: 'Upgrade to Elite',
+          description: 'Elite adds Career Coach, Career Path Simulator, Offer Negotiation Coach, Calendar & Task AI, AI Application Tracker, and AI Job Agent.',
+          button: 'Unlock Elite →',
+          note: 'Elite is built for users who want a full execution system, not just isolated tools.',
+          plan: 'elite',
+          endpoint: '/api/create-checkout-session'
+        },
+        elite: {
+          cardClass: 'premium',
+          title: 'Upgrade to Lifetime Access',
+          description: 'Move from Elite to lifetime access and keep every candidate feature without recurring billing.',
+          button: 'Get Lifetime Access →',
+          note: 'One-time purchase. Non-recurring. Cancellation no longer applies after lifetime purchase.',
+          plan: 'lifetime',
+          endpoint: '/api/create-lifetime-checkout'
+        },
+        lifetime: {
+          cardClass: 'elite',
+          title: 'All Candidate Features Unlocked',
+          description: 'You already have lifetime access. Open your dashboard to keep working across every candidate tool.',
+          button: 'Open Dashboard →',
+          note: 'Your plan is already at the highest candidate tier.',
+          plan: null,
+          endpoint: null
+        },
+        recruiter: {
+          cardClass: 'premium',
+          title: 'Upgrade to Recruiter Lifetime',
+          description: 'Move to Recruiter Lifetime for permanent access to AI Recruiter Assist and recruiter dashboard features.',
+          button: 'Get Recruiter Lifetime →',
+          note: 'One-time recruiter purchase. No recurring billing.',
+          plan: 'recruiter_lifetime',
+          endpoint: '/api/create-lifetime-checkout'
+        },
+        recruiter_lifetime: {
+          cardClass: 'elite',
+          title: 'Recruiter Lifetime Already Active',
+          description: 'Your recruiter lifetime access is already active. Continue in the dashboard.',
+          button: 'Open Dashboard →',
+          note: 'You already have the highest recruiter tier.',
+          plan: null,
+          endpoint: null
+        }
+      };
+
+      let currentUpgradeConfig = nextPlanConfig.free;
+
+      async function syncHomepageUpgradeCta() {
+        const token = localStorage.getItem('token');
+        const titleEl = document.getElementById('nextPlanTitle');
+        const descriptionEl = document.getElementById('nextPlanDescription');
+        const noteEl = document.getElementById('nextPlanNote');
+        const buttonEl = document.getElementById('unlockProBtn');
+        const cardEl = document.getElementById('nextPlanCta');
+        if (!titleEl || !descriptionEl || !noteEl || !buttonEl || !cardEl) return;
+
+        let planKey = 'free';
+        if (token) {
+          try {
+            const res = await fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } });
+            const data = await res.json();
+            const plan = String(data.user?.plan || 'free').toLowerCase();
+            const isRecruiter = plan.includes('recruiter');
+            if (isRecruiter && plan.includes('lifetime')) {
+              planKey = 'recruiter_lifetime';
+            } else if (isRecruiter) {
+              planKey = 'recruiter';
+            } else if (nextPlanConfig[plan]) {
+              planKey = plan;
+            }
+          } catch (_error) {
+            planKey = 'free';
+          }
+        }
+
+        currentUpgradeConfig = nextPlanConfig[planKey] || nextPlanConfig.free;
+        titleEl.textContent = currentUpgradeConfig.title;
+        descriptionEl.textContent = currentUpgradeConfig.description;
+        noteEl.textContent = currentUpgradeConfig.note;
+        buttonEl.textContent = currentUpgradeConfig.button;
+        cardEl.className = `marketing-card tier-feature ${currentUpgradeConfig.cardClass}`;
+      }
+
       document.getElementById('unlockProBtn')?.addEventListener('click', async function() {
         const token = localStorage.getItem('token');
-        if (!token) {
-          window.location.href = 'login.html?redirect=index&plan=pro';
+        const btn = this;
+        if (!currentUpgradeConfig.plan) {
+          window.location.href = 'dashboard.html';
           return;
         }
-        const btn = this;
+        if (!token) {
+          window.location.href = `login.html?redirect=index&plan=${encodeURIComponent(currentUpgradeConfig.plan)}`;
+          return;
+        }
         const original = btn.textContent;
         btn.textContent = 'Redirecting to Stripe...';
         btn.disabled = true;
         try {
-          const res = await fetch('/api/create-checkout-session', {
+          const res = await fetch(currentUpgradeConfig.endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify({ plan: 'pro' })
+            body: JSON.stringify({ plan: currentUpgradeConfig.plan })
           });
           const data = await res.json();
           if (data.url) {
@@ -331,6 +439,8 @@
           btn.disabled = false;
         }
       });
+
+      syncHomepageUpgradeCta();
       </script>
     </main>
   </div>
