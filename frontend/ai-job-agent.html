@@ -6,6 +6,7 @@
   <title>AI Job Agent | RoleRocket AI</title>
   <link rel="stylesheet" href="styles.css" />
   <script src="js/jspdf-loader.js"></script>
+  <script src="js/api-base.js"></script>
 </head>
 <body>
   <a class="skip-link" href="#mainContent">Skip to main content</a>
@@ -24,14 +25,21 @@
       <section class="marketing-card tier-feature elite" style="max-width:700px;margin:0 auto 32px auto;text-align:center;">
         <h2 class="feature-title">AI Job Agent</h2>
         <p>Let AI scout and recommend jobs for you, tailored to your goals and preferences.</p>
-        <textarea id="jobAgentText" style="width:100%;max-width:600px;height:180px;margin:18px 0;">Sample Job Agent Report:
-  - Recommended: Data Scientist at Google
-  - Recommended: Product Manager at Stripe
-  - Recommended: Cloud Engineer at Amazon
-        </textarea>
-        <div style="margin:18px 0;">
+        <div style="max-width:600px;margin:18px auto;text-align:left;">
+          <label for="jobAgentRoleInput" style="display:block;margin-bottom:10px;">Target Role<br /><input id="jobAgentRoleInput" style="width:100%;margin-top:6px;" placeholder="Example: Product Manager" /></label>
+          <label for="jobAgentLocationInput" style="display:block;margin-bottom:10px;">Preferred Location<br /><input id="jobAgentLocationInput" style="width:100%;margin-top:6px;" placeholder="Example: Remote or New York" /></label>
+          <label for="jobAgentPreferencesInput" style="display:block;margin-bottom:10px;">Preferences<br /><textarea id="jobAgentPreferencesInput" style="width:100%;height:90px;margin-top:6px;" placeholder="Example: B2B SaaS, growth-stage company, strong product analytics culture"></textarea></label>
+          <div style="text-align:center;">
+            <button id="generateJobAgentBtn" class="feature-launch-btn" type="button">Scout Jobs For Me</button>
+          </div>
+        </div>
+        <div id="jobAgentResult" style="display:none;">
+          <textarea id="jobAgentText" style="width:100%;max-width:600px;height:220px;margin:18px 0;"></textarea>
+          <div id="jobAgentMatches" style="text-align:left;max-width:600px;margin:0 auto 18px auto;"></div>
+          <div id="jobAgentDownloads" style="display:none;margin:18px 0;">
           <button id="downloadJobAgentPdfBtn" class="feature-launch-btn" style="margin-right:12px;">Download as PDF</button>
           <button id="downloadJobAgentWordBtn" class="feature-launch-btn">Download as Word</button>
+          </div>
         </div>
         <div id="jobAgentOutput"></div>
       </section>

@@ -11,6 +11,9 @@ const OpenAI = require('openai');
 const Stripe = require('stripe');
 const rateLimit = require('express-rate-limit');
 const nodemailer = require('nodemailer');
+const multer = require('multer');
+const { extractTextFromPDF, extractTextFromDocx } = require('./pdfWordUtils');
+const { extractTextFromPDFWithOCR } = require('./ocrUtils');
 
 
 
@@ -18,6 +21,7 @@ const nodemailer = require('nodemailer');
 const app = express();
 app.use(express.json({ limit: '2mb' }));
 app.use(cors());
+const upload = multer({ storage: multer.memoryStorage() });
 
 console.log('DEBUG: server.js script started');
 
@@ -1374,6 +1378,140 @@ function authFailureMessage(prefix, err) {
   return detail ? `${fallback}: ${detail}` : fallback;
 }
 
+function toArrayBuffer(buffer) {
+  return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+}
+
+async function extractTextFromUploadedFile(file) {
+  if (!file) return '';
+
+  const mime = String(file.mimetype || '').toLowerCase();
+  if (mime === 'application/pdf') {
+    let content = await extractTextFromPDF(file.buffer);
+    if (!content.trim()) {
+      content = await extractTextFromPDFWithOCR(toArrayBuffer(file.buffer));
+    }
+    return content;
+  }
+
+  if (mime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+    return extractTextFromDocx(file.buffer);
+  }
+
+  if (mime.startsWith('text/')) {
+    return file.buffer.toString('utf8');
+  }
+
+  throw new Error('Unsupported file type');
+}
+
+function extractCurrencyValues(text = '') {
+  const matches = Array.from(
+    text.matchAll(/\$\s?(\d{2,3}(?:,\d{3})+|\d{2,3}k)/gi)
+  ).map((match) => match[1]);
+
+  return matches
+    .map((value) => {
+      if (/k$/i.test(value)) {
+        return Number.parseInt(value, 10) * 1000;
+      }
+      return Number.parseInt(value.replace(/,/g, ''), 10);
+    })
+    .filter((value) => Number.isFinite(value));
+}
+
+function formatMoney(value) {
+  if (!Number.isFinite(value)) return 'your target number';
+  return `$${value.toLocaleString('en-US')}`;
+}
+
+function extractOfferRole(text = '') {
+  const cleanedText = String(text || '').trim();
+  const match =
+    cleanedText.match(/position[:\s]+([^\n]+)/i)?.[1] ||
+    cleanedText.match(/role[:\s]+([^\n]+)/i)?.[1] ||
+    cleanedText.match(/offer letter for\s+(.+?)(?:\s+at\s+[^\n]+)?(?:\n|$)/i)?.[1] ||
+    extractJobTitle(cleanedText);
+
+  return String(match || 'Imported Role')
+    .replace(/^offer letter for\s+/i, '')
+    .trim();
+}
+
+function extractOfferCompany(text = '') {
+  const cleanedText = String(text || '').trim();
+  const match =
+    cleanedText.match(/company[:\s]+([^\n]+)/i)?.[1] ||
+    cleanedText.match(/offer letter for\s+.+?\s+at\s+([^\n]+)/i)?.[1] ||
+    cleanedText.match(/\bat\s+([A-Z][A-Za-z0-9&.,\- ]+)/)?.[1] ||
+    extractCompanyName(cleanedText);
+
+  return String(match || 'Imported Company').trim();
+}
+
+function buildOfferNegotiationReport({ offerText, targetComp, priorities }) {
+  const role = extractOfferRole(offerText);
+  const company = extractOfferCompany(offerText);
+  const location = extractLocation(offerText);
+  const currencyValues = extractCurrencyValues(offerText);
+  const currentOffer = currencyValues.length ? Math.max(...currencyValues) : null;
+  const targetValue = Number.parseInt(String(targetComp || '').replace(/[^\d]/g, ''), 10) || null;
+  const askValue = targetValue || (currentOffer ? Math.round(currentOffer * 1.08) : null);
+  const prioritiesLine = priorities && priorities.trim()
+    ? priorities.trim()
+    : 'base compensation, signing support, remote flexibility, and clear growth scope';
+
+  return [
+    `Offer Negotiation Plan for ${role} at ${company}`,
+    '',
+    `Offer snapshot: ${company} is hiring for ${role} in ${location}. ${currentOffer ? `The offer appears to center around ${formatMoney(currentOffer)}.` : 'The uploaded offer did not expose a clear base salary, so anchor your ask to market data and the role scope.'}`,
+    '',
+    'Recommended approach:',
+    '1. Open by expressing clear enthusiasm for the role and appreciation for the offer details.',
+    `2. Re-anchor the discussion around your impact, the scope of the role, and your top priorities: ${prioritiesLine}.`,
+    `3. Ask for ${formatMoney(askValue)}${currentOffer && askValue ? `, which preserves a reasonable move from the current offer while staying specific.` : ' and keep the request concrete and easy for the recruiter to take back to compensation review.'}`,
+    '4. If base pay is fixed, shift immediately to signing bonus, equity, start-date flexibility, PTO, and remote or hybrid support.',
+    '',
+    'Suggested script:',
+    `"Thank you again for the offer. I am excited about the chance to join ${company} as a ${role}. Based on the scope of the role, the value I can bring quickly, and current market benchmarks, I would be more comfortable moving forward at ${formatMoney(askValue)}. If base compensation is constrained, I would also be open to discussing other levers such as a signing bonus, equity, or flexibility around ${prioritiesLine}."`,
+    '',
+    'Coaching notes:',
+    '- Keep the tone collaborative, not defensive.',
+    '- Stop after making the ask and let the recruiter respond.',
+    '- Have one ideal outcome and one acceptable fallback ready before the call.',
+    '- If they cannot move immediately, ask when compensation review can happen and what approvals are needed.'
+  ].join('\n');
+}
+
+function buildJobScoutReport({ title, location, preferences, jobs }) {
+  const lines = [
+    `AI Job Agent Report for ${title} in ${location}`,
+    ''
+  ];
+
+  if (preferences) {
+    lines.push(`Search priorities: ${preferences}`);
+    lines.push('');
+  }
+
+  jobs.forEach((job, index) => {
+    lines.push(
+      `${index + 1}. ${job.title} at ${job.company}`,
+      `   Location: ${job.location}`,
+      `   Source: ${job.source}`,
+      `   Match score: ${Math.round(Number(job.matchScore || 0))}`,
+      `   Link: ${job.link}`,
+      ''
+    );
+  });
+
+  if (!jobs.length) {
+    lines.push('No roles were returned. Try broadening the target role or location.');
+  }
+
+  return lines.join('\n');
+}
+
 function createEmailVerificationTokenRecord() {
   const rawToken = crypto.randomBytes(32).toString('hex');
   const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
@@ -2463,6 +2601,49 @@ app.get('/api/in-demand-jobs', async (_req, res) => {
       fromCache: false,
       fallback: true
     });
+  }
+});
+
+app.post('/api/offer-negotiation-coach/analyze', upload.single('offerFile'), async (req, res) => {
+  try {
+    const uploadedText = req.file ? await extractTextFromUploadedFile(req.file) : '';
+    const offerText = String(req.body.offerText || uploadedText || '').trim();
+    const targetComp = String(req.body.targetComp || '').trim();
+    const priorities = String(req.body.priorities || '').trim();
+
+    if (!offerText) {
+      return res.status(400).json({ error: 'Offer text or an offer file is required.' });
+    }
+
+    return res.json({
+      report: buildOfferNegotiationReport({ offerText, targetComp, priorities }),
+      extracted: {
+        title: extractOfferRole(offerText),
+        company: extractOfferCompany(offerText),
+        location: extractLocation(offerText)
+      }
+    });
+  } catch (error) {
+    return res.status(400).json({ error: error.message || 'Failed to analyze offer.' });
+  }
+});
+
+app.get('/api/jobs/scout', async (req, res) => {
+  try {
+    const title = String(req.query.title || 'software engineer').trim();
+    const location = String(req.query.location || 'remote').trim();
+    const preferences = String(req.query.preferences || '').trim();
+    const limit = Math.max(1, Math.min(8, Number.parseInt(String(req.query.limit || '5'), 10) || 5));
+    const { jobs } = await searchJobsFast({ title, location, resume: preferences });
+    const topJobs = jobs.slice(0, limit);
+
+    return res.json({
+      query: { title, location, preferences },
+      jobs: topJobs,
+      report: buildJobScoutReport({ title, location, preferences, jobs: topJobs })
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to scout jobs.' });
   }
 });
 

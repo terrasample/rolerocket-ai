@@ -6,6 +6,7 @@
   <title>Offer Negotiation Coach | RoleRocket AI</title>
   <link rel="stylesheet" href="styles.css" />
   <script src="js/jspdf-loader.js"></script>
+  <script src="js/api-base.js"></script>
 </head>
 <body>
   <a class="skip-link" href="#mainContent">Skip to main content</a>
@@ -24,14 +25,21 @@
       <section class="marketing-card tier-feature elite" style="max-width:700px;margin:0 auto 32px auto;text-align:center;">
         <h2 class="feature-title">Offer Negotiation Coach</h2>
         <p>Get expert negotiation strategies and scripts to maximize your job offers.</p>
-        <textarea id="negotiationCoachText" style="width:100%;max-width:600px;height:180px;margin:18px 0;">Sample Negotiation Script:
-  - Express gratitude for the offer
-  - Highlight your value and unique skills
-  - Make a clear, data-backed counteroffer
-        </textarea>
-        <div style="margin:18px 0;">
+        <div style="max-width:600px;margin:18px auto;text-align:left;">
+          <label for="offerFile" style="display:block;margin-bottom:10px;">Upload Offer Letter (PDF, DOCX, TXT)<br /><input id="offerFile" type="file" accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain" style="width:100%;margin-top:6px;" /></label>
+          <label for="offerTextInput" style="display:block;margin-bottom:10px;">Or paste the offer details<br /><textarea id="offerTextInput" style="width:100%;height:120px;margin-top:6px;" placeholder="Paste salary, bonus, equity, location, and any important details from the offer."></textarea></label>
+          <label for="targetCompInput" style="display:block;margin-bottom:10px;">Target Compensation<br /><input id="targetCompInput" type="text" style="width:100%;margin-top:6px;" placeholder="Example: 145000" /></label>
+          <label for="negotiationPrioritiesInput" style="display:block;margin-bottom:10px;">Negotiation Priorities<br /><input id="negotiationPrioritiesInput" type="text" style="width:100%;margin-top:6px;" placeholder="Example: base pay, sign-on bonus, remote flexibility" /></label>
+          <div style="text-align:center;">
+            <button id="generateNegotiationCoachBtn" class="feature-launch-btn" type="button">Generate Negotiation Advice</button>
+          </div>
+        </div>
+        <div id="negotiationCoachResult" style="display:none;">
+          <textarea id="negotiationCoachText" style="width:100%;max-width:600px;height:220px;margin:18px 0;"></textarea>
+          <div id="negotiationCoachDownloads" style="display:none;margin:18px 0;">
           <button id="downloadNegotiationCoachPdfBtn" class="feature-launch-btn" style="margin-right:12px;">Download as PDF</button>
           <button id="downloadNegotiationCoachWordBtn" class="feature-launch-btn">Download as Word</button>
+          </div>
         </div>
         <div id="negotiationCoachOutput"></div>
       </section>
