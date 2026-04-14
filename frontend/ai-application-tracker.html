@@ -24,12 +24,19 @@
       <section class="marketing-card tier-feature elite" style="max-width:700px;margin:0 auto 32px auto;text-align:center;">
         <h2 class="feature-title">AI Application Tracker</h2>
         <p>Track all your applications, interviews, and offers in one place with AI insights.</p>
-        <textarea id="applicationTrackerText" style="width:100%;max-width:600px;height:180px;margin:18px 0;">Sample Application Tracker:
-  - Application 1: Google, SWE, Interview Scheduled
-  - Application 2: Amazon, PM, Awaiting Response
-  - Application 3: Microsoft, Data Scientist, Offer Received
-        </textarea>
+        <div style="display:grid;gap:12px;text-align:left;max-width:620px;margin:20px auto;">
+          <label for="trackerApplicationsInput"><strong>Applications</strong></label>
+          <textarea id="trackerApplicationsInput" style="width:100%;height:150px;" placeholder="Add one application per line, for example: Stripe | Product Manager | Interview Scheduled"></textarea>
+          <label for="trackerFocusInput"><strong>Current Focus</strong></label>
+          <input id="trackerFocusInput" type="text" style="width:100%;" placeholder="e.g. Improve response rate and prepare for onsite interviews" />
+        </div>
         <div style="margin:18px 0;">
+          <button id="generateApplicationTrackerBtn" class="feature-launch-btn">Generate Tracker Summary</button>
+        </div>
+        <div id="applicationTrackerResult" style="display:none;">
+          <textarea id="applicationTrackerText" readonly style="width:100%;max-width:600px;height:220px;margin:18px 0;"></textarea>
+        </div>
+        <div id="applicationTrackerDownloads" style="display:none;margin:18px 0;">
           <button id="downloadApplicationTrackerPdfBtn" class="feature-launch-btn" style="margin-right:12px;">Download as PDF</button>
           <button id="downloadApplicationTrackerWordBtn" class="feature-launch-btn">Download as Word</button>
         </div>

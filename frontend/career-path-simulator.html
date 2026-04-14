@@ -24,12 +24,23 @@
       <section class="marketing-card tier-feature elite" style="max-width:700px;margin:0 auto 32px auto;text-align:center;">
         <h2 class="feature-title">Career Path Simulator</h2>
         <p>Simulate different career paths and see potential outcomes based on your choices.</p>
-        <textarea id="careerPathText" style="width:100%;max-width:600px;height:180px;margin:18px 0;">Sample Career Path Simulation:
-  - Path 1: Senior Engineer → Lead Engineer → Engineering Manager
-  - Path 2: Product Analyst → Product Manager → Director of Product
-  - Insights: Management track offers higher salary, technical track offers more flexibility
-        </textarea>
+        <div style="display:grid;gap:12px;text-align:left;max-width:620px;margin:20px auto;">
+          <label for="careerCurrentRole"><strong>Current Role</strong></label>
+          <input id="careerCurrentRole" type="text" style="width:100%;" placeholder="e.g. Product Analyst" />
+          <label for="careerTargetRole"><strong>Target Role</strong></label>
+          <input id="careerTargetRole" type="text" style="width:100%;" placeholder="e.g. Senior Product Manager" />
+          <label for="careerStrengths"><strong>Strengths and Interests</strong></label>
+          <textarea id="careerStrengths" style="width:100%;height:120px;" placeholder="List your strongest skills, interests, or the work you want more of."></textarea>
+          <label for="careerTimeline"><strong>Timeline Goal</strong></label>
+          <input id="careerTimeline" type="text" style="width:100%;" placeholder="e.g. 12-18 months" />
+        </div>
         <div style="margin:18px 0;">
+          <button id="generateCareerPathBtn" class="feature-launch-btn">Generate Career Path Plan</button>
+        </div>
+        <div id="careerPathResult" style="display:none;">
+          <textarea id="careerPathText" readonly style="width:100%;max-width:600px;height:220px;margin:18px 0;"></textarea>
+        </div>
+        <div id="careerPathDownloads" style="display:none;margin:18px 0;">
           <button id="downloadCareerPathPdfBtn" class="feature-launch-btn" style="margin-right:12px;">Download as PDF</button>
           <button id="downloadCareerPathWordBtn" class="feature-launch-btn">Download as Word</button>
         </div>

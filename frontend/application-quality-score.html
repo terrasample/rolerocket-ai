@@ -24,12 +24,21 @@
       <section class="marketing-card tier-feature pro" style="max-width:700px;margin:0 auto 32px auto;text-align:center;">
         <h2 class="feature-title">Application Quality Score</h2>
         <p>Get a real-time score and actionable tips to improve your application before submitting.</p>
-        <textarea id="appQualityText" style="width:100%;max-width:600px;height:180px;margin:18px 0;">Sample Application Quality Score Report:
-  - Score: 87/100
-  - Strengths: Relevant skills, clear achievements
-  - Areas to improve: Quantify impact, add more keywords
-        </textarea>
+        <div style="display:grid;gap:12px;text-align:left;max-width:620px;margin:20px auto;">
+          <label for="applicationRoleInput"><strong>Target Role</strong></label>
+          <input id="applicationRoleInput" type="text" style="width:100%;" placeholder="e.g. Customer Success Manager" />
+          <label for="applicationResumeInput"><strong>Resume or Application Draft</strong></label>
+          <textarea id="applicationResumeInput" style="width:100%;height:130px;" placeholder="Paste your resume or application draft here."></textarea>
+          <label for="applicationJobInput"><strong>Job Description</strong></label>
+          <textarea id="applicationJobInput" style="width:100%;height:130px;" placeholder="Paste the job description or core requirements here."></textarea>
+        </div>
         <div style="margin:18px 0;">
+          <button id="generateAppQualityBtn" class="feature-launch-btn">Score My Application</button>
+        </div>
+        <div id="appQualityResult" style="display:none;">
+          <textarea id="appQualityText" readonly style="width:100%;max-width:600px;height:220px;margin:18px 0;"></textarea>
+        </div>
+        <div id="appQualityDownloads" style="display:none;margin:18px 0;">
           <button id="downloadAppQualityPdfBtn" class="feature-launch-btn" style="margin-right:12px;">Download as PDF</button>
           <button id="downloadAppQualityWordBtn" class="feature-launch-btn">Download as Word</button>
         </div>

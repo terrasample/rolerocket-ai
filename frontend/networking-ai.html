@@ -24,12 +24,21 @@
       <section class="marketing-card tier-feature premium" style="max-width:700px;margin:0 auto 32px auto;text-align:center;">
         <h2 class="feature-title">Networking AI</h2>
         <p>Get AI-powered networking tips and introductions to relevant professionals.</p>
-        <textarea id="networkingAiText" style="width:100%;max-width:600px;height:180px;margin:18px 0;">Sample Networking AI Report:
-  - Top networking tips: Personalize outreach, follow up, offer value
-  - Suggested connections: Product Managers, Data Scientists, Recruiters
-  - AI insights: Best time to connect is Tuesday 10am-12pm
-        </textarea>
+        <div style="display:grid;gap:12px;text-align:left;max-width:620px;margin:20px auto;">
+          <label for="networkingRoleInput"><strong>Target Role or Industry</strong></label>
+          <input id="networkingRoleInput" type="text" style="width:100%;" placeholder="e.g. Data Scientist in health tech" />
+          <label for="networkingGoalInput"><strong>Networking Goal</strong></label>
+          <input id="networkingGoalInput" type="text" style="width:100%;" placeholder="e.g. Land 5 warm introductions this month" />
+          <label for="networkingBackgroundInput"><strong>Background and Talking Points</strong></label>
+          <textarea id="networkingBackgroundInput" style="width:100%;height:130px;" placeholder="Paste achievements, projects, shared communities, or outreach context here."></textarea>
+        </div>
         <div style="margin:18px 0;">
+          <button id="generateNetworkingAiBtn" class="feature-launch-btn">Generate Networking Plan</button>
+        </div>
+        <div id="networkingAiResult" style="display:none;">
+          <textarea id="networkingAiText" readonly style="width:100%;max-width:600px;height:220px;margin:18px 0;"></textarea>
+        </div>
+        <div id="networkingAiDownloads" style="display:none;margin:18px 0;">
           <button id="downloadNetworkingAiPdfBtn" class="feature-launch-btn" style="margin-right:12px;">Download as PDF</button>
           <button id="downloadNetworkingAiWordBtn" class="feature-launch-btn">Download as Word</button>
         </div>
