@@ -1,7 +1,9 @@
-
-require('dotenv').config();
-const express = require('express');
 const path = require('path');
+require('dotenv').config({
+  path: path.join(__dirname, '.env'),
+  override: process.env.NODE_ENV !== 'production'
+});
+const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
@@ -575,6 +577,24 @@ function ensureDbReady(res, operation = 'Request') {
   });
 }
 
+function normalizeMongoUri(rawUri) {
+  if (!rawUri) return rawUri;
+
+  try {
+    const parsed = new URL(rawUri);
+    const isMongoProtocol = parsed.protocol === 'mongodb:' || parsed.protocol === 'mongodb+srv:';
+
+    if (!isMongoProtocol || !parsed.username || parsed.searchParams.has('authSource')) {
+      return rawUri;
+    }
+
+    parsed.searchParams.set('authSource', 'admin');
+    return parsed.toString();
+  } catch (error) {
+    return rawUri;
+  }
+}
+
 if (process.env.NODE_ENV !== 'test') {
   mongoose.connection.on('connected', () => {
     lastDbEvent = {
@@ -601,7 +621,7 @@ if (process.env.NODE_ENV !== 'test') {
   });
 
   mongoose
-    .connect(process.env.MONGODB_URI)
+    .connect(normalizeMongoUri(process.env.MONGODB_URI))
     .then(() => console.log('✅ MongoDB connected'))
     .catch((err) => {
       lastDbEvent = {
@@ -609,6 +629,13 @@ if (process.env.NODE_ENV !== 'test') {
         message: String(err?.message || 'Initial MongoDB connect failed'),
         at: new Date().toISOString()
       };
+
+      if (err?.code === 8000 || /authentication failed/i.test(String(err?.message || ''))) {
+        console.error('❌ MongoDB authentication failed. The MONGODB_URI credentials are invalid for the Atlas cluster.');
+        console.error('Update the MongoDB username/password in your local env file and in the Render dashboard before restarting the server.');
+        return;
+      }
+
       console.error('❌ MongoDB error:', err);
     });
 }
