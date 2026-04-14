@@ -1529,15 +1529,15 @@ async function syncLifetimeOfferUi() {
     const data = await api('/api/lifetime-offer-status', { method: 'GET' }, { retries: 0, timeoutMs: 5000 });
 
     if (data?.offerActive) {
-      lifetimeDashboardPriceEl.innerHTML = '<span class="price-original">$249</span> $199<span> one-time</span>';
+      lifetimeDashboardPriceEl.innerHTML = '<span class="price-original">$350</span> $299<span> one-time</span>';
       lifetimeOfferPillEl.textContent = '🔥 LIMITED OFFER';
-      lifetimeDashboardOfferNoteEl.textContent = `Limited offer: $199 for the first 50 customers. ${data.remaining || 0} spots left.`;
+      lifetimeDashboardOfferNoteEl.textContent = `Limited offer: $299 for the first 50 customers. ${data.remaining || 0} spots left.`;
       return;
     }
 
-    lifetimeDashboardPriceEl.innerHTML = '$249<span> one-time</span>';
+    lifetimeDashboardPriceEl.innerHTML = '$350<span> one-time</span>';
     lifetimeOfferPillEl.textContent = '🔥 LIFETIME ACCESS';
-    lifetimeDashboardOfferNoteEl.textContent = 'Limited offer sold out. Lifetime is now $249 one-time.';
+    lifetimeDashboardOfferNoteEl.textContent = 'Limited offer sold out. Lifetime is now $350 one-time.';
   } catch (err) {
     console.warn('Lifetime offer UI sync failed:', err?.message || err);
   }

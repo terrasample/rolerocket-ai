@@ -81,13 +81,13 @@
           <article class="price-card founders-lifetime">
             <div class="plan-pill" id="lifetimePricingPill" style="background:#facc15;color:#1e293b;">FOUNDERS DEAL</div>
             <h3>Founders Deal Lifetime Membership</h3>
-            <div class="price-amount" id="lifetimePricingAmount"><span class="price-original">$249</span> $199<span> one-time</span></div>
+            <div class="price-amount" id="lifetimePricingAmount"><span class="price-original">$350</span> $299<span> one-time</span></div>
             <ul>
               <li>All Elite features</li>
               <li>Lifetime access</li>
               <li>Exclusive updates</li>
             </ul>
-            <div id="lifetimePricingOfferNote" style="color:#facc15;font-size:1em;margin-bottom:8px;">Limited offer: $199 for the first 50 customers. 50 spots left.</div>
+            <div id="lifetimePricingOfferNote" style="color:#facc15;font-size:1em;margin-bottom:8px;">Limited offer: $299 for the first 50 customers. 50 spots left.</div>
             <button class="checkout-btn" data-checkout="founders_lifetime" onclick="handleCheckout('founders_lifetime')">Get Founders Deal</button>
           </article>
         </div>
@@ -240,13 +240,13 @@
         if (!amountEl || !pillEl || !noteEl) return;
 
         if (data.offerActive) {
-          amountEl.innerHTML = '<span class="price-original">$249</span> $199<span> one-time</span>';
+          amountEl.innerHTML = '<span class="price-original">$350</span> $299<span> one-time</span>';
           pillEl.textContent = 'LIFETIME LIMITED';
-          noteEl.textContent = `Limited offer: $199 for the first 50 customers. ${data.remaining} spots left.`;
+          noteEl.textContent = `Limited offer: $299 for the first 50 customers. ${data.remaining} spots left.`;
         } else {
-          amountEl.innerHTML = '$249<span> one-time</span>';
+          amountEl.innerHTML = '$350<span> one-time</span>';
           pillEl.textContent = 'LIFETIME ACCESS';
-          noteEl.textContent = 'Limited offer sold out. Lifetime is now $249 one-time.';
+          noteEl.textContent = 'Limited offer sold out. Lifetime is now $350 one-time.';
         }
       } catch (_err) {
         // Keep default pricing UI if offer status API is not reachable.
