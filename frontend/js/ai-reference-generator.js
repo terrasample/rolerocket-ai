@@ -1,154 +1,168 @@
-// AI Reference Generator Download Logic
-    if (pdfBtn) {
-      pdfBtn.onclick = function() {
-        const text = textArea.value.trim();
-        if (!text) {
-          output.innerHTML += '<div style="color:#dc2626;">No reference letter to download.</div>';
-          return;
-        }
-        if (!window.jspdf || !window.jspdf.jsPDF) {
-          output.innerHTML += '<div style="color:#dc2626;">PDF library not loaded.</div>';
-          return;
-        }
-        try {
-          const { jsPDF } = window.jspdf;
-          const doc = new jsPDF();
-          formatReferenceGenForPdf(text, doc);
-          doc.save('reference-letter.pdf');
-          output.innerHTML += '<div style="color:#16a34a;">PDF downloaded.</div>';
-        } catch (e) {
-          output.innerHTML += '<div style="color:#dc2626;">PDF download failed.</div>';
-        }
-      };
+document.addEventListener('DOMContentLoaded', function () {
+  const startBtn = document.getElementById('startReferenceGenBtn');
+  const container = document.getElementById('referenceGenContainer');
+  const output = document.getElementById('referenceGenOutput');
+  const form = document.getElementById('referenceGenForm');
+  const result = document.getElementById('referenceGenResult');
+  const textArea = document.getElementById('referenceGenText');
+  const downloadWrap = document.getElementById('referenceGenDownloads');
+  const pdfBtn = document.getElementById('downloadReferenceGenPdfBtn');
+  const wordBtn = document.getElementById('downloadReferenceGenWordBtn');
+  const restartBtn = document.getElementById('restartRefBtn');
+  const generateBtn = document.getElementById('generateRefBtn');
+
+  function setMessage(message, color) {
+    if (!output) {
+      return;
     }
-    if (wordBtn) {
-      wordBtn.onclick = function() {
-        const text = textArea.value.trim();
-        if (!text) {
-          output.innerHTML += '<div style="color:#dc2626;">No reference letter to download.</div>';
-          return;
+    output.innerHTML = message ? `<div style="margin-top:12px;color:${color};">${message}</div>` : '';
+  }
+
+  function slugifyFileName(value) {
+    return value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'reference-letter';
+  }
+
+  function buildReferenceLetter() {
+    const name = (document.getElementById('refName')?.value || '').trim() || 'Jane Doe';
+    const position = (document.getElementById('refPosition')?.value || '').trim() || 'Product Manager';
+    const relationship = (document.getElementById('refRelationship')?.value || '').trim() || 'a direct report on a high-visibility team';
+    const strengths = (document.getElementById('refStrengths')?.value || '').trim() || 'leadership, initiative, communication, and dependable execution';
+    const yourName = (document.getElementById('refYourName')?.value || '').trim() || 'John Smith';
+
+    return `To Whom It May Concern,\n\nI am pleased to recommend ${name} for the position of ${position}. I had the opportunity to work with ${name} as ${relationship}, and throughout that time ${name} consistently demonstrated ${strengths}.\n\n${name} approaches work with professionalism, sound judgment, and a strong sense of ownership. They communicate clearly, collaborate effectively with others, and follow through on commitments with a level of consistency that makes them highly reliable in fast-moving environments.\n\nWhat stands out most is ${name}'s ability to adapt to new challenges while maintaining a positive attitude and a high standard of work. I am confident ${name} will make a strong contribution in this role and would be an asset to any organization fortunate enough to have them.\n\nSincerely,\n${yourName}`;
+  }
+
+  function formatReferenceGenForPdf(text, doc) {
+    const marginLeft = 20;
+    const lineHeight = 8;
+    let y = 24;
+
+    doc.setFont('times', 'normal');
+    doc.setFontSize(12);
+
+    text.split('\n').forEach((line) => {
+      const printable = line.trim() ? doc.splitTextToSize(line, 170) : [''];
+      printable.forEach((wrappedLine) => {
+        if (y > 275) {
+          doc.addPage();
+          y = 24;
         }
-        try {
-          const content = 'Reference Letter\n\n' + text;
-          const blob = new Blob([content], { type: 'application/msword' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = 'reference-letter.doc';
-          document.body.appendChild(a);
-          a.click();
-          setTimeout(() => {
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-          }, 100);
-          output.innerHTML += '<div style="color:#16a34a;">Word document downloaded.</div>';
-        } catch (e) {
-          output.innerHTML += '<div style="color:#dc2626;">Word download failed.</div>';
-        }
-      };
-    }
-        splitLines.forEach(wrapLine => {
-          doc.text(wrapLine, 25, y);
-          y += lineHeight / 1.5;
-        });
-      }
-      if (y > 270) { doc.addPage(); y = 28; }
+        doc.text(wrappedLine, marginLeft, y);
+        y += lineHeight;
+      });
     });
   }
 
-  function bindDownloadButtons() {
-    pdfBtn = document.getElementById('downloadReferenceGenPdfBtn');
-    wordBtn = document.getElementById('downloadReferenceGenWordBtn');
-    // Always get the latest textarea (may be re-rendered)
-    textArea = document.getElementById('referenceGenText');
-    if (pdfBtn) {
-      pdfBtn.onclick = function() {
-        const ta = document.getElementById('referenceGenText');
-        const text = ta ? ta.value.trim() : '';
-        if (!text) {
-          output.innerHTML += '<div style="color:#dc2626;">No reference letter to download.</div>';
-          return;
-        }
-        if (!window.jspdf || !window.jspdf.jsPDF) {
-          output.innerHTML += '<div style="color:#dc2626;">PDF library not loaded.</div>';
-          return;
-        }
-        try {
-          const { jsPDF } = window.jspdf;
-          const doc = new jsPDF();
-          formatReferenceGenForPdf(text, doc);
-          doc.save('reference-letter.pdf');
-          output.innerHTML += '<div style="color:#16a34a;">PDF downloaded.</div>';
-        } catch (e) {
-          output.innerHTML += '<div style="color:#dc2626;">PDF download failed.</div>';
-        }
-      };
-    }
-    if (wordBtn) {
-      wordBtn.onclick = function() {
-        const ta = document.getElementById('referenceGenText');
-        const text = ta ? ta.value.trim() : '';
-        if (!text) {
-          output.innerHTML += '<div style="color:#dc2626;">No reference letter to download.</div>';
-          return;
-        }
-        try {
-          const content = 'Reference Letter\n\n' + text;
-          const blob = new Blob([content], { type: 'application/msword' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = 'reference-letter.doc';
-          document.body.appendChild(a);
-          a.click();
-          setTimeout(() => {
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-          }, 100);
-          output.innerHTML += '<div style="color:#16a34a;">Word document downloaded.</div>';
-        } catch (e) {
-          output.innerHTML += '<div style="color:#dc2626;">Word download failed.</div>';
-        }
-      };
-    }
+  function downloadBlob(blob, fileName) {
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = fileName;
+    document.body.appendChild(anchor);
+    anchor.click();
+    setTimeout(() => {
+      document.body.removeChild(anchor);
+      URL.revokeObjectURL(url);
+    }, 100);
   }
-  bindDownloadButtons();
 
-  // --- Reference Generation CTA logic ---
+  function getCurrentLetter() {
+    return textArea ? textArea.value.trim() : '';
+  }
+
+  function getCurrentFileBaseName() {
+    const recommendedName = (document.getElementById('refName')?.value || '').trim();
+    return `${slugifyFileName(recommendedName || 'reference-letter')}-reference-letter`;
+  }
+
   if (startBtn && container) {
-    startBtn.onclick = function() {
+    startBtn.onclick = function () {
       startBtn.style.display = 'none';
-      container.style.display = 'none';
-      output.innerHTML = '';
+      container.style.display = 'block';
+      if (form) {
+        form.style.display = 'block';
+      }
+      if (result) {
+        result.style.display = 'none';
+      }
+      if (downloadWrap) {
+        downloadWrap.style.display = 'none';
+      }
+      setMessage('', '#16a34a');
+    };
+  }
 
-      // Simple form for reference details
-      output.innerHTML = `<div style='margin:18px 0;'>
-        <strong>Reference Generator</strong><br>
-        <label>Name to Recommend:<br><input id='refName' style='width:80%;margin:6px 0;'></label><br>
-        <label>Position:<br><input id='refPosition' style='width:80%;margin:6px 0;'></label><br>
-        <label>Your Name:<br><input id='refYourName' style='width:80%;margin:6px 0;'></label><br>
-        <button id='generateRefBtn' class='feature-launch-btn' style='margin-top:10px;'>Generate Reference Letter</button>
-      </div>`;
-      document.getElementById('generateRefBtn').onclick = function() {
-        const name = document.getElementById('refName').value || 'Jane Doe';
-        const pos = document.getElementById('refPosition').value || 'Product Manager';
-        const your = document.getElementById('refYourName').value || 'John Smith';
-        // Generate a longer, more detailed reference letter (3+ paragraphs)
-        const letter = `To Whom It May Concern,\n\nI am pleased to recommend ${name} for the position of ${pos}. During their time at our company, ${name} consistently demonstrated exceptional leadership, initiative, and a strong work ethic. Their ability to take on new challenges and deliver results exceeded expectations.\n\n${name} was instrumental in driving key projects to success, collaborating effectively with team members and stakeholders. Their communication skills, attention to detail, and commitment to excellence made a significant positive impact on our organization.\n\nBeyond their professional achievements, ${name} is a person of great integrity and character. I am confident that they will bring the same level of dedication and excellence to any future role.\n\nSincerely,\n${your}`;
-        output.innerHTML = `<div style='margin:18px 0;'><strong>Generated Reference Letter:</strong><br><textarea id='referenceGenText' style='width:100%;max-width:600px;height:180px;margin:12px 0;'>${letter}</textarea><br>
-        <div style='margin:18px 0;'>
-          <button id='downloadReferenceGenPdfBtn' class='feature-launch-btn' style='margin-right:12px;'>Download as PDF</button>
-          <button id='downloadReferenceGenWordBtn' class='feature-launch-btn'>Download as Word</button>
-        </div>
-        <button id='restartRefBtn' class='feature-launch-btn'>Start Again</button></div>`;
-        // Re-bind download buttons for the generated letter
-        bindDownloadButtons();
-        document.getElementById('restartRefBtn').onclick = function() {
-          output.innerHTML = '';
-          startBtn.style.display = '';
-          container.style.display = '';
-        };
-      };
+  if (generateBtn && result && textArea && downloadWrap) {
+    generateBtn.onclick = function () {
+      const letter = buildReferenceLetter();
+      textArea.value = letter;
+      result.style.display = 'block';
+      downloadWrap.style.display = 'block';
+      setMessage('Reference letter generated and ready to download.', '#16a34a');
+      result.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    };
+  }
+
+  if (pdfBtn) {
+    pdfBtn.onclick = function () {
+      const text = getCurrentLetter();
+      if (!text) {
+        setMessage('Generate the reference letter before downloading.', '#dc2626');
+        return;
+      }
+      if (!window.jspdf || !window.jspdf.jsPDF) {
+        setMessage('PDF library not loaded.', '#dc2626');
+        return;
+      }
+
+      try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        formatReferenceGenForPdf(text, doc);
+        doc.save(`${getCurrentFileBaseName()}.pdf`);
+        setMessage('PDF downloaded.', '#16a34a');
+      } catch (error) {
+        setMessage('PDF download failed.', '#dc2626');
+      }
+    };
+  }
+
+  if (wordBtn) {
+    wordBtn.onclick = function () {
+      const text = getCurrentLetter();
+      if (!text) {
+        setMessage('Generate the reference letter before downloading.', '#dc2626');
+        return;
+      }
+
+      try {
+        const htmlDocument = `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>${text
+          .split('\n')
+          .map((line) => `<p>${line || '&nbsp;'}</p>`)
+          .join('')}</body></html>`;
+        const blob = new Blob(['\ufeff', htmlDocument], {
+          type: 'application/msword'
+        });
+        downloadBlob(blob, `${getCurrentFileBaseName()}.doc`);
+        setMessage('Word document downloaded.', '#16a34a');
+      } catch (error) {
+        setMessage('Word download failed.', '#dc2626');
+      }
+    };
+  }
+
+  if (restartBtn && startBtn && container && form && result && downloadWrap && textArea) {
+    restartBtn.onclick = function () {
+      container.style.display = 'none';
+      form.style.display = 'block';
+      result.style.display = 'none';
+      downloadWrap.style.display = 'none';
+      textArea.value = '';
+      startBtn.style.display = '';
+      setMessage('', '#16a34a');
     };
   }
 });

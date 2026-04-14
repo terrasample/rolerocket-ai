@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const webcamToggleWrap = document.getElementById('webcamToggleWrap');
   const webcamToggle = document.getElementById('webcamToggle');
   let mediaStream = null;
+  let permissionWarning = '';
 
   // Interview questions
   const questionsBank = [
@@ -33,6 +34,62 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
+  function renderPermissionWarning() {
+    if (!permissionWarning) {
+      return '';
+    }
+
+    return `<div style='margin:0 0 14px 0;padding:10px 14px;border-radius:12px;background:#fff7ed;color:#c2410c;'>${permissionWarning}</div>`;
+  }
+
+  async function requestInterviewMedia(useWebcam) {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      permissionWarning = 'Camera and microphone access is not supported here. Continuing in text-only mode.';
+      return null;
+    }
+
+    try {
+      return await navigator.mediaDevices.getUserMedia({ video: useWebcam, audio: true });
+    } catch (error) {
+      if (useWebcam) {
+        try {
+          const audioOnlyStream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
+          permissionWarning = 'Webcam access was unavailable. Continuing with microphone only. You can keep the webcam turned off.';
+          if (webcamToggle) {
+            webcamToggle.checked = false;
+          }
+          return audioOnlyStream;
+        } catch (audioOnlyError) {
+          permissionWarning = 'Could not access webcam/microphone. Continuing in text-only mode. You can still complete the interview without webcam.';
+          if (webcamToggle) {
+            webcamToggle.checked = false;
+          }
+          return null;
+        }
+      }
+
+      permissionWarning = 'Microphone access was unavailable. Continuing in text-only mode.';
+      return null;
+    }
+  }
+
+  function applyVideoState() {
+    const userVideo = document.getElementById('userVideo');
+    if (!userVideo) {
+      return;
+    }
+
+    const wantsWebcam = webcamToggle ? webcamToggle.checked : true;
+    const videoTrack = mediaStream ? mediaStream.getVideoTracks()[0] : null;
+    if (videoTrack) {
+      videoTrack.enabled = wantsWebcam;
+      userVideo.style.display = wantsWebcam ? '' : 'none';
+      return;
+    }
+
+    userVideo.style.display = 'none';
+  }
+
   // Start video call
   async function startVideoCall() {
     startBtn.style.display = 'none';
@@ -44,33 +101,17 @@ document.addEventListener('DOMContentLoaded', function () {
     // Shuffle and pick 5 random questions
     const questions = questionsBank.slice().sort(() => Math.random() - 0.5).slice(0, 5);
     let useWebcam = webcamToggle ? webcamToggle.checked : true;
-    try {
-      mediaStream = await navigator.mediaDevices.getUserMedia({ video: useWebcam, audio: true });
-      const userVideo = document.getElementById('userVideo');
+    permissionWarning = '';
+    mediaStream = await requestInterviewMedia(useWebcam);
+    const userVideo = document.getElementById('userVideo');
+    if (userVideo) {
       userVideo.srcObject = mediaStream;
-      userVideo.style.display = useWebcam ? '' : 'none';
-    } catch (err) {
-      qaContainer.innerHTML = '<div style="color:#dc2626;">Could not access webcam/microphone. Please allow access and refresh.</div>';
-      timerDiv.style.display = 'none';
-      webcamToggleWrap.style.display = 'none';
-      return;
     }
+    applyVideoState();
     // Listen for toggle changes during session (only affect video track, not question)
     if (webcamToggle) {
       webcamToggle.onchange = function() {
-        const userVideo = document.getElementById('userVideo');
-        if (!mediaStream) return;
-        // Toggle video track enabled/disabled
-        const videoTrack = mediaStream.getVideoTracks()[0];
-        if (videoTrack) {
-          if (webcamToggle.checked) {
-            videoTrack.enabled = true;
-            userVideo.style.display = '';
-          } else {
-            videoTrack.enabled = false;
-            userVideo.style.display = 'none';
-          }
-        }
+        applyVideoState();
       };
     }
     runInterviewWithDelay(questions);
@@ -89,7 +130,7 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
       }
       const q = questions[current];
-      qaContainer.innerHTML = `<div style='margin:18px 0;'><strong>AI Recruiter:</strong> <span style='color:#2563eb;'>${q}</span><br><textarea id='answerBox' style='width:100%;max-width:600px;height:80px;margin:12px 0;'></textarea><br><button id='submitAnswerBtn' class='feature-launch-btn'>Submit Answer</button></div>`;
+      qaContainer.innerHTML = `<div style='margin:18px 0;'>${renderPermissionWarning()}<strong>AI Recruiter:</strong> <span style='color:#2563eb;'>${q}</span><br><textarea id='answerBox' style='width:100%;max-width:600px;height:80px;margin:12px 0;'></textarea><br><button id='submitAnswerBtn' class='feature-launch-btn'>Submit Answer</button></div>`;
       speakAI(q);
       // Start 2-minute timer for this question
       interviewTimeLeft = 120;
@@ -140,6 +181,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (mediaStream) {
       mediaStream.getTracks().forEach(track => track.stop());
     }
+    mediaStream = null;
     videoCallContainer.style.display = 'none';
     qaContainer.style.display = 'none';
     webcamToggleWrap.style.display = 'none';

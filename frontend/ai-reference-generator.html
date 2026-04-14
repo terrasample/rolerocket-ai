@@ -24,26 +24,26 @@
       <section class="marketing-card tier-feature premium" style="max-width:700px;margin:0 auto 32px auto;text-align:center;">
         <h2 class="feature-title">AI Reference Generator</h2>
         <p>Generate professional references and recommendation letters with AI assistance.</p>
-To Whom It May Concern,
-
-I am pleased to recommend Jane Doe for the position of Product Manager. Jane consistently demonstrated leadership, initiative, and a strong work ethic during her time at our company.
-
-Sincerely,
-John Smith
-        </textarea>
         <button id="startReferenceGenBtn" class="feature-launch-btn" style="margin-bottom:18px;">Start Reference Generation</button>
-        <div id="referenceGenContainer">
-          <textarea id="referenceGenText" style="width:100%;max-width:600px;height:180px;margin:18px 0;">Sample Reference Letter:
-To Whom It May Concern,
-
-I am pleased to recommend Jane Doe for the position of Product Manager. Jane consistently demonstrated leadership, initiative, and a strong work ethic during her time at our company.
-
-Sincerely,
-John Smith
-          </textarea>
-          <div style="margin:18px 0;">
+        <div id="referenceGenContainer" style="display:none;text-align:left;max-width:600px;margin:0 auto;">
+          <div id="referenceGenForm" style="margin:18px 0;">
+            <label for="refName" style="display:block;margin-bottom:10px;">Name to Recommend<br /><input id="refName" style="width:100%;margin-top:6px;" /></label>
+            <label for="refPosition" style="display:block;margin-bottom:10px;">Position<br /><input id="refPosition" style="width:100%;margin-top:6px;" /></label>
+            <label for="refRelationship" style="display:block;margin-bottom:10px;">Relationship / Context<br /><input id="refRelationship" style="width:100%;margin-top:6px;" placeholder="Example: direct manager for 3 years" /></label>
+            <label for="refStrengths" style="display:block;margin-bottom:10px;">Key Strengths<br /><textarea id="refStrengths" style="width:100%;height:90px;margin-top:6px;" placeholder="Example: leadership, cross-functional communication, reliable delivery"></textarea></label>
+            <label for="refYourName" style="display:block;margin-bottom:10px;">Your Name<br /><input id="refYourName" style="width:100%;margin-top:6px;" /></label>
+            <button id="generateRefBtn" class="feature-launch-btn" type="button" style="margin-top:8px;">Generate Reference Letter</button>
+          </div>
+          <div id="referenceGenResult" style="display:none;">
+            <label for="referenceGenText" style="display:block;margin-bottom:8px;">Generated Reference Letter</label>
+            <textarea id="referenceGenText" style="width:100%;height:220px;margin:0 0 18px 0;"></textarea>
+            <div id="referenceGenDownloads" style="display:none;margin:18px 0;text-align:center;">
             <button id="downloadReferenceGenPdfBtn" class="feature-launch-btn" style="margin-right:12px;">Download as PDF</button>
             <button id="downloadReferenceGenWordBtn" class="feature-launch-btn">Download as Word</button>
+            </div>
+            <div style="text-align:center;">
+              <button id="restartRefBtn" class="feature-launch-btn" type="button">Start Again</button>
+            </div>
           </div>
         </div>
         <div id="referenceGenOutput"></div>
