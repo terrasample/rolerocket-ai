@@ -2449,6 +2449,18 @@ document.getElementById('logoutBtn')?.addEventListener('click', () => {
   window.location.href = 'index.html';
 });
 
+const dashboardBillingBtn = document.getElementById('billingBtn');
+if (dashboardBillingBtn && !document.getElementById('dashboardBillingRefundNote')) {
+  const refundNote = document.createElement('div');
+  refundNote.id = 'dashboardBillingRefundNote';
+  refundNote.style.marginTop = '8px';
+  refundNote.style.fontSize = '0.92rem';
+  refundNote.style.color = '#64748b';
+  refundNote.style.lineHeight = '1.5';
+  refundNote.innerHTML = 'The billing portal handles cancellations and payment updates. Refunds are reviewed manually under the <a href="refund-policy.html">Refund Policy</a>.';
+  dashboardBillingBtn.insertAdjacentElement('afterend', refundNote);
+}
+
 document.getElementById('billingBtn')?.addEventListener('click', async () => {
   const btn = document.getElementById('billingBtn');
   btn.disabled = true;

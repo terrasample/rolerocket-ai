@@ -12,6 +12,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   const openPortalBtn = document.getElementById('openPortalBtn');
   const billingMsg = document.getElementById('billingMsg');
 
+  if (openPortalBtn && !document.getElementById('billingRefundNote')) {
+    const note = document.createElement('p');
+    note.id = 'billingRefundNote';
+    note.style.margin = '12px 0 0';
+    note.style.color = '#64748b';
+    note.style.fontSize = '0.95rem';
+    note.style.lineHeight = '1.6';
+    note.innerHTML = 'Need a refund review instead of a cancellation? Read the <a href="refund-policy.html">Refund Policy</a> or use <a href="contact-us.html?topic=refund">billing support</a>.';
+    openPortalBtn.insertAdjacentElement('beforebegin', note);
+  }
+
   async function loadBillingStatus() {
     try {
       const res = await fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } });
