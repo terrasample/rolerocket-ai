@@ -11,13 +11,14 @@ document.addEventListener('DOMContentLoaded', function () {
     const jobTitle = document.getElementById('coverJobTitle').value.trim();
     const company = document.getElementById('coverCompany').value.trim();
     const resume = document.getElementById('coverResume').value.trim();
-    if (!jobTitle || !company || !resume) {
+    const fullJobDescription = document.getElementById('coverJobDescription').value.trim();
+    if (!jobTitle || !company || !resume || !fullJobDescription) {
       output.innerHTML = '<div style="color:#dc2626;">Please fill in all fields.</div>';
       return;
     }
     output.innerHTML = 'Generating cover letter...';
     try {
-      const jobDescription = `Job Title: ${jobTitle}\nCompany: ${company}`;
+      const jobDescription = `Job Title: ${jobTitle}\nCompany: ${company}\n\nFull Job Description:\n${fullJobDescription}`;
       const token = typeof getStoredToken === 'function' ? getStoredToken() : localStorage.getItem('token');
       const headers = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;

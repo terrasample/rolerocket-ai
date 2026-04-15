@@ -11,13 +11,14 @@ document.addEventListener('DOMContentLoaded', function () {
     const jobTitle = document.getElementById('resumeJobTitleGen').value.trim();
     const company = document.getElementById('resumeCompanyGen').value.trim();
     const baseResume = document.getElementById('resumeBaseGen').value.trim();
-    if (!jobTitle || !company || !baseResume) {
+    const fullJobDescription = document.getElementById('resumeJobDescriptionGen').value.trim();
+    if (!jobTitle || !company || !baseResume || !fullJobDescription) {
       output.innerHTML = '<div style="color:#dc2626;">Please fill in all fields.</div>';
       return;
     }
     output.innerHTML = 'Generating resume...';
     try {
-      const jobDescription = `Job Title: ${jobTitle}\nCompany: ${company}`;
+      const jobDescription = `Job Title: ${jobTitle}\nCompany: ${company}\n\nFull Job Description:\n${fullJobDescription}`;
       const resume = baseResume;
       const token = typeof getStoredToken === 'function' ? getStoredToken() : localStorage.getItem('token');
       const headers = { 'Content-Type': 'application/json' };
