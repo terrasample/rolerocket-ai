@@ -5,7 +5,51 @@ document.addEventListener('DOMContentLoaded', function () {
   const saveWordBtn = document.getElementById('saveCoverWordBtn');
   const generateBtn = document.getElementById('generateCoverBtn');
   const output = document.getElementById('coverLetterOutput');
+  const resumeUploadInput = document.getElementById('coverResumeUpload');
+  const resumeUploadMessage = document.getElementById('coverResumeUploadMessage');
   let lastCover = '';
+
+  async function loadResumeFileIntoField(file, textarea, messageEl) {
+    const token = typeof getStoredToken === 'function' ? getStoredToken() : localStorage.getItem('token');
+    if (!file || !textarea) return;
+    if (messageEl) {
+      messageEl.textContent = 'Loading resume file...';
+      messageEl.style.color = '#64748b';
+    }
+    try {
+      if (file.type === 'application/pdf' || file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+        const formData = new FormData();
+        formData.append('resumeFile', file);
+        const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
+        const res = await fetch('/api/resume/upload', {
+          method: 'POST',
+          headers,
+          body: formData
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to parse uploaded resume.');
+        textarea.value = data.content || '';
+      } else if (file.type.startsWith('text/') || /\.(txt|md|rtf)$/i.test(file.name)) {
+        textarea.value = await file.text();
+      } else {
+        throw new Error('Use a TXT, PDF, or DOCX resume file.');
+      }
+      if (messageEl) {
+        messageEl.textContent = `Loaded ${file.name}.`;
+        messageEl.style.color = '#16a34a';
+      }
+    } catch (error) {
+      if (messageEl) {
+        messageEl.textContent = error.message || 'Could not load the uploaded resume.';
+        messageEl.style.color = '#dc2626';
+      }
+    }
+  }
+
+  resumeUploadInput?.addEventListener('change', async function (event) {
+    const file = event.target.files?.[0];
+    await loadResumeFileIntoField(file, document.getElementById('coverResume'), resumeUploadMessage);
+  });
 
   generateBtn.addEventListener('click', async function () {
     const jobTitle = document.getElementById('coverJobTitle').value.trim();

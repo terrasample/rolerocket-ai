@@ -21,6 +21,10 @@
       <input id="resumeCompany" type="text" style="width:100%;margin-bottom:10px;" placeholder="e.g. Acme Corp" />
       <label for="resumeBase"><strong>Your Baseline Resume (paste or upload)</strong></label>
       <textarea id="resumeBase" rows="6" style="width:100%;margin-bottom:10px;" placeholder="Paste your baseline resume here..."></textarea>
+      <input id="resumeBaseUpload" type="file" accept=".txt,.md,.rtf,.pdf,.docx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" style="width:100%;margin-bottom:10px;" />
+      <div id="resumeBaseUploadMessage" style="margin:-4px 0 10px 0;font-size:0.95rem;color:#64748b;"></div>
+      <label for="resumeJobDescription"><strong>Full Job Description</strong></label>
+      <textarea id="resumeJobDescription" rows="8" style="width:100%;margin-bottom:10px;" placeholder="Paste the full job description here..."></textarea>
       <button id="rewriteResumeBtn" class="auth-submit-btn" style="margin-bottom:10px;">Rewrite Resume</button>
       <button id="saveResumePdfBtn" class="auth-submit-btn" style="width:100%;margin-top:10px;background:#38bdf8;color:#1e293b;">Save as PDF</button>
       <button id="saveResumeWordBtn" class="auth-submit-btn" style="width:100%;margin-top:10px;background:#6366f1;color:#fff;">Save as Word</button>

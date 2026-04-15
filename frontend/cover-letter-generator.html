@@ -21,6 +21,8 @@
       <input id="coverCompany" type="text" style="width:100%;margin-bottom:10px;" placeholder="e.g. Acme Corp" />
       <label for="coverResume"><strong>Your Baseline Resume (paste or upload)</strong></label>
       <textarea id="coverResume" rows="6" style="width:100%;margin-bottom:10px;" placeholder="Paste your baseline resume here..."></textarea>
+      <input id="coverResumeUpload" type="file" accept=".txt,.md,.rtf,.pdf,.docx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" style="width:100%;margin-bottom:10px;" />
+      <div id="coverResumeUploadMessage" style="margin:-4px 0 10px 0;font-size:0.95rem;color:#64748b;"></div>
       <label for="coverJobDescription"><strong>Full Job Description</strong></label>
       <textarea id="coverJobDescription" rows="8" style="width:100%;margin-bottom:10px;" placeholder="Paste the full job description here..."></textarea>
         <button id="generateCoverBtn" class="auth-submit-btn" style="margin-bottom:10px;">Generate Cover Letter</button>

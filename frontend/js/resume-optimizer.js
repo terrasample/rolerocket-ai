@@ -1,23 +1,89 @@
-// Resume Optimizer Save as PDF/Word logic
+// Resume Optimizer logic
 
 document.addEventListener('DOMContentLoaded', function () {
   const savePdfBtn = document.getElementById('saveResumePdfBtn');
   const saveWordBtn = document.getElementById('saveResumeWordBtn');
+  const rewriteBtn = document.getElementById('rewriteResumeBtn');
   const output = document.getElementById('resumeOutput');
+  const resumeUploadInput = document.getElementById('resumeBaseUpload');
+  const resumeUploadMessage = document.getElementById('resumeBaseUploadMessage');
   let lastResume = '';
 
-  // After rewrite, update lastResume
-  const rewriteBtn = document.getElementById('rewriteResumeBtn');
-  if (rewriteBtn) {
-    rewriteBtn.addEventListener('click', function () {
-      setTimeout(() => {
-        const pre = output.querySelector('pre');
-        if (pre) {
-          lastResume = pre.textContent;
-        }
-      }, 500);
-    });
+  async function loadResumeFileIntoField(file, textarea, messageEl) {
+    const token = typeof getStoredToken === 'function' ? getStoredToken() : localStorage.getItem('token');
+    if (!file || !textarea) return;
+    if (messageEl) {
+      messageEl.textContent = 'Loading resume file...';
+      messageEl.style.color = '#64748b';
+    }
+    try {
+      if (file.type === 'application/pdf' || file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+        const formData = new FormData();
+        formData.append('resumeFile', file);
+        const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
+        const res = await fetch('/api/resume/upload', {
+          method: 'POST',
+          headers,
+          body: formData
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to parse uploaded resume.');
+        textarea.value = data.content || '';
+      } else if (file.type.startsWith('text/') || /\.(txt|md|rtf)$/i.test(file.name)) {
+        textarea.value = await file.text();
+      } else {
+        throw new Error('Use a TXT, PDF, or DOCX resume file.');
+      }
+      if (messageEl) {
+        messageEl.textContent = `Loaded ${file.name}.`;
+        messageEl.style.color = '#16a34a';
+      }
+    } catch (error) {
+      if (messageEl) {
+        messageEl.textContent = error.message || 'Could not load the uploaded resume.';
+        messageEl.style.color = '#dc2626';
+      }
+    }
   }
+
+  resumeUploadInput?.addEventListener('change', async function (event) {
+    const file = event.target.files?.[0];
+    await loadResumeFileIntoField(file, document.getElementById('resumeBase'), resumeUploadMessage);
+  });
+
+  rewriteBtn?.addEventListener('click', async function () {
+    const jobTitle = document.getElementById('resumeJobTitle').value.trim();
+    const company = document.getElementById('resumeCompany').value.trim();
+    const baseResume = document.getElementById('resumeBase').value.trim();
+    const fullJobDescription = document.getElementById('resumeJobDescription').value.trim();
+    if (!jobTitle || !company || !baseResume || !fullJobDescription) {
+      output.innerHTML = '<div style="color:#dc2626;">Please fill in all fields.</div>';
+      return;
+    }
+    output.innerHTML = 'Rewriting resume...';
+    try {
+      const jobDescription = `Job Title: ${jobTitle}\nCompany: ${company}\n\nFull Job Description:\n${fullJobDescription}`;
+      const token = typeof getStoredToken === 'function' ? getStoredToken() : localStorage.getItem('token');
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const res = await fetch('/api/resume/generate', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ jobDescription, resume: baseResume })
+      });
+      const data = await res.json();
+      if (res.ok && data.result) {
+        lastResume = data.result;
+        output.innerHTML = `<pre style="background:#fffbe6;padding:22px 18px;border-radius:12px;max-height:420px;overflow:auto;font-size:1.18em;line-height:1.7;color:#1e293b;font-family:'Inter', 'Segoe UI', Arial, sans-serif;border:2.5px solid #f59e42;box-shadow:0 2px 16px #facc1530;">${data.result}</pre>`;
+      } else {
+        lastResume = '';
+        output.innerHTML = `<div style="color:#dc2626;font-size:1.1em;padding:12px 0;">${data.error || 'Failed to rewrite resume.'}</div>`;
+      }
+    } catch (error) {
+      lastResume = '';
+      output.innerHTML = '<div style="color:#dc2626;">Error rewriting resume.</div>';
+    }
+  });
 
   function formatResumeForPdf(text, doc) {
     const lines = text.split(/\r?\n/);
