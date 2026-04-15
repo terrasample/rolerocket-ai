@@ -17,12 +17,16 @@
     <input id="interviewRole" type="text" class="premium-input" placeholder="e.g. Product Manager" />
     <label for="interviewJobDescription" style="font-size:1.1em;"><strong>Job Description (optional)</strong></label>
     <textarea id="interviewJobDescription" rows="5" class="premium-input" placeholder="Paste the job description here..."></textarea>
-    <button id="interviewPrepBtn" class="auth-submit-btn premium-btn">Generate Interview Prep</button>
-    <div id="interviewPrepResult" class="premium-result" style="margin-top:24px;min-height:120px;"></div>
-    <div style="display:flex;gap:12px;justify-content:center;margin-top:18px;">
-      <button id="saveInterviewPrepPdfBtn" class="auth-submit-btn" style="background:#38bdf8;color:#1e293b;min-width:140px;">Save as PDF</button>
-      <button id="saveInterviewPrepWordBtn" class="auth-submit-btn" style="background:#6366f1;color:#fff;min-width:140px;">Save as Word</button>
+    <div class="tool-action-bar">
+      <div class="tool-primary-actions">
+        <button id="interviewPrepBtn" class="auth-submit-btn premium-btn tool-action-btn tool-action-btn--primary" type="button">Generate Interview Prep</button>
+      </div>
+      <div class="tool-secondary-actions">
+        <button id="saveInterviewPrepPdfBtn" class="auth-submit-btn tool-action-btn tool-action-btn--secondary" type="button">Save as PDF</button>
+        <button id="saveInterviewPrepWordBtn" class="auth-submit-btn tool-action-btn tool-action-btn--secondary" type="button">Save as Word</button>
+      </div>
     </div>
+    <div id="interviewPrepResult" class="premium-result" style="margin-top:24px;min-height:120px;"></div>
   </div>
   <style>
     .premium-interview-card {

@@ -25,9 +25,15 @@
       <div id="resumeBaseUploadMessageGen" style="margin:-4px 0 10px 0;font-size:0.95rem;color:#64748b;"></div>
       <label for="resumeJobDescriptionGen"><strong>Full Job Description</strong></label>
       <textarea id="resumeJobDescriptionGen" rows="8" style="width:100%;margin-bottom:10px;" placeholder="Paste the full job description here..."></textarea>
-      <button id="generateResumeBtnGen" class="auth-submit-btn" style="margin-bottom:10px;">Generate Resume</button>
-      <button id="saveResumePdfBtnGen" class="auth-submit-btn" style="width:100%;margin-top:10px;background:#38bdf8;color:#1e293b;">Save as PDF</button>
-      <button id="saveResumeWordBtnGen" class="auth-submit-btn" style="width:100%;margin-top:10px;background:#6366f1;color:#fff;">Save as Word</button>
+      <div class="tool-action-bar">
+        <div class="tool-primary-actions">
+          <button id="generateResumeBtnGen" class="auth-submit-btn tool-action-btn tool-action-btn--primary" type="button">Generate Resume</button>
+        </div>
+        <div class="tool-secondary-actions">
+          <button id="saveResumePdfBtnGen" class="auth-submit-btn tool-action-btn tool-action-btn--secondary" type="button">Save as PDF</button>
+          <button id="saveResumeWordBtnGen" class="auth-submit-btn tool-action-btn tool-action-btn--secondary" type="button">Save as Word</button>
+        </div>
+      </div>
       <div id="resumeOutputGen" style="margin-top:18px;"></div>
     </div>
   </main>

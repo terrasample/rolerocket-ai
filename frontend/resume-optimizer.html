@@ -25,9 +25,15 @@
       <div id="resumeBaseUploadMessage" style="margin:-4px 0 10px 0;font-size:0.95rem;color:#64748b;"></div>
       <label for="resumeJobDescription"><strong>Full Job Description</strong></label>
       <textarea id="resumeJobDescription" rows="8" style="width:100%;margin-bottom:10px;" placeholder="Paste the full job description here..."></textarea>
-      <button id="rewriteResumeBtn" class="auth-submit-btn" style="margin-bottom:10px;">Rewrite Resume</button>
-      <button id="saveResumePdfBtn" class="auth-submit-btn" style="width:100%;margin-top:10px;background:#38bdf8;color:#1e293b;">Save as PDF</button>
-      <button id="saveResumeWordBtn" class="auth-submit-btn" style="width:100%;margin-top:10px;background:#6366f1;color:#fff;">Save as Word</button>
+      <div class="tool-action-bar">
+        <div class="tool-primary-actions">
+          <button id="rewriteResumeBtn" class="auth-submit-btn tool-action-btn tool-action-btn--primary" type="button">Rewrite Resume</button>
+        </div>
+        <div class="tool-secondary-actions">
+          <button id="saveResumePdfBtn" class="auth-submit-btn tool-action-btn tool-action-btn--secondary" type="button">Save as PDF</button>
+          <button id="saveResumeWordBtn" class="auth-submit-btn tool-action-btn tool-action-btn--secondary" type="button">Save as Word</button>
+        </div>
+      </div>
       <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
       <div id="resumeOutput" style="margin-top:18px;"></div>
     </div>

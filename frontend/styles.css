@@ -1384,6 +1384,146 @@ h3,
   color: #075985;
 }
 
+.tool-action-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 18px 0 0;
+}
+
+.tool-primary-actions,
+.tool-secondary-actions,
+.queue-job-actions,
+.queue-match-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.tool-action-bar .auth-submit-btn,
+.tool-action-bar .feature-launch-btn,
+.tool-action-bar button,
+.queue-job-actions button,
+.queue-match-actions button {
+  width: auto;
+  min-width: 152px;
+  margin: 0;
+}
+
+.tool-action-btn--secondary {
+  background: #e0f2fe;
+  color: #0c4a6e;
+  border: 1px solid #7dd3fc;
+  box-shadow: none;
+}
+
+.tool-action-btn--secondary:hover,
+.tool-action-btn--secondary:focus {
+  background: #bae6fd;
+  color: #082f49;
+}
+
+.tool-helper-text {
+  margin: 0 0 12px;
+  color: #64748b;
+  font-size: 0.95rem;
+}
+
+.queue-section {
+  margin-top: 18px;
+}
+
+.queue-section-title {
+  margin: 0 0 10px;
+  color: #0f172a;
+  font-family: var(--font-display);
+  font-size: 1.02rem;
+}
+
+.queue-job-list,
+.queue-match-list {
+  display: grid;
+  gap: 12px;
+}
+
+.queue-job-card,
+.queue-match-card {
+  border: 1px solid #dbeafe;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #f8fbff 0%, #eff6ff 100%);
+  padding: 14px;
+}
+
+.queue-job-header,
+.queue-match-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.queue-job-title,
+.queue-match-title {
+  margin: 0;
+  color: #0f172a;
+  font-size: 1rem;
+}
+
+.queue-job-meta,
+.queue-match-meta {
+  margin: 0 0 10px;
+  color: #475569;
+  line-height: 1.5;
+}
+
+.queue-status-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.queue-empty-state {
+  margin: 0;
+  padding: 14px;
+  border: 1px dashed #bfdbfe;
+  border-radius: 14px;
+  background: #f8fafc;
+  color: #64748b;
+}
+
+@media (max-width: 640px) {
+  .tool-action-bar {
+    align-items: stretch;
+  }
+
+  .tool-primary-actions,
+  .tool-secondary-actions,
+  .queue-job-actions,
+  .queue-match-actions {
+    width: 100%;
+  }
+
+  .tool-action-bar .auth-submit-btn,
+  .tool-action-bar .feature-launch-btn,
+  .tool-action-bar button,
+  .queue-job-actions button,
+  .queue-match-actions button {
+    width: 100%;
+  }
+}
+
 @media (max-width: 900px) {
   .premium-stats-header {
     flex-direction: column;

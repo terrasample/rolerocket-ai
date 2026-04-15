@@ -28,16 +28,18 @@
         <div style="max-width:600px;margin:18px auto;text-align:left;">
           <label for="marketRadarRoleInput" style="display:block;margin-bottom:10px;">Target Role<br /><input id="marketRadarRoleInput" style="width:100%;margin-top:6px;" placeholder="Example: Product Manager" /></label>
           <label for="marketRadarLocationInput" style="display:block;margin-bottom:10px;">Preferred Location<br /><input id="marketRadarLocationInput" style="width:100%;margin-top:6px;" placeholder="Example: Remote or Chicago" /></label>
-          <div style="text-align:center;">
-            <button id="generateMarketRadarBtn" class="feature-launch-btn" type="button">Generate Market Radar</button>
+          <div class="tool-action-bar">
+            <div class="tool-primary-actions">
+              <button id="generateMarketRadarBtn" class="feature-launch-btn tool-action-btn tool-action-btn--primary" type="button">Generate Market Radar</button>
+            </div>
+            <div id="marketRadarDownloads" class="tool-secondary-actions" style="display:none;">
+              <button id="downloadMarketRadarPdfBtn" class="feature-launch-btn tool-action-btn tool-action-btn--secondary" type="button">Download as PDF</button>
+              <button id="downloadMarketRadarWordBtn" class="feature-launch-btn tool-action-btn tool-action-btn--secondary" type="button">Download as Word</button>
+            </div>
           </div>
         </div>
         <div id="marketRadarResult" style="display:none;">
           <textarea id="marketRadarText" style="width:100%;max-width:600px;height:220px;margin:18px 0;"></textarea>
-          <div id="marketRadarDownloads" style="display:none;margin:18px 0;">
-            <button id="downloadMarketRadarPdfBtn" class="feature-launch-btn" style="margin-right:12px;">Download as PDF</button>
-            <button id="downloadMarketRadarWordBtn" class="feature-launch-btn">Download as Word</button>
-          </div>
         </div>
         <div id="marketRadarOutput"></div>
       </section>
