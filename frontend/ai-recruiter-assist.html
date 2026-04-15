@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AI Recruiter Assist | RoleRocket AI</title>
   <link rel="stylesheet" href="styles.css" />
+  <script src="js/api-base.js"></script>
+  <script src="js/auth-storage.js"></script>
 </head>
 <body>
   <div class="layout">
@@ -44,18 +46,22 @@
             <p>Send personalized messages to top candidates with one click.</p>
           </article>
         </section>
-      <section class="price-card recruiter" style="max-width:540px;margin:0 auto 32px auto;text-align:center;position:relative;box-shadow:0 8px 32px #0ea5e950;">
-        <div class="plan-pill premium-pill">AI RECRUITER ASSIST</div>
-        <h3>AI Recruiter Assist</h3>
-        <div class="price-amount">$99<span>/month</span> <span style="color:#64748b;font-size:0.9em;">or</span> $990<span>/year</span> <span class="savings-pill" style="color:#059669;font-size:0.9em;margin-left:8px;">Save 17%</span></div>
+      <section id="recruiterAccessCard" class="price-card recruiter" style="max-width:540px;margin:0 auto 32px auto;text-align:center;position:relative;box-shadow:0 8px 32px #0ea5e950;">
+        <div id="recruiterPlanPill" class="plan-pill premium-pill">AI RECRUITER ASSIST</div>
+        <h3 id="recruiterAccessTitle">AI Recruiter Assist</h3>
+        <div id="recruiterAccessPrice" class="price-amount">$99<span>/month</span> <span style="color:#64748b;font-size:0.9em;">or</span> $990<span>/year</span> <span class="savings-pill" style="color:#059669;font-size:0.9em;margin-left:8px;">Save 17%</span></div>
         <ul>
           <li>Top 3 candidate ranking by job role</li>
           <li>Resume match scoring</li>
           <li>Premium recruiter dashboard</li>
           <li>Unlock advanced recruiter tools</li>
         </ul>
-        <button class="checkout-btn" data-checkout="recruiter" onclick="window.location.href='pricing.html#recruiter'">Subscribe</button>
-        <button class="checkout-btn" data-checkout="recruiter_yearly" onclick="window.location.href='pricing.html#recruiter'" style="margin-left:8px;">Subscribe Yearly</button>
+        <p id="recruiterAccessMessage" style="display:none;margin:14px 0 0;color:#cbd5e1;line-height:1.6;"></p>
+        <div id="recruiterSubscribeActions">
+          <button id="recruiterSubscribeBtn" class="checkout-btn" data-checkout="recruiter" onclick="window.location.href='pricing.html#recruiter'">Subscribe</button>
+          <button id="recruiterSubscribeYearlyBtn" class="checkout-btn" data-checkout="recruiter_yearly" onclick="window.location.href='pricing.html#recruiter'" style="margin-left:8px;">Subscribe Yearly</button>
+        </div>
+        <button id="recruiterDashboardBtn" class="checkout-btn" style="display:none;">Open Dashboard</button>
       </section>
       <section class="card" style="max-width:540px;margin:0 auto 32px auto;text-align:center;">
         <h3>Top 3 Most Qualified Candidates</h3>
@@ -75,5 +81,59 @@
       </section>
     </main>
   </div>
+  <script>
+    (async function syncRecruiterAccessState() {
+      const token = typeof getStoredToken === 'function' ? getStoredToken() : localStorage.getItem('token');
+      const planBadge = document.getElementById('planBadge');
+      const planPill = document.getElementById('recruiterPlanPill');
+      const titleEl = document.getElementById('recruiterAccessTitle');
+      const priceEl = document.getElementById('recruiterAccessPrice');
+      const messageEl = document.getElementById('recruiterAccessMessage');
+      const subscribeActions = document.getElementById('recruiterSubscribeActions');
+      const dashboardBtn = document.getElementById('recruiterDashboardBtn');
+      if (!planPill || !titleEl || !priceEl || !messageEl || !subscribeActions || !dashboardBtn) return;
+
+      dashboardBtn.addEventListener('click', function () {
+        window.location.href = 'dashboard.html';
+      });
+
+      if (!token) return;
+
+      try {
+        const res = await fetch(apiUrl('/api/me'), {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        const user = data.user || null;
+        if (!user) return;
+
+        const plan = String(user.plan || 'free').toLowerCase();
+        const isAdmin = user.isAdmin === true;
+        const isRecruiterPlan = plan.includes('recruiter');
+
+        if (planBadge) {
+          const badgeLabel = isAdmin
+            ? 'Admin Plan'
+            : (plan.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase()) || 'Free Plan');
+          planBadge.textContent = badgeLabel;
+        }
+
+        if (!isAdmin && !isRecruiterPlan) return;
+
+        planPill.textContent = isAdmin ? 'ADMIN ACCESS' : 'RECRUITER ACCESS';
+        titleEl.textContent = 'AI Recruiter Assist Unlocked';
+        priceEl.style.display = 'none';
+        subscribeActions.style.display = 'none';
+        messageEl.style.display = 'block';
+        messageEl.textContent = isAdmin
+          ? 'Admin access is enabled on this account, so you can test Top Candidate Ranking, AI-Powered Screening, and Smart Messaging without subscribing.'
+          : 'Your recruiter access is active. You can use Top Candidate Ranking, AI-Powered Screening, and Smart Messaging on this page.';
+        dashboardBtn.style.display = 'inline-flex';
+        dashboardBtn.textContent = 'Open Dashboard';
+      } catch (_error) {
+        // Leave the marketing state intact if the session check fails.
+      }
+    })();
+  </script>
 </body>
 </html>
