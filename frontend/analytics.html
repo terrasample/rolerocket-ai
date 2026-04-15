@@ -26,6 +26,46 @@
 
     <main class="main" id="analyticsMain" tabindex="-1">
       <div class="grid analytics-grid">
+        <section class="card premium-stats-section analytics-summary-card" style="grid-column: 1 / -1;">
+          <div class="premium-stats-header analytics-summary-header">
+            <div>
+              <h3>#1 Platform Leadership Snapshot</h3>
+              <p>Live footprint, monetization mix, and operating momentum behind the market-leader position.</p>
+            </div>
+            <p class="stats-footnote" id="analyticsPublicStatsStatus">Loading live platform stats...</p>
+          </div>
+
+          <div class="analytics-kpi-strip" aria-label="Executive platform summary">
+            <article class="stat-kpi">
+              <span class="kpi-label">Total signups</span>
+              <strong id="analyticsUsersTotal">--</strong>
+            </article>
+            <article class="stat-kpi">
+              <span class="kpi-label">Active paid members</span>
+              <strong id="analyticsSubscribersTotal">--</strong>
+            </article>
+            <article class="stat-kpi">
+              <span class="kpi-label">Resumes built</span>
+              <strong id="analyticsResumesTotal">--</strong>
+            </article>
+            <article class="stat-kpi">
+              <span class="kpi-label">Recorded platform activity</span>
+              <strong id="analyticsUsageTotal">--</strong>
+            </article>
+          </div>
+
+          <div class="analytics-split-grid">
+            <section>
+              <h4>Plan Distribution</h4>
+              <div id="planMix" class="analytics-list"></div>
+            </section>
+            <section>
+              <h4>Leadership Summary</h4>
+              <div id="analyticsNarrative" class="analytics-narrative empty-state">Loading summary...</div>
+            </section>
+          </div>
+        </section>
+
         <section class="card">
           <h3>Overview</h3>
           <div id="analyticsOverview" class="empty-state">Loading overview...</div>

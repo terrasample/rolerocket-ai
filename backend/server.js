@@ -3260,6 +3260,6 @@ if (process.env.NODE_ENV !== 'test') {
   });
 }
 
-console.log('DEBUG: server.js script end (should not reach here if server stays running)');
+console.log('DEBUG: server bootstrap complete');
 
 module.exports = app;

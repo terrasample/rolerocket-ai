@@ -518,6 +518,16 @@ const modeKpiSummaryEl = document.getElementById('modeKpiSummary');
 const modeKpiSessionsEl = document.getElementById('modeKpiSessions');
 const modeKpiStarterEl = document.getElementById('modeKpiStarter');
 const modeKpiPowerEl = document.getElementById('modeKpiPower');
+const statsPieEl = document.getElementById('statsPie');
+const legendResumesEl = document.getElementById('legendResumes');
+const legendJobsEl = document.getElementById('legendJobs');
+const legendApplicationsEl = document.getElementById('legendApplications');
+const statUsersCardEl = document.getElementById('statUsersCard');
+const statUsersLabelEl = document.getElementById('statUsersLabel');
+const statUsersEl = document.getElementById('statUsers');
+const statSubscribersEl = document.getElementById('statSubscribers');
+const statActivityEl = document.getElementById('statActivity');
+const statsFootnoteEl = document.getElementById('statsFootnote');
 const lifetimeDashboardPriceEl = document.getElementById('lifetimeDashboardPrice');
 const lifetimeOfferPillEl = document.getElementById('lifetimeOfferPill');
 const lifetimeDashboardOfferNoteEl = document.getElementById('lifetimeDashboardOfferNote');
@@ -696,6 +706,79 @@ function setAdvancedInsightsVisible(visible, { persist = true } = {}) {
 function initAdvancedInsights() {
   const saved = localStorage.getItem(DASHBOARD_ADVANCED_KEY);
   setAdvancedInsightsVisible(saved === 'show', { persist: false });
+}
+
+function formatStatNumber(value) {
+  return Number(value || 0).toLocaleString();
+}
+
+function renderPlatformUsagePie(resumesTotal, jobsTrackedTotal, applicationsTotal) {
+  if (!statsPieEl) return;
+
+  const resumes = Number(resumesTotal || 0);
+  const jobs = Number(jobsTrackedTotal || 0);
+  const applications = Number(applicationsTotal || 0);
+  const total = resumes + jobs + applications;
+
+  if (!total) {
+    statsPieEl.style.background = 'linear-gradient(135deg, #e2e8f0, #cbd5e1)';
+    return;
+  }
+
+  const resumesPct = (resumes / total) * 100;
+  const jobsPct = (jobs / total) * 100;
+  const applicationsPct = Math.max(0, 100 - resumesPct - jobsPct);
+
+  statsPieEl.style.background = `conic-gradient(#1d4ed8 0 ${resumesPct}%, #0f766e ${resumesPct}% ${resumesPct + jobsPct}%, #f59e0b ${resumesPct + jobsPct}% ${resumesPct + jobsPct + applicationsPct}%)`;
+}
+
+async function loadPlatformStats() {
+  if (!legendResumesEl || !legendJobsEl || !legendApplicationsEl || !statSubscribersEl || !statActivityEl) {
+    return;
+  }
+
+  try {
+    const publicStatsResponse = await fetch(apiUrl('/api/public/stats'));
+    if (!publicStatsResponse.ok) throw new Error('Failed to load platform stats');
+
+    const stats = await publicStatsResponse.json();
+    const resumesTotal = Number(stats.resumesTotal || 0);
+    const jobsTrackedTotal = Number(stats.jobsTrackedTotal || 0);
+    const applicationsTotal = Number(stats.applicationsTotal || 0);
+    const activityTotal = Number(stats.usageTotal || (resumesTotal + jobsTrackedTotal + applicationsTotal));
+
+    legendResumesEl.textContent = formatStatNumber(resumesTotal);
+    legendJobsEl.textContent = formatStatNumber(jobsTrackedTotal);
+    legendApplicationsEl.textContent = formatStatNumber(applicationsTotal);
+    statSubscribersEl.textContent = formatStatNumber(stats.subscribedUsers || 0);
+    statActivityEl.textContent = formatStatNumber(activityTotal);
+    renderPlatformUsagePie(resumesTotal, jobsTrackedTotal, applicationsTotal);
+
+    if (statsFootnoteEl) {
+      const updatedAt = stats.updatedAt ? new Date(stats.updatedAt) : null;
+      statsFootnoteEl.textContent = updatedAt && !Number.isNaN(updatedAt.getTime())
+        ? `Live platform stats updated ${updatedAt.toLocaleString()}.`
+        : 'Live platform stats updated just now.';
+    }
+  } catch (err) {
+    if (statsFootnoteEl) {
+      statsFootnoteEl.textContent = 'Live platform stats are temporarily unavailable.';
+    }
+  }
+
+  if (!window.currentUserIsAdmin) {
+    if (statUsersCardEl) statUsersCardEl.hidden = true;
+    return;
+  }
+
+  try {
+    const adminStats = await api('/api/admin/telemetry/summary', { method: 'GET' });
+    if (statUsersCardEl) statUsersCardEl.hidden = false;
+    if (statUsersLabelEl) statUsersLabelEl.textContent = 'Total signups';
+    if (statUsersEl) statUsersEl.textContent = formatStatNumber(adminStats.totals?.users || 0);
+  } catch {
+    if (statUsersCardEl) statUsersCardEl.hidden = true;
+  }
 }
 
 // ─── Toast notifications ───────────────────────────────────────────────────
@@ -1512,6 +1595,8 @@ async function loadUserPlan() {
       if (forceVeteranPopup) {
         removeUrlQueryParams(['veteran']);
       }
+
+      await loadPlatformStats();
     }
   } catch {
     currentUserPlan = 'free';
@@ -1519,6 +1604,7 @@ async function loadUserPlan() {
     renderPlanGuide('pro');
     applyLocks();
     updateTodayRail();
+    await loadPlatformStats();
   }
 }
 

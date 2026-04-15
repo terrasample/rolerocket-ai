@@ -179,7 +179,60 @@
         <div id="jobsByIndustryError" style="display:none;margin-top:12px;text-align:center;color:#fca5a5;"></div>
       </section>
 
-      <!-- Real platform activity moved to dashboard.html -->
+      <section class="marketing-card premium-stats-section analytics-summary-card" aria-label="Platform leadership snapshot" style="margin-bottom:24px;">
+        <div class="premium-stats-header analytics-summary-header">
+          <div>
+            <h3>The #1 AI Career Execution Platform</h3>
+            <p>Live adoption and workflow volume that make the leadership claim measurable before login.</p>
+          </div>
+          <p class="stats-footnote" id="homepageStatsStatus">Loading live platform stats...</p>
+        </div>
+
+        <div class="premium-stats-grid" style="margin-bottom:18px;">
+          <div class="stats-chart-wrap">
+            <div
+              class="stats-pie"
+              id="homepageStatsPie"
+              role="img"
+              aria-label="Usage distribution for resumes built, jobs tracked, and applications logged"
+            ></div>
+            <ul class="stats-legend" aria-label="Usage legend">
+              <li><span class="swatch resumes" aria-hidden="true"></span>Resumes built <strong id="homepageResumesTotal">--</strong></li>
+              <li><span class="swatch jobs" aria-hidden="true"></span>Jobs tracked <strong id="homepageJobsTotal">--</strong></li>
+              <li><span class="swatch applications" aria-hidden="true"></span>Applications logged <strong id="homepageApplicationsTotal">--</strong></li>
+            </ul>
+          </div>
+
+          <div class="stats-kpis" aria-label="Key platform totals">
+            <article class="stat-kpi">
+              <span class="kpi-label">Total signups</span>
+              <strong id="homepageUsersTotal">--</strong>
+            </article>
+            <article class="stat-kpi">
+              <span class="kpi-label">Active paid members</span>
+              <strong id="homepageSubscribersTotal">--</strong>
+            </article>
+            <article class="stat-kpi">
+              <span class="kpi-label">Total recorded activity</span>
+              <strong id="homepageUsageTotal">--</strong>
+            </article>
+          </div>
+        </div>
+
+        <div class="analytics-split-grid">
+          <section>
+            <h4>Market Proof</h4>
+            <div id="homepageStatsNarrative" class="analytics-narrative empty-state">Loading summary...</div>
+          </section>
+          <section>
+            <h4>Why it wins</h4>
+            <div class="analytics-list">
+              <div class="analytics-row"><strong>One command center</strong><span>Search, optimize, track, and apply without fragmented tools.</span></div>
+              <div class="analytics-row"><strong>Paid demand</strong><span id="homepagePaidShare">--</span></div>
+              <div class="analytics-row"><strong>See the stack</strong><span><a href="pricing.html" style="color:#93c5fd;font-weight:700;">Compare plans</a></span></div>
+            </div>
+          </section>
+        </div>
       </section>
 
       <section class="marketing-card" aria-label="What job seekers want to know">
@@ -240,6 +293,7 @@
       </section>
 
       <script src="js/dashboard.js"></script>
+      <script src="js/homepage-platform-stats.js"></script>
       <script src="js/in-demand-jobs.js"></script>
       <script src="js/homepage-insights.js"></script>
       <script>
