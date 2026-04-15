@@ -700,6 +700,24 @@ async function requireAnalyticsAccess(req, res, next) {
   }
 }
 
+async function requireAdminAccess(req, res, next) {
+  try {
+    const user = await User.findById(req.user.userId).select('email');
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const email = String(user.email || '').toLowerCase();
+    const isAdminEmail = ADMIN_EMAILS.length ? ADMIN_EMAILS.includes(email) : false;
+    if (!isAdminEmail) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    req.currentUser = user;
+    return next();
+  } catch (err) {
+    return res.status(500).json({ error: 'Admin access check failed' });
+  }
+}
+
 function normalizePlan(plan) {
   const allowedPlans = new Set(['free', 'pro', 'premium', 'elite', 'lifetime']);
   return allowedPlans.has(plan) ? plan : 'free';
@@ -2167,6 +2185,37 @@ app.get('/api/admin/telemetry/summary', authenticateToken, requireAnalyticsAcces
   } catch (err) {
     console.error('Telemetry summary error:', err);
     return res.status(500).json({ error: 'Failed to load telemetry summary' });
+  }
+});
+
+app.get('/api/admin/users', authenticateToken, requireAdminAccess, async (req, res) => {
+  try {
+    const rawLimit = Number(req.query.limit || 500);
+    const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), 2000) : 500;
+
+    const users = await User.find({})
+      .select('name email plan isSubscribed emailVerified createdAt referralCode referralCount veteranVerified')
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .lean();
+
+    return res.json({
+      total: users.length,
+      users: users.map((user) => ({
+        name: user.name || '',
+        email: user.email || '',
+        plan: normalizePlan(user.plan || 'free'),
+        subscribed: Boolean(user.isSubscribed),
+        emailVerified: user.emailVerified !== false,
+        veteranVerified: Boolean(user.veteranVerified),
+        referralCode: user.referralCode || '',
+        referralCount: Number(user.referralCount || 0),
+        createdAt: user.createdAt || null
+      }))
+    });
+  } catch (err) {
+    console.error('Admin users error:', err);
+    return res.status(500).json({ error: 'Failed to load signed up users' });
   }
 });
 

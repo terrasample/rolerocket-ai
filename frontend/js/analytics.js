@@ -84,6 +84,55 @@ function renderCohorts(rows) {
   `;
 }
 
+function formatDateTime(value) {
+  const date = value ? new Date(value) : null;
+  if (!date || Number.isNaN(date.getTime())) return '--';
+  return date.toLocaleString();
+}
+
+function renderSignedUpUsers(rows) {
+  const el = document.getElementById('signedUpUsersTable');
+  if (!el) return;
+
+  if (!rows.length) {
+    el.innerHTML = '<div class="empty-state">No signed up users found</div>';
+    return;
+  }
+
+  el.innerHTML = `
+    <table class="analytics-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Plan</th>
+          <th>Paid</th>
+          <th>Email Verified</th>
+          <th>Veteran</th>
+          <th>Referral Code</th>
+          <th>Referrals</th>
+          <th>Signed Up</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map((user) => `
+          <tr>
+            <td>${escapeHtml(user.name || '--')}</td>
+            <td>${escapeHtml(user.email || '--')}</td>
+            <td>${escapeHtml(user.plan || 'free')}</td>
+            <td>${user.subscribed ? 'Yes' : 'No'}</td>
+            <td>${user.emailVerified ? 'Yes' : 'No'}</td>
+            <td>${user.veteranVerified ? 'Yes' : 'No'}</td>
+            <td>${escapeHtml(user.referralCode || '--')}</td>
+            <td>${formatNumber(user.referralCount || 0)}</td>
+            <td>${escapeHtml(formatDateTime(user.createdAt))}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
 function renderPlanMix(usersByPlan = {}) {
   const planMixEl = document.getElementById('planMix');
   if (!planMixEl) return;
@@ -157,9 +206,10 @@ async function loadAnalytics() {
   if (narrative) narrative.textContent = 'Loading summary...';
 
   try {
-    const [data, publicStats] = await Promise.all([
+    const [data, publicStats, usersData] = await Promise.all([
       api('/api/admin/telemetry/summary?days=14'),
-      fetchPublicStats().catch(() => null)
+      fetchPublicStats().catch(() => null),
+      api('/api/admin/users?limit=1000').catch(() => ({ users: [] }))
     ]);
 
     if (overview) {
@@ -177,9 +227,11 @@ async function loadAnalytics() {
     renderList('funnelEvents', data.funnels || [], 'funnel', 'count');
     renderList('dailyTrend', data.trend || [], 'day', 'count');
     renderCohorts(data.cohorts || []);
+    renderSignedUpUsers(usersData.users || []);
   } catch (err) {
     if (overview) overview.textContent = `Analytics unavailable: ${err.message}`;
     if (narrative) narrative.textContent = 'Platform summary unavailable right now.';
+    renderSignedUpUsers([]);
   }
 }
 
