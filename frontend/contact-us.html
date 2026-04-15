@@ -173,7 +173,7 @@
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Could not send your message.');
-        successDiv.textContent = 'Thank you, ' + name + '! Your message has been sent to Prince@rolerocketai.com.';
+        successDiv.textContent = 'Thank you, ' + name + '! We have received your message and will get back to you shortly.';
         successDiv.style.display = 'block';
         successDiv.style.color = '#16a34a';
         this.reset();
