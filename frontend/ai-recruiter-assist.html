@@ -63,22 +63,6 @@
         </div>
         <button id="recruiterDashboardBtn" class="checkout-btn" style="display:none;">Open Dashboard</button>
       </section>
-      <section class="card" style="max-width:540px;margin:0 auto 32px auto;text-align:center;">
-        <h3>Top 3 Most Qualified Candidates</h3>
-        <ul class="reward-list">
-          <li>Project Manager: Jane Doe (Score: 98)</li>
-          <li>Software Developer: John Smith (Score: 95)</li>
-          <li>Data Analyst: Alice Lee (Score: 93)</li>
-        </ul>
-        <h3>Resume Match Scoring</h3>
-        <ul class="reward-list">
-          <li>Jane Doe: 98</li>
-          <li>John Smith: 95</li>
-          <li>Alice Lee: 93</li>
-        </ul>
-        <h3>Premium Recruiter Dashboard</h3>
-        <p>Access advanced recruiter tools and analytics here.</p>
-      </section>
       <section id="recruiterDashboardSection" class="marketing-card" style="max-width:980px;margin:0 auto 40px auto;">
         <h2 style="margin-top:0;text-align:center;">Recruiter Dashboard</h2>
         <p style="text-align:center;color:#cbd5e1;max-width:760px;margin:0 auto 18px auto;line-height:1.7;">Use the recruiter dashboard controls below to move between the core AI Recruiter Assist capabilities and review the information you need while testing admin access.</p>
@@ -87,33 +71,42 @@
           <button class="checkout-btn" type="button" data-recruiter-nav="screening">AI-Powered Screening</button>
           <button class="checkout-btn" type="button" data-recruiter-nav="messaging">Smart Messaging</button>
         </div>
-        <div class="marketing-grid">
-          <article id="recruiterRankingPanel" class="marketing-card tier-feature premium">
+        <div id="recruiterDashboardSummary" class="marketing-grid">
+          <article id="recruiterRankingPanel" class="marketing-card tier-feature premium recruiter-panel">
             <h3>Top Candidate Ranking</h3>
             <p>Review the three strongest candidate matches for a role instantly, using resume-fit scoring to bring the highest-value profiles to the top first.</p>
-            <ul>
-              <li>Project Manager: Jane Doe with a 98 match score</li>
-              <li>Software Developer: John Smith with a 95 match score</li>
-              <li>Data Analyst: Alice Lee with a 93 match score</li>
-            </ul>
+            <label for="recruiterJobRole" style="display:block;margin-bottom:8px;font-weight:700;color:#f8fafc;">Job Role</label>
+            <select id="recruiterJobRole" style="width:100%;padding:12px 14px;border-radius:10px;border:1px solid #60a5fa;background:#0f172a;color:#f8fafc;margin-bottom:14px;">
+              <option value="project_manager">Project Manager</option>
+              <option value="software_developer">Software Developer</option>
+              <option value="data_analyst">Data Analyst</option>
+            </select>
+            <button id="runRecruiterRankingBtn" class="checkout-btn" type="button">Run Ranking</button>
+            <div id="recruiterRankingResults" style="margin-top:16px;"></div>
           </article>
-          <article id="recruiterScreeningPanel" class="marketing-card tier-feature premium">
+          <article id="recruiterScreeningPanel" class="marketing-card tier-feature premium recruiter-panel" style="display:none;">
             <h3>AI-Powered Screening</h3>
             <p>Shortlist candidates faster by comparing resume signals against the role criteria and highlighting likely strengths, gaps, and next-review priorities.</p>
-            <ul>
-              <li>Automated screening against job-role requirements</li>
-              <li>Resume match scoring for quick shortlist decisions</li>
-              <li>Faster first-pass review for recruiter workflows</li>
-            </ul>
+            <label for="screeningThreshold" style="display:block;margin-bottom:8px;font-weight:700;color:#f8fafc;">Minimum Match Score</label>
+            <select id="screeningThreshold" style="width:100%;padding:12px 14px;border-radius:10px;border:1px solid #60a5fa;background:#0f172a;color:#f8fafc;margin-bottom:14px;">
+              <option value="90">90+</option>
+              <option value="95">95+</option>
+              <option value="98">98+</option>
+            </select>
+            <button id="runRecruiterScreeningBtn" class="checkout-btn" type="button">Run Screening</button>
+            <div id="recruiterScreeningResults" style="margin-top:16px;"></div>
           </article>
-          <article id="recruiterMessagingPanel" class="marketing-card tier-feature premium">
+          <article id="recruiterMessagingPanel" class="marketing-card tier-feature premium recruiter-panel" style="display:none;">
             <h3>Smart Messaging</h3>
             <p>Use smart outreach prompts to contact high-fit candidates quickly with more relevant, personalized recruiter messaging.</p>
-            <ul>
-              <li>One-click outreach starting points for top candidates</li>
-              <li>Personalized messaging based on candidate fit</li>
-              <li>Faster follow-up for ranked shortlist reviews</li>
-            </ul>
+            <label for="recruiterCandidateSelect" style="display:block;margin-bottom:8px;font-weight:700;color:#f8fafc;">Candidate</label>
+            <select id="recruiterCandidateSelect" style="width:100%;padding:12px 14px;border-radius:10px;border:1px solid #60a5fa;background:#0f172a;color:#f8fafc;margin-bottom:14px;">
+              <option value="jane_doe">Jane Doe</option>
+              <option value="john_smith">John Smith</option>
+              <option value="alice_lee">Alice Lee</option>
+            </select>
+            <button id="generateRecruiterMessageBtn" class="checkout-btn" type="button">Generate Message</button>
+            <div id="recruiterMessagingResults" style="margin-top:16px;"></div>
           </article>
         </div>
       </section>
@@ -132,25 +125,144 @@
       const sidebarDashboardLink = document.getElementById('recruiterSidebarDashboardLink');
       const recruiterDashboardSection = document.getElementById('recruiterDashboardSection');
       const recruiterButtons = document.querySelectorAll('[data-recruiter-nav]');
+      const recruiterPanels = document.querySelectorAll('.recruiter-panel');
+      const recruiterRankingResults = document.getElementById('recruiterRankingResults');
+      const recruiterScreeningResults = document.getElementById('recruiterScreeningResults');
+      const recruiterMessagingResults = document.getElementById('recruiterMessagingResults');
+      const recruiterJobRole = document.getElementById('recruiterJobRole');
+      const screeningThreshold = document.getElementById('screeningThreshold');
+      const recruiterCandidateSelect = document.getElementById('recruiterCandidateSelect');
+      const rankingBtn = document.getElementById('runRecruiterRankingBtn');
+      const screeningBtn = document.getElementById('runRecruiterScreeningBtn');
+      const messagingBtn = document.getElementById('generateRecruiterMessageBtn');
       if (!planPill || !titleEl || !priceEl || !messageEl || !subscribeActions || !dashboardBtn || !recruiterDashboardSection) return;
+
+      const recruiterData = {
+        project_manager: [
+          { name: 'Jane Doe', score: 98, strengths: 'PMP-certified, scaled multi-team deliveries, strong stakeholder management' },
+          { name: 'Marcus Hill', score: 94, strengths: 'Agile delivery, budget ownership, enterprise rollout coordination' },
+          { name: 'Lena Torres', score: 91, strengths: 'Cross-functional leadership, sprint planning, reporting cadence' }
+        ],
+        software_developer: [
+          { name: 'John Smith', score: 95, strengths: 'Full-stack JavaScript, API design, performance optimization' },
+          { name: 'Priya Raman', score: 93, strengths: 'React systems, Node services, cloud deployment pipelines' },
+          { name: 'Evan Brooks', score: 90, strengths: 'TypeScript architecture, testing culture, CI ownership' }
+        ],
+        data_analyst: [
+          { name: 'Alice Lee', score: 93, strengths: 'SQL modeling, BI dashboards, stakeholder-ready reporting' },
+          { name: 'Noah Patel', score: 91, strengths: 'Python analysis, experimentation design, KPI storytelling' },
+          { name: 'Sofia Kim', score: 89, strengths: 'Tableau delivery, data cleanup, business metric tracking' }
+        ]
+      };
+
+      const recruiterMessages = {
+        jane_doe: {
+          name: 'Jane Doe',
+          role: 'Project Manager',
+          message: 'Hi Jane, your recent delivery leadership and stakeholder coordination background stood out immediately. We are reviewing a Project Manager opening that looks aligned with your experience, and I would like to connect about next steps this week.'
+        },
+        john_smith: {
+          name: 'John Smith',
+          role: 'Software Developer',
+          message: 'Hi John, your full-stack delivery history and API architecture work look like a strong fit for a Software Developer search we are running. I would like to share details and see if you are open to a short intro conversation.'
+        },
+        alice_lee: {
+          name: 'Alice Lee',
+          role: 'Data Analyst',
+          message: 'Hi Alice, your analytics reporting background and business-facing dashboard work look closely aligned with a Data Analyst opportunity on our team. If you are open, I would like to send over role details and discuss fit.'
+        }
+      };
+
+      function renderRanking(roleKey) {
+        const candidates = recruiterData[roleKey] || [];
+        recruiterRankingResults.innerHTML = `
+          <div style="text-align:left;background:#0f172a;border:1px solid #334155;border-radius:14px;padding:16px;">
+            <div style="font-weight:700;color:#f8fafc;margin-bottom:10px;">Top Candidate Ranking</div>
+            ${candidates.map((candidate, index) => `
+              <div style="padding:12px 0;border-top:${index === 0 ? '0' : '1px solid #1e293b'};">
+                <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+                  <strong style="color:#f8fafc;">${index + 1}. ${candidate.name}</strong>
+                  <span style="color:#38bdf8;font-weight:700;">Match Score: ${candidate.score}</span>
+                </div>
+                <div style="margin-top:6px;color:#cbd5e1;line-height:1.6;">${candidate.strengths}</div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      }
+
+      function renderScreening(minimumScore) {
+        const shortlist = Object.entries(recruiterData)
+          .flatMap(([roleKey, candidates]) => candidates.map((candidate) => ({ ...candidate, roleKey })))
+          .filter((candidate) => candidate.score >= minimumScore)
+          .sort((left, right) => right.score - left.score);
+
+        recruiterScreeningResults.innerHTML = `
+          <div style="text-align:left;background:#0f172a;border:1px solid #334155;border-radius:14px;padding:16px;">
+            <div style="font-weight:700;color:#f8fafc;margin-bottom:10px;">AI-Powered Screening</div>
+            ${shortlist.length ? shortlist.map((candidate, index) => `
+              <div style="padding:12px 0;border-top:${index === 0 ? '0' : '1px solid #1e293b'};">
+                <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+                  <strong style="color:#f8fafc;">${candidate.name}</strong>
+                  <span style="color:#38bdf8;font-weight:700;">${candidate.score}</span>
+                </div>
+                <div style="margin-top:6px;color:#cbd5e1;line-height:1.6;">Screened in for ${candidate.roleKey.replace(/_/g, ' ')} because of ${candidate.strengths.toLowerCase()}.</div>
+              </div>
+            `).join('') : '<div style="color:#cbd5e1;line-height:1.6;">No candidates met the selected threshold.</div>'}
+          </div>
+        `;
+      }
+
+      function renderMessage(candidateKey) {
+        const candidate = recruiterMessages[candidateKey];
+        if (!candidate) return;
+        recruiterMessagingResults.innerHTML = `
+          <div style="text-align:left;background:#0f172a;border:1px solid #334155;border-radius:14px;padding:16px;">
+            <div style="font-weight:700;color:#f8fafc;margin-bottom:10px;">Smart Messaging</div>
+            <div style="color:#38bdf8;font-weight:700;margin-bottom:8px;">${candidate.name} · ${candidate.role}</div>
+            <div style="color:#cbd5e1;line-height:1.7;white-space:pre-wrap;">${candidate.message}</div>
+          </div>
+        `;
+      }
+
+      function setActiveRecruiterPanel(targetKey) {
+        recruiterButtons.forEach((button) => {
+          const isActive = button.getAttribute('data-recruiter-nav') === targetKey;
+          button.style.opacity = isActive ? '1' : '0.72';
+          button.style.boxShadow = isActive ? '0 0 0 2px rgba(56,189,248,0.35)' : '';
+        });
+        recruiterPanels.forEach((panel) => {
+          panel.style.display = panel.id === `recruiter${targetKey.charAt(0).toUpperCase()}${targetKey.slice(1)}Panel` ? '' : 'none';
+        });
+      }
+
+      rankingBtn?.addEventListener('click', function () {
+        renderRanking(recruiterJobRole?.value || 'project_manager');
+      });
+
+      screeningBtn?.addEventListener('click', function () {
+        renderScreening(Number(screeningThreshold?.value || 90));
+      });
+
+      messagingBtn?.addEventListener('click', function () {
+        renderMessage(recruiterCandidateSelect?.value || 'jane_doe');
+      });
 
       recruiterButtons.forEach((button) => {
         button.addEventListener('click', function () {
           const targetKey = button.getAttribute('data-recruiter-nav');
-          const panelMap = {
-            ranking: document.getElementById('recruiterRankingPanel'),
-            screening: document.getElementById('recruiterScreeningPanel'),
-            messaging: document.getElementById('recruiterMessagingPanel')
-          };
-          const panel = panelMap[targetKey];
-          if (panel) {
-            panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }
+          setActiveRecruiterPanel(targetKey);
         });
       });
 
+      renderRanking('project_manager');
+      renderScreening(90);
+      renderMessage('jane_doe');
+      setActiveRecruiterPanel('ranking');
+
       dashboardBtn.addEventListener('click', function () {
         recruiterDashboardSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        setActiveRecruiterPanel('ranking');
       });
 
       if (!token) return;
