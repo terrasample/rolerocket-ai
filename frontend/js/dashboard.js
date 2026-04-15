@@ -525,8 +525,13 @@ const legendApplicationsEl = document.getElementById('legendApplications');
 const statUsersCardEl = document.getElementById('statUsersCard');
 const statUsersLabelEl = document.getElementById('statUsersLabel');
 const statUsersEl = document.getElementById('statUsers');
+const statSubscribersCardEl = document.getElementById('statSubscribersCard');
 const statSubscribersEl = document.getElementById('statSubscribers');
+const statActivityCardEl = document.getElementById('statActivityCard');
 const statActivityEl = document.getElementById('statActivity');
+const statsDetailPanelEl = document.getElementById('statsDetailPanel');
+const statsDetailTitleEl = document.getElementById('statsDetailTitle');
+const statsDetailBodyEl = document.getElementById('statsDetailBody');
 const statsFootnoteEl = document.getElementById('statsFootnote');
 const lifetimeDashboardPriceEl = document.getElementById('lifetimeDashboardPrice');
 const lifetimeOfferPillEl = document.getElementById('lifetimeOfferPill');
@@ -549,6 +554,15 @@ let latestTrackerStats = {
   interview: 0,
   offer: 0,
   rejected: 0
+};
+let latestPlatformStats = {
+  usersTotal: 0,
+  subscribedUsers: 0,
+  resumesTotal: 0,
+  jobsTrackedTotal: 0,
+  applicationsTotal: 0,
+  usageTotal: 0,
+  updatedAt: null
 };
 let activePlanGuide = 'pro';
 
@@ -712,6 +726,51 @@ function formatStatNumber(value) {
   return Number(value || 0).toLocaleString();
 }
 
+function setActivePlatformStatCard(statKey) {
+  document.querySelectorAll('[data-stat-detail]').forEach((card) => {
+    const isActive = card.dataset.statDetail === statKey;
+    card.classList.toggle('stat-kpi-active', isActive);
+    card.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+  });
+}
+
+function renderPlatformStatDetail(statKey) {
+  if (!statsDetailTitleEl || !statsDetailBodyEl) return;
+
+  const stats = latestPlatformStats;
+  const paidShare = stats.usersTotal ? ((stats.subscribedUsers / stats.usersTotal) * 100).toFixed(1) : '0.0';
+
+  if (statKey === 'users') {
+    statsDetailTitleEl.textContent = 'Total signups';
+    statsDetailBodyEl.innerHTML = `
+      <p><strong>${formatStatNumber(stats.usersTotal)}</strong> total accounts have been created on RoleRocket AI.</p>
+      <p>This is the top-of-funnel demand number for the platform.</p>
+    `;
+  } else if (statKey === 'subscribers') {
+    statsDetailTitleEl.textContent = 'Active paid members';
+    statsDetailBodyEl.innerHTML = `
+      <p><strong>${formatStatNumber(stats.subscribedUsers)}</strong> users are currently on a paid plan.</p>
+      <p>That is <strong>${paidShare}%</strong> of the current signup base.</p>
+    `;
+  } else {
+    statsDetailTitleEl.textContent = 'Total recorded activity';
+    statsDetailBodyEl.innerHTML = `
+      <p><strong>${formatStatNumber(stats.usageTotal)}</strong> total tracked actions have happened across the platform.</p>
+      <p>Breakdown: <strong>${formatStatNumber(stats.resumesTotal)}</strong> resumes built, <strong>${formatStatNumber(stats.jobsTrackedTotal)}</strong> jobs tracked, and <strong>${formatStatNumber(stats.applicationsTotal)}</strong> applications logged.</p>
+    `;
+  }
+
+  setActivePlatformStatCard(statKey);
+}
+
+function initPlatformStatDetailActions() {
+  document.querySelectorAll('[data-stat-detail]').forEach((card) => {
+    card.addEventListener('click', () => {
+      renderPlatformStatDetail(card.dataset.statDetail || 'activity');
+    });
+  });
+}
+
 function renderPlatformUsagePie(resumesTotal, jobsTrackedTotal, applicationsTotal) {
   if (!statsPieEl) return;
 
@@ -752,7 +811,17 @@ async function loadPlatformStats() {
     legendApplicationsEl.textContent = formatStatNumber(applicationsTotal);
     statSubscribersEl.textContent = formatStatNumber(stats.subscribedUsers || 0);
     statActivityEl.textContent = formatStatNumber(activityTotal);
+    latestPlatformStats = {
+      ...latestPlatformStats,
+      subscribedUsers: Number(stats.subscribedUsers || 0),
+      resumesTotal,
+      jobsTrackedTotal,
+      applicationsTotal,
+      usageTotal: activityTotal,
+      updatedAt: stats.updatedAt || null
+    };
     renderPlatformUsagePie(resumesTotal, jobsTrackedTotal, applicationsTotal);
+    renderPlatformStatDetail(window.currentUserIsAdmin ? 'users' : 'activity');
 
     if (statsFootnoteEl) {
       const updatedAt = stats.updatedAt ? new Date(stats.updatedAt) : null;
@@ -775,11 +844,16 @@ async function loadPlatformStats() {
     const adminStats = await api('/api/admin/telemetry/summary', { method: 'GET' });
     if (statUsersCardEl) statUsersCardEl.hidden = false;
     if (statUsersLabelEl) statUsersLabelEl.textContent = 'Total signups';
-    if (statUsersEl) statUsersEl.textContent = formatStatNumber(adminStats.totals?.users || 0);
+    latestPlatformStats.usersTotal = Number(adminStats.totals?.users || 0);
+    if (statUsersEl) statUsersEl.textContent = formatStatNumber(latestPlatformStats.usersTotal);
+    renderPlatformStatDetail('users');
   } catch {
     if (statUsersCardEl) statUsersCardEl.hidden = true;
+    renderPlatformStatDetail('activity');
   }
 }
+
+initPlatformStatDetailActions();
 
 // ─── Toast notifications ───────────────────────────────────────────────────
 const TOAST_ICONS = { success: '✅', error: '❌', warn: '⚠️', info: 'ℹ️' };

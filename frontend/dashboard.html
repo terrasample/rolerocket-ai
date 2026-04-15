@@ -55,20 +55,24 @@
               </ul>
             </div>
             <div class="stats-kpis" aria-label="Key platform totals" style="min-width:220px;flex:1 1 220px;display:flex;flex-direction:column;justify-content:center;gap:18px;">
-              <article class="stat-kpi" id="statUsersCard" style="margin-bottom:0;" hidden>
+              <button type="button" class="stat-kpi stat-kpi-button" id="statUsersCard" data-stat-detail="users" style="margin-bottom:0;" hidden>
                 <span class="kpi-label" id="statUsersLabel">Total signups</span>
                 <strong id="statUsers">--</strong>
-              </article>
-              <article class="stat-kpi" style="margin-bottom:0;">
+              </button>
+              <button type="button" class="stat-kpi stat-kpi-button" id="statSubscribersCard" data-stat-detail="subscribers" style="margin-bottom:0;">
                 <span class="kpi-label">Active paid members</span>
                 <strong id="statSubscribers">--</strong>
-              </article>
-              <article class="stat-kpi" style="margin-bottom:0;">
+              </button>
+              <button type="button" class="stat-kpi stat-kpi-button" id="statActivityCard" data-stat-detail="activity" style="margin-bottom:0;">
                 <span class="kpi-label">Total recorded activity</span>
                 <strong id="statActivity">--</strong>
-              </article>
+              </button>
             </div>
           </div>
+          <section class="stats-detail-panel" id="statsDetailPanel" aria-live="polite" aria-label="Platform stat details">
+            <h4 id="statsDetailTitle">Platform details</h4>
+            <div id="statsDetailBody">Click a platform total to inspect the underlying data.</div>
+          </section>
           <p class="stats-footnote" id="statsFootnote" style="text-align:center;">Loading live stats...</p>
         </div>
 
