@@ -133,6 +133,12 @@ function renderSignedUpUsers(rows) {
   `;
 }
 
+function renderSignedUpUsersError(message) {
+  const el = document.getElementById('signedUpUsersTable');
+  if (!el) return;
+  el.innerHTML = `<div class="empty-state">${escapeHtml(message || 'Could not load signed up users.')}</div>`;
+}
+
 function renderPlanMix(usersByPlan = {}) {
   const planMixEl = document.getElementById('planMix');
   if (!planMixEl) return;
@@ -209,7 +215,7 @@ async function loadAnalytics() {
     const [data, publicStats, usersData] = await Promise.all([
       api('/api/admin/telemetry/summary?days=14'),
       fetchPublicStats().catch(() => null),
-      api('/api/admin/users?limit=1000').catch(() => ({ users: [] }))
+      api('/api/admin/users?limit=1000').catch((err) => ({ users: null, error: err.message }))
     ]);
 
     if (overview) {
@@ -227,11 +233,15 @@ async function loadAnalytics() {
     renderList('funnelEvents', data.funnels || [], 'funnel', 'count');
     renderList('dailyTrend', data.trend || [], 'day', 'count');
     renderCohorts(data.cohorts || []);
-    renderSignedUpUsers(usersData.users || []);
+    if (Array.isArray(usersData.users)) {
+      renderSignedUpUsers(usersData.users);
+    } else {
+      renderSignedUpUsersError(usersData.error || 'Signed up users are unavailable for this account.');
+    }
   } catch (err) {
     if (overview) overview.textContent = `Analytics unavailable: ${err.message}`;
     if (narrative) narrative.textContent = 'Platform summary unavailable right now.';
-    renderSignedUpUsers([]);
+    renderSignedUpUsersError(err.message || 'Signed up users are unavailable right now.');
   }
 }
 

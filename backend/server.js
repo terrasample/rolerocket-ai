@@ -2188,7 +2188,7 @@ app.get('/api/admin/telemetry/summary', authenticateToken, requireAnalyticsAcces
   }
 });
 
-app.get('/api/admin/users', authenticateToken, requireAdminAccess, async (req, res) => {
+app.get('/api/admin/users', authenticateToken, requireAnalyticsAccess, async (req, res) => {
   try {
     const rawLimit = Number(req.query.limit || 500);
     const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), 2000) : 500;

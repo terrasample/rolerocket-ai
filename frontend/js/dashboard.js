@@ -98,7 +98,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const res = await fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } });
         const data = await res.json();
         userPlan = (data.user && data.user.plan) || 'free';
-        isAdmin = data.user && (data.user.isAdmin === true || (data.user.email && ["terrasample@yahoo.com"].includes(data.user.email.toLowerCase())));
+        isAdmin = isAdminUser(data.user);
         isLifetime = data.user && data.user.plan === 'lifetime';
         isSubscribed = data.user && data.user.isSubscribed === true;
         isRecruiter = userPlan && String(userPlan).toLowerCase().includes('recruiter');
@@ -174,7 +174,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
       const res = await fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
-      const isAdmin = data.user && (data.user.isAdmin === true || (data.user.email && ["terrasample@yahoo.com"].includes(data.user.email.toLowerCase())));
+      const isAdmin = isAdminUser(data.user);
       const isLifetime = data.user && data.user.plan === 'lifetime';
       const isSubscribed = data.user && data.user.isSubscribed === true;
       if (isAdmin || isLifetime || isSubscribed) {
@@ -394,7 +394,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const plan = (data.user && data.user.plan) || 'free';
       let tips = '';
       // --- PATCH: Always unlock features for admin/lifetime/subscribed users ---
-      const isAdmin = data.user && (data.user.isAdmin === true || (data.user.email && ["terrasample@yahoo.com"].includes(data.user.email.toLowerCase())));
+      const isAdmin = isAdminUser(data.user);
       const isLifetime = data.user && data.user.plan === 'lifetime';
       const isSubscribed = data.user && data.user.isSubscribed === true;
       if (isAdmin || isLifetime || isSubscribed) {
@@ -649,6 +649,10 @@ function safeUrl(url) {
     if (u.protocol === 'http:' || u.protocol === 'https:') return u.href;
   } catch { /* fall through */ }
   return '#';
+}
+
+function isAdminUser(user) {
+  return Boolean(user && user.isAdmin === true);
 }
 
 function getSidebarPlanButtons() {
@@ -1640,7 +1644,7 @@ async function loadUserPlan() {
     if (data.user) {
       currentUserPlan = normalizePlan(data.user.plan || 'free');
       window.currentUserIsSubscribed = !!data.user.isSubscribed;
-      window.currentUserIsAdmin = (data.user.email && (data.user.email === 'terrasample@yahoo.com'));
+      window.currentUserIsAdmin = isAdminUser(data.user);
       if (planBadgeEl) planBadgeEl.textContent = formatPlan(currentUserPlan);
       renderPlanGuide(currentUserPlan === 'free' ? 'pro' : currentUserPlan);
       applyLocks();
