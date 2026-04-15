@@ -532,6 +532,8 @@ const statActivityEl = document.getElementById('statActivity');
 const statsDetailPanelEl = document.getElementById('statsDetailPanel');
 const statsDetailTitleEl = document.getElementById('statsDetailTitle');
 const statsDetailBodyEl = document.getElementById('statsDetailBody');
+const dashboardSignupRosterSectionEl = document.getElementById('dashboardSignupRosterSection');
+const dashboardSignupRosterBodyEl = document.getElementById('dashboardSignupRosterBody');
 const statsFootnoteEl = document.getElementById('statsFootnote');
 const lifetimeDashboardPriceEl = document.getElementById('lifetimeDashboardPrice');
 const lifetimeOfferPillEl = document.getElementById('lifetimeOfferPill');
@@ -800,6 +802,44 @@ function initPlatformStatDetailActions() {
   });
 }
 
+function renderDashboardSignupRoster() {
+  if (!dashboardSignupRosterSectionEl || !dashboardSignupRosterBodyEl) return;
+
+  if (!window.currentUserIsAdmin) {
+    dashboardSignupRosterSectionEl.hidden = true;
+    return;
+  }
+
+  dashboardSignupRosterSectionEl.hidden = false;
+
+  if (latestPlatformUsersError) {
+    dashboardSignupRosterBodyEl.innerHTML = `<p>${escapeHtml(latestPlatformUsersError)}</p>`;
+    return;
+  }
+
+  if (!latestPlatformUsers.length) {
+    dashboardSignupRosterBodyEl.innerHTML = '<p>No signed up users are available yet.</p>';
+    return;
+  }
+
+  dashboardSignupRosterBodyEl.innerHTML = `
+    <div class="stats-user-roster" role="list" aria-label="Signed up users roster list">
+      ${latestPlatformUsers.map((user) => `
+        <article class="stats-user-row" role="listitem">
+          <div>
+            <strong>${escapeHtml(user.name || 'Unnamed user')}</strong>
+            <span>${escapeHtml(user.email || '--')}</span>
+          </div>
+          <div class="stats-user-meta">
+            <span>${escapeHtml(String(user.plan || 'free').toUpperCase())}</span>
+            <span>${user.subscribed ? 'Paid' : 'Free'}</span>
+          </div>
+        </article>
+      `).join('')}
+    </div>
+  `;
+}
+
 function renderPlatformUsagePie(resumesTotal, jobsTrackedTotal, applicationsTotal) {
   if (!statsPieEl) return;
 
@@ -866,6 +906,7 @@ async function loadPlatformStats() {
 
   if (!window.currentUserIsAdmin) {
     if (statUsersCardEl) statUsersCardEl.hidden = true;
+    renderDashboardSignupRoster();
     return;
   }
 
@@ -881,11 +922,13 @@ async function loadPlatformStats() {
     latestPlatformUsersError = adminUsers.error || '';
     if (statUsersEl) statUsersEl.textContent = formatStatNumber(latestPlatformStats.usersTotal);
     renderPlatformStatDetail('users');
+    renderDashboardSignupRoster();
   } catch {
     if (statUsersCardEl) statUsersCardEl.hidden = true;
     latestPlatformUsers = [];
     latestPlatformUsersError = 'Signed up users could not be loaded right now.';
     renderPlatformStatDetail('activity');
+    renderDashboardSignupRoster();
   }
 }
 
