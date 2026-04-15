@@ -204,20 +204,25 @@
           </div>
 
           <div class="stats-kpis" aria-label="Key platform totals">
-            <article class="stat-kpi">
+            <button type="button" class="stat-kpi stat-kpi-button" data-stat-prefix="homepage" data-stat-detail="users">
               <span class="kpi-label">Total signups</span>
               <strong id="homepageUsersTotal">--</strong>
-            </article>
-            <article class="stat-kpi">
+            </button>
+            <button type="button" class="stat-kpi stat-kpi-button" data-stat-prefix="homepage" data-stat-detail="subscribers">
               <span class="kpi-label">Active paid members</span>
               <strong id="homepageSubscribersTotal">--</strong>
-            </article>
-            <article class="stat-kpi">
+            </button>
+            <button type="button" class="stat-kpi stat-kpi-button" data-stat-prefix="homepage" data-stat-detail="activity">
               <span class="kpi-label">Total recorded activity</span>
               <strong id="homepageUsageTotal">--</strong>
-            </article>
+            </button>
           </div>
         </div>
+
+        <section class="stats-detail-panel" aria-live="polite" aria-label="Homepage platform stat details">
+          <h4 id="homepageStatsDetailTitle">Platform details</h4>
+          <div id="homepageStatsDetailBody">Click a platform total to inspect the underlying data.</div>
+        </section>
 
         <div class="analytics-split-grid">
           <section>

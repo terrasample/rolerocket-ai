@@ -33,8 +33,62 @@ function getStatsElements(prefix) {
     usageEl: document.getElementById(`${prefix}UsageTotal`),
     narrativeEl: document.getElementById(`${prefix}StatsNarrative`),
     paidShareEl: document.getElementById(`${prefix}PaidShare`),
-    statusEl: document.getElementById(`${prefix}StatsStatus`)
+    statusEl: document.getElementById(`${prefix}StatsStatus`),
+    detailTitleEl: document.getElementById(`${prefix}StatsDetailTitle`),
+    detailBodyEl: document.getElementById(`${prefix}StatsDetailBody`)
   };
+}
+
+function setActivePublicStatCard(prefix, statKey) {
+  document.querySelectorAll(`[data-stat-prefix="${prefix}"][data-stat-detail]`).forEach((card) => {
+    const isActive = card.dataset.statDetail === statKey;
+    card.classList.toggle('stat-kpi-active', isActive);
+    card.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+  });
+}
+
+function renderPublicStatsDetail(prefix, stats, statKey) {
+  const { detailTitleEl, detailBodyEl } = getStatsElements(prefix);
+  if (!detailTitleEl || !detailBodyEl) return;
+
+  const usersTotal = Number(stats.usersTotal || 0);
+  const subscribersTotal = Number(stats.subscribedUsers || 0);
+  const resumesTotal = Number(stats.resumesTotal || 0);
+  const jobsTrackedTotal = Number(stats.jobsTrackedTotal || 0);
+  const applicationsTotal = Number(stats.applicationsTotal || 0);
+  const usageTotal = Number(stats.usageTotal || (resumesTotal + jobsTrackedTotal + applicationsTotal));
+  const paidShare = usersTotal ? ((subscribersTotal / usersTotal) * 100).toFixed(1) : '0.0';
+
+  if (statKey === 'users') {
+    detailTitleEl.textContent = 'Total signups';
+    detailBodyEl.innerHTML = `
+      <p><strong>${formatHomepageStat(usersTotal)}</strong> total accounts have signed up for RoleRocket AI.</p>
+      <p>This is the broadest demand signal for the platform.</p>
+    `;
+  } else if (statKey === 'subscribers') {
+    detailTitleEl.textContent = 'Active paid members';
+    detailBodyEl.innerHTML = `
+      <p><strong>${formatHomepageStat(subscribersTotal)}</strong> users are currently paying members.</p>
+      <p>That represents <strong>${paidShare}%</strong> of all current signups.</p>
+    `;
+  } else {
+    detailTitleEl.textContent = 'Total recorded activity';
+    detailBodyEl.innerHTML = `
+      <p><strong>${formatHomepageStat(usageTotal)}</strong> tracked actions have been recorded across the platform.</p>
+      <p>Breakdown: <strong>${formatHomepageStat(resumesTotal)}</strong> resumes built, <strong>${formatHomepageStat(jobsTrackedTotal)}</strong> jobs tracked, and <strong>${formatHomepageStat(applicationsTotal)}</strong> applications logged.</p>
+    `;
+  }
+
+  setActivePublicStatCard(prefix, statKey);
+}
+
+function initPublicStatsInteractions(prefix) {
+  document.querySelectorAll(`[data-stat-prefix="${prefix}"][data-stat-detail]`).forEach((card) => {
+    card.addEventListener('click', () => {
+      if (!window.roleRocketPublicStats) return;
+      renderPublicStatsDetail(prefix, window.roleRocketPublicStats, card.dataset.statDetail || 'activity');
+    });
+  });
 }
 
 function renderStatsSummary(prefix, stats) {
@@ -89,6 +143,8 @@ function renderStatsSummary(prefix, stats) {
       ? `Live stats updated ${updatedAt.toLocaleString()}`
       : 'Live stats updated just now';
   }
+
+  renderPublicStatsDetail(prefix, stats, 'activity');
 }
 
 function renderStatsError(prefix) {
@@ -110,6 +166,7 @@ async function loadHomepagePlatformStats() {
     if (!response.ok) throw new Error('Failed to load platform stats');
 
     const stats = await response.json();
+    window.roleRocketPublicStats = stats;
     renderStatsSummary('homepage', stats);
     renderStatsSummary('pricing', stats);
   } catch (err) {
@@ -117,6 +174,9 @@ async function loadHomepagePlatformStats() {
     renderStatsError('pricing');
   }
 }
+
+initPublicStatsInteractions('homepage');
+initPublicStatsInteractions('pricing');
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', loadHomepagePlatformStats);
