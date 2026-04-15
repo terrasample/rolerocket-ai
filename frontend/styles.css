@@ -960,6 +960,42 @@ h3,
   margin-bottom: 0;
 }
 
+.stats-user-roster {
+  margin-top: 14px;
+  display: grid;
+  gap: 10px;
+  max-height: 360px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.stats-user-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: start;
+  border: 1px solid rgba(125, 211, 252, 0.16);
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: rgba(15, 23, 42, 0.46);
+}
+
+.stats-user-row strong {
+  display: block;
+  color: #f8fafc;
+}
+
+.stats-user-row span {
+  display: block;
+  color: #cbd5e1;
+  font-size: 0.92rem;
+}
+
+.stats-user-meta {
+  text-align: right;
+  min-width: 72px;
+}
+
 .premium-cta-strip {
   margin-top: 4px;
 }

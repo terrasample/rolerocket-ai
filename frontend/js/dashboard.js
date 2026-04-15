@@ -564,6 +564,7 @@ let latestPlatformStats = {
   usageTotal: 0,
   updatedAt: null
 };
+let latestPlatformUsers = [];
 let activePlanGuide = 'pro';
 
 const PLAN_GUIDE_CONTENT = {
@@ -746,9 +747,29 @@ function renderPlatformStatDetail(statKey) {
 
   if (statKey === 'users') {
     statsDetailTitleEl.textContent = 'Total signups';
+    const rosterMarkup = latestPlatformUsers.length
+      ? `
+        <div class="stats-user-roster" role="list" aria-label="Signed up users roster">
+          ${latestPlatformUsers.map((user) => `
+            <article class="stats-user-row" role="listitem">
+              <div>
+                <strong>${escapeHtml(user.name || 'Unnamed user')}</strong>
+                <span>${escapeHtml(user.email || '--')}</span>
+              </div>
+              <div class="stats-user-meta">
+                <span>${escapeHtml(String(user.plan || 'free').toUpperCase())}</span>
+                <span>${user.subscribed ? 'Paid' : 'Free'}</span>
+              </div>
+            </article>
+          `).join('')}
+        </div>
+      `
+      : '<p>No signup roster is available yet.</p>';
+
     statsDetailBodyEl.innerHTML = `
       <p><strong>${formatStatNumber(stats.usersTotal)}</strong> total accounts have been created on RoleRocket AI.</p>
       <p>This is the top-of-funnel demand number for the platform.</p>
+      ${rosterMarkup}
     `;
   } else if (statKey === 'subscribers') {
     statsDetailTitleEl.textContent = 'Active paid members';
@@ -845,14 +866,19 @@ async function loadPlatformStats() {
   }
 
   try {
-    const adminStats = await api('/api/admin/telemetry/summary', { method: 'GET' });
+    const [adminStats, adminUsers] = await Promise.all([
+      api('/api/admin/telemetry/summary', { method: 'GET' }),
+      api('/api/admin/users?limit=1000', { method: 'GET' }).catch(() => ({ users: [] }))
+    ]);
     if (statUsersCardEl) statUsersCardEl.hidden = false;
     if (statUsersLabelEl) statUsersLabelEl.textContent = 'Total signups';
     latestPlatformStats.usersTotal = Number(adminStats.totals?.users || 0);
+    latestPlatformUsers = Array.isArray(adminUsers.users) ? adminUsers.users : [];
     if (statUsersEl) statUsersEl.textContent = formatStatNumber(latestPlatformStats.usersTotal);
     renderPlatformStatDetail('users');
   } catch {
     if (statUsersCardEl) statUsersCardEl.hidden = true;
+    latestPlatformUsers = [];
     renderPlatformStatDetail('activity');
   }
 }
