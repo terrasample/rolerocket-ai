@@ -565,6 +565,7 @@ let latestPlatformStats = {
   updatedAt: null
 };
 let latestPlatformUsers = [];
+let latestPlatformUsersError = '';
 let activePlanGuide = 'pro';
 
 const PLAN_GUIDE_CONTENT = {
@@ -747,7 +748,9 @@ function renderPlatformStatDetail(statKey) {
 
   if (statKey === 'users') {
     statsDetailTitleEl.textContent = 'Total signups';
-    const rosterMarkup = latestPlatformUsers.length
+    const rosterMarkup = latestPlatformUsersError
+      ? `<p>${escapeHtml(latestPlatformUsersError)}</p>`
+      : latestPlatformUsers.length
       ? `
         <div class="stats-user-roster" role="list" aria-label="Signed up users roster">
           ${latestPlatformUsers.map((user) => `
@@ -792,6 +795,7 @@ function initPlatformStatDetailActions() {
   document.querySelectorAll('[data-stat-detail]').forEach((card) => {
     card.addEventListener('click', () => {
       renderPlatformStatDetail(card.dataset.statDetail || 'activity');
+      statsDetailPanelEl?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     });
   });
 }
@@ -868,17 +872,19 @@ async function loadPlatformStats() {
   try {
     const [adminStats, adminUsers] = await Promise.all([
       api('/api/admin/telemetry/summary', { method: 'GET' }),
-      api('/api/admin/users?limit=1000', { method: 'GET' }).catch(() => ({ users: [] }))
+      api('/api/admin/users?limit=1000', { method: 'GET' }).catch((err) => ({ users: [], error: err.message }))
     ]);
     if (statUsersCardEl) statUsersCardEl.hidden = false;
     if (statUsersLabelEl) statUsersLabelEl.textContent = 'Total signups';
     latestPlatformStats.usersTotal = Number(adminStats.totals?.users || 0);
     latestPlatformUsers = Array.isArray(adminUsers.users) ? adminUsers.users : [];
+    latestPlatformUsersError = adminUsers.error || '';
     if (statUsersEl) statUsersEl.textContent = formatStatNumber(latestPlatformStats.usersTotal);
     renderPlatformStatDetail('users');
   } catch {
     if (statUsersCardEl) statUsersCardEl.hidden = true;
     latestPlatformUsers = [];
+    latestPlatformUsersError = 'Signed up users could not be loaded right now.';
     renderPlatformStatDetail('activity');
   }
 }
