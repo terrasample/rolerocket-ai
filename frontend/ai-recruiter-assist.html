@@ -22,7 +22,7 @@
       <hr />
       <p id="planBadge">Free Plan</p>
       <a class="sidebar-link-btn" href="login.html">💳 Manage Billing</a>
-      <a class="sidebar-link-btn" href="dashboard.html">My Dashboard</a>
+      <a id="recruiterSidebarDashboardLink" class="sidebar-link-btn" href="dashboard.html">My Dashboard</a>
       <a class="sidebar-link-btn" href="account.html">👤 Account</a>
       <a class="sidebar-link-btn" href="login.html?relogin=1">Logout</a>
     </aside>
@@ -79,6 +79,44 @@
         <h3>Premium Recruiter Dashboard</h3>
         <p>Access advanced recruiter tools and analytics here.</p>
       </section>
+      <section id="recruiterDashboardSection" class="marketing-card" style="max-width:980px;margin:0 auto 40px auto;">
+        <h2 style="margin-top:0;text-align:center;">Recruiter Dashboard</h2>
+        <p style="text-align:center;color:#cbd5e1;max-width:760px;margin:0 auto 18px auto;line-height:1.7;">Use the recruiter dashboard controls below to move between the core AI Recruiter Assist capabilities and review the information you need while testing admin access.</p>
+        <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:22px;">
+          <button class="checkout-btn" type="button" data-recruiter-nav="ranking">Top Candidate Ranking</button>
+          <button class="checkout-btn" type="button" data-recruiter-nav="screening">AI-Powered Screening</button>
+          <button class="checkout-btn" type="button" data-recruiter-nav="messaging">Smart Messaging</button>
+        </div>
+        <div class="marketing-grid">
+          <article id="recruiterRankingPanel" class="marketing-card tier-feature premium">
+            <h3>Top Candidate Ranking</h3>
+            <p>Review the three strongest candidate matches for a role instantly, using resume-fit scoring to bring the highest-value profiles to the top first.</p>
+            <ul>
+              <li>Project Manager: Jane Doe with a 98 match score</li>
+              <li>Software Developer: John Smith with a 95 match score</li>
+              <li>Data Analyst: Alice Lee with a 93 match score</li>
+            </ul>
+          </article>
+          <article id="recruiterScreeningPanel" class="marketing-card tier-feature premium">
+            <h3>AI-Powered Screening</h3>
+            <p>Shortlist candidates faster by comparing resume signals against the role criteria and highlighting likely strengths, gaps, and next-review priorities.</p>
+            <ul>
+              <li>Automated screening against job-role requirements</li>
+              <li>Resume match scoring for quick shortlist decisions</li>
+              <li>Faster first-pass review for recruiter workflows</li>
+            </ul>
+          </article>
+          <article id="recruiterMessagingPanel" class="marketing-card tier-feature premium">
+            <h3>Smart Messaging</h3>
+            <p>Use smart outreach prompts to contact high-fit candidates quickly with more relevant, personalized recruiter messaging.</p>
+            <ul>
+              <li>One-click outreach starting points for top candidates</li>
+              <li>Personalized messaging based on candidate fit</li>
+              <li>Faster follow-up for ranked shortlist reviews</li>
+            </ul>
+          </article>
+        </div>
+      </section>
     </main>
   </div>
   <script>
@@ -91,10 +129,28 @@
       const messageEl = document.getElementById('recruiterAccessMessage');
       const subscribeActions = document.getElementById('recruiterSubscribeActions');
       const dashboardBtn = document.getElementById('recruiterDashboardBtn');
-      if (!planPill || !titleEl || !priceEl || !messageEl || !subscribeActions || !dashboardBtn) return;
+      const sidebarDashboardLink = document.getElementById('recruiterSidebarDashboardLink');
+      const recruiterDashboardSection = document.getElementById('recruiterDashboardSection');
+      const recruiterButtons = document.querySelectorAll('[data-recruiter-nav]');
+      if (!planPill || !titleEl || !priceEl || !messageEl || !subscribeActions || !dashboardBtn || !recruiterDashboardSection) return;
+
+      recruiterButtons.forEach((button) => {
+        button.addEventListener('click', function () {
+          const targetKey = button.getAttribute('data-recruiter-nav');
+          const panelMap = {
+            ranking: document.getElementById('recruiterRankingPanel'),
+            screening: document.getElementById('recruiterScreeningPanel'),
+            messaging: document.getElementById('recruiterMessagingPanel')
+          };
+          const panel = panelMap[targetKey];
+          if (panel) {
+            panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        });
+      });
 
       dashboardBtn.addEventListener('click', function () {
-        window.location.href = 'dashboard.html';
+        recruiterDashboardSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
 
       if (!token) return;
@@ -129,7 +185,15 @@
           ? 'Admin access is enabled on this account, so you can test Top Candidate Ranking, AI-Powered Screening, and Smart Messaging without subscribing.'
           : 'Your recruiter access is active. You can use Top Candidate Ranking, AI-Powered Screening, and Smart Messaging on this page.';
         dashboardBtn.style.display = 'inline-flex';
-        dashboardBtn.textContent = 'Open Dashboard';
+        dashboardBtn.textContent = 'Open Recruiter Dashboard';
+        if (sidebarDashboardLink) {
+          sidebarDashboardLink.textContent = 'Recruiter Dashboard';
+          sidebarDashboardLink.href = '#recruiterDashboardSection';
+          sidebarDashboardLink.addEventListener('click', function (event) {
+            event.preventDefault();
+            recruiterDashboardSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          });
+        }
       } catch (_error) {
         // Leave the marketing state intact if the session check fails.
       }
