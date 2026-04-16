@@ -5,9 +5,43 @@ document.addEventListener('DOMContentLoaded', function () {
   const output = document.getElementById('resumeOutputGen');
   const resumeUploadInput = document.getElementById('resumeBaseUploadGen');
   const resumeUploadMessage = document.getElementById('resumeBaseUploadMessageGen');
+  const photoInput = document.getElementById('resumePhotoUploadGen');
+  const photoPreview = document.getElementById('resumePhotoPreviewGen');
+
+  const THEMES = [
+    {
+      id: 'forest-ribbon',
+      primary: '#0f4a47',
+      accent: '#7aa3a0',
+      sidebarBg: '#f5f7f8',
+      headerText: '#ffffff',
+      headingText: '#0f4a47',
+      font: "'Trebuchet MS', 'Segoe UI', Tahoma, sans-serif"
+    },
+    {
+      id: 'gold-sidebar',
+      primary: '#7f6500',
+      accent: '#b08f0e',
+      sidebarBg: '#7f6500',
+      headerText: '#111827',
+      headingText: '#7f6500',
+      font: "'Arial Narrow', Arial, sans-serif"
+    },
+    {
+      id: 'slate-modern',
+      primary: '#1e3a56',
+      accent: '#4f83a9',
+      sidebarBg: '#eef4f9',
+      headerText: '#ffffff',
+      headingText: '#1e3a56',
+      font: "'Verdana', 'Segoe UI', sans-serif"
+    }
+  ];
 
   let lastRawResume = '';
   let lastStructuredResume = null;
+  let lastPhotoDataUrl = '';
+  let lastTemplateIdx = -1;
 
   function escapeHtml(value) {
     return String(value || '')
@@ -16,6 +50,28 @@ document.addEventListener('DOMContentLoaded', function () {
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
+  }
+
+  function getInitials(name) {
+    const parts = (name || '').trim().split(/\s+/).filter(Boolean);
+    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    if (parts[0]) return parts[0].slice(0, 2).toUpperCase();
+    return 'RR';
+  }
+
+  function splitName(fullName) {
+    const parts = (fullName || '').trim().split(/\s+/).filter(Boolean);
+    return {
+      first: parts[0] || '',
+      rest: parts.slice(1).join(' ')
+    };
+  }
+
+  function pickTemplateIndex(previous) {
+    if (THEMES.length === 1) return 0;
+    let idx = Math.floor(Math.random() * THEMES.length);
+    if (idx === previous) idx = (idx + 1) % THEMES.length;
+    return idx;
   }
 
   function extractContactInfo(sourceText) {
@@ -69,9 +125,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     lines.forEach((line, idx) => {
       const key = line.replace(/[:\-]/g, '').trim().toUpperCase();
-      if (Object.prototype.hasOwnProperty.call(sectionIndex, key)) {
-        sectionIndex[key] = idx;
-      }
+      if (Object.prototype.hasOwnProperty.call(sectionIndex, key)) sectionIndex[key] = idx;
     });
 
     if (lines[0] && /^[A-Za-z][A-Za-z\s'.-]{2,}$/.test(lines[0]) && lines[0].split(/\s+/).length <= 5) {
@@ -97,8 +151,7 @@ document.addEventListener('DOMContentLoaded', function () {
       return next ? next[1] : -1;
     };
 
-    const profileLines = between(sectionIndex.PROFILE, nextSectionStart('PROFILE'));
-    structured.profile = profileLines.join(' ');
+    structured.profile = between(sectionIndex.PROFILE, nextSectionStart('PROFILE')).join(' ');
 
     const experienceLines = between(sectionIndex.EXPERIENCE, nextSectionStart('EXPERIENCE'));
     let current = null;
@@ -112,23 +165,18 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
       }
 
-      if (!current) {
-        current = { heading: 'Experience', bullets: [] };
-      }
+      if (!current) current = { heading: 'Experience', bullets: [] };
       current.bullets.push(normalized);
     });
     if (current) structured.experiences.push(current);
 
     structured.education = between(sectionIndex.EDUCATION, nextSectionStart('EDUCATION'));
-
-    const skillsLines = between(sectionIndex.SKILLS, nextSectionStart('SKILLS'));
-    structured.skills = skillsLines
+    structured.skills = between(sectionIndex.SKILLS, nextSectionStart('SKILLS'))
       .join(', ')
       .split(/[,|]/)
       .map((s) => s.trim())
       .filter(Boolean)
       .slice(0, 20);
-
     structured.awards = between(sectionIndex.AWARDS, nextSectionStart('AWARDS'));
 
     if (!structured.profile) {
@@ -145,61 +193,140 @@ document.addEventListener('DOMContentLoaded', function () {
       }];
     }
 
-    if (!structured.education.length) {
-      structured.education = ['Education details available upon request'];
-    }
-
-    if (!structured.skills.length) {
-      structured.skills = ['Communication', 'Collaboration', 'Problem Solving'];
-    }
+    if (!structured.education.length) structured.education = ['Education details available upon request'];
+    if (!structured.skills.length) structured.skills = ['Communication', 'Collaboration', 'Problem Solving'];
 
     return structured;
   }
 
-  function renderResumeTemplate(model) {
-    const experienceHtml = model.experiences.map((exp) => `
-      <div style="margin-bottom:14px;">
-        <div style="font-weight:800;color:#0e6e98;font-size:18px;line-height:1.2;">${escapeHtml(exp.heading)}</div>
-        ${(exp.bullets || []).map((b) => `<div style="font-size:16px;line-height:1.45;color:#1f2937;">${escapeHtml(b)}</div>`).join('')}
-      </div>
-    `).join('');
+  function buildPhotoMarkup(model, theme, square) {
+    const borderRadius = square ? '12px' : '999px';
+    const size = square ? 130 : 124;
 
-    const educationHtml = model.education.map((line) => `<div style="font-size:16px;line-height:1.45;color:#1f2937;">${escapeHtml(line)}</div>`).join('');
-    const skillsHtml = `<div style="font-size:16px;line-height:1.45;color:#1f2937;">${escapeHtml(model.skills.join(', '))}</div>`;
-    const awardsHtml = model.awards.length
-      ? model.awards.map((line) => `<div style="font-size:16px;line-height:1.45;color:#1f2937;">${escapeHtml(line)}</div>`).join('')
-      : '<div style="font-size:16px;line-height:1.45;color:#1f2937;">N/A</div>';
+    if (model.photoDataUrl) {
+      return `<img src="${model.photoDataUrl}" alt="Profile" style="width:${size}px;height:${size}px;object-fit:cover;border-radius:${borderRadius};border:3px solid ${theme.accent};display:block;" />`;
+    }
 
+    return `<div style="width:${size}px;height:${size}px;border-radius:${borderRadius};border:3px solid ${theme.accent};display:flex;align-items:center;justify-content:center;background:${theme.primary};color:#fff;font-weight:900;font-size:38px;">${escapeHtml(getInitials(model.fullName))}</div>`;
+  }
+
+  function renderTemplateForest(model, theme) {
+    const name = splitName(model.fullName);
     return `
-      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:24px;box-shadow:0 8px 28px rgba(15,23,42,0.08);">
-        <div style="font-family:Arial, Helvetica, sans-serif;max-width:900px;margin:0 auto;color:#0f172a;">
-          <h2 style="margin:0 0 6px 0;font-size:54px;letter-spacing:1px;color:#0e6e98;line-height:1;">${escapeHtml((model.fullName || '').toUpperCase())}</h2>
-          <div style="height:5px;background:#8ec7da;margin:0 0 18px 0;"></div>
-          <div style="display:grid;grid-template-columns:240px 1fr;gap:24px;">
-            <aside>
-              ${(model.contactLines || []).map((line) => `<div style="font-size:14px;line-height:1.45;color:#4b5563;margin-bottom:2px;">${escapeHtml(line)}</div>`).join('')}
-              <div style="height:4px;background:#8ec7da;margin-top:16px;"></div>
-            </aside>
-            <section>
-              <div style="font-weight:900;color:#0e6e98;font-size:32px;line-height:1;margin-bottom:6px;">PROFILE</div>
-              <div style="font-size:18px;line-height:1.45;color:#1f2937;margin-bottom:14px;">${escapeHtml(model.profile)}</div>
-
-              <div style="font-weight:900;color:#0e6e98;font-size:32px;line-height:1;margin:12px 0 6px 0;">EXPERIENCE</div>
-              ${experienceHtml}
-
-              <div style="font-weight:900;color:#0e6e98;font-size:32px;line-height:1;margin:12px 0 6px 0;">EDUCATION</div>
-              ${educationHtml}
-
-              <div style="font-weight:900;color:#0e6e98;font-size:32px;line-height:1;margin:12px 0 6px 0;">SKILLS</div>
-              ${skillsHtml}
-
-              <div style="font-weight:900;color:#0e6e98;font-size:32px;line-height:1;margin:12px 0 6px 0;">AWARDS</div>
-              ${awardsHtml}
-            </section>
+      <div style="background:#fff;border:1px solid #d1d5db;border-radius:10px;overflow:hidden;box-shadow:0 8px 28px rgba(15,23,42,0.08);font-family:${theme.font};">
+        <div style="background:${theme.primary};padding:16px 22px 22px 22px;color:${theme.headerText};display:flex;gap:22px;align-items:flex-end;">
+          <div style="margin-top:8px;">${buildPhotoMarkup(model, theme, false)}</div>
+          <div style="flex:1;">
+            <div style="font-size:52px;line-height:1;font-weight:900;letter-spacing:1px;">${escapeHtml((name.first + ' ' + name.rest).trim().toUpperCase())}</div>
+            <div style="font-size:22px;font-weight:700;margin-top:6px;">${escapeHtml(model.targetRole || 'Professional Candidate')}</div>
           </div>
+        </div>
+        <div style="display:grid;grid-template-columns:245px 1fr;">
+          <aside style="padding:18px;background:${theme.sidebarBg};border-right:1px solid #e5e7eb;">
+            <div style="font-size:24px;font-weight:900;color:${theme.headingText};margin-bottom:8px;">CONTACT</div>
+            ${(model.contactLines || []).map((line) => `<div style="font-size:14px;line-height:1.45;color:#1f2937;margin-bottom:4px;">${escapeHtml(line)}</div>`).join('')}
+            <div style="font-size:24px;font-weight:900;color:${theme.headingText};margin:20px 0 8px 0;">KEY SKILLS</div>
+            ${(model.skills || []).slice(0, 8).map((skill) => `<div style="font-size:14px;line-height:1.5;color:#1f2937;">• ${escapeHtml(skill)}</div>`).join('')}
+            <div style="font-size:24px;font-weight:900;color:${theme.headingText};margin:20px 0 8px 0;">CERTIFICATIONS</div>
+            ${(model.awards.length ? model.awards : ['N/A']).map((line) => `<div style="font-size:14px;line-height:1.4;color:#1f2937;margin-bottom:2px;">• ${escapeHtml(line)}</div>`).join('')}
+          </aside>
+          <section style="padding:18px 22px 22px 22px;">
+            <div style="font-size:32px;font-weight:900;color:${theme.headingText};margin-bottom:8px;">ABOUT ME</div>
+            <div style="font-size:16px;line-height:1.5;color:#374151;margin-bottom:14px;">${escapeHtml(model.profile)}</div>
+            <hr style="border:none;border-top:1px solid #d1d5db;margin:12px 0 12px 0;" />
+            <div style="font-size:32px;font-weight:900;color:${theme.headingText};margin-bottom:8px;">PROFESSIONAL EXPERIENCE</div>
+            ${model.experiences.map((exp) => `
+              <div style="margin-bottom:12px;">
+                <div style="font-size:18px;font-weight:800;color:#111827;">${escapeHtml(exp.heading)}</div>
+                ${(exp.bullets || []).map((b) => `<div style="font-size:15px;line-height:1.45;color:#374151;">• ${escapeHtml(b)}</div>`).join('')}
+              </div>
+            `).join('')}
+            <div style="font-size:32px;font-weight:900;color:${theme.headingText};margin:6px 0 8px 0;">EDUCATION</div>
+            ${(model.education || []).map((line) => `<div style="font-size:15px;line-height:1.45;color:#374151;">${escapeHtml(line)}</div>`).join('')}
+          </section>
         </div>
       </div>
     `;
+  }
+
+  function renderTemplateGold(model, theme) {
+    const name = splitName(model.fullName);
+    return `
+      <div style="background:#fff;border:1px solid #d1d5db;border-radius:10px;overflow:hidden;box-shadow:0 8px 28px rgba(15,23,42,0.08);font-family:${theme.font};">
+        <div style="display:grid;grid-template-columns:250px 1fr;">
+          <aside style="background:${theme.sidebarBg};padding:20px;color:#fff;min-height:100%;">
+            <div style="display:flex;justify-content:center;margin:4px 0 22px 0;">${buildPhotoMarkup(model, theme, true)}</div>
+            <div style="font-size:36px;font-weight:900;text-align:center;letter-spacing:1px;margin-bottom:20px;">${escapeHtml(getInitials(model.fullName))}</div>
+            <div style="font-size:34px;font-weight:900;margin-bottom:8px;">CONTACT</div>
+            ${(model.contactLines || []).map((line) => `<div style="font-size:14px;line-height:1.5;margin-bottom:3px;">${escapeHtml(line)}</div>`).join('')}
+            <div style="font-size:34px;font-weight:900;margin:20px 0 8px 0;">KEY SKILLS</div>
+            ${(model.skills || []).slice(0, 8).map((skill) => `<div style="font-size:14px;line-height:1.45;">• ${escapeHtml(skill)}</div>`).join('')}
+            <div style="font-size:34px;font-weight:900;margin:20px 0 8px 0;">EDUCATION</div>
+            ${(model.education || []).map((line) => `<div style="font-size:14px;line-height:1.4;">${escapeHtml(line)}</div>`).join('')}
+          </aside>
+          <section style="padding:18px 22px;">
+            <div style="font-size:60px;line-height:1;font-weight:900;color:#111827;">${escapeHtml(name.first)}<span style="font-weight:500;">${escapeHtml(name.rest ? ' ' + name.rest : '')}</span></div>
+            <div style="font-size:26px;color:#4b5563;font-weight:700;margin:6px 0 8px 0;">${escapeHtml(model.targetRole || 'Professional Candidate')}</div>
+            <div style="font-size:15px;line-height:1.45;color:#4b5563;margin-bottom:14px;">${escapeHtml(model.profile)}</div>
+
+            <div style="background:${theme.primary};color:#fff;font-size:18px;font-weight:800;padding:6px 12px;margin-bottom:8px;">PROFESSIONAL EXPERIENCE</div>
+            ${model.experiences.map((exp) => `
+              <div style="margin-bottom:10px;">
+                <div style="font-size:17px;font-weight:800;color:#111827;">${escapeHtml(exp.heading)}</div>
+                ${(exp.bullets || []).map((b) => `<div style="font-size:14px;line-height:1.45;color:#374151;">• ${escapeHtml(b)}</div>`).join('')}
+              </div>
+            `).join('')}
+
+            <div style="background:${theme.primary};color:#fff;font-size:18px;font-weight:800;padding:6px 12px;margin:8px 0 8px 0;">CERTIFICATIONS</div>
+            ${(model.awards.length ? model.awards : ['N/A']).map((line) => `<div style="font-size:14px;line-height:1.45;color:#374151;">• ${escapeHtml(line)}</div>`).join('')}
+          </section>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderTemplateSlate(model, theme) {
+    return `
+      <div style="background:#fff;border:1px solid #d1d5db;border-radius:10px;overflow:hidden;box-shadow:0 8px 28px rgba(15,23,42,0.08);font-family:${theme.font};">
+        <div style="background:linear-gradient(110deg, ${theme.primary}, ${theme.accent});padding:20px 22px;color:${theme.headerText};display:flex;align-items:center;gap:18px;">
+          ${buildPhotoMarkup(model, theme, false)}
+          <div>
+            <div style="font-size:44px;font-weight:900;line-height:1;">${escapeHtml(model.fullName.toUpperCase())}</div>
+            <div style="font-size:20px;font-weight:700;margin-top:6px;">${escapeHtml(model.targetRole || 'Professional Candidate')}</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:230px 1fr;">
+          <aside style="background:${theme.sidebarBg};padding:18px;border-right:1px solid #d1d5db;">
+            <div style="font-size:20px;font-weight:900;color:${theme.headingText};margin-bottom:6px;">CONTACT</div>
+            ${(model.contactLines || []).map((line) => `<div style="font-size:13px;line-height:1.45;color:#1f2937;">${escapeHtml(line)}</div>`).join('')}
+            <div style="font-size:20px;font-weight:900;color:${theme.headingText};margin:16px 0 6px 0;">SKILLS</div>
+            ${(model.skills || []).slice(0, 9).map((skill) => `<div style="font-size:13px;line-height:1.45;color:#1f2937;">• ${escapeHtml(skill)}</div>`).join('')}
+          </aside>
+          <section style="padding:18px 22px;">
+            <div style="font-size:24px;font-weight:900;color:${theme.headingText};margin-bottom:6px;">PROFILE</div>
+            <div style="font-size:14px;line-height:1.5;color:#374151;margin-bottom:10px;">${escapeHtml(model.profile)}</div>
+            <div style="font-size:24px;font-weight:900;color:${theme.headingText};margin-bottom:6px;">EXPERIENCE</div>
+            ${model.experiences.map((exp) => `
+              <div style="margin-bottom:10px;">
+                <div style="font-size:16px;font-weight:800;color:#111827;">${escapeHtml(exp.heading)}</div>
+                ${(exp.bullets || []).map((b) => `<div style="font-size:14px;line-height:1.45;color:#374151;">• ${escapeHtml(b)}</div>`).join('')}
+              </div>
+            `).join('')}
+            <div style="font-size:24px;font-weight:900;color:${theme.headingText};margin-bottom:6px;">EDUCATION</div>
+            ${(model.education || []).map((line) => `<div style="font-size:14px;line-height:1.45;color:#374151;">${escapeHtml(line)}</div>`).join('')}
+            <div style="font-size:24px;font-weight:900;color:${theme.headingText};margin:8px 0 6px 0;">AWARDS</div>
+            ${(model.awards.length ? model.awards : ['N/A']).map((line) => `<div style="font-size:14px;line-height:1.45;color:#374151;">• ${escapeHtml(line)}</div>`).join('')}
+          </section>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderResumeTemplate(model) {
+    const theme = model.theme || THEMES[0];
+    if (theme.id === 'gold-sidebar') return renderTemplateGold(model, theme);
+    if (theme.id === 'slate-modern') return renderTemplateSlate(model, theme);
+    return renderTemplateForest(model, theme);
   }
 
   function renderError(message) {
@@ -216,10 +343,12 @@ document.addEventListener('DOMContentLoaded', function () {
   async function loadResumeFileIntoField(file, textarea, messageEl) {
     const token = typeof getStoredToken === 'function' ? getStoredToken() : localStorage.getItem('token');
     if (!file || !textarea) return;
+
     if (messageEl) {
       messageEl.textContent = 'Loading resume file...';
       messageEl.style.color = '#64748b';
     }
+
     try {
       if (file.type === 'application/pdf' || file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
         const formData = new FormData();
@@ -234,6 +363,7 @@ document.addEventListener('DOMContentLoaded', function () {
       } else {
         throw new Error('Use a TXT, PDF, or DOCX resume file.');
       }
+
       if (messageEl) {
         messageEl.textContent = `Loaded ${file.name}.`;
         messageEl.style.color = '#16a34a';
@@ -246,143 +376,146 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  function drawSectionTitle(doc, title, x, y) {
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
-    doc.setTextColor(14, 110, 152);
-    doc.text(title, x, y);
-    doc.setTextColor(31, 41, 55);
+  function buildResumeModel(structured, targetRole) {
+    const idx = pickTemplateIndex(lastTemplateIdx);
+    lastTemplateIdx = idx;
+    return {
+      ...structured,
+      targetRole,
+      photoDataUrl: lastPhotoDataUrl,
+      theme: THEMES[idx]
+    };
   }
 
   function exportResumePdf(model) {
     if (!window.jspdf) throw new Error('PDF library not loaded.');
+
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    const theme = model.theme || THEMES[0];
 
     const leftX = 12;
-    const rightX = 70;
-    const leftW = 50;
-    const rightW = 128;
-    let y = 16;
+    const leftW = 56;
+    const rightX = 74;
+    const rightW = 124;
+
+    doc.setFillColor(
+      parseInt(theme.sidebarBg.slice(1, 3), 16),
+      parseInt(theme.sidebarBg.slice(3, 5), 16),
+      parseInt(theme.sidebarBg.slice(5, 7), 16)
+    );
+    doc.rect(10, 10, leftW + 4, 277, 'F');
+
+    doc.setFillColor(
+      parseInt(theme.primary.slice(1, 3), 16),
+      parseInt(theme.primary.slice(3, 5), 16),
+      parseInt(theme.primary.slice(5, 7), 16)
+    );
+    doc.rect(70, 10, 130, 24, 'F');
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(22);
-    doc.setTextColor(14, 110, 152);
-    doc.text((model.fullName || '').toUpperCase(), leftX, y);
-    y += 3;
-    doc.setDrawColor(142, 199, 218);
-    doc.setLineWidth(1);
-    doc.line(leftX, y + 2, 198, y + 2);
+    doc.setFontSize(18);
+    doc.setTextColor(255, 255, 255);
+    doc.text((model.fullName || '').toUpperCase().slice(0, 40), rightX, 21);
 
-    let leftY = y + 10;
+    doc.setFontSize(10);
+    doc.text((model.targetRole || 'Professional Candidate').slice(0, 60), rightX, 28);
+
+    let leftY = 42;
+    doc.setTextColor(17, 24, 39);
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text('CONTACT', leftX, leftY);
+    leftY += 6;
+
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(75, 85, 99);
     doc.setFontSize(9);
     (model.contactLines || []).forEach((line) => {
-      const wrapped = doc.splitTextToSize(line, leftW);
+      const wrapped = doc.splitTextToSize(line, leftW - 4);
       doc.text(wrapped, leftX, leftY);
-      leftY += wrapped.length * 4.3;
+      leftY += wrapped.length * 4.2;
     });
-    doc.setDrawColor(142, 199, 218);
-    doc.line(leftX, leftY + 2, leftX + leftW, leftY + 2);
 
-    let rightY = y + 10;
-    drawSectionTitle(doc, 'PROFILE', rightX, rightY);
-    rightY += 5;
+    leftY += 4;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.text('KEY SKILLS', leftX, leftY);
+    leftY += 6;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    (model.skills || []).slice(0, 10).forEach((skill) => {
+      const wrapped = doc.splitTextToSize(`• ${skill}`, leftW - 4);
+      doc.text(wrapped, leftX, leftY);
+      leftY += wrapped.length * 4.2;
+    });
+
+    let rightY = 42;
+
+    function drawTitle(title) {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.setTextColor(
+        parseInt(theme.primary.slice(1, 3), 16),
+        parseInt(theme.primary.slice(3, 5), 16),
+        parseInt(theme.primary.slice(5, 7), 16)
+      );
+      doc.text(title, rightX, rightY);
+      rightY += 5;
+      doc.setTextColor(31, 41, 55);
+    }
+
+    drawTitle('PROFILE');
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9.5);
-    doc.setTextColor(31, 41, 55);
     let wrapped = doc.splitTextToSize(model.profile || '', rightW);
     doc.text(wrapped, rightX, rightY);
-    rightY += wrapped.length * 4.6 + 3;
+    rightY += wrapped.length * 4.3 + 3;
 
-    drawSectionTitle(doc, 'EXPERIENCE', rightX, rightY);
-    rightY += 5;
+    drawTitle('PROFESSIONAL EXPERIENCE');
     model.experiences.forEach((exp) => {
       if (rightY > 272) {
         doc.addPage();
         rightY = 16;
       }
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(14, 110, 152);
       wrapped = doc.splitTextToSize(exp.heading || '', rightW);
       doc.text(wrapped, rightX, rightY);
-      rightY += wrapped.length * 4.4;
+      rightY += wrapped.length * 4.2;
 
       doc.setFont('helvetica', 'normal');
-      doc.setTextColor(31, 41, 55);
       (exp.bullets || []).forEach((bullet) => {
-        const bulletWrapped = doc.splitTextToSize(bullet, rightW);
+        const bulletWrapped = doc.splitTextToSize(`• ${bullet}`, rightW);
         doc.text(bulletWrapped, rightX, rightY);
-        rightY += bulletWrapped.length * 4.4;
+        rightY += bulletWrapped.length * 4.2;
       });
       rightY += 2;
     });
 
-    const sectionBlock = (title, lines, asList) => {
-      if (rightY > 272) {
-        doc.addPage();
-        rightY = 16;
-      }
-      drawSectionTitle(doc, title, rightX, rightY);
-      rightY += 5;
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(31, 41, 55);
-      const valueLines = asList ? [lines.join(', ')] : lines;
-      valueLines.forEach((line) => {
-        const t = doc.splitTextToSize(line, rightW);
-        doc.text(t, rightX, rightY);
-        rightY += t.length * 4.4;
-      });
-      rightY += 2;
-    };
+    drawTitle('EDUCATION');
+    (model.education || []).forEach((line) => {
+      wrapped = doc.splitTextToSize(line, rightW);
+      doc.text(wrapped, rightX, rightY);
+      rightY += wrapped.length * 4.2;
+    });
 
-    sectionBlock('EDUCATION', model.education, false);
-    sectionBlock('SKILLS', model.skills, true);
-    sectionBlock('AWARDS', model.awards.length ? model.awards : ['N/A'], false);
+    rightY += 2;
+    drawTitle('CERTIFICATIONS');
+    (model.awards.length ? model.awards : ['N/A']).forEach((line) => {
+      wrapped = doc.splitTextToSize(`• ${line}`, rightW);
+      doc.text(wrapped, rightX, rightY);
+      rightY += wrapped.length * 4.2;
+    });
 
     doc.save('tailored-resume.pdf');
   }
 
   function exportResumeWord(model) {
-    const experienceHtml = model.experiences.map((exp) => `
-      <div style="margin-bottom:10px;">
-        <div style="font-weight:700;color:#0e6e98;font-size:12pt;">${escapeHtml(exp.heading)}</div>
-        ${(exp.bullets || []).map((b) => `<div style="font-size:10.5pt;line-height:1.45;">${escapeHtml(b)}</div>`).join('')}
-      </div>
-    `).join('');
-
     const html = `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"></head>
-<body style="font-family:Calibri, Arial, sans-serif;color:#0f172a;margin:0;">
-  <div style="padding:20px 22px;max-width:800px;margin:0 auto;">
-    <div style="font-size:30pt;font-weight:800;color:#0e6e98;letter-spacing:1px;line-height:1;">${escapeHtml((model.fullName || '').toUpperCase())}</div>
-    <div style="height:3px;background:#8ec7da;margin:8px 0 14px 0;"></div>
-    <table style="width:100%;border-collapse:collapse;">
-      <tr>
-        <td style="width:28%;vertical-align:top;padding-right:12px;border-right:1px solid #8ec7da;">
-          ${(model.contactLines || []).map((line) => `<div style="font-size:9.5pt;color:#4b5563;line-height:1.4;">${escapeHtml(line)}</div>`).join('')}
-        </td>
-        <td style="width:72%;vertical-align:top;padding-left:14px;">
-          <div style="font-size:13pt;font-weight:800;color:#0e6e98;margin-bottom:4px;">PROFILE</div>
-          <div style="font-size:10.5pt;line-height:1.45;margin-bottom:10px;">${escapeHtml(model.profile)}</div>
-
-          <div style="font-size:13pt;font-weight:800;color:#0e6e98;margin-bottom:4px;">EXPERIENCE</div>
-          ${experienceHtml}
-
-          <div style="font-size:13pt;font-weight:800;color:#0e6e98;margin-bottom:4px;">EDUCATION</div>
-          ${(model.education || []).map((line) => `<div style="font-size:10.5pt;line-height:1.45;">${escapeHtml(line)}</div>`).join('')}
-
-          <div style="font-size:13pt;font-weight:800;color:#0e6e98;margin:8px 0 4px 0;">SKILLS</div>
-          <div style="font-size:10.5pt;line-height:1.45;">${escapeHtml((model.skills || []).join(', '))}</div>
-
-          <div style="font-size:13pt;font-weight:800;color:#0e6e98;margin:8px 0 4px 0;">AWARDS</div>
-          ${(model.awards.length ? model.awards : ['N/A']).map((line) => `<div style="font-size:10.5pt;line-height:1.45;">${escapeHtml(line)}</div>`).join('')}
-        </td>
-      </tr>
-    </table>
-  </div>
+<body style="font-family:${model.theme.font};margin:0;color:#111827;">
+  ${renderResumeTemplate(model)}
 </body>
 </html>`;
 
@@ -394,6 +527,28 @@ document.addEventListener('DOMContentLoaded', function () {
     link.click();
     document.body.removeChild(link);
   }
+
+  photoInput?.addEventListener('change', function (event) {
+    const file = event.target.files?.[0];
+    if (!file) {
+      lastPhotoDataUrl = '';
+      photoPreview.innerHTML = '';
+      return;
+    }
+
+    if (!/^image\/(jpeg|png|webp)$/i.test(file.type)) {
+      lastPhotoDataUrl = '';
+      photoPreview.innerHTML = '<div style="color:#dc2626;font-size:0.9rem;">Use JPG, PNG, or WEBP.</div>';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function () {
+      lastPhotoDataUrl = String(reader.result || '');
+      photoPreview.innerHTML = `<img src="${lastPhotoDataUrl}" alt="Photo preview" style="width:88px;height:88px;border-radius:999px;object-fit:cover;border:2px solid #d1d5db;" />`;
+    };
+    reader.readAsDataURL(file);
+  });
 
   resumeUploadInput?.addEventListener('change', async function (event) {
     const file = event.target.files?.[0];
@@ -433,9 +588,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
       const raw = String(data.result || '').trim();
       lastRawResume = raw;
-      lastStructuredResume = parseResume(raw, extractContactInfo(baseResume));
+      const structured = parseResume(raw, extractContactInfo(baseResume));
+      lastStructuredResume = buildResumeModel(structured, jobTitle);
       output.innerHTML = renderResumeTemplate(lastStructuredResume);
-      statusBanner('Resume generated. Use Save as PDF or Save as Word for a ready-to-upload file.', true);
+      statusBanner('Resume generated with a unique design. Use Save as PDF or Save as Word for upload-ready files.', true);
     } catch (err) {
       renderError('Error generating resume.');
     }
