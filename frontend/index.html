@@ -30,6 +30,31 @@
   <link rel="stylesheet" href="styles.css" />
   <script src="js/api-base.js"></script>
   <script src="js/api-base.js"></script>
+  <script>
+    // Guard the homepage: if there is no valid auth token, send user to login.
+    (function enforceHomepageAuth() {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token') || '';
+      if (!token) {
+        window.location.replace('login.html');
+        return;
+      }
+
+      const target = (typeof getApiBase === 'function' ? getApiBase() : '') + '/api/me';
+      fetch(target, {
+        headers: { Authorization: `Bearer ${token}` }
+      }).then((res) => {
+        if (!res.ok) {
+          localStorage.removeItem('token');
+          sessionStorage.removeItem('token');
+          window.location.replace('login.html');
+        }
+      }).catch(() => {
+        localStorage.removeItem('token');
+        sessionStorage.removeItem('token');
+        window.location.replace('login.html');
+      });
+    })();
+  </script>
   <script src="js/dashboard.js"></script>
   <!-- JSON-LD Structured Data -->
   <script type="application/ld+json">
