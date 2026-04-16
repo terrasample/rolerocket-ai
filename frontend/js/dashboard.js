@@ -564,6 +564,8 @@ const dashboardSignupRosterSectionEl = document.getElementById('dashboardSignupR
 const dashboardSignupRosterBodyEl = document.getElementById('dashboardSignupRosterBody');
 const quickstartConversionSectionEl = document.getElementById('quickstartConversionSection');
 const quickstartConversionBodyEl = document.getElementById('quickstartConversionBody');
+const outcomeKpiSectionEl = document.getElementById('outcomeKpiSection');
+const outcomeKpiBodyEl = document.getElementById('outcomeKpiBody');
 const statsFootnoteEl = document.getElementById('statsFootnote');
 const lifetimeDashboardPriceEl = document.getElementById('lifetimeDashboardPrice');
 const lifetimeOfferPillEl = document.getElementById('lifetimeOfferPill');
@@ -599,6 +601,7 @@ let latestPlatformStats = {
 let latestPlatformUsers = [];
 let latestPlatformUsersError = '';
 let quickstartConversionDays = 30;
+let outcomeKpiDays = 30;
 let activePlanGuide = 'pro';
 
 const PLAN_GUIDE_CONTENT = {
@@ -937,6 +940,72 @@ function initQuickstartConversionControls() {
   });
 }
 
+function renderOutcomeKpis(data) {
+  if (!outcomeKpiBodyEl) return;
+
+  const timeToApply = Number(data?.timeToApplication?.medianHours || 0).toFixed(1);
+  const sampleUsers = Number(data?.timeToApplication?.sampleUsers || 0);
+  const interviewOverall = Number(data?.interviewRate?.overall || 0).toFixed(1);
+  const interviewLift = Number(data?.interviewRate?.paidLiftVsFree || 0).toFixed(2);
+  const offerOverall = Number(data?.offerRate?.overall || 0).toFixed(1);
+  const offerLift = Number(data?.offerRate?.paidLiftVsFree || 0).toFixed(2);
+  const wau = Number(data?.coreWorkflowUsage?.weeklyActiveUsers || 0);
+  const weeklyActions = Number(data?.coreWorkflowUsage?.weeklyCoreActions || 0);
+  const retention = Number(data?.postWinRetention?.retention14dPct || 0).toFixed(1);
+  const retained = Number(data?.postWinRetention?.retainedWinners || 0);
+  const eligible = Number(data?.postWinRetention?.eligibleWinners || 0);
+
+  outcomeKpiBodyEl.innerHTML = `
+    <div class="quickstart-kpis">
+      <div><strong>${timeToApply}h</strong><span>Median time to apply</span></div>
+      <div><strong>${interviewOverall}%</strong><span>Interview rate</span></div>
+      <div><strong>${offerOverall}%</strong><span>Offer rate</span></div>
+    </div>
+    <div class="quickstart-step-list" role="list" aria-label="Outcome KPI details">
+      <article role="listitem" class="quickstart-step-row"><span>Interview-rate lift (paid vs free)</span><strong>${interviewLift}x</strong></article>
+      <article role="listitem" class="quickstart-step-row"><span>Offer-rate lift (paid vs free)</span><strong>${offerLift}x</strong></article>
+      <article role="listitem" class="quickstart-step-row"><span>Weekly active users (core workflow)</span><strong>${formatStatNumber(wau)} users</strong></article>
+      <article role="listitem" class="quickstart-step-row"><span>Weekly core workflow actions</span><strong>${formatStatNumber(weeklyActions)} actions</strong></article>
+      <article role="listitem" class="quickstart-step-row"><span>Post-win retention (14d)</span><strong>${retention}% (${formatStatNumber(retained)}/${formatStatNumber(eligible)})</strong></article>
+    </div>
+    <p class="quickstart-conv-note">Window: last ${Number(data?.windowDays || outcomeKpiDays)} days · Time-to-apply sample: ${formatStatNumber(sampleUsers)} users</p>
+  `;
+}
+
+async function loadOutcomeKpis(days = outcomeKpiDays) {
+  if (!outcomeKpiSectionEl || !outcomeKpiBodyEl) return;
+  outcomeKpiDays = days;
+
+  if (!window.currentUserIsAdmin) {
+    outcomeKpiSectionEl.hidden = true;
+    return;
+  }
+
+  outcomeKpiSectionEl.hidden = false;
+  outcomeKpiBodyEl.innerHTML = '<p>Loading outcome KPIs...</p>';
+
+  try {
+    const data = await api(`/api/admin/outcomes/kpis?days=${encodeURIComponent(String(days))}`, { method: 'GET' });
+    renderOutcomeKpis(data);
+    document.querySelectorAll('[data-outcome-days]').forEach((button) => {
+      const isActive = String(button.dataset.outcomeDays) === String(days);
+      button.classList.toggle('plan-info-active', isActive);
+      button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+    });
+  } catch (err) {
+    outcomeKpiBodyEl.innerHTML = `<p>${escapeHtml(err.message || 'Could not load outcome KPIs.')}</p>`;
+  }
+}
+
+function initOutcomeKpiControls() {
+  document.querySelectorAll('[data-outcome-days]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const nextDays = Number(button.dataset.outcomeDays || '30');
+      loadOutcomeKpis(Number.isFinite(nextDays) ? nextDays : 30);
+    });
+  });
+}
+
 function renderPlatformUsagePie(resumesTotal, jobsTrackedTotal, applicationsTotal) {
   if (!statsPieEl) return;
 
@@ -1005,6 +1074,7 @@ async function loadPlatformStats() {
     if (statUsersCardEl) statUsersCardEl.hidden = true;
     renderDashboardSignupRoster();
     if (quickstartConversionSectionEl) quickstartConversionSectionEl.hidden = true;
+    if (outcomeKpiSectionEl) outcomeKpiSectionEl.hidden = true;
     return;
   }
 
@@ -1022,6 +1092,7 @@ async function loadPlatformStats() {
     renderPlatformStatDetail('users');
     renderDashboardSignupRoster();
     await loadQuickstartConversion(quickstartConversionDays);
+    await loadOutcomeKpis(outcomeKpiDays);
   } catch {
     if (statUsersCardEl) statUsersCardEl.hidden = true;
     latestPlatformUsers = [];
@@ -1032,11 +1103,16 @@ async function loadPlatformStats() {
       quickstartConversionSectionEl.hidden = false;
       quickstartConversionBodyEl.innerHTML = '<p>Quickstart conversion is temporarily unavailable.</p>';
     }
+    if (outcomeKpiBodyEl) {
+      outcomeKpiSectionEl.hidden = false;
+      outcomeKpiBodyEl.innerHTML = '<p>Outcome KPIs are temporarily unavailable.</p>';
+    }
   }
 }
 
 initPlatformStatDetailActions();
 initQuickstartConversionControls();
+initOutcomeKpiControls();
 
 // ─── Toast notifications ───────────────────────────────────────────────────
 const TOAST_ICONS = { success: '✅', error: '❌', warn: '⚠️', info: 'ℹ️' };

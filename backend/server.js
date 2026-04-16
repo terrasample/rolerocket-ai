@@ -2144,6 +2144,207 @@ app.get('/api/admin/quickstart/conversion', authenticateToken, requireAnalyticsA
   }
 });
 
+app.get('/api/admin/outcomes/kpis', authenticateToken, requireAnalyticsAccess, async (req, res) => {
+  try {
+    const rawDays = Number(req.query.days || 30);
+    const days = Number.isFinite(rawDays) ? Math.min(Math.max(rawDays, 7), 180) : 30;
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+
+    const CORE_EVENTS = [
+      'quickstart_step_completed',
+      'quickstart_completed_all',
+      'find_jobs_success',
+      'one_click_apply_success',
+      'ia_question_submitted',
+      'saved_resume_updated',
+      'saved_resume_uploaded'
+    ];
+
+    const [
+      users,
+      jobsWindow,
+      jobsAllApplied,
+      jobsAllOffers,
+      resumesAll,
+      applicationsAll,
+      recentCoreTelemetry,
+      recentTelemetryAny
+    ] = await Promise.all([
+      User.find({}).select('_id plan').lean(),
+      Job.find({ createdAt: { $gte: since }, status: { $in: ['applied', 'interview', 'offer'] } })
+        .select('userId status createdAt')
+        .lean(),
+      Job.find({ status: { $in: ['applied', 'interview', 'offer'] } })
+        .select('userId createdAt status')
+        .lean(),
+      Job.find({ status: 'offer' })
+        .select('userId createdAt')
+        .lean(),
+      Resume.find({}).select('userId createdAt').lean(),
+      Application.find({}).select('userId createdAt status').lean(),
+      Telemetry.find({ ts: { $gte: sevenDaysAgo }, event: { $in: CORE_EVENTS } })
+        .select('userId event ts')
+        .lean(),
+      Telemetry.find({ ts: { $gte: fourteenDaysAgo } })
+        .select('userId ts')
+        .lean()
+    ]);
+
+    const userPlanMap = new Map(users.map((u) => [String(u._id), normalizePlan(u.plan || 'free')]));
+
+    const byPlan = {
+      free: { applied: 0, interview: 0, offer: 0 },
+      pro: { applied: 0, interview: 0, offer: 0 },
+      premium: { applied: 0, interview: 0, offer: 0 },
+      elite: { applied: 0, interview: 0, offer: 0 },
+      lifetime: { applied: 0, interview: 0, offer: 0 }
+    };
+
+    let paidApplied = 0;
+    let paidInterview = 0;
+    let paidOffer = 0;
+    let totalApplied = 0;
+    let totalInterview = 0;
+    let totalOffer = 0;
+
+    jobsWindow.forEach((job) => {
+      const userId = String(job.userId || '');
+      const plan = userPlanMap.get(userId) || 'free';
+      const status = String(job.status || '').toLowerCase();
+      if (!byPlan[plan] || byPlan[plan][status] === undefined) return;
+
+      byPlan[plan][status] += 1;
+      if (status === 'applied') totalApplied += 1;
+      if (status === 'interview') totalInterview += 1;
+      if (status === 'offer') totalOffer += 1;
+
+      if (plan !== 'free') {
+        if (status === 'applied') paidApplied += 1;
+        if (status === 'interview') paidInterview += 1;
+        if (status === 'offer') paidOffer += 1;
+      }
+    });
+
+    const freeInterviewRate = byPlan.free.applied ? byPlan.free.interview / byPlan.free.applied : 0;
+    const paidInterviewRate = paidApplied ? paidInterview / paidApplied : 0;
+    const freeOfferRate = byPlan.free.interview ? byPlan.free.offer / byPlan.free.interview : 0;
+    const paidOfferRate = paidInterview ? paidOffer / paidInterview : 0;
+
+    const firstResumeByUser = new Map();
+    resumesAll.forEach((row) => {
+      const uid = String(row.userId || '');
+      if (!uid || !row.createdAt) return;
+      const ts = new Date(row.createdAt).getTime();
+      const prev = firstResumeByUser.get(uid);
+      if (!prev || ts < prev) firstResumeByUser.set(uid, ts);
+    });
+
+    const firstAppliedByUser = new Map();
+    jobsAllApplied.forEach((row) => {
+      const uid = String(row.userId || '');
+      if (!uid || !row.createdAt) return;
+      const ts = new Date(row.createdAt).getTime();
+      const prev = firstAppliedByUser.get(uid);
+      if (!prev || ts < prev) firstAppliedByUser.set(uid, ts);
+    });
+
+    applicationsAll.forEach((row) => {
+      const uid = String(row.userId || '');
+      if (!uid || !row.createdAt) return;
+      const ts = new Date(row.createdAt).getTime();
+      const prev = firstAppliedByUser.get(uid);
+      if (!prev || ts < prev) firstAppliedByUser.set(uid, ts);
+    });
+
+    const timeToApplyHours = [];
+    firstAppliedByUser.forEach((appliedAt, uid) => {
+      const resumeAt = firstResumeByUser.get(uid);
+      if (!resumeAt) return;
+      if (appliedAt < resumeAt) return;
+      timeToApplyHours.push((appliedAt - resumeAt) / (1000 * 60 * 60));
+    });
+
+    const sortedHours = timeToApplyHours.slice().sort((a, b) => a - b);
+    const medianHours = sortedHours.length
+      ? (sortedHours.length % 2
+        ? sortedHours[(sortedHours.length - 1) / 2]
+        : (sortedHours[sortedHours.length / 2 - 1] + sortedHours[sortedHours.length / 2]) / 2)
+      : 0;
+
+    const weeklyCoreUsers = new Set();
+    let weeklyCoreActions = 0;
+    recentCoreTelemetry.forEach((evt) => {
+      const uid = String(evt.userId || '');
+      if (!uid) return;
+      weeklyCoreUsers.add(uid);
+      weeklyCoreActions += 1;
+    });
+
+    const firstOfferByUser = new Map();
+    jobsAllOffers.forEach((row) => {
+      const uid = String(row.userId || '');
+      if (!uid || !row.createdAt) return;
+      const ts = new Date(row.createdAt).getTime();
+      const prev = firstOfferByUser.get(uid);
+      if (!prev || ts < prev) firstOfferByUser.set(uid, ts);
+    });
+
+    const activeRecentUsers = new Set();
+    recentTelemetryAny.forEach((evt) => {
+      const uid = String(evt.userId || '');
+      if (uid) activeRecentUsers.add(uid);
+    });
+
+    let eligibleWinners = 0;
+    let retainedWinners = 0;
+    firstOfferByUser.forEach((offerAt, uid) => {
+      if (offerAt > fourteenDaysAgo.getTime()) return;
+      eligibleWinners += 1;
+      if (activeRecentUsers.has(uid)) retainedWinners += 1;
+    });
+
+    const interviewRate = totalApplied ? totalInterview / totalApplied : 0;
+    const offerRate = totalInterview ? totalOffer / totalInterview : 0;
+    const interviewLift = freeInterviewRate > 0 ? paidInterviewRate / freeInterviewRate : 0;
+    const offerLift = freeOfferRate > 0 ? paidOfferRate / freeOfferRate : 0;
+    const postWinRetention14d = eligibleWinners ? retainedWinners / eligibleWinners : 0;
+
+    return res.json({
+      windowDays: days,
+      timeToApplication: {
+        medianHours: Number(medianHours.toFixed(1)),
+        sampleUsers: sortedHours.length
+      },
+      interviewRate: {
+        overall: Number((interviewRate * 100).toFixed(1)),
+        free: Number((freeInterviewRate * 100).toFixed(1)),
+        paid: Number((paidInterviewRate * 100).toFixed(1)),
+        paidLiftVsFree: Number(interviewLift.toFixed(2))
+      },
+      offerRate: {
+        overall: Number((offerRate * 100).toFixed(1)),
+        free: Number((freeOfferRate * 100).toFixed(1)),
+        paid: Number((paidOfferRate * 100).toFixed(1)),
+        paidLiftVsFree: Number(offerLift.toFixed(2))
+      },
+      coreWorkflowUsage: {
+        weeklyActiveUsers: weeklyCoreUsers.size,
+        weeklyCoreActions
+      },
+      postWinRetention: {
+        retention14dPct: Number((postWinRetention14d * 100).toFixed(1)),
+        eligibleWinners,
+        retainedWinners
+      }
+    });
+  } catch (err) {
+    console.error('Outcome KPI error:', err);
+    return res.status(500).json({ error: 'Failed to load outcome KPIs' });
+  }
+});
+
 app.get('/api/quickstart/timeline', authenticateToken, async (req, res) => {
   try {
     const rawDays = Number(req.query.days || 60);
