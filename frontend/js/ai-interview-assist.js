@@ -135,6 +135,10 @@ document.addEventListener('DOMContentLoaded', () => {
           feedbackDiv.innerHTML = feedbackData.answer
             ? renderFeedbackMarkup(feedbackData)
             : '<span style="color:#dc2626;">No feedback received.</span>';
+
+          if (feedbackData.answer && window.RoleRocketQuickstart) {
+            window.RoleRocketQuickstart.completeStep('interview', 'interview_feedback_text');
+          }
         } catch (err) {
           feedbackDiv.innerHTML = `<span style="color:#dc2626;">${escapeHtml(err.message || err)}</span>`;
         } finally {
@@ -190,6 +194,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (feedbackData.answer) {
               resultDiv.innerHTML += `<div style="margin-top:12px;">${renderFeedbackMarkup(feedbackData)}</div>`;
               window.AIInterviewAudio.speakText(feedbackData.answer);
+              if (window.RoleRocketQuickstart) {
+                window.RoleRocketQuickstart.completeStep('interview', 'interview_feedback_audio');
+              }
             } else {
               resultDiv.innerHTML += '<br><span style="color:#dc2626;">No feedback received.</span>';
             }

@@ -293,10 +293,16 @@ async function saveJobToBackend(job, status) {
     status
   };
 
-  return api('/api/jobs/save', {
+  const response = await api('/api/jobs/save', {
     method: 'POST',
     body: JSON.stringify(payload)
   });
+
+  if (window.RoleRocketQuickstart) {
+    window.RoleRocketQuickstart.completeStep('pipeline', 'job_saved');
+  }
+
+  return response;
 }
 
 async function loadTracker() {

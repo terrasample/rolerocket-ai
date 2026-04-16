@@ -515,6 +515,10 @@ document.addEventListener('DOMContentLoaded', function () {
         messageEl.textContent = `Loaded ${file.name}.`;
         messageEl.style.color = '#16a34a';
       }
+
+      if (window.RoleRocketQuickstart) {
+        window.RoleRocketQuickstart.completeStep('resume', 'resume_upload');
+      }
     } catch (error) {
       if (messageEl) {
         messageEl.textContent = error.message || 'Could not load the uploaded resume.';
@@ -744,6 +748,10 @@ document.addEventListener('DOMContentLoaded', function () {
       lastStructuredResume = buildResumeModel(structured, jobTitle);
       output.innerHTML = renderResumeTemplate(lastStructuredResume);
       statusBanner('Resume generated with a unique design. Use Save as PDF or Save as Word for upload-ready files.', true);
+
+      if (window.RoleRocketQuickstart) {
+        window.RoleRocketQuickstart.completeStep('tailor', 'resume_generated');
+      }
     } catch (err) {
       renderError('Error generating resume.');
     }

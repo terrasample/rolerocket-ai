@@ -1053,6 +1053,33 @@ h3,
   margin: 0 0 14px;
 }
 
+.quickstart-nudge {
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  background: linear-gradient(110deg, rgba(2, 132, 199, 0.2), rgba(15, 23, 42, 0.55));
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.quickstart-nudge strong {
+  display: block;
+  color: #e0f2fe;
+  margin-bottom: 4px;
+}
+
+.quickstart-nudge p {
+  margin: 0;
+  color: #bfdbfe;
+  line-height: 1.6;
+}
+
+.quickstart-nudge a {
+  display: inline-block;
+  margin-top: 8px;
+  color: #f0f9ff;
+  font-weight: 700;
+}
+
 .quickstart-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(240px, 1fr));

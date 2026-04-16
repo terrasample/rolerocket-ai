@@ -187,6 +187,11 @@
           <h3>Your First 15 Minutes</h3>
           <p>Complete these steps to get your first real win fast.</p>
         </div>
+        <div class="quickstart-nudge" id="quickstartNudge" hidden>
+          <strong id="quickstartNudgeTitle">Welcome back.</strong>
+          <p id="quickstartNudgeCopy">You are one step away from stronger momentum.</p>
+          <a id="quickstartNudgeLink" href="resume-generator.html">Continue quickstart</a>
+        </div>
         <div class="quickstart-grid">
           <article class="quickstart-step" data-quickstart-step="resume">
             <label>
@@ -384,6 +389,7 @@
       <script src="js/homepage-platform-stats.js"></script>
       <script src="js/in-demand-jobs.js"></script>
       <script src="js/homepage-insights.js"></script>
+      <script src="js/quickstart-progress.js"></script>
       <script>
       if (typeof initMobileSidebar === 'function') {
         initMobileSidebar();
@@ -512,40 +518,75 @@
       let currentUpgradeConfig = nextPlanConfig.free;
 
       function initQuickstartSprint() {
-        const storageKey = 'rr_quickstart_sprint_v1';
+        const quickstart = window.RoleRocketQuickstart;
         const checks = Array.from(document.querySelectorAll('.quickstart-check'));
         const progressEl = document.getElementById('quickstartProgress');
-        if (!checks.length || !progressEl) return;
+        if (!checks.length || !progressEl || !quickstart) return;
 
-        let saved = {};
-        try {
-          saved = JSON.parse(localStorage.getItem(storageKey) || '{}');
-        } catch {
-          saved = {};
-        }
-
-        function renderProgress() {
-          const done = checks.filter((checkbox) => checkbox.checked).length;
-          progressEl.textContent = `Progress: ${done}/4 completed`;
+        function renderFromSummary() {
+          const summary = quickstart.getSummary();
+          checks.forEach((checkbox) => {
+            const step = checkbox.dataset.step;
+            checkbox.checked = !!(step && summary.state[step]);
+          });
+          progressEl.textContent = `Progress: ${summary.completed}/${summary.total} completed`;
         }
 
         checks.forEach((checkbox) => {
-          const step = checkbox.dataset.step;
-          if (step && saved[step] === true) {
-            checkbox.checked = true;
-          }
-
           checkbox.addEventListener('change', () => {
-            const next = {};
-            checks.forEach((cb) => {
-              if (cb.dataset.step) next[cb.dataset.step] = cb.checked;
-            });
-            localStorage.setItem(storageKey, JSON.stringify(next));
-            renderProgress();
+            const step = checkbox.dataset.step;
+            if (!step) return;
+            quickstart.setStep(step, checkbox.checked, 'homepage_checkbox');
           });
         });
 
-        renderProgress();
+        window.addEventListener('rr:quickstart:updated', renderFromSummary);
+        window.addEventListener('storage', (event) => {
+          if (event.key === 'rr_quickstart_sprint_v1') {
+            renderFromSummary();
+          }
+        });
+
+        renderFromSummary();
+      }
+
+      function initQuickstartNudge() {
+        const quickstart = window.RoleRocketQuickstart;
+        const nudgeEl = document.getElementById('quickstartNudge');
+        const titleEl = document.getElementById('quickstartNudgeTitle');
+        const copyEl = document.getElementById('quickstartNudgeCopy');
+        const linkEl = document.getElementById('quickstartNudgeLink');
+
+        if (!quickstart || !nudgeEl || !titleEl || !copyEl || !linkEl) return;
+
+        const visitKey = 'rr_home_visits_v1';
+        const nudgeSeenKey = 'rr_quickstart_nudge_seen_date_v1';
+        const visits = Number(localStorage.getItem(visitKey) || '0') + 1;
+        localStorage.setItem(visitKey, String(visits));
+
+        const summary = quickstart.getSummary();
+        const isReturningUser = visits >= 2;
+        if (!isReturningUser || summary.completed >= 2 || !summary.next) {
+          nudgeEl.hidden = true;
+          return;
+        }
+
+        titleEl.textContent = 'Welcome back. Keep your momentum.';
+        copyEl.textContent = `You are at ${summary.completed}/${summary.total}. Next: ${summary.next.label}.`;
+        linkEl.href = summary.next.href;
+        linkEl.textContent = `Continue with: ${summary.next.label}`;
+        nudgeEl.hidden = false;
+
+        const today = new Date().toISOString().slice(0, 10);
+        const seen = localStorage.getItem(nudgeSeenKey);
+        if (seen !== today) {
+          quickstart.track('quickstart_nudge_shown', {
+            visits,
+            completed: summary.completed,
+            nextStep: summary.next.key
+          });
+          localStorage.setItem(nudgeSeenKey, today);
+        }
       }
 
       async function syncHomepageUpgradeCta() {
@@ -621,6 +662,7 @@
 
       syncHomepageUpgradeCta();
       initQuickstartSprint();
+      initQuickstartNudge();
       </script>
       <script src="js/nav-plan-sync.js"></script>
     </main>
