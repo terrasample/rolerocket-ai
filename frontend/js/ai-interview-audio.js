@@ -6,6 +6,12 @@ let mediaRecorder;
 let audioChunks = [];
 let recognition;
 let synth = window.speechSynthesis;
+let liveRecognition = null;
+let liveRecognitionEnabled = false;
+
+function getSpeechRecognitionClass() {
+  return window.SpeechRecognition || window.webkitSpeechRecognition || null;
+}
 
 // Start audio stream (microphone)
 async function startAudioStream() {
@@ -22,11 +28,12 @@ async function startAudioStream() {
 
 // Start recording audio and transcribe with Web Speech API
 function startSpeechRecognition(onResult) {
-  if (!('webkitSpeechRecognition' in window)) {
+  const RecognitionClass = getSpeechRecognitionClass();
+  if (!RecognitionClass) {
     alert('Speech recognition not supported in this browser.');
     return;
   }
-  recognition = new webkitSpeechRecognition();
+  recognition = new RecognitionClass();
   recognition.continuous = false;
   recognition.interimResults = false;
   recognition.lang = 'en-US';
@@ -38,6 +45,81 @@ function startSpeechRecognition(onResult) {
     alert('Speech recognition error: ' + event.error);
   };
   recognition.start();
+}
+
+function startLiveQuestionCapture(handlers = {}) {
+  const RecognitionClass = getSpeechRecognitionClass();
+  if (!RecognitionClass) {
+    throw new Error('Speech recognition is not supported in this browser.');
+  }
+
+  if (liveRecognitionEnabled) {
+    return;
+  }
+
+  liveRecognitionEnabled = true;
+  liveRecognition = new RecognitionClass();
+  liveRecognition.continuous = true;
+  liveRecognition.interimResults = true;
+  liveRecognition.lang = 'en-US';
+
+  liveRecognition.onresult = function onResult(event) {
+    let interimText = '';
+    const finals = [];
+
+    for (let i = event.resultIndex; i < event.results.length; i += 1) {
+      const transcript = String(event.results[i][0]?.transcript || '').trim();
+      if (!transcript) continue;
+
+      if (event.results[i].isFinal) {
+        finals.push(transcript);
+      } else {
+        interimText += `${transcript} `;
+      }
+    }
+
+    if (interimText && typeof handlers.onInterim === 'function') {
+      handlers.onInterim(interimText.trim());
+    }
+
+    if (finals.length && typeof handlers.onFinal === 'function') {
+      handlers.onFinal(finals.join(' ').trim());
+    }
+  };
+
+  liveRecognition.onerror = function onError(event) {
+    if (typeof handlers.onError === 'function') {
+      handlers.onError(event);
+    }
+  };
+
+  liveRecognition.onend = function onEnd() {
+    if (liveRecognitionEnabled) {
+      try {
+        liveRecognition.start();
+        if (typeof handlers.onState === 'function') handlers.onState('listening');
+      } catch {
+        if (typeof handlers.onState === 'function') handlers.onState('restarting');
+      }
+      return;
+    }
+    if (typeof handlers.onState === 'function') handlers.onState('stopped');
+  };
+
+  if (typeof handlers.onState === 'function') handlers.onState('listening');
+  liveRecognition.start();
+}
+
+function stopLiveQuestionCapture() {
+  liveRecognitionEnabled = false;
+  if (!liveRecognition) return;
+  try {
+    liveRecognition.onend = null;
+    liveRecognition.stop();
+  } catch {
+    // Ignore stop errors.
+  }
+  liveRecognition = null;
 }
 
 // Play AI feedback using text-to-speech
@@ -52,5 +134,7 @@ function speakText(text) {
 window.AIInterviewAudio = {
   startAudioStream,
   startSpeechRecognition,
+  startLiveQuestionCapture,
+  stopLiveQuestionCapture,
   speakText
 };
