@@ -333,8 +333,29 @@ document.addEventListener('DOMContentLoaded', function () {
     return `<div style="width:${size}px;height:${size}px;border-radius:${borderRadius};border:3px solid ${theme.accent};display:flex;align-items:center;justify-content:center;background:${theme.primary};color:#fff;font-weight:900;font-size:38px;">${escapeHtml(getInitials(model.fullName))}</div>`;
   }
 
+  function sentenceBullets(text) {
+    return String(text || '')
+      .split(/(?<=[.!?])\s+/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+  }
+
+  function renderBulletListHtml(items, fontSize, color, marginBottom) {
+    return (items || []).map((item) => `
+      <div style="display:flex;align-items:flex-start;gap:8px;font-size:${fontSize};line-height:1.45;color:${color};margin-bottom:${marginBottom};">
+        <span style="font-weight:900;line-height:1;">•</span>
+        <span>${escapeHtml(item)}</span>
+      </div>
+    `).join('');
+  }
+
+  function renderSectionHeading(label, theme, fontSize, extraStyles) {
+    return `<div style="font-size:${fontSize};font-weight:900;color:${theme.headingText};margin-bottom:8px;${extraStyles || ''}">${label}</div>`;
+  }
+
   function renderTemplateForest(model, theme) {
     const name = splitName(model.fullName);
+    const profileBullets = sentenceBullets(model.profile);
     return `
       <div style="background:#fff;border:1px solid #d1d5db;border-radius:10px;overflow:hidden;box-shadow:0 8px 28px rgba(15,23,42,0.08);font-family:${theme.font};">
         <div style="background:${theme.primary};padding:16px 22px 22px 22px;color:${theme.headerText};display:flex;gap:22px;align-items:flex-end;">
@@ -346,26 +367,26 @@ document.addEventListener('DOMContentLoaded', function () {
         </div>
         <div style="display:grid;grid-template-columns:245px 1fr;">
           <aside style="padding:18px;background:${theme.sidebarBg};border-right:1px solid #e5e7eb;">
-            <div style="font-size:24px;font-weight:900;color:${theme.headingText};margin-bottom:8px;">CONTACT</div>
+            ${renderSectionHeading('CONTACT', theme, '24px')}
             ${(model.contactLines || []).map((line) => `<div style="font-size:14px;line-height:1.45;color:#1f2937;margin-bottom:4px;">${escapeHtml(line)}</div>`).join('')}
-            <div style="font-size:24px;font-weight:900;color:${theme.headingText};margin:20px 0 8px 0;">KEY SKILLS</div>
-            ${(model.skills || []).slice(0, 8).map((skill) => `<div style="font-size:14px;line-height:1.5;color:#1f2937;">• ${escapeHtml(skill)}</div>`).join('')}
-            <div style="font-size:24px;font-weight:900;color:${theme.headingText};margin:20px 0 8px 0;">CERTIFICATIONS</div>
-            ${(model.awards.length ? model.awards : ['N/A']).map((line) => `<div style="font-size:14px;line-height:1.4;color:#1f2937;margin-bottom:2px;">• ${escapeHtml(line)}</div>`).join('')}
+            ${renderSectionHeading('KEY SKILLS', theme, '24px', 'margin-top:20px;')}
+            ${renderBulletListHtml((model.skills || []).slice(0, 8), '14px', '#1f2937', '4px')}
+            ${renderSectionHeading('CERTIFICATIONS', theme, '24px', 'margin-top:20px;')}
+            ${renderBulletListHtml(model.awards.length ? model.awards : ['N/A'], '14px', '#1f2937', '2px')}
           </aside>
           <section style="padding:18px 22px 22px 22px;">
-            <div style="font-size:32px;font-weight:900;color:${theme.headingText};margin-bottom:8px;">ABOUT ME</div>
-            <div style="font-size:16px;line-height:1.5;color:#374151;margin-bottom:14px;">${escapeHtml(model.profile)}</div>
+            ${renderSectionHeading('PROFILE', theme, '32px')}
+            ${renderBulletListHtml(profileBullets.length ? profileBullets : [model.profile], '16px', '#374151', '6px')}
             <hr style="border:none;border-top:1px solid #d1d5db;margin:12px 0 12px 0;" />
-            <div style="font-size:32px;font-weight:900;color:${theme.headingText};margin-bottom:8px;">PROFESSIONAL EXPERIENCE</div>
+            ${renderSectionHeading('EXPERIENCE', theme, '32px')}
             ${model.experiences.map((exp) => `
               <div style="margin-bottom:12px;">
                 <div style="font-size:18px;font-weight:800;color:#111827;">${escapeHtml(exp.heading)}</div>
-                ${(exp.bullets || []).map((b) => `<div style="font-size:15px;line-height:1.45;color:#374151;">• ${escapeHtml(b)}</div>`).join('')}
+                ${renderBulletListHtml(exp.bullets || [], '15px', '#374151', '4px')}
               </div>
             `).join('')}
-            <div style="font-size:32px;font-weight:900;color:${theme.headingText};margin:6px 0 8px 0;">EDUCATION</div>
-            ${(model.education || []).map((line) => `<div style="font-size:15px;line-height:1.45;color:#374151;">${escapeHtml(line)}</div>`).join('')}
+            ${renderSectionHeading('EDUCATION', theme, '32px', 'margin-top:6px;')}
+            ${renderBulletListHtml(model.education || [], '15px', '#374151', '4px')}
           </section>
         </div>
       </div>
@@ -374,34 +395,36 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function renderTemplateGold(model, theme) {
     const name = splitName(model.fullName);
+    const profileBullets = sentenceBullets(model.profile);
     return `
       <div style="background:#fff;border:1px solid #d1d5db;border-radius:10px;overflow:hidden;box-shadow:0 8px 28px rgba(15,23,42,0.08);font-family:${theme.font};">
         <div style="display:grid;grid-template-columns:250px 1fr;">
           <aside style="background:${theme.sidebarBg};padding:20px;color:#fff;min-height:100%;">
             <div style="display:flex;justify-content:center;margin:4px 0 22px 0;">${buildPhotoMarkup(model, theme, true)}</div>
             <div style="font-size:36px;font-weight:900;text-align:center;letter-spacing:1px;margin-bottom:20px;">${escapeHtml(getInitials(model.fullName))}</div>
-            <div style="font-size:34px;font-weight:900;margin-bottom:8px;">CONTACT</div>
+            <div style="font-size:34px;font-weight:900;margin-bottom:8px;color:#fff;">CONTACT</div>
             ${(model.contactLines || []).map((line) => `<div style="font-size:14px;line-height:1.5;margin-bottom:3px;">${escapeHtml(line)}</div>`).join('')}
-            <div style="font-size:34px;font-weight:900;margin:20px 0 8px 0;">KEY SKILLS</div>
-            ${(model.skills || []).slice(0, 8).map((skill) => `<div style="font-size:14px;line-height:1.45;">• ${escapeHtml(skill)}</div>`).join('')}
-            <div style="font-size:34px;font-weight:900;margin:20px 0 8px 0;">EDUCATION</div>
-            ${(model.education || []).map((line) => `<div style="font-size:14px;line-height:1.4;">${escapeHtml(line)}</div>`).join('')}
+            <div style="font-size:34px;font-weight:900;margin:20px 0 8px 0;color:#fff;">KEY SKILLS</div>
+            ${renderBulletListHtml((model.skills || []).slice(0, 8), '14px', '#ffffff', '4px')}
+            <div style="font-size:34px;font-weight:900;margin:20px 0 8px 0;color:#fff;">EDUCATION</div>
+            ${renderBulletListHtml(model.education || [], '14px', '#ffffff', '4px')}
           </aside>
           <section style="padding:18px 22px;">
             <div style="font-size:60px;line-height:1;font-weight:900;color:#111827;">${escapeHtml(name.first)}<span style="font-weight:500;">${escapeHtml(name.rest ? ' ' + name.rest : '')}</span></div>
             <div style="font-size:26px;color:#4b5563;font-weight:700;margin:6px 0 8px 0;">${escapeHtml(model.targetRole || 'Professional Candidate')}</div>
-            <div style="font-size:15px;line-height:1.45;color:#4b5563;margin-bottom:14px;">${escapeHtml(model.profile)}</div>
+            ${renderSectionHeading('PROFILE', theme, '18px')}
+            ${renderBulletListHtml(profileBullets.length ? profileBullets : [model.profile], '15px', '#4b5563', '4px')}
 
-            <div style="background:${theme.primary};color:#fff;font-size:18px;font-weight:800;padding:6px 12px;margin-bottom:8px;">PROFESSIONAL EXPERIENCE</div>
+            ${renderSectionHeading('EXPERIENCE', theme, '18px', 'margin-top:12px;')}
             ${model.experiences.map((exp) => `
               <div style="margin-bottom:10px;">
                 <div style="font-size:17px;font-weight:800;color:#111827;">${escapeHtml(exp.heading)}</div>
-                ${(exp.bullets || []).map((b) => `<div style="font-size:14px;line-height:1.45;color:#374151;">• ${escapeHtml(b)}</div>`).join('')}
+                ${renderBulletListHtml(exp.bullets || [], '14px', '#374151', '4px')}
               </div>
             `).join('')}
 
-            <div style="background:${theme.primary};color:#fff;font-size:18px;font-weight:800;padding:6px 12px;margin:8px 0 8px 0;">CERTIFICATIONS</div>
-            ${(model.awards.length ? model.awards : ['N/A']).map((line) => `<div style="font-size:14px;line-height:1.45;color:#374151;">• ${escapeHtml(line)}</div>`).join('')}
+            ${renderSectionHeading('CERTIFICATIONS', theme, '18px', 'margin-top:8px;')}
+            ${renderBulletListHtml(model.awards.length ? model.awards : ['N/A'], '14px', '#374151', '4px')}
           </section>
         </div>
       </div>
@@ -409,6 +432,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function renderTemplateSlate(model, theme) {
+    const profileBullets = sentenceBullets(model.profile);
     return `
       <div style="background:#fff;border:1px solid #d1d5db;border-radius:10px;overflow:hidden;box-shadow:0 8px 28px rgba(15,23,42,0.08);font-family:${theme.font};">
         <div style="background:linear-gradient(110deg, ${theme.primary}, ${theme.accent});padding:20px 22px;color:${theme.headerText};display:flex;align-items:center;gap:18px;">
@@ -420,25 +444,25 @@ document.addEventListener('DOMContentLoaded', function () {
         </div>
         <div style="display:grid;grid-template-columns:230px 1fr;">
           <aside style="background:${theme.sidebarBg};padding:18px;border-right:1px solid #d1d5db;">
-            <div style="font-size:20px;font-weight:900;color:${theme.headingText};margin-bottom:6px;">CONTACT</div>
+            ${renderSectionHeading('CONTACT', theme, '20px', 'margin-bottom:6px;')}
             ${(model.contactLines || []).map((line) => `<div style="font-size:13px;line-height:1.45;color:#1f2937;">${escapeHtml(line)}</div>`).join('')}
-            <div style="font-size:20px;font-weight:900;color:${theme.headingText};margin:16px 0 6px 0;">SKILLS</div>
-            ${(model.skills || []).slice(0, 9).map((skill) => `<div style="font-size:13px;line-height:1.45;color:#1f2937;">• ${escapeHtml(skill)}</div>`).join('')}
+            ${renderSectionHeading('SKILLS', theme, '20px', 'margin:16px 0 6px 0;')}
+            ${renderBulletListHtml((model.skills || []).slice(0, 9), '13px', '#1f2937', '2px')}
           </aside>
           <section style="padding:18px 22px;">
-            <div style="font-size:24px;font-weight:900;color:${theme.headingText};margin-bottom:6px;">PROFILE</div>
-            <div style="font-size:14px;line-height:1.5;color:#374151;margin-bottom:10px;">${escapeHtml(model.profile)}</div>
-            <div style="font-size:24px;font-weight:900;color:${theme.headingText};margin-bottom:6px;">EXPERIENCE</div>
+            ${renderSectionHeading('PROFILE', theme, '24px', 'margin-bottom:6px;')}
+            ${renderBulletListHtml(profileBullets.length ? profileBullets : [model.profile], '14px', '#374151', '4px')}
+            ${renderSectionHeading('EXPERIENCE', theme, '24px', 'margin-bottom:6px;')}
             ${model.experiences.map((exp) => `
               <div style="margin-bottom:10px;">
                 <div style="font-size:16px;font-weight:800;color:#111827;">${escapeHtml(exp.heading)}</div>
-                ${(exp.bullets || []).map((b) => `<div style="font-size:14px;line-height:1.45;color:#374151;">• ${escapeHtml(b)}</div>`).join('')}
+                ${renderBulletListHtml(exp.bullets || [], '14px', '#374151', '4px')}
               </div>
             `).join('')}
-            <div style="font-size:24px;font-weight:900;color:${theme.headingText};margin-bottom:6px;">EDUCATION</div>
-            ${(model.education || []).map((line) => `<div style="font-size:14px;line-height:1.45;color:#374151;">${escapeHtml(line)}</div>`).join('')}
-            <div style="font-size:24px;font-weight:900;color:${theme.headingText};margin:8px 0 6px 0;">AWARDS</div>
-            ${(model.awards.length ? model.awards : ['N/A']).map((line) => `<div style="font-size:14px;line-height:1.45;color:#374151;">• ${escapeHtml(line)}</div>`).join('')}
+            ${renderSectionHeading('EDUCATION', theme, '24px', 'margin-bottom:6px;')}
+            ${renderBulletListHtml(model.education || [], '14px', '#374151', '4px')}
+            ${renderSectionHeading('AWARDS', theme, '24px', 'margin:8px 0 6px 0;')}
+            ${renderBulletListHtml(model.awards.length ? model.awards : ['N/A'], '14px', '#374151', '4px')}
           </section>
         </div>
       </div>
@@ -590,9 +614,13 @@ document.addEventListener('DOMContentLoaded', function () {
     drawTitle('PROFILE');
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9.5);
-    let wrapped = doc.splitTextToSize(model.profile || '', rightW);
-    doc.text(wrapped, rightX, rightY);
-    rightY += wrapped.length * 4.3 + 3;
+    let wrapped = [];
+    sentenceBullets(model.profile).forEach((line) => {
+      wrapped = doc.splitTextToSize(`• ${line}`, rightW);
+      doc.text(wrapped, rightX, rightY);
+      rightY += wrapped.length * 4.2;
+    });
+    rightY += 3;
 
     drawTitle('PROFESSIONAL EXPERIENCE');
     model.experiences.forEach((exp) => {
@@ -616,7 +644,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     drawTitle('EDUCATION');
     (model.education || []).forEach((line) => {
-      wrapped = doc.splitTextToSize(line, rightW);
+      wrapped = doc.splitTextToSize(`• ${line}`, rightW);
       doc.text(wrapped, rightX, rightY);
       rightY += wrapped.length * 4.2;
     });
