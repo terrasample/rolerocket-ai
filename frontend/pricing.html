@@ -22,16 +22,14 @@
       <a class="sidebar-link-btn" href="index.html">Home</a>
       <a class="sidebar-link-btn" href="about-us.html">About Us</a>
       <a class="sidebar-link-btn" href="features.html">Features</a>
-      <a class="sidebar-link-btn" href="job-tracking.html">Find, Apply, Track & More</a>
-      
+      <a class="sidebar-link-btn" href="job-tracking.html">Find, Search & Track</a>
+      <a class="sidebar-link-btn" href="ai-recruiter-assist.html">AI Recruiter Assist</a>
       <a class="sidebar-link-btn active" href="pricing.html">Pricing</a>
       <a class="sidebar-link-btn" href="contact-us.html">Contact Us</a>
       <hr />
       <p id="planBadge">Free Plan</p>
-      <a class="sidebar-link-btn" href="login.html?relogin=1">Login</a>
-      <!-- <a class="sidebar-link-btn" href="login.html">💳 Manage Billing</a> -->
-      <a class="sidebar-link-btn" href="dashboard.html">My Dashboard</a>
       <a class="sidebar-link-btn" href="account.html">👤 Account</a>
+      <a class="sidebar-link-btn premium-btn" href="dashboard.html">🧑‍💼 My Dashboard</a>
       <a class="sidebar-link-btn" href="login.html?relogin=1">Logout</a>
     </aside>
 
@@ -131,6 +129,7 @@
 
           <article class="price-card elite" data-pricing-plan="elite"><div class="plan-pill elite-pill">ELITE TIER</div><h3>Elite</h3><div class="price-amount">$79<span>/month</span> <span style="color:#64748b;font-size:0.9em;">or</span> $790<span>/year</span> <span class="savings-pill" style="color:#059669;font-size:0.9em;margin-left:8px;">Save 17%</span></div><ul data-pricing-plan-features>
             <li>Everything in Premium</li>
+            <li>🎤 Interview Assist (LIVE)</li>
             <li>Career Coach</li>
             <li>Career Path Simulator</li>
             <li>Offer Negotiation Coach</li>
@@ -196,6 +195,7 @@
   <script src="js/homepage-platform-stats.js"></script>
   <script src="js/pricing-data.js"></script>
   <script src="js/login-pricing-sync.js"></script>
+  <script src="js/nav-plan-sync.js"></script>
   <script>
     async function handleCheckout(plan) {
       const token = localStorage.getItem('token');
