@@ -25,6 +25,47 @@ document.addEventListener('DOMContentLoaded', () => {
       .replace(/'/g, '&#39;');
   }
 
+  function renderFeedbackMarkup(data) {
+    const bullets = Array.isArray(data?.bullets) ? data.bullets : [];
+    const bulletMarkup = bullets.length
+      ? bullets.map((item) => `<li style="margin-bottom:6px;">${escapeHtml(item)}</li>`).join('')
+      : '<li>No quick prompts returned.</li>';
+
+    const structureLabel = String(data?.type || 'general').trim() || 'general';
+    const structureText = structureLabel === 'behavioral'
+      ? 'Use STAR: situation, task, action, result.'
+      : structureLabel === 'situational'
+        ? 'Answer with a direct approach, key action, and expected outcome.'
+        : 'Lead with your point, support it briefly, then close confidently.';
+
+    return `
+      <div style="margin-top:14px;padding:16px;border:1px solid #dbeafe;border-radius:12px;background:#f8fbff;">
+        <div style="font-size:0.8rem;font-weight:700;color:#1d4ed8;letter-spacing:0.04em;text-transform:uppercase;margin-bottom:10px;">What it does</div>
+        <div style="margin-bottom:12px;">
+          <strong>Prompts</strong>
+          <ul style="margin:8px 0 0 18px;padding:0;">${bulletMarkup}</ul>
+        </div>
+        <div style="margin-bottom:12px;">
+          <strong>Structure</strong>
+          <div style="margin-top:6px;color:#334155;">${escapeHtml(structureText)}</div>
+        </div>
+        <div>
+          <strong>Reminder</strong>
+          <div style="margin-top:6px;color:#334155;">${escapeHtml(data?.tip || 'Pause, breathe, and land the main point first.')}</div>
+        </div>
+      </div>
+      <div style="margin-top:14px;padding:16px;border:1px solid #dcfce7;border-radius:12px;background:#f7fff9;">
+        <div style="font-size:0.8rem;font-weight:700;color:#15803d;letter-spacing:0.04em;text-transform:uppercase;margin-bottom:10px;">What it does for you</div>
+        <div style="color:#334155;line-height:1.8;">👉 Prevents freezing</div>
+        <div style="color:#334155;line-height:1.8;">👉 Keeps answers sharp</div>
+      </div>
+      <div style="margin-top:14px;">
+        <strong>Answer Draft</strong>
+        <div style="margin-top:8px;line-height:1.8;color:#0f172a;">${escapeHtml(data?.answer || '')}</div>
+      </div>
+    `;
+  }
+
   async function postInterviewAssist(body) {
     const token = getToken();
     if (!token) {
@@ -92,7 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
           });
 
           feedbackDiv.innerHTML = feedbackData.answer
-            ? `<strong>AI Feedback:</strong><br>${escapeHtml(feedbackData.answer)}`
+            ? renderFeedbackMarkup(feedbackData)
             : '<span style="color:#dc2626;">No feedback received.</span>';
         } catch (err) {
           feedbackDiv.innerHTML = `<span style="color:#dc2626;">${escapeHtml(err.message || err)}</span>`;
@@ -147,7 +188,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (feedbackData.answer) {
-              resultDiv.innerHTML += `<br><strong>AI Feedback:</strong> ${escapeHtml(feedbackData.answer)}`;
+              resultDiv.innerHTML += `<div style="margin-top:12px;">${renderFeedbackMarkup(feedbackData)}</div>`;
               window.AIInterviewAudio.speakText(feedbackData.answer);
             } else {
               resultDiv.innerHTML += '<br><span style="color:#dc2626;">No feedback received.</span>';

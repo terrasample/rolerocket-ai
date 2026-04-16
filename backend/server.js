@@ -2556,14 +2556,14 @@ app.post('/api/career-coach', authenticateToken, async (req, res) => {
 // ─── Interview Assist ────────────────────────────────────────────────────────
 app.post('/api/interview-assist', authenticateToken, async (req, res) => {
   try {
-    const { question, role, resume, history } = req.body || {};
+    const { question, role, resume, scenario, history } = req.body || {};
 
     if (E2E_MOCK_MODE) {
       return res.json({
         type: 'behavioral',
-        answer: 'I resolved conflict by clarifying goals, aligning stakeholders, and delivering a measurable outcome.',
-        bullets: ['Clarify conflict quickly', 'Align priorities', 'Close with measurable results'],
-        tip: 'Lead with ownership and outcome.'
+        answer: 'I would answer this by briefly setting the context, explaining the action I took, and closing with the result so the interviewer gets a clear story fast.',
+        bullets: ['Open with the core point first', 'Use a simple STAR flow', 'End with the measurable result'],
+        tip: 'Pause first, then deliver the main point clearly.'
       });
     }
 
@@ -2578,7 +2578,7 @@ app.post('/api/interview-assist', authenticateToken, async (req, res) => {
       const prompt = `You are an expert interviewer. Given the following role and scenario, generate a single realistic first interview question for a candidate. Only return the question, no preamble or explanation.
 
 Role: ${role || 'N/A'}
-Scenario: ${resume || ''}`;
+Scenario: ${scenario || ''}`;
       const completion = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [
@@ -2598,8 +2598,8 @@ Return ONLY a valid JSON object with this exact structure:
 {
   "type": "behavioral|situational|general",
   "answer": "A strong, concise answer (max 180 words). Behavioral: use STAR format. Situational: direct confident structure. General: clear and impactful.",
-  "bullets": ["key point to hit 1", "key point to hit 2", "key point to hit 3"],
-  "tip": "One short coaching note for delivery (max 15 words)"
+  "bullets": ["prompt or reminder 1", "prompt or reminder 2", "prompt or reminder 3"],
+  "tip": "One short anti-freeze delivery reminder (max 15 words)"
 }
 
 Rules:
@@ -2607,10 +2607,13 @@ Rules:
 - Write in first person, naturally, confidently
 - Behavioral questions (tell me about a time, describe a situation, give an example) → STAR format
 - Situational / hypothetical → direct structured response
+- The bullets should act like live prompts or reminders the user can glance at while answering
+- Help the user avoid freezing and keep the answer sharp, focused, and easy to speak aloud
 - Return only valid JSON, no markdown fences`;
 
     const contextParts = [];
     if (role) contextParts.push(`Target role: ${role}`);
+  if (scenario) contextParts.push(`Interview scenario:\n${String(scenario).slice(0, 1200)}`);
     if (resume) contextParts.push(`Candidate background:\n${String(resume).slice(0, 1200)}`);
 
     if (Array.isArray(history) && history.length > 0) {
