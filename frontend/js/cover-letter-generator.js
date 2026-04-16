@@ -8,6 +8,97 @@ document.addEventListener('DOMContentLoaded', function () {
   const resumeUploadInput = document.getElementById('coverResumeUpload');
   const resumeUploadMessage = document.getElementById('coverResumeUploadMessage');
   let lastCover = '';
+  let lastCoverMeta = { name: '', phone: '', email: '' };
+
+  function escapeHtml(value) {
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function extractContactInfo(sourceText) {
+    const text = String(sourceText || '');
+    const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+    const email = (text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i) || [])[0] || '';
+    const phone = (text.match(/(?:\+?\d{1,2}[\s.-]?)?(?:\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4})/) || [])[0] || '';
+    const nameLine = lines.find((line) => /^[A-Za-z][A-Za-z\s'.-]{2,}$/.test(line) && line.split(/\s+/).length <= 5) || '';
+    return { name: nameLine, phone, email };
+  }
+
+  function parseCoverLetter(text) {
+    const cleaned = String(text || '').replace(/\r/g, '').trim();
+    const lines = cleaned.split('\n').map((line) => line.trim());
+    const nonEmpty = lines.filter(Boolean);
+
+    let greeting = 'Dear Hiring Manager,';
+    let closing = 'Sincerely,';
+    let signature = '';
+
+    const greetIdx = nonEmpty.findIndex((line) => /^dear\b/i.test(line));
+    if (greetIdx >= 0) greeting = nonEmpty[greetIdx];
+
+    let closeIdx = nonEmpty.findIndex((line) => /^(sincerely|best regards|kind regards|warm regards|yours truly)/i.test(line));
+    if (closeIdx >= 0) {
+      closing = nonEmpty[closeIdx];
+      signature = nonEmpty[closeIdx + 1] || '';
+    }
+
+    let bodyLines = nonEmpty;
+    if (greetIdx >= 0) bodyLines = bodyLines.slice(greetIdx + 1);
+    if (closeIdx >= 0) {
+      const bodyEnd = Math.max(0, closeIdx - (greetIdx >= 0 ? (greetIdx + 1) : 0));
+      bodyLines = bodyLines.slice(0, bodyEnd);
+    }
+
+    const paragraphs = bodyLines
+      .join('\n')
+      .split(/\n{2,}/)
+      .map((p) => p.replace(/\n/g, ' ').trim())
+      .filter(Boolean);
+
+    return {
+      greeting,
+      paragraphs,
+      closing,
+      signature
+    };
+  }
+
+  function renderCoverTemplate(letter, contact, roleTitle, company) {
+    const today = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+    const paragraphHtml = letter.paragraphs.map((p) => `<p style="margin:0 0 12px 0;line-height:1.6;color:#1f2937;font-size:16px;">${escapeHtml(p)}</p>`).join('');
+
+    return `
+      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:24px;box-shadow:0 8px 28px rgba(15,23,42,0.08);">
+        <div style="max-width:760px;margin:0 auto;font-family:Calibri, Arial, sans-serif;color:#0f172a;">
+          <div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start;border-bottom:3px solid #8ec7da;padding-bottom:10px;margin-bottom:14px;">
+            <div>
+              <div style="font-size:28px;font-weight:800;color:#0e6e98;line-height:1.05;">${escapeHtml(contact.name || 'Candidate')}</div>
+              <div style="font-size:14px;color:#475569;">${escapeHtml([contact.phone, contact.email].filter(Boolean).join('  |  '))}</div>
+            </div>
+            <div style="font-size:13px;color:#64748b;text-align:right;">${escapeHtml(today)}</div>
+          </div>
+
+          <div style="font-size:14px;color:#334155;margin-bottom:12px;">
+            <strong>Role:</strong> ${escapeHtml(roleTitle || 'Target Role')}<br>
+            <strong>Company:</strong> ${escapeHtml(company || 'Target Company')}
+          </div>
+
+          <div style="font-size:16px;font-weight:700;color:#0f172a;margin-bottom:10px;">${escapeHtml(letter.greeting)}</div>
+
+          ${paragraphHtml}
+
+          <div style="margin-top:12px;font-size:16px;line-height:1.6;color:#1f2937;">
+            <div>${escapeHtml(letter.closing)}</div>
+            <div style="margin-top:6px;font-weight:700;">${escapeHtml(letter.signature || contact.name || '')}</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
 
   async function loadResumeFileIntoField(file, textarea, messageEl) {
     const token = typeof getStoredToken === 'function' ? getStoredToken() : localStorage.getItem('token');
@@ -61,6 +152,7 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
     output.innerHTML = 'Generating cover letter...';
+    lastCoverMeta = extractContactInfo(resume);
     try {
       const jobDescription = `Job Title: ${jobTitle}\nCompany: ${company}\n\nFull Job Description:\n${fullJobDescription}`;
       const token = typeof getStoredToken === 'function' ? getStoredToken() : localStorage.getItem('token');
@@ -74,7 +166,8 @@ document.addEventListener('DOMContentLoaded', function () {
       const data = await res.json();
       if (res.ok && data.result) {
         lastCover = data.result;
-        output.innerHTML = `<pre style=\"background:#fffbe6;padding:22px 18px;border-radius:12px;max-height:420px;overflow:auto;font-size:1.18em;line-height:1.7;color:#1e293b;font-family:'Inter', 'Segoe UI', Arial, sans-serif;border:2.5px solid #f59e42;box-shadow:0 2px 16px #facc1530;\">${data.result}</pre>`;
+        const letter = parseCoverLetter(lastCover);
+        output.innerHTML = renderCoverTemplate(letter, lastCoverMeta, jobTitle, company);
       } else {
         lastCover = '';
         output.innerHTML = `<div style=\"color:#dc2626;font-size:1.1em;padding:12px 0;\">${data.error || 'Failed to generate cover letter.'}</div>`;
@@ -86,45 +179,56 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   function formatCoverForPdf(text, doc) {
-    // College-style: 1-inch margins, 12pt, double-spaced, left-aligned, readable font
-    const lines = text.split(/\r?\n/);
-    const marginLeft = 25; // ~1 inch
-    const marginTop = 28; // ~1 inch
-    const lineHeight = 12 * 2; // double-spaced, 12pt font
-    let y = marginTop;
-    doc.setFont('times', 'normal');
-    doc.setFontSize(12);
-    // Title
-    doc.setFont('times', 'bold');
-    doc.setFontSize(12);
-    doc.text('Cover Letter', marginLeft, y);
-    y += lineHeight * 1.5;
-    doc.setFont('times', 'normal');
-    doc.setFontSize(12);
-    lines.forEach(line => {
-      if (/^\s*$/.test(line)) {
-        y += lineHeight; // blank line = double space
-      } else if (/^Dear /.test(line) || /^To /.test(line)) {
-        doc.setFont('times', 'bold');
+    const letter = parseCoverLetter(text);
+    const marginLeft = 20;
+    const maxWidth = 170;
+    const lineHeight = 6;
+    let y = 20;
+
+    doc.setDrawColor(142, 199, 218);
+    doc.setLineWidth(1.1);
+    doc.line(marginLeft, y + 2, 190, y + 2);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    doc.setTextColor(14, 110, 152);
+    doc.text(lastCoverMeta.name || 'Candidate', marginLeft, y);
+
+    y += 7;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(75, 85, 99);
+    const contactLine = [lastCoverMeta.phone, lastCoverMeta.email].filter(Boolean).join('  |  ');
+    if (contactLine) doc.text(contactLine, marginLeft, y);
+
+    y += 9;
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text(letter.greeting, marginLeft, y);
+    y += 8;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(11);
+    doc.setTextColor(31, 41, 55);
+    letter.paragraphs.forEach((paragraph) => {
+      const wrapped = doc.splitTextToSize(paragraph, maxWidth);
+      wrapped.forEach((line) => {
+        if (y > 280) {
+          doc.addPage();
+          y = 20;
+        }
         doc.text(line, marginLeft, y);
-        doc.setFont('times', 'normal');
         y += lineHeight;
-      } else if (/^Sincerely|Warm regards|Best regards|Yours truly|Yours sincerely/.test(line)) {
-        y += lineHeight * 0.7;
-        doc.setFont('times', 'bold');
-        doc.text(line, marginLeft, y);
-        doc.setFont('times', 'normal');
-        y += lineHeight;
-      } else {
-        // Wrap long lines
-        const splitLines = doc.splitTextToSize(line, 160);
-        splitLines.forEach(wrapLine => {
-          doc.text(wrapLine, marginLeft, y);
-          y += lineHeight;
-        });
-      }
-      if (y > 270) { doc.addPage(); y = marginTop; }
+      });
+      y += 2;
     });
+
+    y += 4;
+    doc.setFont('helvetica', 'normal');
+    doc.text(letter.closing, marginLeft, y);
+    y += 7;
+    doc.setFont('helvetica', 'bold');
+    doc.text(letter.signature || lastCoverMeta.name || '', marginLeft, y);
   }
 
   if (savePdfBtn) {
@@ -140,28 +244,12 @@ document.addEventListener('DOMContentLoaded', function () {
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
       formatCoverForPdf(lastCover, doc);
-      doc.save('cover-letter.pdf');
-      output.innerHTML = '<div style="color:#16a34a;">PDF downloaded.</div>';
+      doc.save('tailored-cover-letter.pdf');
+      const roleTitle = document.getElementById('coverJobTitle').value.trim();
+      const company = document.getElementById('coverCompany').value.trim();
+      output.innerHTML = renderCoverTemplate(parseCoverLetter(lastCover), lastCoverMeta, roleTitle, company);
+      output.insertAdjacentHTML('afterbegin', '<div style="margin-bottom:10px;padding:10px 12px;border-radius:8px;font-size:0.95rem;background:#ecfdf5;color:#166534;border:1px solid #86efac;">PDF downloaded.</div>');
     };
-  }
-
-  function formatCoverForWord(text) {
-    // College-style: 1-inch margins, 12pt, double-spaced, left-aligned, readable font
-    let formatted = '';
-    const lines = text.split(/\r?\n/);
-    formatted += 'Cover Letter\n\n';
-    lines.forEach(line => {
-      if (/^\s*$/.test(line)) {
-        formatted += '\n';
-      } else if (/^Dear /.test(line) || /^To /.test(line)) {
-        formatted += line + '\n';
-      } else if (/^Sincerely|Warm regards|Best regards|Yours truly|Yours sincerely/.test(line)) {
-        formatted += '\n' + line + '\n';
-      } else {
-        formatted += line + '\n\n';
-      }
-    });
-    return formatted;
   }
 
   if (saveWordBtn) {
@@ -170,16 +258,20 @@ document.addEventListener('DOMContentLoaded', function () {
         output.innerHTML = '<div style=\"color:#dc2626;\">No cover letter to save. Please generate first.</div>';
         return;
       }
-      const content = formatCoverForWord(lastCover);
-      const html = `<!DOCTYPE html><html><body style="font-family:'Times New Roman', Times, serif;font-size:12pt;line-height:1.5;color:#000;white-space:pre-wrap;">${content.replace(/\n/g, '<br>')}</body></html>`;
+      const roleTitle = document.getElementById('coverJobTitle').value.trim();
+      const company = document.getElementById('coverCompany').value.trim();
+      const parsed = parseCoverLetter(lastCover);
+      const today = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+      const html = `<!DOCTYPE html><html><body style="font-family:Calibri, Arial, sans-serif;font-size:11pt;line-height:1.55;color:#1f2937;margin:0;"><div style="max-width:780px;margin:0 auto;padding:20px 24px;"><div style="border-bottom:3px solid #8ec7da;padding-bottom:10px;margin-bottom:12px;"><div style="font-size:22pt;font-weight:800;color:#0e6e98;">${escapeHtml(lastCoverMeta.name || 'Candidate')}</div><div style="font-size:10pt;color:#64748b;">${escapeHtml([lastCoverMeta.phone, lastCoverMeta.email].filter(Boolean).join('  |  '))}</div><div style="font-size:9.5pt;color:#64748b;margin-top:6px;">${escapeHtml(today)}</div></div><div style="font-size:10pt;color:#334155;margin-bottom:10px;"><strong>Role:</strong> ${escapeHtml(roleTitle || 'Target Role')}<br><strong>Company:</strong> ${escapeHtml(company || 'Target Company')}</div><p style="margin:0 0 10px 0;font-weight:700;">${escapeHtml(parsed.greeting)}</p>${parsed.paragraphs.map((p) => `<p style="margin:0 0 12px 0;">${escapeHtml(p)}</p>`).join('')}<p style="margin:12px 0 0 0;">${escapeHtml(parsed.closing)}<br><strong>${escapeHtml(parsed.signature || lastCoverMeta.name || '')}</strong></p></div></body></html>`;
       const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = 'cover-letter.doc';
+      a.download = 'tailored-cover-letter.doc';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      output.innerHTML = '<div style="color:#16a34a;">Word document downloaded.</div>';
+      output.innerHTML = renderCoverTemplate(parsed, lastCoverMeta, roleTitle, company);
+      output.insertAdjacentHTML('afterbegin', '<div style="margin-bottom:10px;padding:10px 12px;border-radius:8px;font-size:0.95rem;background:#ecfdf5;color:#166534;border:1px solid #86efac;">Word document downloaded.</div>');
     };
   }
 });

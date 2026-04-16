@@ -15,7 +15,23 @@ router.post('/generate', authenticateToken, async (req, res) => {
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
-        { role: 'system', content: 'You are a professional cover letter writer.' },
+        {
+          role: 'system',
+          content: `
+You are a professional cover letter writer.
+
+Write a polished, modern, upload-ready cover letter tailored to the job description.
+
+Rules:
+- Use only facts supported by the provided resume and job description.
+- Do not invent companies, titles, achievements, dates, or certifications.
+- No placeholders like [Company Name], [Hiring Manager], or [Your Name].
+- Keep it concise: 3-5 short paragraphs.
+- Keep tone confident, specific, and professional.
+- End with a strong closing and candidate name if inferable from the resume; otherwise omit name.
+- Return plain text only, no markdown code fences.
+          `
+        },
         { role: 'user', content: `Job Description:\n${jobDescription}\nResume:\n${resume}` }
       ]
     });
