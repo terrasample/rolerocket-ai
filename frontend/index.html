@@ -177,6 +177,64 @@
     <div class="sidebar-overlay" id="sidebarOverlay" tabindex="-1" aria-hidden="true"></div>
 
     <main class="main marketing-main" id="mainContent" tabindex="-1">
+      <section class="marketing-card core-promise" aria-label="Core value promise">
+        <h3>Land More Interviews In Less Time</h3>
+        <p>RoleRocket helps you move from resume draft to interview-ready applications in one focused workflow. No guessing. No tab chaos. Just clear next steps.</p>
+      </section>
+
+      <section class="marketing-card quickstart-sprint" aria-label="First 15 minutes quickstart">
+        <div class="quickstart-head">
+          <h3>Your First 15 Minutes</h3>
+          <p>Complete these steps to get your first real win fast.</p>
+        </div>
+        <div class="quickstart-grid">
+          <article class="quickstart-step" data-quickstart-step="resume">
+            <label>
+              <input type="checkbox" class="quickstart-check" data-step="resume" />
+              <span>
+                <strong>1. Save your resume</strong>
+                <small>Load your resume once so every tool can use it.</small>
+              </span>
+            </label>
+            <a class="quickstart-link" href="dashboard.html#resume">Open Resume Setup</a>
+          </article>
+
+          <article class="quickstart-step" data-quickstart-step="tailor">
+            <label>
+              <input type="checkbox" class="quickstart-check" data-step="tailor" />
+              <span>
+                <strong>2. Tailor for one role</strong>
+                <small>Generate a role-targeted resume draft.</small>
+              </span>
+            </label>
+            <a class="quickstart-link" href="resume-generator.html">Open Resume Generator</a>
+          </article>
+
+          <article class="quickstart-step" data-quickstart-step="interview">
+            <label>
+              <input type="checkbox" class="quickstart-check" data-step="interview" />
+              <span>
+                <strong>3. Practice one hard question</strong>
+                <small>Use Interview Assist prompts before your next call.</small>
+              </span>
+            </label>
+            <a class="quickstart-link" href="ai-interview-assist.html">Open Interview Assist</a>
+          </article>
+
+          <article class="quickstart-step" data-quickstart-step="pipeline">
+            <label>
+              <input type="checkbox" class="quickstart-check" data-step="pipeline" />
+              <span>
+                <strong>4. Save one target job</strong>
+                <small>Start your pipeline and move one role to action.</small>
+              </span>
+            </label>
+            <a class="quickstart-link" href="job-tracking.html">Open Job Tracking</a>
+          </article>
+        </div>
+        <div class="quickstart-progress" id="quickstartProgress">Progress: 0/4 completed</div>
+      </section>
+
       <section class="marketing-card who-we-are-section" aria-label="Who we are">
         <h3 style="text-align:center;">Who we are</h3>
         <p style="text-align:center;">RoleRocket AI is a career execution platform built for people who want progress, not guesswork. We combine job discovery, resume intelligence, interview prep, and tracker workflows into one premium system so your effort compounds weekly.</p>
@@ -453,6 +511,43 @@
 
       let currentUpgradeConfig = nextPlanConfig.free;
 
+      function initQuickstartSprint() {
+        const storageKey = 'rr_quickstart_sprint_v1';
+        const checks = Array.from(document.querySelectorAll('.quickstart-check'));
+        const progressEl = document.getElementById('quickstartProgress');
+        if (!checks.length || !progressEl) return;
+
+        let saved = {};
+        try {
+          saved = JSON.parse(localStorage.getItem(storageKey) || '{}');
+        } catch {
+          saved = {};
+        }
+
+        function renderProgress() {
+          const done = checks.filter((checkbox) => checkbox.checked).length;
+          progressEl.textContent = `Progress: ${done}/4 completed`;
+        }
+
+        checks.forEach((checkbox) => {
+          const step = checkbox.dataset.step;
+          if (step && saved[step] === true) {
+            checkbox.checked = true;
+          }
+
+          checkbox.addEventListener('change', () => {
+            const next = {};
+            checks.forEach((cb) => {
+              if (cb.dataset.step) next[cb.dataset.step] = cb.checked;
+            });
+            localStorage.setItem(storageKey, JSON.stringify(next));
+            renderProgress();
+          });
+        });
+
+        renderProgress();
+      }
+
       async function syncHomepageUpgradeCta() {
         const token = localStorage.getItem('token');
         const titleEl = document.getElementById('nextPlanTitle');
@@ -525,6 +620,7 @@
       });
 
       syncHomepageUpgradeCta();
+      initQuickstartSprint();
       </script>
       <script src="js/nav-plan-sync.js"></script>
     </main>
