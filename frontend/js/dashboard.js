@@ -170,6 +170,33 @@ document.addEventListener('DOMContentLoaded', async () => {
   const resumeSaveMsg = document.getElementById('resumeSaveMsg');
   const latestResumeContent = document.getElementById('latestResumeContent');
   const noResumeMsg = document.getElementById('noResumeMsg');
+  const dashboardIdentityBanner = document.getElementById('dashboardIdentityBanner');
+
+  async function loadDashboardIdentity() {
+    if (!dashboardIdentityBanner) return;
+    dashboardIdentityBanner.style.display = 'block';
+    dashboardIdentityBanner.textContent = 'Verifying signed-in account...';
+
+    try {
+      const res = await fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      const user = data?.user || data || {};
+      const email = String(user.email || '').trim();
+      if (!email) throw new Error('Missing account email');
+
+      dashboardIdentityBanner.innerHTML = `Signed in as <strong>${escapeHtml(email)}</strong>. If this is not your account, <a href="login.html?relogin=1" style="color:#0369a1;text-decoration:underline;">log out and switch</a>.`;
+      dashboardIdentityBanner.style.background = '#e0f2fe';
+      dashboardIdentityBanner.style.borderColor = '#7dd3fc';
+      dashboardIdentityBanner.style.color = '#0c4a6e';
+    } catch (err) {
+      dashboardIdentityBanner.textContent = 'Could not verify signed-in account. Please refresh or log in again.';
+      dashboardIdentityBanner.style.background = '#fff7ed';
+      dashboardIdentityBanner.style.borderColor = '#fdba74';
+      dashboardIdentityBanner.style.color = '#9a3412';
+    }
+  }
+
+  await loadDashboardIdentity();
 
     // --- PATCH: Always show all feature sections for admin/lifetime/subscribed users ---
     try {
