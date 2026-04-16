@@ -127,17 +127,19 @@
           <p style="color:#475569;margin-bottom:18px;">Type any interview question mid-call and get a structured, coach-quality answer in seconds — with key bullets and a delivery tip.</p>
 
           <!-- Context Setup (collapsible) -->
-          <button id="iaSetupToggle" class="secondary-btn" style="margin-bottom:10px;">⚙️ Set Context (Role + Resume)</button>
-          <div id="iaSetupPanel" style="display:none;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;padding:16px;margin-bottom:16px;">
-            <label style="display:block;font-weight:600;margin-bottom:4px;">Target Role</label>
-            <input id="iaRole" type="text" placeholder="e.g. Senior Product Manager" style="width:100%;margin-bottom:12px;padding:8px 12px;border:1.5px solid #cbd5e1;border-radius:8px;" />
-            <label style="display:block;font-weight:600;margin-bottom:4px;">Paste Resume (optional — improves answers)</label>
-            <textarea id="iaResume" rows="5" placeholder="Paste your resume here..." style="width:100%;padding:8px 12px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:0.95em;"></textarea>
-            <div style="margin-top:10px;display:flex;align-items:center;gap:10px;">
-              <button id="iaSaveContext" class="auth-submit-btn" style="padding:8px 22px;">Save Context</button>
-              <span id="iaContextSaved" style="display:none;color:#16a34a;font-weight:600;">✓ Saved</span>
+          <details id="iaSetupPanel" style="margin-bottom:16px;">
+            <summary id="iaSetupToggle" class="secondary-btn" style="margin-bottom:10px;display:inline-flex;align-items:center;cursor:pointer;list-style:none;">⚙️ Set Context (Role + Resume)</summary>
+            <div style="margin-top:10px;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;padding:16px;">
+              <label style="display:block;font-weight:600;margin-bottom:4px;">Target Role</label>
+              <input id="iaRole" type="text" placeholder="e.g. Senior Product Manager" style="width:100%;margin-bottom:12px;padding:8px 12px;border:1.5px solid #cbd5e1;border-radius:8px;" />
+              <label style="display:block;font-weight:600;margin-bottom:4px;">Paste Resume (optional — improves answers)</label>
+              <textarea id="iaResume" rows="5" placeholder="Paste your resume here..." style="width:100%;padding:8px 12px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:0.95em;"></textarea>
+              <div style="margin-top:10px;display:flex;align-items:center;gap:10px;">
+                <button id="iaSaveContext" class="auth-submit-btn" style="padding:8px 22px;">Save Context</button>
+                <span id="iaContextSaved" style="display:none;color:#16a34a;font-weight:600;">✓ Saved</span>
+              </div>
             </div>
-          </div>
+          </details>
 
           <!-- Question Input -->
           <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:14px;">

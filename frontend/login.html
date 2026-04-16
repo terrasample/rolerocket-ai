@@ -179,6 +179,11 @@
   <!-- Candidate Pricing Section -->
   <section class="price-card-section" style="background: linear-gradient(135deg, #0f172a 0%, #1f2937 52%, #0c4a6e 100%); padding: 48px 0 40px 0; margin-top: 32px; border-top: 1.5px solid #1e293b;">
     <h2 style="text-align:center; color:#2563eb; font-size:2.1rem; margin-bottom:32px;">Candidate Pricing</h2>
+    <div class="billing-toggle-row" style="justify-content:center; margin: 0 auto 20px auto; max-width:1200px;">
+      <span style="color:#cbd5e1;">Billing:</span>
+      <button type="button" id="loginBillingMonthlyBtn" class="secondary-btn plan-info-active" aria-pressed="true">Monthly</button>
+      <button type="button" id="loginBillingYearlyBtn" class="secondary-btn" aria-pressed="false">Yearly (Save 17%)</button>
+    </div>
     <div class="marketing-grid" style="max-width:1200px; margin:0 auto; gap:24px;">
       <article class="price-card free" data-login-plan="free">
         <div class="plan-pill starter-pill">FREE ACCESS</div>
@@ -205,7 +210,7 @@
           <li>Resume Optimizer</li>
           <li>Gamification</li>
         </ul>
-        <button class="checkout-btn" data-checkout="pro" onclick="handleCheckout('pro')">Unlock Pro →</button> <button class="checkout-btn" data-checkout="pro_yearly" onclick="handleCheckout('pro_yearly')">Unlock Pro Yearly →</button>
+        <button class="checkout-btn pricing-cycle-btn" data-plan-base="pro" data-plan-name="Pro" data-checkout="pro" onclick="handleCheckout('pro')">Unlock Pro Monthly →</button>
       </article>
 
       <article class="price-card premium" data-login-plan="premium">
@@ -220,7 +225,7 @@
           <li>Networking AI</li>
           <li>AI Reference Generator</li>
         </ul>
-        <button class="checkout-btn" data-checkout="premium" onclick="handleCheckout('premium')">Unlock Premium →</button> <button class="checkout-btn" data-checkout="premium_yearly" onclick="handleCheckout('premium_yearly')">Unlock Premium Yearly →</button>
+        <button class="checkout-btn pricing-cycle-btn" data-plan-base="premium" data-plan-name="Premium" data-checkout="premium" onclick="handleCheckout('premium')">Unlock Premium Monthly →</button>
       </article>
 
       <article class="price-card elite" data-login-plan="elite">
@@ -238,7 +243,7 @@
           <li>AI Application Tracker</li>
           <li>AI Job Agent</li>
         </ul>
-        <button class="checkout-btn" data-checkout="elite" onclick="handleCheckout('elite')">Unlock Elite →</button> <button class="checkout-btn" data-checkout="elite_yearly" onclick="handleCheckout('elite_yearly')">Unlock Elite Yearly →</button>
+        <button class="checkout-btn pricing-cycle-btn" data-plan-base="elite" data-plan-name="Elite" data-checkout="elite" onclick="handleCheckout('elite')">Unlock Elite Monthly →</button>
       </article>
 
       <!-- Founders Deal Lifetime Membership -->
@@ -261,7 +266,7 @@
   <section class="price-card-section" style="background: linear-gradient(135deg, #0f172a 0%, #1e2937 52%, #0c4a6e 100%); padding: 48px 0 40px 0; margin-top: 32px; border-top: 1.5px solid #1e293b;">
     <h2 style="text-align:center; color:#059669; font-size:2.1rem; margin-bottom:32px;">Recruiter Pricing</h2>
     <div class="marketing-grid" style="max-width:1200px; margin:0 auto; gap:24px;">
-      <article class="price-card recruiter"><div class="plan-pill premium-pill">AI RECRUITER ASSIST</div><h3>AI Recruiter Assist</h3><div class="price-amount">$99<span>/month</span> <span style="color:#64748b;font-size:0.9em;">or</span> $990<span>/year</span> <span class="savings-pill" style="color:#059669;font-size:0.9em;margin-left:8px;">Save 17%</span></div><ul><li>Top 3 candidate ranking by job role</li><li>Resume match scoring</li><li>Premium recruiter dashboard</li><li>Unlock advanced recruiter tools</li></ul><button class="checkout-btn" data-checkout="recruiter" onclick="handleCheckout('recruiter')">Subscribe</button> <button class="checkout-btn" data-checkout="recruiter_yearly" onclick="handleCheckout('recruiter_yearly')">Subscribe Yearly</button></article>
+      <article class="price-card recruiter"><div class="plan-pill premium-pill">AI RECRUITER ASSIST</div><h3>AI Recruiter Assist</h3><div class="price-amount">$99<span>/month</span> <span style="color:#64748b;font-size:0.9em;">or</span> $990<span>/year</span> <span class="savings-pill" style="color:#059669;font-size:0.9em;margin-left:8px;">Save 17%</span></div><ul><li>Top 3 candidate ranking by job role</li><li>Resume match scoring</li><li>Premium recruiter dashboard</li><li>Unlock advanced recruiter tools</li></ul><button class="checkout-btn pricing-cycle-btn" data-plan-base="recruiter" data-plan-name="Recruiter" data-checkout="recruiter" onclick="handleCheckout('recruiter')">Subscribe Monthly</button></article>
       <article class="price-card recruiter-lifetime">
         <div class="plan-pill" style="background:#facc15;color:#1e293b;">LIFETIME MEMBERSHIP</div>
         <h3>Recruiter Lifetime Membership</h3>
@@ -475,6 +480,74 @@
 
   <!-- Add handleCheckout for pricing buttons -->
   <script>
+    let loginSelectedBillingCycle = 'monthly';
+
+    function resolveLoginCyclePlan(planBase) {
+      if (loginSelectedBillingCycle === 'yearly') {
+        const yearlyMap = {
+          pro: 'pro_yearly',
+          premium: 'premium_yearly',
+          elite: 'elite_yearly',
+          recruiter: 'recruiter_yearly'
+        };
+        return yearlyMap[planBase] || planBase;
+      }
+      return planBase;
+    }
+
+    function updateLoginBillingCycleUi() {
+      const monthlyBtn = document.getElementById('loginBillingMonthlyBtn');
+      const yearlyBtn = document.getElementById('loginBillingYearlyBtn');
+
+      if (monthlyBtn && yearlyBtn) {
+        const isMonthly = loginSelectedBillingCycle === 'monthly';
+        monthlyBtn.classList.toggle('plan-info-active', isMonthly);
+        yearlyBtn.classList.toggle('plan-info-active', !isMonthly);
+        monthlyBtn.setAttribute('aria-pressed', isMonthly ? 'true' : 'false');
+        yearlyBtn.setAttribute('aria-pressed', !isMonthly ? 'true' : 'false');
+      }
+
+      document.querySelectorAll('.pricing-cycle-btn').forEach((button) => {
+        const planBase = button.getAttribute('data-plan-base') || '';
+        const planName = button.getAttribute('data-plan-name') || 'Plan';
+        const resolvedPlan = resolveLoginCyclePlan(planBase);
+        button.setAttribute('data-checkout', resolvedPlan);
+        button.textContent = loginSelectedBillingCycle === 'yearly'
+          ? `${planName === 'Recruiter' ? 'Subscribe' : 'Unlock ' + planName} Yearly →`
+          : `${planName === 'Recruiter' ? 'Subscribe' : 'Unlock ' + planName} Monthly →`;
+        button.onclick = function () {
+          handleCheckout(resolvedPlan);
+        };
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const monthlyBtn = document.getElementById('loginBillingMonthlyBtn');
+      const yearlyBtn = document.getElementById('loginBillingYearlyBtn');
+
+      monthlyBtn?.addEventListener('click', () => {
+        loginSelectedBillingCycle = 'monthly';
+        updateLoginBillingCycleUi();
+      });
+      yearlyBtn?.addEventListener('click', () => {
+        loginSelectedBillingCycle = 'yearly';
+        updateLoginBillingCycleUi();
+      });
+
+      updateLoginBillingCycleUi();
+
+      document.querySelectorAll('.checkout-btn').forEach((btn) => {
+        btn.addEventListener('focus', () => {
+          const card = btn.closest('.price-card');
+          if (card) card.classList.add('plan-focus');
+        });
+        btn.addEventListener('blur', () => {
+          const card = btn.closest('.price-card');
+          if (card) card.classList.remove('plan-focus');
+        });
+      });
+    });
+
     function handleCheckout(plan) {
       const token = localStorage.getItem('token');
       // Check for referral code in URL
@@ -517,17 +590,6 @@
         alert('Could not start checkout. Please try again.');
         if (btn) { btn.textContent = original; btn.disabled = false; }
       }
-      // Show plan details on click for accessibility
-      document.querySelectorAll('.checkout-btn').forEach(btn => {
-        btn.addEventListener('focus', e => {
-          const card = btn.closest('.price-card');
-          if (card) card.classList.add('plan-focus');
-        });
-        btn.addEventListener('blur', e => {
-          const card = btn.closest('.price-card');
-          if (card) card.classList.remove('plan-focus');
-        });
-      });
     }
   </script>
 

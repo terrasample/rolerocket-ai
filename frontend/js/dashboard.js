@@ -2979,11 +2979,19 @@ document.addEventListener('visibilitychange', () => {
 
   track('ia_module_viewed', 'interview_assist', { unlocked: hasPlan('elite') });
 
-  setupToggleBtn?.addEventListener('click', () => {
-    const open = setupPanel.style.display !== 'none';
-    setupPanel.style.display = open ? 'none' : 'block';
-    setupToggleBtn.textContent = open ? '⚙️ Set Context (Role + Resume)' : '⚙️ Hide Context';
-  });
+  if (setupPanel?.tagName === 'DETAILS') {
+    setupPanel.addEventListener('toggle', () => {
+      if (setupToggleBtn) {
+        setupToggleBtn.textContent = setupPanel.open ? '⚙️ Hide Context' : '⚙️ Set Context (Role + Resume)';
+      }
+    });
+  } else {
+    setupToggleBtn?.addEventListener('click', () => {
+      const open = setupPanel.style.display !== 'none';
+      setupPanel.style.display = open ? 'none' : 'block';
+      setupToggleBtn.textContent = open ? '⚙️ Set Context (Role + Resume)' : '⚙️ Hide Context';
+    });
+  }
 
   iaSaveCtxBtn?.addEventListener('click', () => {
     iaContext.role   = (iaRoleInput?.value   || '').trim();
