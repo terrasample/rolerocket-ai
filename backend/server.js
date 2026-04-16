@@ -2144,6 +2144,102 @@ app.get('/api/admin/quickstart/conversion', authenticateToken, requireAnalyticsA
   }
 });
 
+app.get('/api/quickstart/timeline', authenticateToken, async (req, res) => {
+  try {
+    const rawDays = Number(req.query.days || 60);
+    const days = Number.isFinite(rawDays) ? Math.min(Math.max(rawDays, 1), 365) : 60;
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+    const events = await Telemetry.find({
+      userId: req.user.userId,
+      ts: { $gte: since },
+      event: { $in: ['quickstart_step_completed', 'quickstart_step_reopened', 'quickstart_completed_all'] }
+    })
+      .select('event meta ts sessionId')
+      .sort({ ts: 1 })
+      .lean();
+
+    const state = {
+      resume: false,
+      tailor: false,
+      interview: false,
+      pipeline: false
+    };
+
+    const timeline = [];
+    const daily = {};
+
+    function countCompleted(nextState) {
+      return Object.values(nextState).filter(Boolean).length;
+    }
+
+    events.forEach((evt) => {
+      const eventName = String(evt.event || '').trim();
+      const step = String(evt.meta?.step || '').trim().toLowerCase();
+      const day = new Date(evt.ts || Date.now()).toISOString().slice(0, 10);
+
+      if (eventName === 'quickstart_step_completed' && state[step] !== undefined) {
+        state[step] = true;
+      }
+      if (eventName === 'quickstart_step_reopened' && state[step] !== undefined) {
+        state[step] = false;
+      }
+      if (eventName === 'quickstart_completed_all') {
+        state.resume = true;
+        state.tailor = true;
+        state.interview = true;
+        state.pipeline = true;
+      }
+
+      const completed = countCompleted(state);
+      const snapshot = {
+        ts: evt.ts,
+        day,
+        event: eventName,
+        step: step || null,
+        completed,
+        total: 4,
+        state: { ...state }
+      };
+
+      timeline.push(snapshot);
+
+      if (!daily[day]) {
+        daily[day] = {
+          day,
+          completed,
+          events: 0,
+          stepsCompleted: []
+        };
+      }
+
+      daily[day].completed = completed;
+      daily[day].events += 1;
+      if (eventName === 'quickstart_step_completed' && step && !daily[day].stepsCompleted.includes(step)) {
+        daily[day].stepsCompleted.push(step);
+      }
+    });
+
+    const finalCompleted = countCompleted(state);
+    const completionRate = Number(((finalCompleted / 4) * 100).toFixed(1));
+
+    return res.json({
+      windowDays: days,
+      summary: {
+        completed: finalCompleted,
+        total: 4,
+        completionRate,
+        state
+      },
+      timeline,
+      daily: Object.values(daily)
+    });
+  } catch (err) {
+    console.error('Quickstart timeline error:', err.message);
+    return res.status(500).json({ error: 'Failed to load quickstart timeline' });
+  }
+});
+
 app.get('/api/dashboard/mode-kpis', authenticateToken, async (req, res) => {
   try {
     const rawDays = Number(req.query.days || 14);
