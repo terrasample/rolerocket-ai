@@ -4297,3 +4297,139 @@ pre {
     box-shadow: 12px 0 40px rgba(0, 0, 0, 0.35) !important;
   }
 }
+
+/* Final mobile pass: keep desktop unchanged, tighten all phone layouts */
+@media (max-width: 768px) {
+  body {
+    overflow-x: hidden;
+  }
+
+  .main,
+  .marketing-main {
+    width: 100%;
+    max-width: 100%;
+    padding: 16px 12px;
+    margin: 0;
+  }
+
+  .hero {
+    padding: 14px 12px 0;
+  }
+
+  .hero h1 {
+    font-size: 1.45rem;
+    line-height: 1.25;
+  }
+
+  .hero p {
+    font-size: 0.95rem;
+    line-height: 1.55;
+  }
+
+  .business-bar {
+    padding: 10px 12px 8px;
+  }
+
+  .home-brand-title,
+  .compact-brand-name {
+    white-space: normal;
+    word-break: break-word;
+    line-height: 1.15;
+  }
+
+  .marketing-grid,
+  .analytics-grid,
+  .premium-stats-grid,
+  .tracker-shell,
+  .who-we-are-points,
+  .demand-grid,
+  .demand-grid-compact {
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+  }
+
+  .stats-chart-wrap {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .stats-pie {
+    width: 150px;
+    height: 150px;
+  }
+
+  .stats-pie::after {
+    inset: 22px;
+  }
+
+  .marketing-card,
+  .card,
+  .price-card,
+  .tracker-panel,
+  .dashboard-sidecard {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    padding: 14px;
+    border-radius: 14px;
+  }
+
+  .card textarea,
+  .card input,
+  .tracker-tools input,
+  .tracker-tools select,
+  textarea,
+  input,
+  select {
+    font-size: 16px;
+  }
+
+  .saved-resume-actions,
+  .premium-cta-links,
+  .dashboard-bottom-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .checkout-btn,
+  .auth-submit-btn,
+  .secondary-btn,
+  button {
+    min-height: 44px;
+  }
+
+  .site-footer {
+    padding: 18px 12px;
+    text-align: center;
+  }
+
+  .site-footer a {
+    display: inline-block;
+    margin: 4px 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  .main,
+  .marketing-main {
+    padding: 14px 10px;
+  }
+
+  .hero h1 {
+    font-size: 1.28rem;
+  }
+
+  .hero p {
+    font-size: 0.9rem;
+  }
+
+  .plan-pill,
+  #planBadge {
+    font-size: 0.78rem;
+  }
+
+  .price-amount {
+    font-size: 1.35rem;
+  }
+}
