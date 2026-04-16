@@ -41,6 +41,7 @@ document.addEventListener('DOMContentLoaded', function () {
   let lastRawResume = '';
   let lastStructuredResume = null;
   let lastPhotoDataUrl = '';
+  let templateQueue = [];
   let lastTemplateIdx = -1;
 
   function escapeHtml(value) {
@@ -67,11 +68,28 @@ document.addEventListener('DOMContentLoaded', function () {
     };
   }
 
-  function pickTemplateIndex(previous) {
-    if (THEMES.length === 1) return 0;
-    let idx = Math.floor(Math.random() * THEMES.length);
-    if (idx === previous) idx = (idx + 1) % THEMES.length;
-    return idx;
+  function shuffleArray(items) {
+    const arr = items.slice();
+    for (let i = arr.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  function getNextTemplateIndex() {
+    if (!templateQueue.length) {
+      templateQueue = shuffleArray(THEMES.map((_, idx) => idx));
+
+      if (templateQueue.length > 1 && templateQueue[0] === lastTemplateIdx) {
+        const first = templateQueue.shift();
+        templateQueue.push(first);
+      }
+    }
+
+    const nextIdx = templateQueue.shift();
+    lastTemplateIdx = nextIdx;
+    return nextIdx;
   }
 
   function extractContactInfo(sourceText) {
@@ -377,8 +395,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function buildResumeModel(structured, targetRole) {
-    const idx = pickTemplateIndex(lastTemplateIdx);
-    lastTemplateIdx = idx;
+    const idx = getNextTemplateIndex();
     return {
       ...structured,
       targetRole,
