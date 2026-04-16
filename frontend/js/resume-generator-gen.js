@@ -43,6 +43,7 @@ document.addEventListener('DOMContentLoaded', function () {
   let lastPhotoDataUrl = '';
   let templateQueue = [];
   let lastTemplateIdx = -1;
+  const templateStateKey = `resume-template-queue-v1-${THEMES.map((t) => t.id).join('|')}`;
 
   function escapeHtml(value) {
     return String(value || '')
@@ -77,6 +78,37 @@ document.addEventListener('DOMContentLoaded', function () {
     return arr;
   }
 
+  function saveTemplateState() {
+    try {
+      sessionStorage.setItem(templateStateKey, JSON.stringify({
+        templateQueue,
+        lastTemplateIdx
+      }));
+    } catch (err) {
+      // Ignore storage failures in private/restricted contexts.
+    }
+  }
+
+  function loadTemplateState() {
+    try {
+      const raw = sessionStorage.getItem(templateStateKey);
+      if (!raw) return;
+
+      const parsed = JSON.parse(raw);
+      const validIndices = new Set(THEMES.map((_, idx) => idx));
+      const safeQueue = Array.isArray(parsed.templateQueue)
+        ? parsed.templateQueue.filter((idx) => validIndices.has(idx))
+        : [];
+      const safeLast = validIndices.has(parsed.lastTemplateIdx) ? parsed.lastTemplateIdx : -1;
+
+      templateQueue = safeQueue;
+      lastTemplateIdx = safeLast;
+    } catch (err) {
+      templateQueue = [];
+      lastTemplateIdx = -1;
+    }
+  }
+
   function getNextTemplateIndex() {
     if (!templateQueue.length) {
       templateQueue = shuffleArray(THEMES.map((_, idx) => idx));
@@ -85,12 +117,17 @@ document.addEventListener('DOMContentLoaded', function () {
         const first = templateQueue.shift();
         templateQueue.push(first);
       }
+
+      saveTemplateState();
     }
 
     const nextIdx = templateQueue.shift();
     lastTemplateIdx = nextIdx;
+    saveTemplateState();
     return nextIdx;
   }
+
+  loadTemplateState();
 
   function extractContactInfo(sourceText) {
     const text = String(sourceText || '');
