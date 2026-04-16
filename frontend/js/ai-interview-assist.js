@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderFeedbackMarkup(data) {
     const bullets = Array.isArray(data?.bullets) ? data.bullets : [];
     const bulletMarkup = bullets.length
-      ? bullets.map((item) => `<li style="margin-bottom:6px;">${escapeHtml(item)}</li>`).join('')
+      ? bullets.map((item, index) => `<li style="margin-bottom:6px;"><strong>Prompt ${index + 1}:</strong> ${escapeHtml(item)}</li>`).join('')
       : '<li>No quick prompts returned.</li>';
 
     const structureLabel = String(data?.type || 'general').trim() || 'general';
