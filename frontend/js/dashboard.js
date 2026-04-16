@@ -562,6 +562,7 @@ const statsDetailTitleEl = document.getElementById('statsDetailTitle');
 const statsDetailBodyEl = document.getElementById('statsDetailBody');
 const dashboardSignupRosterSectionEl = document.getElementById('dashboardSignupRosterSection');
 const dashboardSignupRosterBodyEl = document.getElementById('dashboardSignupRosterBody');
+const adminKpiTabsSectionEl = document.getElementById('adminKpiTabsSection');
 const quickstartConversionSectionEl = document.getElementById('quickstartConversionSection');
 const quickstartConversionBodyEl = document.getElementById('quickstartConversionBody');
 const outcomeKpiSectionEl = document.getElementById('outcomeKpiSection');
@@ -602,6 +603,7 @@ let latestPlatformUsers = [];
 let latestPlatformUsersError = '';
 let quickstartConversionDays = 30;
 let outcomeKpiDays = 30;
+let activeAdminKpiTab = 'quickstart';
 let activePlanGuide = 'pro';
 
 const PLAN_GUIDE_CONTENT = {
@@ -1006,6 +1008,31 @@ function initOutcomeKpiControls() {
   });
 }
 
+function setAdminKpiTab(tab) {
+  activeAdminKpiTab = tab === 'outcome' ? 'outcome' : 'quickstart';
+
+  if (quickstartConversionSectionEl) {
+    quickstartConversionSectionEl.hidden = activeAdminKpiTab !== 'quickstart';
+  }
+  if (outcomeKpiSectionEl) {
+    outcomeKpiSectionEl.hidden = activeAdminKpiTab !== 'outcome';
+  }
+
+  document.querySelectorAll('[data-admin-kpi-tab]').forEach((button) => {
+    const isActive = button.dataset.adminKpiTab === activeAdminKpiTab;
+    button.classList.toggle('plan-info-active', isActive);
+    button.setAttribute('aria-selected', isActive ? 'true' : 'false');
+  });
+}
+
+function initAdminKpiTabs() {
+  document.querySelectorAll('[data-admin-kpi-tab]').forEach((button) => {
+    button.addEventListener('click', () => {
+      setAdminKpiTab(button.dataset.adminKpiTab || 'quickstart');
+    });
+  });
+}
+
 function renderPlatformUsagePie(resumesTotal, jobsTrackedTotal, applicationsTotal) {
   if (!statsPieEl) return;
 
@@ -1073,6 +1100,7 @@ async function loadPlatformStats() {
   if (!window.currentUserIsAdmin) {
     if (statUsersCardEl) statUsersCardEl.hidden = true;
     renderDashboardSignupRoster();
+    if (adminKpiTabsSectionEl) adminKpiTabsSectionEl.hidden = true;
     if (quickstartConversionSectionEl) quickstartConversionSectionEl.hidden = true;
     if (outcomeKpiSectionEl) outcomeKpiSectionEl.hidden = true;
     return;
@@ -1091,14 +1119,17 @@ async function loadPlatformStats() {
     if (statUsersEl) statUsersEl.textContent = formatStatNumber(latestPlatformStats.usersTotal);
     renderPlatformStatDetail('users');
     renderDashboardSignupRoster();
+    if (adminKpiTabsSectionEl) adminKpiTabsSectionEl.hidden = false;
     await loadQuickstartConversion(quickstartConversionDays);
     await loadOutcomeKpis(outcomeKpiDays);
+    setAdminKpiTab(activeAdminKpiTab);
   } catch {
     if (statUsersCardEl) statUsersCardEl.hidden = true;
     latestPlatformUsers = [];
     latestPlatformUsersError = 'Signed up users could not be loaded right now.';
     renderPlatformStatDetail('activity');
     renderDashboardSignupRoster();
+    if (adminKpiTabsSectionEl) adminKpiTabsSectionEl.hidden = false;
     if (quickstartConversionBodyEl) {
       quickstartConversionSectionEl.hidden = false;
       quickstartConversionBodyEl.innerHTML = '<p>Quickstart conversion is temporarily unavailable.</p>';
@@ -1107,12 +1138,14 @@ async function loadPlatformStats() {
       outcomeKpiSectionEl.hidden = false;
       outcomeKpiBodyEl.innerHTML = '<p>Outcome KPIs are temporarily unavailable.</p>';
     }
+    setAdminKpiTab(activeAdminKpiTab);
   }
 }
 
 initPlatformStatDetailActions();
 initQuickstartConversionControls();
 initOutcomeKpiControls();
+initAdminKpiTabs();
 
 // ─── Toast notifications ───────────────────────────────────────────────────
 const TOAST_ICONS = { success: '✅', error: '❌', warn: '⚠️', info: 'ℹ️' };
