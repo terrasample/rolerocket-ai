@@ -1,261 +1,170 @@
 // AI Interview Assist Frontend Logic
-// Handles the interview flow: start, Q&A, and feedback
+// Handles text and audio interview practice flows.
 
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', () => {
   const startBtn = document.getElementById('startInterviewBtn');
   const startAudioBtn = document.getElementById('startAudioBtn');
   const roleInput = document.getElementById('interviewRole');
   const scenarioInput = document.getElementById('interviewScenario');
   const resultDiv = document.getElementById('interviewAssistResult');
-  const localAudio = document.getElementById('localAudio');
 
-  // AUDIO INTERVIEW PRACTICE
-  if (startAudioBtn) {
-    startAudioBtn.addEventListener('click', async function() {
-      startAudioBtn.disabled = true;
-      resultDiv.innerHTML = '<em>Starting audio interview...</em>';
-      try {
-        if (!window.AIInterviewAudio) {
-          resultDiv.innerHTML = '<span style="color:#dc2626;">Audio module not loaded. Please check your deployment or clear your browser cache.</span>';
-          console.error('Audio module not loaded: window.AIInterviewAudio is', window.AIInterviewAudio);
+  function getToken() {
+    if (typeof getStoredToken === 'function') return getStoredToken() || '';
+    if (typeof getAuthToken === 'function') return getAuthToken() || '';
+    if (typeof window.getStoredToken === 'function') return window.getStoredToken() || '';
+    if (typeof window.getAuthToken === 'function') return window.getAuthToken() || '';
+    return localStorage.getItem('token') || sessionStorage.getItem('token') || localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || '';
+  }
+
+  function escapeHtml(value) {
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  async function postInterviewAssist(body) {
+    const token = getToken();
+    if (!token) {
+      throw new Error('You must be logged in to use Interview Assist.');
+    }
+
+    const res = await fetch('/api/interview-assist', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify(body)
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Interview Assist request failed.');
+    }
+    return data;
+  }
+
+  async function startInterview() {
+    const role = (roleInput?.value || '').trim();
+    const scenario = (scenarioInput?.value || '').trim();
+
+    resultDiv.innerHTML = '<em>Starting interview...</em>';
+
+    try {
+      const data = await postInterviewAssist({ role, scenario });
+      const firstQuestion = String(data.firstQuestion || '').trim();
+      if (!firstQuestion) {
+        resultDiv.innerHTML = '<span style="color:#dc2626;">No interview question was returned.</span>';
+        return;
+      }
+
+      resultDiv.innerHTML = `
+        <div style="margin-bottom:10px;"><strong>AI:</strong> ${escapeHtml(firstQuestion)}</div>
+        <label for="interviewAnswerInput" style="display:block;font-weight:600;margin-bottom:6px;">Your Answer</label>
+        <textarea id="interviewAnswerInput" rows="5" style="width:100%;margin-bottom:10px;" placeholder="Type your answer here..."></textarea>
+        <button id="submitInterviewAnswerBtn" class="auth-submit-btn" style="width:100%;">Submit Answer for Feedback</button>
+        <div id="interviewFeedbackResult" style="margin-top:12px;"></div>
+      `;
+
+      const submitBtn = document.getElementById('submitInterviewAnswerBtn');
+      const answerInput = document.getElementById('interviewAnswerInput');
+      const feedbackDiv = document.getElementById('interviewFeedbackResult');
+
+      submitBtn?.addEventListener('click', async () => {
+        const answer = (answerInput?.value || '').trim();
+        if (!answer) {
+          feedbackDiv.innerHTML = '<span style="color:#dc2626;">Please enter your answer first.</span>';
+          return;
+        }
+
+        submitBtn.disabled = true;
+        feedbackDiv.innerHTML = '<em>AI is evaluating your answer...</em>';
+
+        try {
+          const feedbackData = await postInterviewAssist({
+            role,
+            scenario,
+            question: firstQuestion,
+            answer
+          });
+
+          feedbackDiv.innerHTML = feedbackData.answer
+            ? `<strong>AI Feedback:</strong><br>${escapeHtml(feedbackData.answer)}`
+            : '<span style="color:#dc2626;">No feedback received.</span>';
+        } catch (err) {
+          feedbackDiv.innerHTML = `<span style="color:#dc2626;">${escapeHtml(err.message || err)}</span>`;
+        } finally {
+          submitBtn.disabled = false;
+        }
+      });
+    } catch (err) {
+      resultDiv.innerHTML = `<span style="color:#dc2626;">${escapeHtml(err.message || err)}</span>`;
+    }
+  }
+
+  async function startAudioPractice() {
+    const role = (roleInput?.value || '').trim();
+    const scenario = (scenarioInput?.value || '').trim();
+
+    startAudioBtn.disabled = true;
+    resultDiv.innerHTML = '<em>Starting audio interview...</em>';
+
+    try {
+      if (!window.AIInterviewAudio) {
+        throw new Error('Audio module is not loaded. Please refresh and try again.');
+      }
+
+      await window.AIInterviewAudio.startAudioStream();
+      const data = await postInterviewAssist({ role, scenario });
+      const firstQuestion = String(data.firstQuestion || '').trim();
+
+      if (!firstQuestion) {
+        throw new Error('Failed to get interview question.');
+      }
+
+      resultDiv.innerHTML = `<strong>AI:</strong> ${escapeHtml(firstQuestion)}<br><em>Speak your answer after the beep...</em>`;
+      window.AIInterviewAudio.speakText(firstQuestion);
+
+      setTimeout(() => {
+        if (!window.AIInterviewAudio.startSpeechRecognition) {
+          resultDiv.innerHTML += '<br><span style="color:#dc2626;">Speech recognition is not available in this browser.</span>';
           startAudioBtn.disabled = false;
           return;
         }
-        await window.AIInterviewAudio.startAudioStream();
-        // Optionally play back local audio
-        // localAudio.srcObject = localStream;
-        // Get first question from backend
-        const role = roleInput.value.trim();
-        const scenario = scenarioInput.value.trim();
-        let token = '';
-        if (typeof getStoredToken === 'function') {
-          token = getStoredToken();
-        } else if (typeof getAuthToken === 'function') {
-          token = getAuthToken();
-        } else if (window.getStoredToken) {
-          token = window.getStoredToken();
-        } else if (window.getAuthToken) {
-          token = window.getAuthToken();
-        } else {
-          token = localStorage.getItem('token') || localStorage.getItem('authToken') || sessionStorage.getItem('token') || sessionStorage.getItem('authToken') || '';
-        }
-        const res = await fetch('/api/interview-assist', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({ role, scenario })
+
+        window.AIInterviewAudio.startSpeechRecognition(async (transcript) => {
+          resultDiv.innerHTML += `<br><strong>You:</strong> ${escapeHtml(transcript)}<br><em>AI is evaluating your answer...</em>`;
+
+          try {
+            const feedbackData = await postInterviewAssist({
+              role,
+              scenario,
+              question: firstQuestion,
+              answer: transcript
+            });
+
+            if (feedbackData.answer) {
+              resultDiv.innerHTML += `<br><strong>AI Feedback:</strong> ${escapeHtml(feedbackData.answer)}`;
+              window.AIInterviewAudio.speakText(feedbackData.answer);
+            } else {
+              resultDiv.innerHTML += '<br><span style="color:#dc2626;">No feedback received.</span>';
+            }
+          } catch (err) {
+            resultDiv.innerHTML += `<br><span style="color:#dc2626;">${escapeHtml(err.message || err)}</span>`;
+          } finally {
+            startAudioBtn.disabled = false;
+          }
         });
-        const data = await res.json();
-        if (data.firstQuestion) {
-          resultDiv.innerHTML = `<strong>AI:</strong> ${data.firstQuestion}<br><em>Speak your answer after the beep...</em>`;
-          window.AIInterviewAudio.speakText(data.firstQuestion);
-          setTimeout(() => {
-            if (!window.AIInterviewAudio.startSpeechRecognition) {
-              resultDiv.innerHTML += '<br><span style="color:#dc2626;">Speech recognition not available in this browser.</span>';
-              console.error('Speech recognition not available: window.AIInterviewAudio', window.AIInterviewAudio);
-              startAudioBtn.disabled = false;
-              return;
-            }
-            window.AIInterviewAudio.startSpeechRecognition(async (transcript) => {
-              resultDiv.innerHTML += `<br><strong>You:</strong> ${transcript}<br><em>AI is evaluating your answer...</em>`;
-              // Send answer to backend for feedback
-              const feedbackRes = await fetch('/api/interview-assist', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ role, scenario, question: data.firstQuestion, answer: transcript })
-              });
-              const feedbackData = await feedbackRes.json();
-              if (feedbackData.answer) {
-                resultDiv.innerHTML += `<br><strong>AI Feedback:</strong> ${feedbackData.answer}`;
-                window.AIInterviewAudio.speakText(feedbackData.answer);
-              } else {
-                resultDiv.innerHTML += `<br><span style='color:red;'>No feedback received.</span>`;
-              }
-              startAudioBtn.disabled = false;
-            });
-          }, 1200);
-        } else {
-          resultDiv.innerHTML = '<span style="color:#dc2626;">Failed to get interview question.</span>';
-          console.error('No firstQuestion in response:', data);
-          startAudioBtn.disabled = false;
-        }
-      } catch (err) {
-        resultDiv.innerHTML = `<span style='color:red;'>${err.message || err}</span>`;
-        console.error('Interview Assist audio error:', err);
-        startAudioBtn.disabled = false;
-      }
-    });
-  }
-
-  let interviewState = {
-    step: 0,
-    questions: [],
-    answers: [],
-    feedback: null,
-    sessionId: null
-  };
-
-
-
-  async function startInterview() {
-    resultDiv.innerHTML = '<em>Starting interview...</em>';
-    interviewState = { step: 0, questions: [], answers: [], feedback: null, sessionId: null };
-    const role = roleInput.value.trim();
-    const scenario = scenarioInput.value.trim();
-    let token = '';
-    if (typeof getStoredToken === 'function') {
-      token = getStoredToken();
-    } else if (typeof getAuthToken === 'function') {
-      token = getAuthToken();
-    } else if (window.getStoredToken) {
-      token = window.getStoredToken();
-    } else if (window.getAuthToken) {
-      token = window.getAuthToken();
-    } else {
-      token = localStorage.getItem('token') || localStorage.getItem('authToken') || sessionStorage.getItem('token') || sessionStorage.getItem('authToken') || '';
-    }
-    if (!token) {
-      resultDiv.innerHTML = '<span style="color:#dc2626;">You must be logged in to start an interview. Please log in and try again.</span>';
-      return;
-    }
-    try {
-      const res = await fetch('/api/interview-assist', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ role, scenario, step: 0, answers: [] })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to start interview');
-      interviewState.sessionId = data.sessionId || null;
-      interviewState.questions = data.questions || [];
-      interviewState.step = 0;
-      showQuestion();
+      }, 1000);
     } catch (err) {
-      resultDiv.innerHTML = `<span style='color:red;'>${err.message || err}</span>`;
+      resultDiv.innerHTML = `<span style="color:#dc2626;">${escapeHtml(err.message || err)}</span>`;
+      startAudioBtn.disabled = false;
     }
   }
 
-  // Fix: Define showQuestion for Start Interview
-  function showQuestion() {
-    if (interviewState.questions && interviewState.questions.length > 0) {
-      resultDiv.innerHTML = `<strong>AI:</strong> ${interviewState.questions[0]}`;
-    } else {
-      resultDiv.innerHTML = '<span style="color:#dc2626;">No interview question received from AI.</span>';
-    }
-  }
-
-  function formatInterviewForPdf(text, doc) {
-    const lines = text.split(/\r?\n/);
-    let y = 20;
-    doc.setFont('times', 'bold');
-    doc.setFontSize(12);
-    doc.text('Generated Interview Q&A', 10, y);
-    y += 10;
-    doc.setFont('times', 'normal');
-    doc.setFontSize(12);
-    lines.forEach(line => {
-      if (/^### /.test(line)) {
-        y += 8;
-        doc.setFont('times', 'bold');
-        doc.setFontSize(12);
-        doc.text(line.replace(/^### /, ''), 10, y);
-        doc.setFont('times', 'normal');
-        doc.setFontSize(12);
-        y += 6;
-      } else if (/^## /.test(line)) {
-        y += 8;
-        doc.setFont('times', 'bold');
-        doc.setFontSize(12);
-        doc.text(line.replace(/^## /, ''), 10, y);
-        doc.setFont('times', 'normal');
-        doc.setFontSize(12);
-        y += 5;
-      } else if (/^# /.test(line)) {
-        y += 10;
-        doc.setFont('times', 'bold');
-        doc.setFontSize(12);
-        doc.text(line.replace(/^# /, ''), 10, y);
-        doc.setFont('times', 'normal');
-        doc.setFontSize(12);
-        y += 6;
-      } else if (/^\d+\. /.test(line)) {
-        doc.text(line, 14, y);
-        y += 6;
-      } else if (/^- /.test(line)) {
-        doc.text(line.replace(/^- /, '\u2022 '), 18, y);
-        y += 6;
-      } else if (/^\*\*.*\*\*$/.test(line)) {
-        doc.setFont('times', 'bold');
-        doc.text(line.replace(/\*\*/g, ''), 10, y);
-        doc.setFont('times', 'normal');
-        y += 6;
-      } else if (line.trim() === '') {
-        y += 4;
-      } else {
-        doc.text(line, 10, y);
-        y += 6;
-      }
-      if (y > 270) { doc.addPage(); y = 20; }
-    });
-  }
-
-  function formatInterviewForWord(text) {
-    return (
-      'Generated Interview Q&A\n\n' +
-      text
-        .replace(/^### (.*)$/gm, '\n\n$1\n' + '-'.repeat(40))
-        .replace(/^## (.*)$/gm, '\n\n$1\n' + '-'.repeat(30))
-        .replace(/^# (.*)$/gm, '\n\n$1\n' + '-'.repeat(20))
-        .replace(/\*\*(.*?)\*\*/g, '$1'.toUpperCase())
-        .replace(/^- /gm, '  • ')
-        .replace(/\n{2,}/g, '\n\n')
-    );
-  }
-
-        if (data.firstQuestion) {
-          resultDiv.innerHTML = `<strong>AI:</strong> ${data.firstQuestion}<br><em>🔔 Speak your answer after the beep...</em>`;
-          window.AIInterviewAudio.speakText(data.firstQuestion);
-          // Play beep sound before starting speech recognition
-          const beep = new Audio('https://cdn.jsdelivr.net/gh/terrasample/static-assets/beep-07.mp3');
-          beep.play();
-          beep.onended = () => {
-            if (!window.AIInterviewAudio.startSpeechRecognition) {
-              resultDiv.innerHTML += '<br><span style="color:#dc2626;">Speech recognition not available in this browser.</span>';
-              console.error('Speech recognition not available: window.AIInterviewAudio', window.AIInterviewAudio);
-              startAudioBtn.disabled = false;
-              return;
-            }
-            window.AIInterviewAudio.startSpeechRecognition(async (transcript) => {
-              resultDiv.innerHTML += `<br><strong>You:</strong> ${transcript}<br><em>AI is evaluating your answer...</em>`;
-              // Send answer to backend for feedback
-              const feedbackRes = await fetch('/api/interview-assist', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ role, scenario, question: data.firstQuestion, answer: transcript })
-              });
-              const feedbackData = await feedbackRes.json();
-              if (feedbackData.answer) {
-                resultDiv.innerHTML += `<br><strong>AI Feedback:</strong> ${feedbackData.answer}`;
-                window.AIInterviewAudio.speakText(feedbackData.answer);
-              } else {
-                resultDiv.innerHTML += `<br><span style='color:red;'>No feedback received.</span>`;
-              }
-              startAudioBtn.disabled = false;
-            });
-          };
-        } else {
-          resultDiv.innerHTML = '<span style="color:#dc2626;">Failed to get interview question.</span>';
-          console.error('No firstQuestion in response:', data);
-          startAudioBtn.disabled = false;
-        }
+  startBtn?.addEventListener('click', startInterview);
+  startAudioBtn?.addEventListener('click', startAudioPractice);
+});

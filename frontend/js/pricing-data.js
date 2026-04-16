@@ -31,6 +31,7 @@ window.RoleRocketPricingData = {
     elite: {
       features: [
         'Everything in Premium',
+        '🎤 Interview Assist (LIVE)',
         'Career Coach',
         'Career Path Simulator',
         'Offer Negotiation Coach',

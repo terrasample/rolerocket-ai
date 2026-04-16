@@ -62,7 +62,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       {
         tier: 'elite',
         features: [
-          { name: '🎤 Interview Assist (LIVE)', desc: 'Get real-time AI coaching during live interviews. Type any question mid-call and instantly receive a structured, coach-quality answer.', url: 'dashboard.html#interviewAssist' },
+          { name: '🎤 Interview Assist (LIVE)', desc: 'Get real-time AI coaching during live interviews. Type any question mid-call and instantly receive a structured, coach-quality answer.', url: 'ai-interview-assist.html' },
           { name: 'Career Coach', desc: 'Get strategic direction on positioning, next-best moves, and salary trajectory by role path.', url: 'ai-career-coach.html' },
           { name: 'Career Path Simulator', desc: 'Simulate different career paths and see potential outcomes based on your choices.', url: 'career-path-simulator.html' },
           { name: 'Offer Negotiation Coach', desc: 'Get expert negotiation strategies and scripts to maximize your job offers.', url: 'offer-negotiation-coach.html' },
