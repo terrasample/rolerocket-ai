@@ -9,6 +9,44 @@
 
   const STORAGE_KEY = 'rr_quickstart_sprint_v1';
   const EVENT_KEY = 'rr_quickstart_events_v1';
+  const EVENT_ID_KEY = 'rr_quickstart_event_id_v1';
+  const SESSION_KEY = 'rr_quickstart_session_v1';
+  let syncInFlight = false;
+
+  function getToken() {
+    return localStorage.getItem('token')
+      || sessionStorage.getItem('token')
+      || localStorage.getItem('authToken')
+      || sessionStorage.getItem('authToken')
+      || '';
+  }
+
+  function getSessionId() {
+    const existing = localStorage.getItem(SESSION_KEY);
+    if (existing) return existing;
+    const created = `qs_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    localStorage.setItem(SESSION_KEY, created);
+    return created;
+  }
+
+  function nextEventId() {
+    const value = Number(localStorage.getItem(EVENT_ID_KEY) || '0') + 1;
+    localStorage.setItem(EVENT_ID_KEY, String(value));
+    return value;
+  }
+
+  function readEvents() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(EVENT_KEY) || '[]');
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function saveEvents(events) {
+    localStorage.setItem(EVENT_KEY, JSON.stringify(events.slice(-200)));
+  }
 
   function readState() {
     try {
@@ -61,15 +99,17 @@
 
   function pushEvent(name, payload) {
     const event = {
+      id: nextEventId(),
       name,
       payload: payload || {},
-      ts: Date.now()
+      ts: Date.now(),
+      synced: false
     };
 
     try {
-      const list = JSON.parse(localStorage.getItem(EVENT_KEY) || '[]');
+      const list = readEvents();
       list.push(event);
-      localStorage.setItem(EVENT_KEY, JSON.stringify(list.slice(-200)));
+      saveEvents(list);
     } catch {
       // Ignore analytics queue failures.
     }
@@ -80,6 +120,54 @@
 
     if (typeof window.plausible === 'function') {
       window.plausible(name, { props: payload || {} });
+    }
+
+    syncEventsToBackend();
+  }
+
+  async function syncEventsToBackend() {
+    if (syncInFlight || !navigator.onLine) return;
+
+    const token = getToken();
+    if (!token) return;
+
+    const events = readEvents();
+    const unsynced = events.filter((evt) => evt && evt.synced !== true).slice(0, 40);
+    if (!unsynced.length) return;
+
+    const payload = unsynced.map((evt) => ({
+      event: String(evt.name || '').slice(0, 80),
+      funnel: 'quickstart',
+      sessionId: getSessionId(),
+      page: 'quickstart',
+      variant: '',
+      ts: new Date(Number(evt.ts || Date.now())).toISOString(),
+      meta: {
+        ...(evt.payload || {}),
+        clientEventId: evt.id || null
+      }
+    }));
+
+    syncInFlight = true;
+    try {
+      const res = await fetch('/api/telemetry/bulk', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ events: payload })
+      });
+
+      if (!res.ok) return;
+
+      const sentIds = new Set(unsynced.map((evt) => evt.id));
+      const remaining = readEvents().filter((evt) => !sentIds.has(evt.id));
+      saveEvents(remaining);
+    } catch {
+      // Keep events queued for later retries.
+    } finally {
+      syncInFlight = false;
     }
   }
 
@@ -141,6 +229,23 @@
     setStep,
     completeStep,
     getSummary,
-    track: pushEvent
+    track: pushEvent,
+    sync: syncEventsToBackend
   };
+
+  window.addEventListener('online', () => {
+    syncEventsToBackend();
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      syncEventsToBackend();
+    }
+  });
+
+  setInterval(() => {
+    syncEventsToBackend();
+  }, 15000);
+
+  syncEventsToBackend();
 })();

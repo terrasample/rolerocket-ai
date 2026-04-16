@@ -1141,6 +1141,86 @@ h3,
   font-weight: 700;
 }
 
+.quickstart-conversion-card {
+  margin-top: 14px;
+  border-color: rgba(56, 189, 248, 0.35);
+}
+
+.quickstart-conversion-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.quickstart-conversion-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.quickstart-conversion-controls .secondary-btn {
+  padding: 4px 10px;
+  font-size: 0.84rem;
+}
+
+.quickstart-kpis {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(120px, 1fr));
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.quickstart-kpis div {
+  background: rgba(2, 132, 199, 0.08);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.quickstart-kpis strong {
+  display: block;
+  color: #0f172a;
+  font-size: 1.1rem;
+}
+
+.quickstart-kpis span {
+  color: #475569;
+  font-size: 0.85rem;
+}
+
+.quickstart-step-list {
+  display: grid;
+  gap: 6px;
+}
+
+.quickstart-step-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: #f8fbff;
+}
+
+.quickstart-step-row span {
+  color: #1e293b;
+  font-size: 0.9rem;
+}
+
+.quickstart-step-row strong {
+  color: #0f172a;
+  font-size: 0.88rem;
+}
+
+.quickstart-conv-note {
+  margin-top: 8px;
+  color: #64748b;
+  font-size: 0.82rem;
+}
+
 .who-we-are-points {
   margin-top: 14px;
   display: grid;
@@ -4466,6 +4546,43 @@ pre {
   .quickstart-grid {
     grid-template-columns: 1fr !important;
     gap: 12px;
+  }
+
+  .quickstart-step {
+    padding: 14px;
+  }
+
+  .quickstart-step label {
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .quickstart-step strong {
+    font-size: 0.98rem;
+  }
+
+  .quickstart-step small {
+    font-size: 0.9rem;
+  }
+
+  .quickstart-link {
+    width: 100%;
+    text-align: center;
+    padding: 10px 14px;
+    font-size: 0.92rem;
+  }
+
+  .quickstart-progress {
+    font-size: 0.95rem;
+  }
+
+  .quickstart-kpis {
+    grid-template-columns: 1fr;
+  }
+
+  .quickstart-step-row {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .stats-chart-wrap {

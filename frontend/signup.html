@@ -70,16 +70,36 @@
           <input id="signupName" type="text" placeholder="Full name" required />
           <input id="signupEmail" type="email" placeholder="Email address" autocomplete="email" required />
           <input id="signupPassword" type="password" placeholder="Create password" autocomplete="new-password" minlength="8" required />
-          <input id="signupReferral" type="text" placeholder="Referral Code (optional)" autocomplete="off" style="margin-bottom:10px;" />
+          <input id="signupReferral" type="text" placeholder="Referral code or referral link (optional)" autocomplete="off" style="margin-bottom:10px;" />
           <button id="signupSubmitBtn" type="submit" class="auth-submit-btn">Create Free Account</button>
         </form>
         <script>
+        function extractReferralCode(input) {
+          const raw = String(input || '').trim();
+          if (!raw) return '';
+
+          const tryParse = (value) => {
+            try {
+              const url = new URL(value, window.location.origin);
+              const fromRef = url.searchParams.get('ref') || url.searchParams.get('referral') || url.searchParams.get('referralCode');
+              if (fromRef) return fromRef;
+            } catch {
+              // Not a URL.
+            }
+            return '';
+          };
+
+          const fromUrl = tryParse(raw);
+          const candidate = fromUrl || raw;
+          return candidate.replace(/[^a-zA-Z0-9_-]/g, '').toUpperCase().slice(0, 40);
+        }
+
         // Autofill referral code from URL
         (function() {
           const params = new URLSearchParams(window.location.search);
-          const ref = params.get('ref');
+          const ref = params.get('ref') || params.get('referral') || params.get('referralCode');
           if (ref) {
-            document.getElementById('signupReferral').value = ref;
+            document.getElementById('signupReferral').value = extractReferralCode(ref);
           }
         })();
         </script>
@@ -150,7 +170,7 @@
     const signupWaitlistMessage = document.getElementById('signupWaitlistMessage');
 
     const params = new URLSearchParams(window.location.search);
-    const referral = params.get('ref');
+    const referralFromUrl = params.get('ref') || params.get('referral') || params.get('referralCode') || '';
 
     function wait(ms) {
       return new Promise((resolve) => setTimeout(resolve, ms));
@@ -259,6 +279,8 @@
       const name = document.getElementById('signupName').value.trim();
       const email = document.getElementById('signupEmail').value.trim().toLowerCase();
       const password = document.getElementById('signupPassword').value;
+      const referralInputRaw = document.getElementById('signupReferral').value;
+      const referralCode = extractReferralCode(referralInputRaw || referralFromUrl);
 
       if (!name || !email || !password) {
         signupMessage.textContent = 'Please fill in all fields.';
@@ -285,7 +307,7 @@
           name,
           email,
           password,
-          referralCode: referral
+          referralCode
         });
 
         signupMessage.textContent = 'Account created. Check your email to verify your account before logging in.';

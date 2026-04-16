@@ -535,6 +535,8 @@ const statsDetailTitleEl = document.getElementById('statsDetailTitle');
 const statsDetailBodyEl = document.getElementById('statsDetailBody');
 const dashboardSignupRosterSectionEl = document.getElementById('dashboardSignupRosterSection');
 const dashboardSignupRosterBodyEl = document.getElementById('dashboardSignupRosterBody');
+const quickstartConversionSectionEl = document.getElementById('quickstartConversionSection');
+const quickstartConversionBodyEl = document.getElementById('quickstartConversionBody');
 const statsFootnoteEl = document.getElementById('statsFootnote');
 const lifetimeDashboardPriceEl = document.getElementById('lifetimeDashboardPrice');
 const lifetimeOfferPillEl = document.getElementById('lifetimeOfferPill');
@@ -569,6 +571,7 @@ let latestPlatformStats = {
 };
 let latestPlatformUsers = [];
 let latestPlatformUsersError = '';
+let quickstartConversionDays = 30;
 let activePlanGuide = 'pro';
 
 const PLAN_GUIDE_CONTENT = {
@@ -841,6 +844,72 @@ function renderDashboardSignupRoster() {
   `;
 }
 
+function renderQuickstartConversion(data) {
+  if (!quickstartConversionBodyEl) return;
+  const startedUsers = Number(data?.startedUsers || 0);
+  const completedAllUsers = Number(data?.completedAllUsers || 0);
+  const conversionRate = Number(data?.conversionRate || 0).toFixed(1);
+  const steps = Array.isArray(data?.steps) ? data.steps : [];
+
+  const stepLabels = {
+    resume: 'Resume saved',
+    tailor: 'Resume tailored',
+    interview: 'Interview practiced',
+    pipeline: 'Job saved'
+  };
+
+  quickstartConversionBodyEl.innerHTML = `
+    <div class="quickstart-kpis">
+      <div><strong>${formatStatNumber(startedUsers)}</strong><span>Started</span></div>
+      <div><strong>${formatStatNumber(completedAllUsers)}</strong><span>Completed all 4</span></div>
+      <div><strong>${conversionRate}%</strong><span>Completion rate</span></div>
+    </div>
+    <div class="quickstart-step-list" role="list" aria-label="Quickstart step conversion">
+      ${steps.map((row) => `
+        <article role="listitem" class="quickstart-step-row">
+          <span>${escapeHtml(stepLabels[row.step] || row.step)}</span>
+          <strong>${formatStatNumber(Number(row.users || 0))} users (${Number(row.rate || 0).toFixed(1)}%)</strong>
+        </article>
+      `).join('')}
+    </div>
+    <p class="quickstart-conv-note">Window: last ${Number(data?.windowDays || quickstartConversionDays)} days</p>
+  `;
+}
+
+async function loadQuickstartConversion(days = quickstartConversionDays) {
+  if (!quickstartConversionSectionEl || !quickstartConversionBodyEl) return;
+  quickstartConversionDays = days;
+
+  if (!window.currentUserIsAdmin) {
+    quickstartConversionSectionEl.hidden = true;
+    return;
+  }
+
+  quickstartConversionSectionEl.hidden = false;
+  quickstartConversionBodyEl.innerHTML = '<p>Loading quickstart conversion...</p>';
+
+  try {
+    const data = await api(`/api/admin/quickstart/conversion?days=${encodeURIComponent(String(days))}`, { method: 'GET' });
+    renderQuickstartConversion(data);
+    document.querySelectorAll('[data-quickstart-days]').forEach((button) => {
+      const isActive = String(button.dataset.quickstartDays) === String(days);
+      button.classList.toggle('plan-info-active', isActive);
+      button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+    });
+  } catch (err) {
+    quickstartConversionBodyEl.innerHTML = `<p>${escapeHtml(err.message || 'Could not load quickstart conversion.')}</p>`;
+  }
+}
+
+function initQuickstartConversionControls() {
+  document.querySelectorAll('[data-quickstart-days]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const nextDays = Number(button.dataset.quickstartDays || '30');
+      loadQuickstartConversion(Number.isFinite(nextDays) ? nextDays : 30);
+    });
+  });
+}
+
 function renderPlatformUsagePie(resumesTotal, jobsTrackedTotal, applicationsTotal) {
   if (!statsPieEl) return;
 
@@ -908,6 +977,7 @@ async function loadPlatformStats() {
   if (!window.currentUserIsAdmin) {
     if (statUsersCardEl) statUsersCardEl.hidden = true;
     renderDashboardSignupRoster();
+    if (quickstartConversionSectionEl) quickstartConversionSectionEl.hidden = true;
     return;
   }
 
@@ -924,16 +994,22 @@ async function loadPlatformStats() {
     if (statUsersEl) statUsersEl.textContent = formatStatNumber(latestPlatformStats.usersTotal);
     renderPlatformStatDetail('users');
     renderDashboardSignupRoster();
+    await loadQuickstartConversion(quickstartConversionDays);
   } catch {
     if (statUsersCardEl) statUsersCardEl.hidden = true;
     latestPlatformUsers = [];
     latestPlatformUsersError = 'Signed up users could not be loaded right now.';
     renderPlatformStatDetail('activity');
     renderDashboardSignupRoster();
+    if (quickstartConversionBodyEl) {
+      quickstartConversionSectionEl.hidden = false;
+      quickstartConversionBodyEl.innerHTML = '<p>Quickstart conversion is temporarily unavailable.</p>';
+    }
   }
 }
 
 initPlatformStatDetailActions();
+initQuickstartConversionControls();
 
 // ─── Toast notifications ───────────────────────────────────────────────────
 const TOAST_ICONS = { success: '✅', error: '❌', warn: '⚠️', info: 'ℹ️' };

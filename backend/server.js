@@ -1989,6 +1989,45 @@ app.get('/api/referral', authenticateToken, async (req, res) => {
   }
 });
 
+app.post('/api/telemetry/bulk', authenticateToken, async (req, res) => {
+  try {
+    const incoming = Array.isArray(req.body?.events) ? req.body.events : [];
+    if (!incoming.length) {
+      return res.status(400).json({ error: 'events array is required' });
+    }
+
+    const trimmed = incoming.slice(0, 100);
+    const docs = trimmed
+      .map((evt) => {
+        const event = String(evt?.event || '').trim().slice(0, 80);
+        if (!event) return null;
+        return {
+          userId: req.user.userId,
+          event,
+          funnel: String(evt?.funnel || '').slice(0, 80),
+          sessionId: String(evt?.sessionId || '').slice(0, 80),
+          page: String(evt?.page || '').slice(0, 120),
+          variant: String(evt?.variant || '').slice(0, 20),
+          ts: evt?.ts ? new Date(evt.ts) : new Date(),
+          meta: typeof evt?.meta === 'object' && evt.meta !== null ? evt.meta : {},
+          userAgent: String(req.headers['user-agent'] || '').slice(0, 280),
+          ip: String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').slice(0, 120)
+        };
+      })
+      .filter(Boolean);
+
+    if (!docs.length) {
+      return res.status(400).json({ error: 'No valid events were provided' });
+    }
+
+    await Telemetry.insertMany(docs, { ordered: false });
+    return res.json({ ok: true, inserted: docs.length });
+  } catch (err) {
+    console.error('Telemetry bulk error:', err.message);
+    return res.status(500).json({ error: 'Failed to store telemetry batch' });
+  }
+});
+
 app.post('/api/telemetry', async (req, res) => {
   try {
     const authHeader = req.headers.authorization || '';
@@ -2037,6 +2076,71 @@ app.post('/api/telemetry', async (req, res) => {
   } catch (err) {
     console.error('Telemetry error:', err.message);
     return res.status(500).json({ error: 'Failed to store telemetry' });
+  }
+});
+
+app.get('/api/admin/quickstart/conversion', authenticateToken, requireAnalyticsAccess, async (req, res) => {
+  try {
+    const rawDays = Number(req.query.days || 30);
+    const days = Number.isFinite(rawDays) ? Math.min(Math.max(rawDays, 1), 180) : 30;
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+    const events = await Telemetry.find({
+      ts: { $gte: since },
+      event: { $in: ['quickstart_step_completed', 'quickstart_completed_all'] }
+    })
+      .select('userId sessionId event meta ts')
+      .lean();
+
+    const startedActors = new Set();
+    const completedActors = new Set();
+    const stepActors = {
+      resume: new Set(),
+      tailor: new Set(),
+      interview: new Set(),
+      pipeline: new Set()
+    };
+
+    events.forEach((evt) => {
+      const actor = evt.userId
+        ? `u:${String(evt.userId)}`
+        : (evt.sessionId ? `s:${String(evt.sessionId)}` : '');
+      if (!actor) return;
+
+      if (evt.event === 'quickstart_step_completed') {
+        startedActors.add(actor);
+        const step = String(evt.meta?.step || '').trim().toLowerCase();
+        if (stepActors[step]) {
+          stepActors[step].add(actor);
+        }
+      }
+
+      if (evt.event === 'quickstart_completed_all') {
+        startedActors.add(actor);
+        completedActors.add(actor);
+      }
+    });
+
+    const started = startedActors.size;
+    const completedAll = completedActors.size;
+    const conversionRate = started ? Number(((completedAll / started) * 100).toFixed(1)) : 0;
+
+    const steps = ['resume', 'tailor', 'interview', 'pipeline'].map((step) => {
+      const users = stepActors[step].size;
+      const rate = started ? Number(((users / started) * 100).toFixed(1)) : 0;
+      return { step, users, rate };
+    });
+
+    return res.json({
+      windowDays: days,
+      startedUsers: started,
+      completedAllUsers: completedAll,
+      conversionRate,
+      steps
+    });
+  } catch (err) {
+    console.error('Quickstart conversion error:', err.message);
+    return res.status(500).json({ error: 'Failed to load quickstart conversion metrics' });
   }
 });
 
