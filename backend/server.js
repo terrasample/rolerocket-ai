@@ -2756,14 +2756,16 @@ app.post('/api/career-coach', authenticateToken, async (req, res) => {
 // ─── Interview Assist ────────────────────────────────────────────────────────
 app.post('/api/interview-assist', authenticateToken, async (req, res) => {
   try {
-    const { question, role, resume, scenario, history } = req.body || {};
+    const { question, role, resume, scenario, history, liveMode } = req.body || {};
 
     if (E2E_MOCK_MODE) {
       return res.json({
         type: 'behavioral',
         answer: 'I would answer this by briefly setting the context, explaining the action I took, and closing with the result so the interviewer gets a clear story fast.',
         bullets: ['Open with the core point first', 'Use a simple STAR flow', 'End with the measurable result'],
-        tip: 'Pause first, then deliver the main point clearly.'
+        tip: 'Pause first, then deliver the main point clearly.',
+        coachPointers: ['Slow down to 80% speed.', 'Pause for one beat before key points.', 'Land one takeaway before details.'],
+        freezeRescue: 'Give me one second. The key point is that I solved this by focusing on impact first.'
       });
     }
 
@@ -2792,22 +2794,29 @@ Scenario: ${scenario || ''}`;
       });
     }
 
+    const isLiveMode = Boolean(liveMode);
+
     const systemPrompt = `You are a live interview coach helping a candidate answer questions in real-time during an actual job interview.
 
 Return ONLY a valid JSON object with this exact structure:
 {
   "type": "behavioral|situational|general",
-  "answer": "A strong, concise answer (max 180 words). Behavioral: use STAR format. Situational: direct confident structure. General: clear and impactful.",
+  "answer": "A strong, concise answer. If liveMode is true keep it under 110 words and easy to speak aloud. Behavioral: use STAR format. Situational: direct confident structure. General: clear and impactful.",
   "bullets": ["prompt or reminder 1", "prompt or reminder 2", "prompt or reminder 3"],
-  "tip": "One short anti-freeze delivery reminder (max 15 words)"
+  "tip": "One short anti-freeze delivery reminder (max 15 words)",
+  "coachPointers": ["delivery pointer 1", "delivery pointer 2", "delivery pointer 3"],
+  "freezeRescue": "One line the user can say if they freeze"
 }
 
 Rules:
-- Answer must be under 180 words — this is used live during an interview
+- If liveMode is true, answer must be under 110 words and sound natural out loud
+- If liveMode is false, answer must be under 180 words
 - Write in first person, naturally, confidently
 - Behavioral questions (tell me about a time, describe a situation, give an example) → STAR format
 - Situational / hypothetical → direct structured response
 - The bullets should act like live prompts or reminders the user can glance at while answering
+- coachPointers must include delivery cues, and at least one should mention pacing like "slow down"
+- freezeRescue should be a short line the candidate can actually say to recover smoothly
 - Help the user avoid freezing and keep the answer sharp, focused, and easy to speak aloud
 - Return only valid JSON, no markdown fences`;
 
@@ -2822,8 +2831,8 @@ Rules:
     }
 
     const userContent = contextParts.length
-      ? `${contextParts.join('\n\n')}\n\nInterview question: ${question}`
-      : `Interview question: ${question}`;
+      ? `${contextParts.join('\n\n')}\n\nLive mode: ${isLiveMode ? 'true' : 'false'}\nInterview question: ${question}`
+      : `Live mode: ${isLiveMode ? 'true' : 'false'}\nInterview question: ${question}`;
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
@@ -2840,7 +2849,9 @@ Rules:
       type: parsed.type || 'general',
       answer: parsed.answer || '',
       bullets: Array.isArray(parsed.bullets) ? parsed.bullets.slice(0, 4) : [],
-      tip: parsed.tip || ''
+      tip: parsed.tip || '',
+      coachPointers: Array.isArray(parsed.coachPointers) ? parsed.coachPointers.slice(0, 4) : [],
+      freezeRescue: parsed.freezeRescue || ''
     });
   } catch (err) {
     console.error('Interview assist error:', err);

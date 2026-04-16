@@ -4,8 +4,10 @@
 document.addEventListener('DOMContentLoaded', () => {
   const startBtn = document.getElementById('startInterviewBtn');
   const startAudioBtn = document.getElementById('startAudioBtn');
+  const liveAnswerBtn = document.getElementById('getLiveAnswerBtn');
   const roleInput = document.getElementById('interviewRole');
   const scenarioInput = document.getElementById('interviewScenario');
+  const liveQuestionInput = document.getElementById('liveQuestionInput');
   const resultDiv = document.getElementById('interviewAssistResult');
 
   function getToken() {
@@ -27,9 +29,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderFeedbackMarkup(data) {
     const bullets = Array.isArray(data?.bullets) ? data.bullets : [];
+    const coachPointers = Array.isArray(data?.coachPointers) ? data.coachPointers : [];
     const bulletMarkup = bullets.length
       ? bullets.map((item, index) => `<li style="margin-bottom:6px;"><strong>Prompt ${index + 1}:</strong> ${escapeHtml(item)}</li>`).join('')
       : '<li>No quick prompts returned.</li>';
+    const pointerMarkup = coachPointers.length
+      ? coachPointers.map((item) => `<li style="margin-bottom:6px;">${escapeHtml(item)}</li>`).join('')
+      : '<li>Slow down, pause one beat, then lead with your strongest point.</li>';
 
     const structureLabel = String(data?.type || 'general').trim() || 'general';
     const structureText = structureLabel === 'behavioral'
@@ -54,13 +60,21 @@ document.addEventListener('DOMContentLoaded', () => {
           <div style="margin-top:6px;color:#334155;">${escapeHtml(data?.tip || 'Pause, breathe, and land the main point first.')}</div>
         </div>
       </div>
+      <div style="margin-top:14px;padding:16px;border:1px solid #fde68a;border-radius:12px;background:#fffbeb;">
+        <div style="font-size:0.8rem;font-weight:700;color:#92400e;letter-spacing:0.04em;text-transform:uppercase;margin-bottom:10px;">Live delivery coach</div>
+        <ul style="margin:8px 0 0 18px;padding:0;">${pointerMarkup}</ul>
+      </div>
       <div style="margin-top:14px;padding:16px;border:1px solid #dcfce7;border-radius:12px;background:#f7fff9;">
         <div style="font-size:0.8rem;font-weight:700;color:#15803d;letter-spacing:0.04em;text-transform:uppercase;margin-bottom:10px;">What it does for you</div>
         <div style="color:#334155;line-height:1.8;">👉 Prevents freezing</div>
         <div style="color:#334155;line-height:1.8;">👉 Keeps answers sharp</div>
       </div>
+      <div style="margin-top:14px;padding:12px 14px;border:1px solid #fbcfe8;border-radius:12px;background:#fdf2f8;">
+        <strong>If you blank out:</strong>
+        <div style="margin-top:6px;color:#4b5563;">${escapeHtml(data?.freezeRescue || 'Give me one second to think. The key point is: [state your main point first].')}</div>
+      </div>
       <div style="margin-top:14px;">
-        <strong>Answer Draft</strong>
+        <strong>Live Answer Draft</strong>
         <div style="margin-top:8px;line-height:1.8;color:#0f172a;">${escapeHtml(data?.answer || '')}</div>
       </div>
     `;
@@ -129,7 +143,8 @@ document.addEventListener('DOMContentLoaded', () => {
             role,
             scenario,
             question: firstQuestion,
-            answer
+            answer,
+            liveMode: true
           });
 
           feedbackDiv.innerHTML = feedbackData.answer
@@ -188,7 +203,8 @@ document.addEventListener('DOMContentLoaded', () => {
               role,
               scenario,
               question: firstQuestion,
-              answer: transcript
+              answer: transcript,
+              liveMode: true
             });
 
             if (feedbackData.answer) {
@@ -213,6 +229,41 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  async function getLiveCopilotAnswer() {
+    const role = (roleInput?.value || '').trim();
+    const scenario = (scenarioInput?.value || '').trim();
+    const question = (liveQuestionInput?.value || '').trim();
+
+    if (!question) {
+      resultDiv.innerHTML = '<span style="color:#dc2626;">Type the recruiter question first.</span>';
+      return;
+    }
+
+    resultDiv.innerHTML = '<em>Generating live copilot answer...</em>';
+
+    try {
+      const data = await postInterviewAssist({
+        role,
+        scenario,
+        question,
+        liveMode: true
+      });
+
+      if (!data.answer) {
+        resultDiv.innerHTML = '<span style="color:#dc2626;">No answer returned. Try again.</span>';
+        return;
+      }
+
+      resultDiv.innerHTML = renderFeedbackMarkup(data);
+      if (window.RoleRocketQuickstart) {
+        window.RoleRocketQuickstart.completeStep('interview', 'interview_live_copilot');
+      }
+    } catch (err) {
+      resultDiv.innerHTML = `<span style="color:#dc2626;">${escapeHtml(err.message || err)}</span>`;
+    }
+  }
+
   startBtn?.addEventListener('click', startInterview);
   startAudioBtn?.addEventListener('click', startAudioPractice);
+  liveAnswerBtn?.addEventListener('click', getLiveCopilotAnswer);
 });
