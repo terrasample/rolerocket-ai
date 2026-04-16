@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const authenticateToken = require('../middleware/auth'); // JWT middleware
 const Resume = require('../models/Resume'); // MongoDB model
+const User = require('../models/User');
 const OpenAI = require('openai');
 const multer = require('multer');
 const { extractTextFromPDF, extractTextFromDocx } = require('../pdfWordUtils');
@@ -11,6 +12,51 @@ const { extractTextFromPDFWithOCR } = require('../ocrUtils');
 // Configure multer for memory storage (must be before any route uses 'upload')
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
+
+function sanitizeTemplateState(input) {
+  const queue = Array.isArray(input?.queue)
+    ? input.queue.filter((n) => Number.isInteger(n) && n >= 0 && n <= 200).slice(0, 50)
+    : [];
+  const lastTemplateIdx = Number.isInteger(input?.lastTemplateIdx) ? input.lastTemplateIdx : -1;
+  return { queue, lastTemplateIdx };
+}
+
+router.get('/template-state', authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId).select('resumeTemplateRotation');
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const state = sanitizeTemplateState(user.resumeTemplateRotation || {});
+    res.json({ state });
+  } catch (err) {
+    console.error('Error fetching resume template state:', err);
+    res.status(500).json({ error: 'Could not fetch template state' });
+  }
+});
+
+router.put('/template-state', authenticateToken, async (req, res) => {
+  try {
+    const state = sanitizeTemplateState(req.body || {});
+    const user = await User.findByIdAndUpdate(
+      req.user.userId,
+      {
+        $set: {
+          resumeTemplateRotation: {
+            ...state,
+            updatedAt: new Date()
+          }
+        }
+      },
+      { new: true, projection: { resumeTemplateRotation: 1 } }
+    );
+
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    res.json({ state: sanitizeTemplateState(user.resumeTemplateRotation || {}) });
+  } catch (err) {
+    console.error('Error updating resume template state:', err);
+    res.status(500).json({ error: 'Could not update template state' });
+  }
+});
 
 // Save resume content (for dashboard) - supports file upload or pasted text
 router.post('/save', authenticateToken, upload.single('resumeFile'), async (req, res) => {

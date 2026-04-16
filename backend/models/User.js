@@ -26,7 +26,13 @@ const UserSchema = new mongoose.Schema(
 
     veteranVerified: { type: Boolean, default: false },
     veteranVerifiedAt: { type: Date, default: null },
-    veteranDiscountPopupSeenAt: { type: Date, default: null }
+    veteranDiscountPopupSeenAt: { type: Date, default: null },
+
+    resumeTemplateRotation: {
+      queue: { type: [Number], default: [] },
+      lastTemplateIdx: { type: Number, default: -1 },
+      updatedAt: { type: Date, default: null }
+    }
   },
   { timestamps: true }
 );

@@ -44,6 +44,11 @@ document.addEventListener('DOMContentLoaded', function () {
   let templateQueue = [];
   let lastTemplateIdx = -1;
   const templateStateKey = `resume-template-queue-v1-${THEMES.map((t) => t.id).join('|')}`;
+  let templateStateReadyPromise = null;
+
+  function getAuthToken() {
+    return (typeof getStoredToken === 'function' ? getStoredToken() : localStorage.getItem('token')) || '';
+  }
 
   function escapeHtml(value) {
     return String(value || '')
@@ -78,6 +83,27 @@ document.addEventListener('DOMContentLoaded', function () {
     return arr;
   }
 
+  async function saveTemplateStateToServer() {
+    const token = getAuthToken();
+    if (!token) return;
+
+    try {
+      await fetch('/api/resume/template-state', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          queue: templateQueue,
+          lastTemplateIdx
+        })
+      });
+    } catch (err) {
+      // Keep local fallback behavior when server sync fails.
+    }
+  }
+
   function saveTemplateState() {
     try {
       sessionStorage.setItem(templateStateKey, JSON.stringify({
@@ -87,6 +113,8 @@ document.addEventListener('DOMContentLoaded', function () {
     } catch (err) {
       // Ignore storage failures in private/restricted contexts.
     }
+
+    saveTemplateStateToServer();
   }
 
   function loadTemplateState() {
@@ -109,6 +137,46 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
+  async function loadTemplateStateFromServer() {
+    const token = getAuthToken();
+    if (!token) return;
+
+    try {
+      const res = await fetch('/api/resume/template-state', {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (!res.ok) return;
+      const data = await res.json();
+      const validIndices = new Set(THEMES.map((_, idx) => idx));
+      const serverState = data && data.state ? data.state : {};
+      const safeQueue = Array.isArray(serverState.queue)
+        ? serverState.queue.filter((idx) => validIndices.has(idx))
+        : [];
+      const safeLast = validIndices.has(serverState.lastTemplateIdx) ? serverState.lastTemplateIdx : -1;
+
+      templateQueue = safeQueue;
+      lastTemplateIdx = safeLast;
+
+      try {
+        sessionStorage.setItem(templateStateKey, JSON.stringify({
+          templateQueue,
+          lastTemplateIdx
+        }));
+      } catch (err) {
+        // Ignore local storage fallback issues.
+      }
+    } catch (err) {
+      // Keep local fallback behavior when server fetch fails.
+    }
+  }
+
+  async function initTemplateState() {
+    loadTemplateState();
+    await loadTemplateStateFromServer();
+  }
+
   function getNextTemplateIndex() {
     if (!templateQueue.length) {
       templateQueue = shuffleArray(THEMES.map((_, idx) => idx));
@@ -127,7 +195,7 @@ document.addEventListener('DOMContentLoaded', function () {
     return nextIdx;
   }
 
-  loadTemplateState();
+  templateStateReadyPromise = initTemplateState();
 
   function extractContactInfo(sourceText) {
     const text = String(sourceText || '');
@@ -623,6 +691,8 @@ document.addEventListener('DOMContentLoaded', function () {
     output.innerHTML = '<div style="color:#2563eb;">Generating resume...</div>';
 
     try {
+      if (templateStateReadyPromise) await templateStateReadyPromise;
+
       const jobDescription = `Job Title: ${jobTitle}\nCompany: ${company}\n\nFull Job Description:\n${fullJobDescription}`;
       const token = typeof getStoredToken === 'function' ? getStoredToken() : localStorage.getItem('token');
       const headers = { 'Content-Type': 'application/json' };
