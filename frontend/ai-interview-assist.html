@@ -40,14 +40,20 @@
     <textarea id="interviewScenario" rows="4" style="width:100%;margin-bottom:12px;" placeholder="Describe the scenario or focus area..."></textarea>
     <label for="liveQuestionInput"><strong>Live Recruiter Question</strong></label>
     <textarea id="liveQuestionInput" rows="3" style="width:100%;margin-bottom:12px;" placeholder="Type exactly what the recruiter just asked..."></textarea>
+    <div style="margin-bottom:10px;font-size:0.9rem;color:#475569;">Recommended flow: start live listening, then keep speaking naturally while the recruiter asks questions.</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
       <button id="startLiveCaptureBtn" class="auth-submit-btn" type="button">Start Live Listening</button>
       <button id="stopLiveCaptureBtn" class="auth-submit-btn" type="button" disabled>Stop Live Listening</button>
     </div>
     <div id="liveCaptureStatus" style="margin-bottom:10px;font-size:0.92rem;color:#475569;">Live listener is off.</div>
     <button id="getLiveAnswerBtn" class="auth-submit-btn" style="width:100%;margin-bottom:10px;">Get Live Copilot Answer</button>
-    <button id="startInterviewBtn" class="auth-submit-btn" style="width:100%;">Start Interview</button>
-    <button id="startAudioBtn" class="auth-submit-btn" style="width:100%;margin-top:10px;">Start Audio Practice</button>
+    <details style="margin-top:12px;border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px;background:#f8fafc;">
+      <summary style="cursor:pointer;font-weight:700;color:#334155;">Practice Mode (optional)</summary>
+      <div style="margin-top:10px;display:grid;gap:10px;">
+        <button id="startInterviewBtn" class="auth-submit-btn" style="width:100%;">Start Interview Practice</button>
+        <button id="startAudioBtn" class="auth-submit-btn" style="width:100%;">Start Audio Practice</button>
+      </div>
+    </details>
     <audio id="localAudio" style="display:none;" controls></audio>
     <div id="interviewAssistResult" style="margin-top:18px;min-height:80px;"></div>
   </div>
