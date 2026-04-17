@@ -419,6 +419,14 @@
         return;
       }
 
+      // Clear any existing session first so a failed login cannot leave a previous user's session active.
+      if (typeof clearStoredToken === 'function') {
+        clearStoredToken();
+      } else {
+        localStorage.removeItem('token');
+        sessionStorage.removeItem('token');
+      }
+
       submitBtn.disabled = true;
       submitBtn.textContent = 'Signing in...';
       message.textContent = 'Signing you in...';

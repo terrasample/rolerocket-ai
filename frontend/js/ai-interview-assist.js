@@ -12,10 +12,95 @@ document.addEventListener('DOMContentLoaded', () => {
   const scenarioInput = document.getElementById('interviewScenario');
   const liveQuestionInput = document.getElementById('liveQuestionInput');
   const resultDiv = document.getElementById('interviewAssistResult');
+  const practiceLimitBanner = document.getElementById('interviewPracticeLimitBanner');
   let liveListenerEnabled = false;
   let liveDebounceTimer = null;
   let pendingTranscript = '';
   let liveInFlight = false;
+  let currentPlan = 'free';
+  let practiceCount = 0;
+  let practiceKey = 'rr_interview_practice_count_free';
+
+  function normalizePlan(plan) {
+    const normalized = String(plan || 'free').toLowerCase();
+    return ['free', 'pro', 'premium', 'elite', 'lifetime'].includes(normalized) ? normalized : 'free';
+  }
+
+  function canUseUnlimitedPractice() {
+    return normalizePlan(currentPlan) !== 'free';
+  }
+
+  function isPracticeBlocked() {
+    return !canUseUnlimitedPractice() && practiceCount >= 1;
+  }
+
+  function setPracticeButtonsDisabled(disabled) {
+    [startBtn, startAudioBtn, liveAnswerBtn, startLiveCaptureBtn].forEach((button) => {
+      if (button) button.disabled = disabled;
+    });
+    if (disabled && stopLiveCaptureBtn) stopLiveCaptureBtn.disabled = true;
+  }
+
+  function renderPracticeAccessBanner() {
+    if (!practiceLimitBanner) return;
+
+    if (canUseUnlimitedPractice()) {
+      practiceLimitBanner.style.display = 'block';
+      practiceLimitBanner.style.background = '#ecfdf5';
+      practiceLimitBanner.style.borderColor = '#86efac';
+      practiceLimitBanner.style.color = '#166534';
+      practiceLimitBanner.innerHTML = `Your ${escapeHtml(String(currentPlan).toUpperCase())} plan includes ongoing interview practice.`;
+      setPracticeButtonsDisabled(false);
+      return;
+    }
+
+    practiceLimitBanner.style.display = 'block';
+    if (isPracticeBlocked()) {
+      practiceLimitBanner.style.background = '#fff7ed';
+      practiceLimitBanner.style.borderColor = '#fdba74';
+      practiceLimitBanner.style.color = '#9a3412';
+      practiceLimitBanner.innerHTML = 'You have used your free practice question. Upgrade your plan to keep practicing more hard questions.';
+      setPracticeButtonsDisabled(true);
+      stopLiveListening();
+    } else {
+      practiceLimitBanner.style.background = '#eff6ff';
+      practiceLimitBanner.style.borderColor = '#bfdbfe';
+      practiceLimitBanner.style.color = '#1e3a8a';
+      practiceLimitBanner.innerHTML = 'Free plan includes 1 interview practice question. Paid plans unlock ongoing practice.';
+      setPracticeButtonsDisabled(false);
+    }
+  }
+
+  function incrementPracticeCount() {
+    if (canUseUnlimitedPractice()) return;
+    practiceCount += 1;
+    localStorage.setItem(practiceKey, String(practiceCount));
+    renderPracticeAccessBanner();
+  }
+
+  async function loadPracticeAccess() {
+    const token = getToken();
+    if (!token) {
+      renderPracticeAccessBanner();
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/me', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      currentPlan = normalizePlan(data?.user?.plan || 'free');
+      const identityKey = String(data?.user?.email || data?.user?._id || 'free-user').toLowerCase();
+      practiceKey = `rr_interview_practice_count_${identityKey}`;
+      practiceCount = Number(localStorage.getItem(practiceKey) || '0');
+    } catch (err) {
+      currentPlan = 'free';
+      practiceCount = Number(localStorage.getItem(practiceKey) || '0');
+    }
+
+    renderPracticeAccessBanner();
+  }
 
   function setLiveStatus(text, color = '#475569') {
     if (!liveCaptureStatus) return;
@@ -118,6 +203,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function resolveLiveQuestion(question, detectedAtMs) {
+    if (isPracticeBlocked()) {
+      renderPracticeAccessBanner();
+      return;
+    }
     if (liveInFlight) return;
     liveInFlight = true;
 
@@ -144,6 +233,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (data.answer) {
         resultDiv.innerHTML = renderFeedbackMarkup(data);
+        incrementPracticeCount();
         if (window.RoleRocketQuickstart) {
           window.RoleRocketQuickstart.completeStep('interview', 'interview_live_listening');
         }
@@ -180,6 +270,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function startInterview() {
+    if (isPracticeBlocked()) {
+      renderPracticeAccessBanner();
+      resultDiv.innerHTML = '<span style="color:#dc2626;">Your free practice question has been used. Upgrade to continue practicing.</span>';
+      return;
+    }
     const role = (roleInput?.value || '').trim();
     const scenario = (scenarioInput?.value || '').trim();
 
@@ -229,6 +324,7 @@ document.addEventListener('DOMContentLoaded', () => {
             : '<span style="color:#dc2626;">No feedback received.</span>';
 
           if (feedbackData.answer && window.RoleRocketQuickstart) {
+            incrementPracticeCount();
             window.RoleRocketQuickstart.completeStep('interview', 'interview_feedback_text');
           }
         } catch (err) {
@@ -243,6 +339,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function startAudioPractice() {
+    if (isPracticeBlocked()) {
+      renderPracticeAccessBanner();
+      resultDiv.innerHTML = '<span style="color:#dc2626;">Your free practice question has been used. Upgrade to continue practicing.</span>';
+      return;
+    }
     const role = (roleInput?.value || '').trim();
     const scenario = (scenarioInput?.value || '').trim();
 
@@ -287,6 +388,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (feedbackData.answer) {
               resultDiv.innerHTML += `<div style="margin-top:12px;">${renderFeedbackMarkup(feedbackData)}</div>`;
               window.AIInterviewAudio.speakText(feedbackData.answer);
+              incrementPracticeCount();
               if (window.RoleRocketQuickstart) {
                 window.RoleRocketQuickstart.completeStep('interview', 'interview_feedback_audio');
               }
@@ -307,6 +409,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function getLiveCopilotAnswer() {
+    if (isPracticeBlocked()) {
+      renderPracticeAccessBanner();
+      resultDiv.innerHTML = '<span style="color:#dc2626;">Your free practice question has been used. Upgrade to continue practicing.</span>';
+      return;
+    }
     const role = (roleInput?.value || '').trim();
     const scenario = (scenarioInput?.value || '').trim();
     const question = (liveQuestionInput?.value || '').trim();
@@ -332,6 +439,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       resultDiv.innerHTML = renderFeedbackMarkup(data);
+      incrementPracticeCount();
       if (window.RoleRocketQuickstart) {
         window.RoleRocketQuickstart.completeStep('interview', 'interview_live_copilot');
       }
@@ -341,6 +449,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function startLiveListening() {
+    if (isPracticeBlocked()) {
+      renderPracticeAccessBanner();
+      return;
+    }
     if (!window.AIInterviewAudio?.startLiveQuestionCapture) {
       setLiveStatus('Live listening is not supported in this browser.', '#dc2626');
       return;
@@ -403,4 +515,6 @@ document.addEventListener('DOMContentLoaded', () => {
   liveAnswerBtn?.addEventListener('click', getLiveCopilotAnswer);
   startLiveCaptureBtn?.addEventListener('click', startLiveListening);
   stopLiveCaptureBtn?.addEventListener('click', stopLiveListening);
+
+  loadPracticeAccess();
 });

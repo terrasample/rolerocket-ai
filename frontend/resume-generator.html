@@ -17,8 +17,14 @@
     <div class="card" style="max-width:600px;margin:auto;">
       <label for="resumeJobTitleGen"><strong>Target Job Title</strong></label>
       <input id="resumeJobTitleGen" type="text" style="width:100%;margin-bottom:10px;" placeholder="e.g. Data Scientist" />
-      <label for="resumeCompanyGen"><strong>Company</strong></label>
-      <input id="resumeCompanyGen" type="text" style="width:100%;margin-bottom:10px;" placeholder="e.g. Acme Corp" />
+      <label for="resumeCompanyGen"><strong>Company <span style="font-weight:normal;color:#64748b;">(optional)</span></strong></label>
+      <input id="resumeCompanyGen" type="text" style="width:100%;margin-bottom:10px;" placeholder="e.g. Acme Corp (optional)" />
+      <div style="margin-bottom:12px;padding:12px;border:1px solid #dbe3ea;border-radius:10px;background:#f8fafc;">
+        <label for="resumeLayoutSelectGen"><strong>Resume Layout</strong></label>
+        <select id="resumeLayoutSelectGen" style="width:100%;margin:8px 0 8px 0;"></select>
+        <div id="resumeLayoutHelpGen" style="font-size:0.92rem;color:#64748b;"></div>
+        <button id="resumeRefreshLayoutBtnGen" type="button" class="auth-submit-btn tool-action-btn tool-action-btn--secondary" style="display:none;margin-top:10px;">Refresh Elite Layout</button>
+      </div>
       <label for="resumeBaseGen"><strong>Your Baseline Resume (paste or upload)</strong></label>
       <textarea id="resumeBaseGen" rows="6" style="width:100%;margin-bottom:10px;" placeholder="Paste your baseline resume here..."></textarea>
       <input id="resumeBaseUploadGen" type="file" accept=".txt,.md,.rtf,.pdf,.docx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" style="width:100%;margin-bottom:10px;" />
@@ -26,6 +32,17 @@
       <label for="resumePhotoUploadGen"><strong>Profile Photo <span style="font-weight:normal;color:#64748b;">(optional — enhances your resume design)</span></strong></label>
       <input id="resumePhotoUploadGen" type="file" accept="image/jpeg,image/png,image/webp" style="width:100%;margin-bottom:6px;" />
       <div id="resumePhotoPreviewGen" style="margin-bottom:10px;min-height:0;"></div>
+      <div id="resumePhotoActionsGen" style="display:none;gap:8px;flex-wrap:wrap;margin:-4px 0 10px 0;">
+        <button id="resumePhotoReplaceBtnGen" type="button" class="auth-submit-btn tool-action-btn tool-action-btn--secondary">Choose Another Photo</button>
+        <button id="resumePhotoRemoveBtnGen" type="button" class="auth-submit-btn tool-action-btn tool-action-btn--secondary">Use No Photo</button>
+      </div>
+      <div id="resumePhotoControlsGen" style="display:none;margin:-2px 0 12px 0;padding:12px;border:1px solid #dbe3ea;border-radius:10px;background:#f8fafc;">
+        <div style="font-weight:700;color:#334155;margin-bottom:8px;">Adjust photo framing</div>
+        <label for="resumePhotoXGen" style="display:block;font-size:0.92rem;color:#475569;margin-bottom:6px;">Move left / right</label>
+        <input id="resumePhotoXGen" type="range" min="0" max="100" value="50" style="width:100%;margin-bottom:10px;" />
+        <label for="resumePhotoYGen" style="display:block;font-size:0.92rem;color:#475569;margin-bottom:6px;">Move up / down</label>
+        <input id="resumePhotoYGen" type="range" min="0" max="100" value="35" style="width:100%;" />
+      </div>
       <label for="resumeJobDescriptionGen"><strong>Full Job Description</strong></label>
       <textarea id="resumeJobDescriptionGen" rows="8" style="width:100%;margin-bottom:10px;" placeholder="Paste the full job description here..."></textarea>
       <div class="tool-action-bar">

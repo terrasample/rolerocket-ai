@@ -7,10 +7,21 @@ document.addEventListener('DOMContentLoaded', function () {
   const resumeUploadMessage = document.getElementById('resumeBaseUploadMessageGen');
   const photoInput = document.getElementById('resumePhotoUploadGen');
   const photoPreview = document.getElementById('resumePhotoPreviewGen');
+  const photoControls = document.getElementById('resumePhotoControlsGen');
+  const photoXInput = document.getElementById('resumePhotoXGen');
+  const photoYInput = document.getElementById('resumePhotoYGen');
+  const photoActions = document.getElementById('resumePhotoActionsGen');
+  const photoReplaceBtn = document.getElementById('resumePhotoReplaceBtnGen');
+  const photoRemoveBtn = document.getElementById('resumePhotoRemoveBtnGen');
+  const layoutSelect = document.getElementById('resumeLayoutSelectGen');
+  const layoutHelp = document.getElementById('resumeLayoutHelpGen');
+  const refreshLayoutBtn = document.getElementById('resumeRefreshLayoutBtnGen');
 
   const THEMES = [
     {
       id: 'forest-ribbon',
+      name: 'Forest Ribbon',
+      layoutType: 'forest',
       primary: '#0f4a47',
       accent: '#7aa3a0',
       sidebarBg: '#f5f7f8',
@@ -20,6 +31,8 @@ document.addEventListener('DOMContentLoaded', function () {
     },
     {
       id: 'gold-sidebar',
+      name: 'Golden Sidebar',
+      layoutType: 'gold',
       primary: '#7f6500',
       accent: '#b08f0e',
       sidebarBg: '#7f6500',
@@ -29,25 +42,166 @@ document.addEventListener('DOMContentLoaded', function () {
     },
     {
       id: 'slate-modern',
+      name: 'Slate Modern',
+      layoutType: 'slate',
       primary: '#1e3a56',
       accent: '#4f83a9',
       sidebarBg: '#eef4f9',
       headerText: '#ffffff',
       headingText: '#1e3a56',
       font: "'Verdana', 'Segoe UI', sans-serif"
+    },
+    {
+      id: 'copper-clean',
+      name: 'Copper Clean',
+      layoutType: 'forest',
+      primary: '#8a3f1f',
+      accent: '#d18f63',
+      sidebarBg: '#fff7f2',
+      headerText: '#ffffff',
+      headingText: '#8a3f1f',
+      font: "'Georgia', 'Times New Roman', serif"
+    },
+    {
+      id: 'midnight-column',
+      name: 'Midnight Column',
+      layoutType: 'gold',
+      primary: '#172554',
+      accent: '#60a5fa',
+      sidebarBg: '#172554',
+      headerText: '#ffffff',
+      headingText: '#172554',
+      font: "'Gill Sans', 'Segoe UI', sans-serif"
+    },
+    {
+      id: 'sage-editorial',
+      name: 'Sage Editorial',
+      layoutType: 'slate',
+      primary: '#31524a',
+      accent: '#86b4a3',
+      sidebarBg: '#f1f7f4',
+      headerText: '#ffffff',
+      headingText: '#31524a',
+      font: "'Palatino Linotype', 'Book Antiqua', serif"
+    },
+    {
+      id: 'berry-executive',
+      name: 'Berry Executive',
+      layoutType: 'forest',
+      primary: '#6b1f3a',
+      accent: '#d97b9c',
+      sidebarBg: '#fcf4f7',
+      headerText: '#ffffff',
+      headingText: '#6b1f3a',
+      font: "'Avenir Next', 'Segoe UI', sans-serif"
+    },
+    {
+      id: 'onyx-portfolio',
+      name: 'Onyx Portfolio',
+      layoutType: 'gold',
+      primary: '#111827',
+      accent: '#f59e0b',
+      sidebarBg: '#111827',
+      headerText: '#ffffff',
+      headingText: '#111827',
+      font: "'Helvetica Neue', Arial, sans-serif"
+    },
+    {
+      id: 'ocean-balance',
+      name: 'Ocean Balance',
+      layoutType: 'slate',
+      primary: '#0f4c5c',
+      accent: '#59b3c3',
+      sidebarBg: '#eef9fb',
+      headerText: '#ffffff',
+      headingText: '#0f4c5c',
+      font: "'Optima', 'Segoe UI', sans-serif"
     }
+  ];
+
+  const PLAN_LAYOUT_LIMITS = {
+    free: 1,
+    pro: 3,
+    premium: 9,
+    elite: 9,
+    lifetime: 9
+  };
+
+  const ELITE_DYNAMIC_LAYOUT_ID = 'elite-dynamic';
+  const RESUME_SECTION_HEADERS = new Set(['NAME', 'CONTACT', 'PROFILE', 'SUMMARY', 'EXPERIENCE', 'EDUCATION', 'SKILLS', 'AWARDS', 'CERTIFICATIONS', 'IMPROVEMENTS', 'PROJECTS']);
+  const DYNAMIC_THEME_PALETTES = [
+    { primary: '#1f2937', accent: '#f97316', sidebarBg: '#f9fafb', headerText: '#ffffff', headingText: '#1f2937' },
+    { primary: '#1d4ed8', accent: '#7dd3fc', sidebarBg: '#eff6ff', headerText: '#ffffff', headingText: '#1d4ed8' },
+    { primary: '#14532d', accent: '#86efac', sidebarBg: '#f0fdf4', headerText: '#ffffff', headingText: '#14532d' },
+    { primary: '#7c2d12', accent: '#fdba74', sidebarBg: '#fff7ed', headerText: '#ffffff', headingText: '#7c2d12' },
+    { primary: '#5b21b6', accent: '#c4b5fd', sidebarBg: '#f5f3ff', headerText: '#ffffff', headingText: '#5b21b6' },
+    { primary: '#9f1239', accent: '#f9a8d4', sidebarBg: '#fff1f2', headerText: '#ffffff', headingText: '#9f1239' }
+  ];
+  const DYNAMIC_THEME_FONTS = [
+    "'Avenir Next', 'Segoe UI', sans-serif",
+    "'Georgia', 'Times New Roman', serif",
+    "'Gill Sans', 'Segoe UI', sans-serif",
+    "'Optima', 'Segoe UI', sans-serif",
+    "'Palatino Linotype', 'Book Antiqua', serif"
   ];
 
   let lastRawResume = '';
   let lastStructuredResume = null;
   let lastPhotoDataUrl = '';
+  let lastPhotoPosition = { x: 50, y: 35 };
+  let userPlan = 'free';
+  let accountName = '';
+  let selectedLayoutId = '';
   let templateQueue = [];
   let lastTemplateIdx = -1;
   const templateStateKey = `resume-template-queue-v1-${THEMES.map((t) => t.id).join('|')}`;
+  const layoutSelectionKey = 'resume-layout-selection-v2';
   let templateStateReadyPromise = null;
 
   function getAuthToken() {
     return (typeof getStoredToken === 'function' ? getStoredToken() : localStorage.getItem('token')) || '';
+  }
+
+  function normalizePlan(plan) {
+    const normalized = String(plan || 'free').toLowerCase();
+    return PLAN_LAYOUT_LIMITS[normalized] ? normalized : 'free';
+  }
+
+  function getThemeLimitForPlan(plan) {
+    return PLAN_LAYOUT_LIMITS[normalizePlan(plan)] || 1;
+  }
+
+  function canUseDynamicLayout(plan) {
+    const normalized = normalizePlan(plan);
+    return normalized === 'elite' || normalized === 'lifetime';
+  }
+
+  function getAvailableThemesForPlan(plan) {
+    return THEMES.slice(0, getThemeLimitForPlan(plan));
+  }
+
+  function getLayoutHelpText(plan) {
+    const normalized = normalizePlan(plan);
+    if (normalized === 'free') return 'Free includes 1 layout.';
+    if (normalized === 'pro') return 'Pro unlocks 3 layouts.';
+    if (normalized === 'premium') return 'Premium unlocks 9 layouts.';
+    return 'Elite unlocks all 9 layouts plus unlimited dynamic refreshes.';
+  }
+
+  function loadSelectedLayoutId() {
+    try {
+      return sessionStorage.getItem(layoutSelectionKey) || '';
+    } catch (err) {
+      return '';
+    }
+  }
+
+  function saveSelectedLayoutId(layoutId) {
+    try {
+      sessionStorage.setItem(layoutSelectionKey, layoutId || '');
+    } catch (err) {
+      // Ignore storage issues.
+    }
   }
 
   function escapeHtml(value) {
@@ -57,13 +211,6 @@ document.addEventListener('DOMContentLoaded', function () {
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
-  }
-
-  function getInitials(name) {
-    const parts = (name || '').trim().split(/\s+/).filter(Boolean);
-    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-    if (parts[0]) return parts[0].slice(0, 2).toUpperCase();
-    return 'RR';
   }
 
   function splitName(fullName) {
@@ -81,6 +228,30 @@ document.addEventListener('DOMContentLoaded', function () {
       [arr[i], arr[j]] = [arr[j], arr[i]];
     }
     return arr;
+  }
+
+  function randomFrom(items) {
+    return items[Math.floor(Math.random() * items.length)];
+  }
+
+  function createDynamicEliteTheme() {
+    const palette = randomFrom(DYNAMIC_THEME_PALETTES);
+    const layoutType = randomFrom(['forest', 'gold', 'slate']);
+    return {
+      id: `${ELITE_DYNAMIC_LAYOUT_ID}-${Date.now()}`,
+      name: 'Elite Dynamic',
+      layoutType,
+      primary: palette.primary,
+      accent: palette.accent,
+      sidebarBg: palette.sidebarBg,
+      headerText: palette.headerText,
+      headingText: palette.headingText,
+      font: randomFrom(DYNAMIC_THEME_FONTS)
+    };
+  }
+
+  function themeIndexById(themeId) {
+    return THEMES.findIndex((theme) => theme.id === themeId);
   }
 
   async function saveTemplateStateToServer() {
@@ -172,30 +343,119 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
+  async function loadCurrentPlan() {
+    const token = getAuthToken();
+    if (!token) {
+      userPlan = 'free';
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/me', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      userPlan = normalizePlan(data?.user?.plan || 'free');
+      accountName = String(data?.user?.name || '').trim();
+    } catch (err) {
+      userPlan = 'free';
+    }
+  }
+
+  function getDefaultLayoutId() {
+    const availableThemes = getAvailableThemesForPlan(userPlan);
+    const storedLayoutId = loadSelectedLayoutId();
+    const persistedTheme = THEMES[lastTemplateIdx];
+
+    if (canUseDynamicLayout(userPlan) && storedLayoutId === ELITE_DYNAMIC_LAYOUT_ID) {
+      return ELITE_DYNAMIC_LAYOUT_ID;
+    }
+
+    if (storedLayoutId && availableThemes.some((theme) => theme.id === storedLayoutId)) {
+      return storedLayoutId;
+    }
+
+    if (persistedTheme && availableThemes.some((theme) => theme.id === persistedTheme.id)) {
+      return persistedTheme.id;
+    }
+
+    return availableThemes[0] ? availableThemes[0].id : THEMES[0].id;
+  }
+
+  function persistSelectedLayout() {
+    saveSelectedLayoutId(selectedLayoutId);
+    lastTemplateIdx = selectedLayoutId === ELITE_DYNAMIC_LAYOUT_ID ? -1 : themeIndexById(selectedLayoutId);
+    saveTemplateState();
+  }
+
+  function renderLayoutControls() {
+    if (!layoutSelect || !layoutHelp) return;
+
+    const availableThemes = getAvailableThemesForPlan(userPlan);
+    const currentSelection = availableThemes.some((theme) => theme.id === selectedLayoutId)
+      ? selectedLayoutId
+      : getDefaultLayoutId();
+
+    selectedLayoutId = currentSelection;
+    layoutSelect.innerHTML = availableThemes
+      .map((theme) => `<option value="${theme.id}">${escapeHtml(theme.name)}</option>`)
+      .join('');
+
+    if (canUseDynamicLayout(userPlan)) {
+      layoutSelect.insertAdjacentHTML('beforeend', `<option value="${ELITE_DYNAMIC_LAYOUT_ID}">Elite Dynamic</option>`);
+    }
+
+    layoutSelect.value = selectedLayoutId;
+    layoutHelp.textContent = getLayoutHelpText(userPlan);
+
+    if (refreshLayoutBtn) {
+      refreshLayoutBtn.style.display = selectedLayoutId === ELITE_DYNAMIC_LAYOUT_ID ? '' : 'none';
+    }
+  }
+
   async function initTemplateState() {
     loadTemplateState();
     await loadTemplateStateFromServer();
-  }
-
-  function getNextTemplateIndex() {
-    if (!templateQueue.length) {
-      templateQueue = shuffleArray(THEMES.map((_, idx) => idx));
-
-      if (templateQueue.length > 1 && templateQueue[0] === lastTemplateIdx) {
-        const first = templateQueue.shift();
-        templateQueue.push(first);
-      }
-
-      saveTemplateState();
-    }
-
-    const nextIdx = templateQueue.shift();
-    lastTemplateIdx = nextIdx;
-    saveTemplateState();
-    return nextIdx;
+    await loadCurrentPlan();
+    selectedLayoutId = getDefaultLayoutId();
+    renderLayoutControls();
   }
 
   templateStateReadyPromise = initTemplateState();
+
+  function cleanCandidateName(value) {
+    const cleaned = String(value || '').replace(/\s+/g, ' ').trim();
+    if (!cleaned) return '';
+    if (/candidate name/i.test(cleaned)) return '';
+    if (RESUME_SECTION_HEADERS.has(cleaned.replace(/[:\-]/g, '').trim().toUpperCase())) return '';
+    return cleaned;
+  }
+
+  function isLikelyNameLine(line) {
+    const value = cleanCandidateName(line);
+    if (!value) return false;
+    if (/[@\d]/.test(value)) return false;
+    if (/https?:\/\/|www\.|linkedin\.com/i.test(value)) return false;
+    if (/^(phone|email|location|contact|profile|summary|experience|education|skills|awards|certifications|projects)\b/i.test(value)) return false;
+    if (value.split(/\s+/).length > 5) return false;
+    return /^[A-Za-z][A-Za-z\s'.-]+$/.test(value);
+  }
+
+  function findNameInLines(lines) {
+    const safeLines = (lines || []).map((line) => String(line || '').trim()).filter(Boolean);
+
+    for (let idx = 0; idx < Math.min(safeLines.length, 14); idx += 1) {
+      const line = safeLines[idx];
+      if (/^name[:\-]?$/i.test(line)) {
+        const next = safeLines[idx + 1] || '';
+        if (isLikelyNameLine(next)) return cleanCandidateName(next);
+      }
+      if (isLikelyNameLine(line)) return cleanCandidateName(line);
+    }
+
+    return '';
+  }
 
   function extractContactInfo(sourceText) {
     const text = String(sourceText || '');
@@ -205,13 +465,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const phone = (text.match(/(?:\+?\d{1,2}[\s.-]?)?(?:\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4})/) || [])[0] || '';
     const linkedin = (text.match(/https?:\/\/(?:www\.)?linkedin\.com\/[^\s)]+/i) || [])[0] || '';
 
-    let fullName = '';
-    for (const line of lines.slice(0, 6)) {
-      if (/^[A-Za-z][A-Za-z\s'.-]{2,}$/.test(line) && line.split(/\s+/).length <= 5) {
-        fullName = line;
-        break;
-      }
-    }
+    const fullName = findNameInLines(lines);
 
     const cityStateLine = lines.find((line) => /,\s*[A-Z]{2}\b/.test(line)) || '';
     return {
@@ -228,7 +482,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const lines = text.split('\n').map((line) => line.trimRight());
 
     const structured = {
-      fullName: fallbackFromBase.fullName || 'Candidate Name',
+      fullName: cleanCandidateName(fallbackFromBase.fullName) || cleanCandidateName(accountName) || 'Professional Candidate',
       contactLines: [fallbackFromBase.phone, fallbackFromBase.email, fallbackFromBase.location, fallbackFromBase.linkedin].filter(Boolean),
       profile: '',
       experiences: [],
@@ -238,6 +492,8 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     const sectionIndex = {
+      NAME: -1,
+      CONTACT: -1,
       PROFILE: -1,
       EXPERIENCE: -1,
       EDUCATION: -1,
@@ -250,10 +506,6 @@ document.addEventListener('DOMContentLoaded', function () {
       const key = line.replace(/[:\-]/g, '').trim().toUpperCase();
       if (Object.prototype.hasOwnProperty.call(sectionIndex, key)) sectionIndex[key] = idx;
     });
-
-    if (lines[0] && /^[A-Za-z][A-Za-z\s'.-]{2,}$/.test(lines[0]) && lines[0].split(/\s+/).length <= 5) {
-      structured.fullName = lines[0].trim();
-    }
 
     function between(startIdx, endIdx) {
       const start = startIdx >= 0 ? startIdx + 1 : -1;
@@ -273,6 +525,14 @@ document.addEventListener('DOMContentLoaded', function () {
       const next = ordered[currentPos + 1];
       return next ? next[1] : -1;
     };
+
+    const parsedName = sectionIndex.NAME >= 0
+      ? between(sectionIndex.NAME, nextSectionStart('NAME'))[0]
+      : findNameInLines(lines);
+
+    if (cleanCandidateName(parsedName)) {
+      structured.fullName = cleanCandidateName(parsedName);
+    }
 
     structured.profile = between(sectionIndex.PROFILE, nextSectionStart('PROFILE')).join(' ');
 
@@ -302,6 +562,10 @@ document.addEventListener('DOMContentLoaded', function () {
       .slice(0, 20);
     structured.awards = between(sectionIndex.AWARDS, nextSectionStart('AWARDS'));
 
+    if (!cleanCandidateName(structured.fullName)) {
+      structured.fullName = cleanCandidateName(fallbackFromBase.fullName) || cleanCandidateName(accountName) || 'Professional Candidate';
+    }
+
     if (!structured.profile) {
       structured.profile = 'Results-driven professional with relevant experience and a strong record of delivering measurable outcomes.';
     }
@@ -324,13 +588,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function buildPhotoMarkup(model, theme, square) {
     const borderRadius = square ? '12px' : '999px';
-    const size = square ? 130 : 124;
+    const size = square ? 118 : 108;
+    const photoPosition = model.photoPosition || lastPhotoPosition;
 
     if (model.photoDataUrl) {
-      return `<img src="${model.photoDataUrl}" alt="Profile" style="width:${size}px;height:${size}px;object-fit:cover;border-radius:${borderRadius};border:3px solid ${theme.accent};display:block;" />`;
+      return `<img src="${model.photoDataUrl}" alt="Profile" style="width:${size}px;height:${size}px;object-fit:cover;object-position:${photoPosition.x}% ${photoPosition.y}%;border-radius:${borderRadius};border:2px solid ${theme.accent};display:block;box-shadow:0 8px 22px rgba(15,23,42,0.12);" />`;
     }
 
-    return `<div style="width:${size}px;height:${size}px;border-radius:${borderRadius};border:3px solid ${theme.accent};display:flex;align-items:center;justify-content:center;background:${theme.primary};color:#fff;font-weight:900;font-size:38px;">${escapeHtml(getInitials(model.fullName))}</div>`;
+    return '';
   }
 
   function sentenceBullets(text) {
@@ -342,51 +607,52 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function renderBulletListHtml(items, fontSize, color, marginBottom) {
     return (items || []).map((item) => `
-      <div style="display:flex;align-items:flex-start;gap:8px;font-size:${fontSize};line-height:1.45;color:${color};margin-bottom:${marginBottom};">
-        <span style="font-weight:900;line-height:1;">•</span>
-        <span>${escapeHtml(item)}</span>
+      <div style="display:flex;align-items:flex-start;gap:10px;font-size:${fontSize};line-height:1.6;color:${color};margin-bottom:${marginBottom};font-weight:400;">
+        <span style="font-weight:600;line-height:1.2;">•</span>
+        <span style="font-weight:400;flex:1;">${escapeHtml(item)}</span>
       </div>
     `).join('');
   }
 
   function renderSectionHeading(label, theme, fontSize, extraStyles) {
-    return `<div style="font-size:${fontSize};font-weight:900;color:${theme.headingText};margin-bottom:8px;${extraStyles || ''}">${label}</div>`;
+    return `<div style="font-size:${fontSize};font-weight:800;letter-spacing:0.04em;color:${theme.headingText};margin-bottom:10px;${extraStyles || ''}">${label}</div>`;
   }
 
   function renderTemplateForest(model, theme) {
     const name = splitName(model.fullName);
     const profileBullets = sentenceBullets(model.profile);
+    const photoMarkup = buildPhotoMarkup(model, theme, false);
     return `
-      <div style="background:#fff;border:1px solid #d1d5db;border-radius:10px;overflow:hidden;box-shadow:0 8px 28px rgba(15,23,42,0.08);font-family:${theme.font};">
-        <div style="background:${theme.primary};padding:16px 22px 22px 22px;color:${theme.headerText};display:flex;gap:22px;align-items:flex-end;">
-          <div style="margin-top:8px;">${buildPhotoMarkup(model, theme, false)}</div>
+      <div style="background:#fff;border:1px solid #d1d5db;border-radius:14px;overflow:hidden;box-shadow:0 10px 34px rgba(15,23,42,0.08);font-family:${theme.font};">
+        <div style="background:${theme.primary};padding:24px 28px;color:${theme.headerText};display:flex;gap:18px;align-items:center;">
+          ${photoMarkup ? `<div style="flex:0 0 auto;">${photoMarkup}</div>` : ''}
           <div style="flex:1;">
-            <div style="font-size:52px;line-height:1;font-weight:900;letter-spacing:1px;">${escapeHtml((name.first + ' ' + name.rest).trim().toUpperCase())}</div>
-            <div style="font-size:22px;font-weight:700;margin-top:6px;">${escapeHtml(model.targetRole || 'Professional Candidate')}</div>
+            <div style="font-size:38px;line-height:1.05;font-weight:800;letter-spacing:0.03em;">${escapeHtml((name.first + ' ' + name.rest).trim().toUpperCase())}</div>
+            <div style="font-size:18px;font-weight:600;margin-top:8px;opacity:0.92;">${escapeHtml(model.targetRole || 'Professional Candidate')}</div>
           </div>
         </div>
-        <div style="display:grid;grid-template-columns:245px 1fr;">
-          <aside style="padding:18px;background:${theme.sidebarBg};border-right:1px solid #e5e7eb;">
-            ${renderSectionHeading('CONTACT', theme, '24px')}
-            ${(model.contactLines || []).map((line) => `<div style="font-size:14px;line-height:1.45;color:#1f2937;margin-bottom:4px;">${escapeHtml(line)}</div>`).join('')}
-            ${renderSectionHeading('KEY SKILLS', theme, '24px', 'margin-top:20px;')}
-            ${renderBulletListHtml((model.skills || []).slice(0, 8), '14px', '#1f2937', '4px')}
-            ${renderSectionHeading('CERTIFICATIONS', theme, '24px', 'margin-top:20px;')}
-            ${renderBulletListHtml(model.awards.length ? model.awards : ['N/A'], '14px', '#1f2937', '2px')}
+        <div style="display:grid;grid-template-columns:220px 1fr;">
+          <aside style="padding:24px 20px;background:${theme.sidebarBg};border-right:1px solid #e5e7eb;">
+            ${renderSectionHeading('CONTACT', theme, '15px')}
+            ${(model.contactLines || []).map((line) => `<div style="font-size:13px;line-height:1.6;color:#1f2937;margin-bottom:6px;">${escapeHtml(line)}</div>`).join('')}
+            ${renderSectionHeading('SKILLS', theme, '15px', 'margin-top:22px;')}
+            ${renderBulletListHtml((model.skills || []).slice(0, 8), '13px', '#1f2937', '6px')}
+            ${renderSectionHeading('CERTIFICATIONS', theme, '15px', 'margin-top:22px;')}
+            ${renderBulletListHtml(model.awards.length ? model.awards : ['N/A'], '13px', '#1f2937', '6px')}
           </aside>
-          <section style="padding:18px 22px 22px 22px;">
-            ${renderSectionHeading('PROFILE', theme, '32px')}
-            ${renderBulletListHtml(profileBullets.length ? profileBullets : [model.profile], '16px', '#374151', '6px')}
-            <hr style="border:none;border-top:1px solid #d1d5db;margin:12px 0 12px 0;" />
-            ${renderSectionHeading('EXPERIENCE', theme, '32px')}
+          <section style="padding:24px 28px 28px 28px;">
+            ${renderSectionHeading('PROFILE', theme, '16px')}
+            ${renderBulletListHtml(profileBullets.length ? profileBullets : [model.profile], '14px', '#374151', '8px')}
+            <hr style="border:none;border-top:1px solid #d1d5db;margin:18px 0;" />
+            ${renderSectionHeading('EXPERIENCE', theme, '16px')}
             ${model.experiences.map((exp) => `
-              <div style="margin-bottom:12px;">
-                <div style="font-size:18px;font-weight:800;color:#111827;">${escapeHtml(exp.heading)}</div>
-                ${renderBulletListHtml(exp.bullets || [], '15px', '#374151', '4px')}
+              <div style="margin-bottom:16px;">
+                <div style="font-size:15px;font-weight:600;color:#111827;margin-bottom:6px;">${escapeHtml(exp.heading)}</div>
+                ${renderBulletListHtml(exp.bullets || [], '14px', '#374151', '6px')}
               </div>
             `).join('')}
-            ${renderSectionHeading('EDUCATION', theme, '32px', 'margin-top:6px;')}
-            ${renderBulletListHtml(model.education || [], '15px', '#374151', '4px')}
+            ${renderSectionHeading('EDUCATION', theme, '16px', 'margin-top:14px;')}
+            ${renderBulletListHtml(model.education || [], '14px', '#374151', '6px')}
           </section>
         </div>
       </div>
@@ -396,35 +662,35 @@ document.addEventListener('DOMContentLoaded', function () {
   function renderTemplateGold(model, theme) {
     const name = splitName(model.fullName);
     const profileBullets = sentenceBullets(model.profile);
+    const photoMarkup = buildPhotoMarkup(model, theme, true);
     return `
-      <div style="background:#fff;border:1px solid #d1d5db;border-radius:10px;overflow:hidden;box-shadow:0 8px 28px rgba(15,23,42,0.08);font-family:${theme.font};">
-        <div style="display:grid;grid-template-columns:250px 1fr;">
-          <aside style="background:${theme.sidebarBg};padding:20px;color:#fff;min-height:100%;">
-            <div style="display:flex;justify-content:center;margin:4px 0 22px 0;">${buildPhotoMarkup(model, theme, true)}</div>
-            <div style="font-size:36px;font-weight:900;text-align:center;letter-spacing:1px;margin-bottom:20px;">${escapeHtml(getInitials(model.fullName))}</div>
-            <div style="font-size:34px;font-weight:900;margin-bottom:8px;color:#fff;">CONTACT</div>
-            ${(model.contactLines || []).map((line) => `<div style="font-size:14px;line-height:1.5;margin-bottom:3px;">${escapeHtml(line)}</div>`).join('')}
-            <div style="font-size:34px;font-weight:900;margin:20px 0 8px 0;color:#fff;">KEY SKILLS</div>
-            ${renderBulletListHtml((model.skills || []).slice(0, 8), '14px', '#ffffff', '4px')}
-            <div style="font-size:34px;font-weight:900;margin:20px 0 8px 0;color:#fff;">EDUCATION</div>
-            ${renderBulletListHtml(model.education || [], '14px', '#ffffff', '4px')}
+      <div style="background:#fff;border:1px solid #d1d5db;border-radius:14px;overflow:hidden;box-shadow:0 10px 34px rgba(15,23,42,0.08);font-family:${theme.font};">
+        <div style="display:grid;grid-template-columns:220px 1fr;">
+          <aside style="background:${theme.sidebarBg};padding:24px 20px;color:#fff;min-height:100%;">
+            ${photoMarkup ? `<div style="display:flex;justify-content:center;margin:0 0 20px 0;">${photoMarkup}</div>` : ''}
+            ${renderSectionHeading('CONTACT', { ...theme, headingText: '#ffffff' }, '15px')}
+            ${(model.contactLines || []).map((line) => `<div style="font-size:13px;line-height:1.6;margin-bottom:6px;">${escapeHtml(line)}</div>`).join('')}
+            ${renderSectionHeading('SKILLS', { ...theme, headingText: '#ffffff' }, '15px', 'margin-top:22px;')}
+            ${renderBulletListHtml((model.skills || []).slice(0, 8), '13px', '#ffffff', '6px')}
+            ${renderSectionHeading('EDUCATION', { ...theme, headingText: '#ffffff' }, '15px', 'margin-top:22px;')}
+            ${renderBulletListHtml(model.education || [], '13px', '#ffffff', '6px')}
           </aside>
-          <section style="padding:18px 22px;">
-            <div style="font-size:60px;line-height:1;font-weight:900;color:#111827;">${escapeHtml(name.first)}<span style="font-weight:500;">${escapeHtml(name.rest ? ' ' + name.rest : '')}</span></div>
-            <div style="font-size:26px;color:#4b5563;font-weight:700;margin:6px 0 8px 0;">${escapeHtml(model.targetRole || 'Professional Candidate')}</div>
-            ${renderSectionHeading('PROFILE', theme, '18px')}
-            ${renderBulletListHtml(profileBullets.length ? profileBullets : [model.profile], '15px', '#4b5563', '4px')}
+          <section style="padding:26px 28px;">
+            <div style="font-size:38px;line-height:1.05;font-weight:800;color:#111827;">${escapeHtml(name.first)}<span style="font-weight:500;">${escapeHtml(name.rest ? ' ' + name.rest : '')}</span></div>
+            <div style="font-size:18px;color:#4b5563;font-weight:600;margin:8px 0 18px 0;">${escapeHtml(model.targetRole || 'Professional Candidate')}</div>
+            ${renderSectionHeading('PROFILE', theme, '16px')}
+            ${renderBulletListHtml(profileBullets.length ? profileBullets : [model.profile], '14px', '#4b5563', '8px')}
 
-            ${renderSectionHeading('EXPERIENCE', theme, '18px', 'margin-top:12px;')}
+            ${renderSectionHeading('EXPERIENCE', theme, '16px', 'margin-top:18px;')}
             ${model.experiences.map((exp) => `
-              <div style="margin-bottom:10px;">
-                <div style="font-size:17px;font-weight:800;color:#111827;">${escapeHtml(exp.heading)}</div>
-                ${renderBulletListHtml(exp.bullets || [], '14px', '#374151', '4px')}
+              <div style="margin-bottom:16px;">
+                <div style="font-size:15px;font-weight:600;color:#111827;margin-bottom:6px;">${escapeHtml(exp.heading)}</div>
+                ${renderBulletListHtml(exp.bullets || [], '14px', '#374151', '6px')}
               </div>
             `).join('')}
 
-            ${renderSectionHeading('CERTIFICATIONS', theme, '18px', 'margin-top:8px;')}
-            ${renderBulletListHtml(model.awards.length ? model.awards : ['N/A'], '14px', '#374151', '4px')}
+            ${renderSectionHeading('CERTIFICATIONS', theme, '16px', 'margin-top:14px;')}
+            ${renderBulletListHtml(model.awards.length ? model.awards : ['N/A'], '14px', '#374151', '6px')}
           </section>
         </div>
       </div>
@@ -433,36 +699,37 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function renderTemplateSlate(model, theme) {
     const profileBullets = sentenceBullets(model.profile);
+    const photoMarkup = buildPhotoMarkup(model, theme, false);
     return `
-      <div style="background:#fff;border:1px solid #d1d5db;border-radius:10px;overflow:hidden;box-shadow:0 8px 28px rgba(15,23,42,0.08);font-family:${theme.font};">
-        <div style="background:linear-gradient(110deg, ${theme.primary}, ${theme.accent});padding:20px 22px;color:${theme.headerText};display:flex;align-items:center;gap:18px;">
-          ${buildPhotoMarkup(model, theme, false)}
+      <div style="background:#fff;border:1px solid #d1d5db;border-radius:14px;overflow:hidden;box-shadow:0 10px 34px rgba(15,23,42,0.08);font-family:${theme.font};">
+        <div style="background:linear-gradient(110deg, ${theme.primary}, ${theme.accent});padding:24px 28px;color:${theme.headerText};display:flex;align-items:center;gap:18px;">
+          ${photoMarkup || ''}
           <div>
-            <div style="font-size:44px;font-weight:900;line-height:1;">${escapeHtml(model.fullName.toUpperCase())}</div>
-            <div style="font-size:20px;font-weight:700;margin-top:6px;">${escapeHtml(model.targetRole || 'Professional Candidate')}</div>
+            <div style="font-size:36px;font-weight:800;line-height:1.05;letter-spacing:0.03em;">${escapeHtml(model.fullName.toUpperCase())}</div>
+            <div style="font-size:18px;font-weight:600;margin-top:8px;">${escapeHtml(model.targetRole || 'Professional Candidate')}</div>
           </div>
         </div>
-        <div style="display:grid;grid-template-columns:230px 1fr;">
-          <aside style="background:${theme.sidebarBg};padding:18px;border-right:1px solid #d1d5db;">
-            ${renderSectionHeading('CONTACT', theme, '20px', 'margin-bottom:6px;')}
-            ${(model.contactLines || []).map((line) => `<div style="font-size:13px;line-height:1.45;color:#1f2937;">${escapeHtml(line)}</div>`).join('')}
-            ${renderSectionHeading('SKILLS', theme, '20px', 'margin:16px 0 6px 0;')}
-            ${renderBulletListHtml((model.skills || []).slice(0, 9), '13px', '#1f2937', '2px')}
+        <div style="display:grid;grid-template-columns:220px 1fr;">
+          <aside style="background:${theme.sidebarBg};padding:24px 20px;border-right:1px solid #d1d5db;">
+            ${renderSectionHeading('CONTACT', theme, '15px', 'margin-bottom:8px;')}
+            ${(model.contactLines || []).map((line) => `<div style="font-size:13px;line-height:1.6;color:#1f2937;margin-bottom:6px;">${escapeHtml(line)}</div>`).join('')}
+            ${renderSectionHeading('SKILLS', theme, '15px', 'margin:22px 0 8px 0;')}
+            ${renderBulletListHtml((model.skills || []).slice(0, 9), '13px', '#1f2937', '6px')}
           </aside>
-          <section style="padding:18px 22px;">
-            ${renderSectionHeading('PROFILE', theme, '24px', 'margin-bottom:6px;')}
-            ${renderBulletListHtml(profileBullets.length ? profileBullets : [model.profile], '14px', '#374151', '4px')}
-            ${renderSectionHeading('EXPERIENCE', theme, '24px', 'margin-bottom:6px;')}
+          <section style="padding:24px 28px;">
+            ${renderSectionHeading('PROFILE', theme, '16px', 'margin-bottom:8px;')}
+            ${renderBulletListHtml(profileBullets.length ? profileBullets : [model.profile], '14px', '#374151', '8px')}
+            ${renderSectionHeading('EXPERIENCE', theme, '16px', 'margin:18px 0 8px 0;')}
             ${model.experiences.map((exp) => `
-              <div style="margin-bottom:10px;">
-                <div style="font-size:16px;font-weight:800;color:#111827;">${escapeHtml(exp.heading)}</div>
-                ${renderBulletListHtml(exp.bullets || [], '14px', '#374151', '4px')}
+              <div style="margin-bottom:16px;">
+                <div style="font-size:15px;font-weight:600;color:#111827;margin-bottom:6px;">${escapeHtml(exp.heading)}</div>
+                ${renderBulletListHtml(exp.bullets || [], '14px', '#374151', '6px')}
               </div>
             `).join('')}
-            ${renderSectionHeading('EDUCATION', theme, '24px', 'margin-bottom:6px;')}
-            ${renderBulletListHtml(model.education || [], '14px', '#374151', '4px')}
-            ${renderSectionHeading('AWARDS', theme, '24px', 'margin:8px 0 6px 0;')}
-            ${renderBulletListHtml(model.awards.length ? model.awards : ['N/A'], '14px', '#374151', '4px')}
+            ${renderSectionHeading('EDUCATION', theme, '16px', 'margin:18px 0 8px 0;')}
+            ${renderBulletListHtml(model.education || [], '14px', '#374151', '6px')}
+            ${renderSectionHeading('AWARDS', theme, '16px', 'margin:18px 0 8px 0;')}
+            ${renderBulletListHtml(model.awards.length ? model.awards : ['N/A'], '14px', '#374151', '6px')}
           </section>
         </div>
       </div>
@@ -471,8 +738,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function renderResumeTemplate(model) {
     const theme = model.theme || THEMES[0];
-    if (theme.id === 'gold-sidebar') return renderTemplateGold(model, theme);
-    if (theme.id === 'slate-modern') return renderTemplateSlate(model, theme);
+    if (theme.layoutType === 'gold') return renderTemplateGold(model, theme);
+    if (theme.layoutType === 'slate') return renderTemplateSlate(model, theme);
     return renderTemplateForest(model, theme);
   }
 
@@ -485,6 +752,61 @@ document.addEventListener('DOMContentLoaded', function () {
       'afterbegin',
       `<div style="margin-bottom:10px;padding:10px 12px;border-radius:8px;font-size:0.95rem;background:${ok ? '#ecfdf5' : '#fef2f2'};color:${ok ? '#166534' : '#991b1b'};border:1px solid ${ok ? '#86efac' : '#fecaca'};">${escapeHtml(message)}</div>`
     );
+  }
+
+  function resolveSelectedTheme() {
+    if (selectedLayoutId === ELITE_DYNAMIC_LAYOUT_ID && canUseDynamicLayout(userPlan)) {
+      return createDynamicEliteTheme();
+    }
+
+    const availableThemes = getAvailableThemesForPlan(userPlan);
+    return availableThemes.find((theme) => theme.id === selectedLayoutId) || availableThemes[0] || THEMES[0];
+  }
+
+  function rerenderCurrentResume() {
+    if (!lastStructuredResume) return;
+    lastStructuredResume = {
+      ...lastStructuredResume,
+      photoDataUrl: lastPhotoDataUrl,
+      photoPosition: { ...lastPhotoPosition },
+      theme: resolveSelectedTheme()
+    };
+    output.innerHTML = renderResumeTemplate(lastStructuredResume);
+  }
+
+  function resetPhotoSelection() {
+    lastPhotoDataUrl = '';
+    lastPhotoPosition = { x: 50, y: 35 };
+    if (photoInput) photoInput.value = '';
+    renderPhotoPreview();
+  }
+
+  function renderPhotoPreview() {
+    if (!photoPreview) return;
+
+    if (!lastPhotoDataUrl) {
+      photoPreview.innerHTML = '<div style="font-size:0.92rem;color:#64748b;">No photo selected. Your resume will use the clean no-photo layout.</div>';
+      if (photoControls) photoControls.style.display = 'none';
+      if (photoActions) photoActions.style.display = 'none';
+      if (lastStructuredResume && lastRawResume) rerenderCurrentResume();
+      return;
+    }
+
+    if (photoXInput) photoXInput.value = String(lastPhotoPosition.x);
+    if (photoYInput) photoYInput.value = String(lastPhotoPosition.y);
+    if (photoControls) photoControls.style.display = '';
+    if (photoActions) photoActions.style.display = 'flex';
+
+    photoPreview.innerHTML = `
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+        <div style="width:104px;height:104px;border-radius:999px;overflow:hidden;border:2px solid #d1d5db;background:#e2e8f0;flex:0 0 auto;">
+          <img src="${lastPhotoDataUrl}" alt="Photo preview" style="width:100%;height:100%;object-fit:cover;object-position:${lastPhotoPosition.x}% ${lastPhotoPosition.y}%;display:block;" />
+        </div>
+        <div style="font-size:0.92rem;color:#64748b;max-width:320px;">Adjust the sliders until your face is centered. The updated framing will be used in the generated resume design.</div>
+      </div>
+    `;
+
+    if (lastStructuredResume && lastRawResume) rerenderCurrentResume();
   }
 
   async function loadResumeFileIntoField(file, textarea, messageEl) {
@@ -528,12 +850,12 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function buildResumeModel(structured, targetRole) {
-    const idx = getNextTemplateIndex();
     return {
       ...structured,
       targetRole,
       photoDataUrl: lastPhotoDataUrl,
-      theme: THEMES[idx]
+      photoPosition: { ...lastPhotoPosition },
+      theme: resolveSelectedTheme()
     };
   }
 
@@ -673,7 +995,7 @@ document.addEventListener('DOMContentLoaded', function () {
 </body>
 </html>`;
 
-    const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+    const blob = new Blob(['\ufeff', html], { type: 'application/msword;charset=utf-8' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = 'tailored-resume.doc';
@@ -685,13 +1007,14 @@ document.addEventListener('DOMContentLoaded', function () {
   photoInput?.addEventListener('change', function (event) {
     const file = event.target.files?.[0];
     if (!file) {
-      lastPhotoDataUrl = '';
-      photoPreview.innerHTML = '';
+      resetPhotoSelection();
       return;
     }
 
     if (!/^image\/(jpeg|png|webp)$/i.test(file.type)) {
       lastPhotoDataUrl = '';
+      if (photoControls) photoControls.style.display = 'none';
+      if (photoActions) photoActions.style.display = 'none';
       photoPreview.innerHTML = '<div style="color:#dc2626;font-size:0.9rem;">Use JPG, PNG, or WEBP.</div>';
       return;
     }
@@ -699,14 +1022,49 @@ document.addEventListener('DOMContentLoaded', function () {
     const reader = new FileReader();
     reader.onload = function () {
       lastPhotoDataUrl = String(reader.result || '');
-      photoPreview.innerHTML = `<img src="${lastPhotoDataUrl}" alt="Photo preview" style="width:88px;height:88px;border-radius:999px;object-fit:cover;border:2px solid #d1d5db;" />`;
+      lastPhotoPosition = { x: 50, y: 35 };
+      renderPhotoPreview();
     };
     reader.readAsDataURL(file);
+  });
+
+  photoReplaceBtn?.addEventListener('click', function () {
+    if (photoInput) {
+      photoInput.value = '';
+      photoInput.click();
+    }
+  });
+
+  photoRemoveBtn?.addEventListener('click', function () {
+    resetPhotoSelection();
+  });
+
+  photoXInput?.addEventListener('input', function (event) {
+    lastPhotoPosition.x = Number(event.target.value);
+    renderPhotoPreview();
+  });
+
+  photoYInput?.addEventListener('input', function (event) {
+    lastPhotoPosition.y = Number(event.target.value);
+    renderPhotoPreview();
   });
 
   resumeUploadInput?.addEventListener('change', async function (event) {
     const file = event.target.files?.[0];
     await loadResumeFileIntoField(file, document.getElementById('resumeBaseGen'), resumeUploadMessage);
+  });
+
+  layoutSelect?.addEventListener('change', function (event) {
+    selectedLayoutId = String(event.target.value || '');
+    persistSelectedLayout();
+    renderLayoutControls();
+    rerenderCurrentResume();
+  });
+
+  refreshLayoutBtn?.addEventListener('click', function () {
+    if (selectedLayoutId !== ELITE_DYNAMIC_LAYOUT_ID) return;
+    rerenderCurrentResume();
+    statusBanner('Elite layout refreshed.', true);
   });
 
   generateBtn?.addEventListener('click', async function () {
@@ -715,8 +1073,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const baseResume = document.getElementById('resumeBaseGen').value.trim();
     const fullJobDescription = document.getElementById('resumeJobDescriptionGen').value.trim();
 
-    if (!jobTitle || !company || !baseResume || !fullJobDescription) {
-      renderError('Please fill in all fields.');
+    if (!jobTitle || !baseResume || !fullJobDescription) {
+      renderError('Please add the job title, your resume, and the full job description.');
       return;
     }
 
@@ -725,7 +1083,13 @@ document.addEventListener('DOMContentLoaded', function () {
     try {
       if (templateStateReadyPromise) await templateStateReadyPromise;
 
-      const jobDescription = `Job Title: ${jobTitle}\nCompany: ${company}\n\nFull Job Description:\n${fullJobDescription}`;
+      const jobDescription = [
+        `Job Title: ${jobTitle}`,
+        company ? `Company: ${company}` : '',
+        '',
+        'Full Job Description:',
+        fullJobDescription
+      ].filter(Boolean).join('\n');
       const token = typeof getStoredToken === 'function' ? getStoredToken() : localStorage.getItem('token');
       const headers = { 'Content-Type': 'application/json' };
       if (token) headers.Authorization = `Bearer ${token}`;
@@ -747,7 +1111,7 @@ document.addEventListener('DOMContentLoaded', function () {
       const structured = parseResume(raw, extractContactInfo(baseResume));
       lastStructuredResume = buildResumeModel(structured, jobTitle);
       output.innerHTML = renderResumeTemplate(lastStructuredResume);
-      statusBanner('Resume generated with a unique design. Use Save as PDF or Save as Word for upload-ready files.', true);
+      statusBanner('Resume generated. You can switch layouts, adjust the photo, or download it as Word or PDF.', true);
 
       if (window.RoleRocketQuickstart) {
         window.RoleRocketQuickstart.completeStep('tailor', 'resume_generated');
@@ -784,4 +1148,6 @@ document.addEventListener('DOMContentLoaded', function () {
       renderError('Could not generate Word document.');
     }
   });
+
+  renderPhotoPreview();
 });

@@ -173,34 +173,96 @@ observer.observe(jobsListEl, { childList: true });
 
 function createImportedJobCard(job) {
   const wrapper = document.createElement('div');
-  wrapper.className = 'mini-job-card';
+  wrapper.className = 'imported-job-card';
+  wrapper.style.cssText = `
+    background: #f8fafc;
+    border: 2px solid #0ea5e9;
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 16px;
+    max-height: 600px;
+    overflow-y: auto;
+  `;
 
-  const titleEl = document.createElement('strong');
+  // Job Title
+  const titleEl = document.createElement('h3');
   titleEl.textContent = job.title || 'Imported Role';
+  titleEl.style.cssText = 'margin: 0 0 8px 0; color: #0ea5e9; font-size: 1.3em;';
 
-  const companyEl = document.createElement('span');
-  companyEl.textContent = job.company || 'Imported Company';
+  // Company
+  const companyEl = document.createElement('div');
+  companyEl.style.cssText = 'font-size: 1.1em; color: #1e293b; font-weight: 600; margin-bottom: 6px;';
+  companyEl.textContent = `Company: ${job.company || 'Not specified'}`;
 
-  const locationEl = document.createElement('small');
-  locationEl.textContent = `📍 ${job.location || 'Remote'}`;
+  // Location
+  const locationEl = document.createElement('div');
+  locationEl.style.cssText = 'color: #475569; margin-bottom: 6px;';
+  locationEl.innerHTML = `<strong>📍 Location:</strong> ${escapeHtml(job.location || 'Remote')}`;
 
+  // Job Link (if available)
+  const linkEl = document.createElement('div');
+  linkEl.style.cssText = 'margin-bottom: 12px;';
+  if (job.link && safeUrl(job.link) !== '#') {
+    const linkAnchor = document.createElement('a');
+    linkAnchor.href = safeUrl(job.link);
+    linkAnchor.target = '_blank';
+    linkAnchor.rel = 'noopener noreferrer';
+    linkAnchor.textContent = '🔗 Open Original Job Listing';
+    linkAnchor.style.cssText = 'color: #2563eb; text-decoration: underline; font-weight: 600; cursor: pointer;';
+    linkEl.appendChild(linkAnchor);
+  }
+
+  // Job Description
+  const descHeader = document.createElement('h4');
+  descHeader.textContent = 'Job Description:';
+  descHeader.style.cssText = 'margin: 14px 0 8px 0; color: #1e293b; font-size: 1em;';
+
+  const descEl = document.createElement('div');
+  descEl.style.cssText = `
+    background: #fff;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 12px;
+    color: #334155;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-size: 0.95em;
+    max-height: 300px;
+    overflow-y: auto;
+  `;
+  descEl.textContent = job.description || 'No description available';
+
+  // Actions
   const actions = document.createElement('div');
   actions.className = 'job-card-actions';
+  actions.style.cssText = 'margin-top: 14px; display: flex; gap: 10px;';
 
   const saveBtn = document.createElement('button');
   saveBtn.textContent = 'Save Job';
+  saveBtn.style.cssText = 'flex: 1; padding: 10px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;';
   saveBtn.addEventListener('click', async () => {
     try {
       await saveJobToBackend(job, 'saved');
       await loadTracker();
+      importedJobBoxEl.innerHTML = '<div class="empty-state" style="color: #10b981; background: #ecfdf5; padding: 12px; border-radius: 6px;">✅ Job saved to pipeline! Check the Saved column.</div>';
     } catch (err) {
       alert(err.message);
     }
   });
 
-  actions.append(saveBtn);
-  wrapper.append(titleEl, document.createElement('br'), companyEl, document.createElement('br'), locationEl, document.createElement('br'), actions);
+  const clearBtn = document.createElement('button');
+  clearBtn.textContent = 'Clear Import';
+  clearBtn.style.cssText = 'flex: 1; padding: 10px; background: #cbd5e1; color: #1e293b; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;';
+  clearBtn.addEventListener('click', () => {
+    document.getElementById('importJobUrl').value = '';
+    document.getElementById('importJobText').value = '';
+    importedJobBoxEl.innerHTML = '';
+  });
 
+  actions.append(saveBtn, clearBtn);
+
+  wrapper.append(titleEl, companyEl, locationEl, linkEl, descHeader, descEl, actions);
   return wrapper;
 }
 
@@ -218,6 +280,25 @@ function createTrackerCard(job) {
 
   const locationEl = document.createElement('small');
   locationEl.textContent = job.location || 'Location not provided';
+
+  // Create a clickable job source link
+  const jobLinkEl = document.createElement('small');
+  jobLinkEl.style.display = 'block';
+  jobLinkEl.style.marginTop = '8px';
+  if (job.link && safeUrl(job.link) !== '#') {
+    const linkAnchor = document.createElement('a');
+    linkAnchor.href = safeUrl(job.link);
+    linkAnchor.target = '_blank';
+    linkAnchor.rel = 'noopener noreferrer';
+    linkAnchor.textContent = '🔗 View Original Job';
+    linkAnchor.style.color = '#2563eb';
+    linkAnchor.style.textDecoration = 'underline';
+    linkAnchor.style.cursor = 'pointer';
+    jobLinkEl.appendChild(linkAnchor);
+  } else {
+    jobLinkEl.textContent = '🔗 Job source not available';
+    jobLinkEl.style.color = '#94a3b8';
+  }
 
   const actionsDiv = document.createElement('div');
   actionsDiv.className = 'tracker-actions';
@@ -276,7 +357,7 @@ function createTrackerCard(job) {
   });
 
   actionsDiv.append(select, removeBtn);
-  wrapper.append(titleEl, document.createElement('br'), companyEl, document.createElement('br'), locationEl, document.createElement('br'), actionsDiv);
+  wrapper.append(titleEl, document.createElement('br'), companyEl, document.createElement('br'), locationEl, jobLinkEl, document.createElement('br'), actionsDiv);
 
   return wrapper;
 }
@@ -388,21 +469,49 @@ document.getElementById('findJobsBtn')?.addEventListener('click', async () => {
 });
 
 document.getElementById('importJobBtn')?.addEventListener('click', async () => {
-  importedJobBoxEl.innerHTML = '<div class="empty-state">Importing job...</div>';
+  const urlInput = document.getElementById('importJobUrl');
+  const descInput = document.getElementById('importJobText');
+  
+  // Validate URL is provided
+  const jobUrl = urlInput.value.trim();
+  if (!jobUrl) {
+    importedJobBoxEl.innerHTML = '<div class="empty-state">❌ Job URL is required. Please paste a job listing URL.</div>';
+    return;
+  }
+
+  // Validate URL format
+  let validUrl;
+  try {
+    validUrl = new URL(jobUrl);
+  } catch {
+    importedJobBoxEl.innerHTML = '<div class="empty-state">❌ Invalid URL format. Please provide a valid job listing URL (e.g., https://example.com/job/123).</div>';
+    return;
+  }
+
+  importedJobBoxEl.innerHTML = '<div class="empty-state">🔄 Fetching job data from URL...</div>';
 
   try {
     const data = await api('/api/jobs/import', {
       method: 'POST',
       body: JSON.stringify({
-        jobText: document.getElementById('importJobText').value,
-        sourceUrl: document.getElementById('importJobUrl').value
+        sourceUrl: jobUrl,
+        additionalNotes: descInput.value.trim() || ''
       })
     });
 
     importedJobBoxEl.innerHTML = '';
     importedJobBoxEl.appendChild(createImportedJobCard(data.job));
+    
+    // Clear inputs after successful import
+    urlInput.value = '';
+    descInput.value = '';
   } catch (err) {
-    importedJobBoxEl.innerHTML = `<div class="empty-state">❌ ${escapeHtml(err.message)}</div>`;
+    let errorMsg = err.message;
+    // Provide helpful error messages
+    if (errorMsg.toLowerCase().includes('unable to fetch') || errorMsg.toLowerCase().includes('failed to parse')) {
+      errorMsg = 'Could not fetch the job from that URL. Please ensure the URL is correct and publicly accessible.';
+    }
+    importedJobBoxEl.innerHTML = `<div class="empty-state">❌ ${escapeHtml(errorMsg)}</div>`;
   }
 });
 

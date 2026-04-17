@@ -51,18 +51,28 @@ document.addEventListener('DOMContentLoaded', function () {
     await loadResumeFileIntoField(file, document.getElementById('resumeBase'), resumeUploadMessage);
   });
 
+  function buildJobDescription(jobTitle, company, fullJobDescription) {
+    return [
+      `Job Title: ${jobTitle}`,
+      company ? `Company: ${company}` : '',
+      '',
+      'Full Job Description:',
+      fullJobDescription
+    ].filter(Boolean).join('\n');
+  }
+
   rewriteBtn?.addEventListener('click', async function () {
     const jobTitle = document.getElementById('resumeJobTitle').value.trim();
     const company = document.getElementById('resumeCompany').value.trim();
     const baseResume = document.getElementById('resumeBase').value.trim();
     const fullJobDescription = document.getElementById('resumeJobDescription').value.trim();
-    if (!jobTitle || !company || !baseResume || !fullJobDescription) {
-      output.innerHTML = '<div style="color:#dc2626;">Please fill in all fields.</div>';
+    if (!jobTitle || !baseResume || !fullJobDescription) {
+      output.innerHTML = '<div style="color:#dc2626;">Please add the job title, your resume, and the full job description.</div>';
       return;
     }
     output.innerHTML = 'Rewriting resume...';
     try {
-      const jobDescription = `Job Title: ${jobTitle}\nCompany: ${company}\n\nFull Job Description:\n${fullJobDescription}`;
+      const jobDescription = buildJobDescription(jobTitle, company, fullJobDescription);
       const token = typeof getStoredToken === 'function' ? getStoredToken() : localStorage.getItem('token');
       const headers = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
@@ -179,7 +189,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
       const content = formatResumeForWord(lastResume);
       const html = `<!DOCTYPE html><html><body style="font-family:'Times New Roman', Times, serif;font-size:12pt;line-height:1.5;color:#000;white-space:pre-wrap;">${content.replace(/\n/g, '<br>')}</body></html>`;
-      const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+      const blob = new Blob(['\ufeff', html], { type: 'application/msword;charset=utf-8' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = 'resume.doc';

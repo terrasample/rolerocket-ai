@@ -142,19 +142,29 @@ document.addEventListener('DOMContentLoaded', function () {
     await loadResumeFileIntoField(file, document.getElementById('coverResume'), resumeUploadMessage);
   });
 
+  function buildJobDescription(jobTitle, company, fullJobDescription) {
+    return [
+      `Job Title: ${jobTitle}`,
+      company ? `Company: ${company}` : '',
+      '',
+      'Full Job Description:',
+      fullJobDescription
+    ].filter(Boolean).join('\n');
+  }
+
   generateBtn.addEventListener('click', async function () {
     const jobTitle = document.getElementById('coverJobTitle').value.trim();
     const company = document.getElementById('coverCompany').value.trim();
     const resume = document.getElementById('coverResume').value.trim();
     const fullJobDescription = document.getElementById('coverJobDescription').value.trim();
-    if (!jobTitle || !company || !resume || !fullJobDescription) {
-      output.innerHTML = '<div style="color:#dc2626;">Please fill in all fields.</div>';
+    if (!jobTitle || !resume || !fullJobDescription) {
+      output.innerHTML = '<div style="color:#dc2626;">Please add the job title, your resume, and the full job description.</div>';
       return;
     }
     output.innerHTML = 'Generating cover letter...';
     lastCoverMeta = extractContactInfo(resume);
     try {
-      const jobDescription = `Job Title: ${jobTitle}\nCompany: ${company}\n\nFull Job Description:\n${fullJobDescription}`;
+      const jobDescription = buildJobDescription(jobTitle, company, fullJobDescription);
       const token = typeof getStoredToken === 'function' ? getStoredToken() : localStorage.getItem('token');
       const headers = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
@@ -263,7 +273,7 @@ document.addEventListener('DOMContentLoaded', function () {
       const parsed = parseCoverLetter(lastCover);
       const today = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
       const html = `<!DOCTYPE html><html><body style="font-family:Calibri, Arial, sans-serif;font-size:11pt;line-height:1.55;color:#1f2937;margin:0;"><div style="max-width:780px;margin:0 auto;padding:20px 24px;"><div style="border-bottom:3px solid #8ec7da;padding-bottom:10px;margin-bottom:12px;"><div style="font-size:22pt;font-weight:800;color:#0e6e98;">${escapeHtml(lastCoverMeta.name || 'Candidate')}</div><div style="font-size:10pt;color:#64748b;">${escapeHtml([lastCoverMeta.phone, lastCoverMeta.email].filter(Boolean).join('  |  '))}</div><div style="font-size:9.5pt;color:#64748b;margin-top:6px;">${escapeHtml(today)}</div></div><div style="font-size:10pt;color:#334155;margin-bottom:10px;"><strong>Role:</strong> ${escapeHtml(roleTitle || 'Target Role')}<br><strong>Company:</strong> ${escapeHtml(company || 'Target Company')}</div><p style="margin:0 0 10px 0;font-weight:700;">${escapeHtml(parsed.greeting)}</p>${parsed.paragraphs.map((p) => `<p style="margin:0 0 12px 0;">${escapeHtml(p)}</p>`).join('')}<p style="margin:12px 0 0 0;">${escapeHtml(parsed.closing)}<br><strong>${escapeHtml(parsed.signature || lastCoverMeta.name || '')}</strong></p></div></body></html>`;
-      const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+      const blob = new Blob(['\ufeff', html], { type: 'application/msword;charset=utf-8' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = 'tailored-cover-letter.doc';

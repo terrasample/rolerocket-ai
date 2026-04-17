@@ -167,9 +167,11 @@ Your task:
 1) Rewrite the candidate's base resume so it is tailored to the target role.
 2) Keep every claim fact-based from the provided resume; do not invent employers, degrees, dates, or certifications.
 3) Remove placeholders and generic filler text.
+4) Preserve the candidate's real full name exactly as it appears in the source resume.
 
 Output requirements:
 - Return a complete, upload-ready resume in plain text.
+- Never use placeholder names such as "Candidate Name" or "Your Name".
 - Use this exact section order when available:
   NAME
   CONTACT (email | phone | city/state | links if provided)

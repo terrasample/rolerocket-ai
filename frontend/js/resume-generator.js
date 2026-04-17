@@ -38,17 +38,24 @@ document.addEventListener('DOMContentLoaded', function () {
   const output = document.getElementById('resumeOutput');
   let lastResume = '';
 
+  function buildJobDescription(jobTitle, company) {
+    return [
+      `Job Title: ${jobTitle}`,
+      company ? `Company: ${company}` : ''
+    ].filter(Boolean).join('\n');
+  }
+
   rewriteBtn.addEventListener('click', async function () {
     const jobTitle = document.getElementById('resumeJobTitle').value.trim();
     const company = document.getElementById('resumeCompany').value.trim();
     const baseResume = document.getElementById('resumeBase').value.trim();
-    if (!jobTitle || !company || !baseResume) {
-      output.innerHTML = '<div style="color:#dc2626;">Please fill in all fields.</div>';
+    if (!jobTitle || !baseResume) {
+      output.innerHTML = '<div style="color:#dc2626;">Please add the job title and your resume.</div>';
       return;
     }
     output.innerHTML = 'Rewriting resume...';
     try {
-      const jobDescription = `Job Title: ${jobTitle}\nCompany: ${company}`;
+      const jobDescription = buildJobDescription(jobTitle, company);
       const resume = baseResume;
       const token = typeof getStoredToken === 'function' ? getStoredToken() : localStorage.getItem('token');
       const headers = { 'Content-Type': 'application/json' };
