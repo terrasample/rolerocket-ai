@@ -3518,14 +3518,26 @@ pre {
 }
 
 .auth-card {
-  background: rgba(255, 255, 255, 0.97);
   color: #111827;
+  height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.auth-primary-panel {
+  background: rgba(255, 255, 255, 0.97);
   border-radius: 24px;
   padding: 28px;
   box-shadow: 0 24px 50px rgba(15, 23, 42, 0.18);
   border: 1px solid rgba(229, 231, 235, 0.9);
-  height: 100%;
-  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.auth-primary-panel-spacer {
+  flex: 1 1 auto;
 }
 
 .auth-card-top {
@@ -3588,6 +3600,12 @@ pre {
 
 .auth-footer.subtle {
   color: #6b7280;
+}
+
+@media (min-width: 1101px) {
+  .auth-primary-panel {
+    min-height: 760px;
+  }
 }
 
 @media (max-width: 1100px) {

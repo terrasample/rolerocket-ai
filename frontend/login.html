@@ -110,38 +110,42 @@
       </div>
 
       <div class="auth-card">
-        <div class="auth-card-top">
-          <span class="preview-pill">LOGIN</span>
-        </div>
+        <div class="auth-primary-panel">
+          <div class="auth-card-top">
+            <span class="preview-pill">LOGIN</span>
+          </div>
 
-        <h2>Welcome back</h2>
-        <p class="auth-subtext">Log in and continue your job-winning workflow.</p>
+          <h2>Welcome back</h2>
+          <p class="auth-subtext">Log in and continue your job-winning workflow.</p>
 
-        <form id="loginForm" class="auth-form">
-          <input id="loginEmail" type="email" placeholder="Email" autocomplete="email" required />
-          <input id="loginPassword" type="password" placeholder="Password" autocomplete="current-password" required />
-          <button id="loginSubmitBtn" type="submit" class="auth-submit-btn">Log In</button>
-        </form>
-
-        <div id="loginWaitlistBox" class="auth-waitlist-box" style="display:none;">
-          <p><strong>Auth is temporarily down.</strong> Leave your email and we will prioritize your access.</p>
-          <form id="loginWaitlistForm" class="auth-form">
-            <input id="loginWaitlistName" type="text" placeholder="Name (optional)" />
-            <input id="loginWaitlistEmail" type="email" placeholder="Email" required />
-            <button id="loginWaitlistBtn" type="submit" class="auth-submit-btn">Join Priority Waitlist</button>
+          <form id="loginForm" class="auth-form">
+            <input id="loginEmail" type="email" placeholder="Email" autocomplete="email" required />
+            <input id="loginPassword" type="password" placeholder="Password" autocomplete="current-password" required />
+            <button id="loginSubmitBtn" type="submit" class="auth-submit-btn">Log In</button>
           </form>
-          <div id="loginWaitlistMessage" class="auth-message" role="status" aria-live="polite"></div>
+
+          <div id="loginWaitlistBox" class="auth-waitlist-box" style="display:none;">
+            <p><strong>Auth is temporarily down.</strong> Leave your email and we will prioritize your access.</p>
+            <form id="loginWaitlistForm" class="auth-form">
+              <input id="loginWaitlistName" type="text" placeholder="Name (optional)" />
+              <input id="loginWaitlistEmail" type="email" placeholder="Email" required />
+              <button id="loginWaitlistBtn" type="submit" class="auth-submit-btn">Join Priority Waitlist</button>
+            </form>
+            <div id="loginWaitlistMessage" class="auth-message" role="status" aria-live="polite"></div>
+          </div>
+
+          <div id="loginMessage" class="auth-message" role="status" aria-live="polite"></div>
+          <button id="resendVerificationBtn" type="button" class="secondary-btn" style="display:none;margin-top:10px;">Resend Verification Email</button>
+
+          <div class="auth-primary-panel-spacer"></div>
+
+          <p class="auth-footer">          <a href="forgot-password.html" style="color:#7c3aed;font-size:0.9rem;">Forgot password?</a>
+          </p>
+
+          <p class="auth-footer">          Don’t have an account?
+            <a href="signup.html">Create one</a>
+          </p>
         </div>
-
-        <div id="loginMessage" class="auth-message" role="status" aria-live="polite"></div>
-        <button id="resendVerificationBtn" type="button" class="secondary-btn" style="display:none;margin-top:10px;">Resend Verification Email</button>
-
-        <p class="auth-footer">          <a href="forgot-password.html" style="color:#7c3aed;font-size:0.9rem;">Forgot password?</a>
-        </p>
-
-        <p class="auth-footer">          Don’t have an account?
-          <a href="signup.html">Create one</a>
-        </p>
 
         <div class="login-testimonials">
           <h3>What People Say</h3>
