@@ -265,6 +265,7 @@ html {
 body {
   margin: 0;
   font-family: var(--font-body);
+  font-size: 16.5px;
   background: linear-gradient(180deg, #f8faff 0%, #f3f6fb 100%);
   color: #111827;
 }
@@ -563,7 +564,7 @@ h3,
   color: white;
   border-radius: 10px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 15px;
   transition:
     transform 0.18s ease,
     background 0.18s ease,
@@ -588,7 +589,7 @@ h3,
   color: #ffffff;
   border-radius: 10px;
   text-decoration: none;
-  font-size: 14px;
+  font-size: 15px;
   transition:
     transform 0.18s ease,
     background 0.18s ease,
@@ -671,9 +672,10 @@ h3,
 }
 
 .marketing-main {
-  max-width: 1200px;
+  max-width: none;
+  width: 100%;
   margin-left: 0;
-  margin-right: auto;
+  margin-right: 0;
   justify-content: flex-start;
   align-items: flex-start;
 }
@@ -744,7 +746,7 @@ h3,
   margin: 0;
   color: #bfdbfe;
   line-height: 1.65;
-  font-size: 0.95rem;
+  font-size: 1rem;
 }
 
 .marketing-card p strong {
@@ -768,7 +770,7 @@ h3,
   margin: 10px 0 0;
   padding-left: 18px;
   color: #bfdbfe;
-  font-size: 0.94rem;
+  font-size: 0.98rem;
   line-height: 1.7;
 }
 
