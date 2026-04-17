@@ -315,8 +315,11 @@
 
         rightCard.style.marginTop = `${topOffset}px`;
         if (leftHeight > 0) {
-          rightCard.style.minHeight = `${leftHeight}px`;
-          rightCard.style.height = `${leftHeight}px`;
+          rightCard.style.height = 'auto';
+          const contentHeight = Math.ceil(rightCard.scrollHeight);
+          const targetHeight = Math.max(leftHeight, contentHeight);
+          rightCard.style.minHeight = `${targetHeight}px`;
+          rightCard.style.height = `${targetHeight}px`;
         }
       }
 
