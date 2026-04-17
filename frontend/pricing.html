@@ -34,67 +34,6 @@
     <main class="main marketing-main" id="mainContent" tabindex="-1">
       <button onclick="window.history.back()" class="back-arrow-btn" aria-label="Go back" style="margin:12px 0 0 12px;background:none;border:none;cursor:pointer;font-size:1.6em;color:#2563eb;"><span aria-hidden="true">&#8592;</span> Back</button>
 
-      <section class="marketing-card premium-stats-section analytics-summary-card" aria-label="Pricing proof snapshot" style="margin-top:18px;">
-        <div class="premium-stats-header analytics-summary-header">
-          <div>
-            <h3>Why the #1 AI career platform converts</h3>
-            <p>Live adoption, paid demand, and execution volume before you choose a plan.</p>
-          </div>
-          <p class="stats-footnote" id="pricingStatsStatus">Loading live platform stats...</p>
-        </div>
-
-        <div class="premium-stats-grid" style="margin-bottom:18px;">
-          <div class="stats-chart-wrap">
-            <div
-              class="stats-pie"
-              id="pricingStatsPie"
-              role="img"
-              aria-label="Usage distribution for resumes built, jobs tracked, and applications logged"
-            ></div>
-            <ul class="stats-legend" aria-label="Usage legend">
-              <li><span class="swatch resumes" aria-hidden="true"></span>Resumes built <strong id="pricingResumesTotal">--</strong></li>
-              <li><span class="swatch jobs" aria-hidden="true"></span>Jobs tracked <strong id="pricingJobsTotal">--</strong></li>
-              <li><span class="swatch applications" aria-hidden="true"></span>Applications logged <strong id="pricingApplicationsTotal">--</strong></li>
-            </ul>
-          </div>
-
-          <div class="stats-kpis" aria-label="Key platform totals">
-            <button type="button" class="stat-kpi stat-kpi-button" data-stat-prefix="pricing" data-stat-detail="users">
-              <span class="kpi-label">Total signups</span>
-              <strong id="pricingUsersTotal">--</strong>
-            </button>
-            <button type="button" class="stat-kpi stat-kpi-button" data-stat-prefix="pricing" data-stat-detail="subscribers">
-              <span class="kpi-label">Active paid members</span>
-              <strong id="pricingSubscribersTotal">--</strong>
-            </button>
-            <button type="button" class="stat-kpi stat-kpi-button" data-stat-prefix="pricing" data-stat-detail="activity">
-              <span class="kpi-label">Recorded platform activity</span>
-              <strong id="pricingUsageTotal">--</strong>
-            </button>
-          </div>
-        </div>
-
-        <section class="stats-detail-panel" aria-live="polite" aria-label="Pricing platform stat details">
-          <h4 id="pricingStatsDetailTitle">Platform details</h4>
-          <div id="pricingStatsDetailBody">Click a platform total to inspect the underlying data.</div>
-        </section>
-
-        <div class="analytics-split-grid">
-          <section>
-            <h4>Proof before purchase</h4>
-            <div id="pricingStatsNarrative" class="analytics-narrative empty-state">Loading summary...</div>
-          </section>
-          <section>
-            <h4>Why buyers upgrade</h4>
-            <div class="analytics-list">
-              <div class="analytics-row"><strong>Conversion signal</strong><span id="pricingPaidShare">--</span></div>
-              <div class="analytics-row"><strong>Execution stack</strong><span>Search, optimize, track, prep, and apply in one operating workflow.</span></div>
-              <div class="analytics-row"><strong>Low-friction upgrade</strong><span>Begin free and move up only when deeper automation pays for itself.</span></div>
-            </div>
-          </section>
-        </div>
-      </section>
-
       <!-- Candidate Pricing Section -->
       <section class="pricing-tier-block candidate-pricing">
 
@@ -194,7 +133,6 @@
     <a href="terms.html">Terms of Service</a>
     <a href="refund-policy.html">Refund Policy</a>
   </footer>
-  <script src="js/homepage-platform-stats.js"></script>
   <script src="js/pricing-data.js"></script>
   <script src="js/login-pricing-sync.js"></script>
   <script src="js/nav-plan-sync.js"></script>
