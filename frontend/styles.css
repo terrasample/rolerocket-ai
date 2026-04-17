@@ -3293,7 +3293,7 @@ pre {
   display: grid;
   grid-template-columns: 1.1fr 0.9fr;
   gap: 48px;
-  align-items: center;
+  align-items: stretch;
 }
 
 .auth-left h1 {
@@ -3524,6 +3524,8 @@ pre {
   padding: 28px;
   box-shadow: 0 24px 50px rgba(15, 23, 42, 0.18);
   border: 1px solid rgba(229, 231, 235, 0.9);
+  height: 100%;
+  box-sizing: border-box;
 }
 
 .auth-card-top {
