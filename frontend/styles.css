@@ -3038,7 +3038,7 @@ pre {
 .landing-hero {
   background: linear-gradient(135deg, #111827 0%, #1f2937 52%, #0c4a6e 100%);
   color: white;
-  padding: 56px 32px;
+  padding: 56px 48px;
 }
 
 .landing-hero-inner {
@@ -3287,12 +3287,12 @@ pre {
 }
 
 .auth-shell {
-  max-width: 1200px;
+  max-width: 1420px;
   margin: 0 auto;
   width: 100%;
   display: grid;
-  grid-template-columns: 1.05fr 0.95fr;
-  gap: 28px;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 48px;
   align-items: center;
 }
 
