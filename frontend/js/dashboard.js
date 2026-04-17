@@ -176,8 +176,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function formatResumeTimestamp(value) {
     const parsed = value ? new Date(value) : null;
-    if (!parsed || Number.isNaN(parsed.getTime())) return 'Saved recently';
-    return parsed.toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+    if (!parsed || Number.isNaN(parsed.getTime())) return 'Updated recently';
+    return `Updated ${parsed.toLocaleString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit'
+    })}`;
   }
 
   function buildResumeFilename(resume, fallbackIndex = 1) {
