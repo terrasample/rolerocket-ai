@@ -169,12 +169,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   const saveResumeBtn = document.getElementById('saveResumeBtn');
   const resumeSaveMsg = document.getElementById('resumeSaveMsg');
   const resumeLibraryList = document.getElementById('resumeLibraryList');
-  const resumeLibraryPreview = document.getElementById('resumeLibraryPreview');
   const downloadLatestResumeBtn = document.getElementById('downloadLatestResumeBtn');
   const noResumeMsg = document.getElementById('noResumeMsg');
   const dashboardIdentityBanner = document.getElementById('dashboardIdentityBanner');
   let latestResumeEntries = [];
-  let selectedResumeId = '';
 
   function formatResumeTimestamp(value) {
     const parsed = value ? new Date(value) : null;
@@ -199,42 +197,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     URL.revokeObjectURL(link.href);
   }
 
-  function renderResumeLibraryPreview() {
-    if (!resumeLibraryPreview) return;
-
-    const selected = latestResumeEntries.find((item) => String(item._id) === String(selectedResumeId)) || latestResumeEntries[0];
-    if (!selected) {
-      resumeLibraryPreview.hidden = true;
-      resumeLibraryPreview.innerHTML = '';
-      return;
-    }
-
-    const previewText = String(selected.content || '').replace(/\s+/g, ' ').trim();
-    const snippet = previewText.length > 240 ? `${previewText.slice(0, 240)}...` : previewText;
-    resumeLibraryPreview.hidden = false;
-    resumeLibraryPreview.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
-        <div>
-          <strong style="display:block;color:#0f172a;">${escapeHtml(selected.title || 'Saved Resume')}</strong>
-          <div style="font-size:0.9rem;color:#64748b;margin-top:4px;">${escapeHtml(formatResumeTimestamp(selected.createdAt))}</div>
-        </div>
-        <button type="button" class="secondary-btn" id="downloadSelectedResumeBtn">Download This Resume</button>
-      </div>
-      <p style="margin:12px 0 0 0;color:#334155;line-height:1.7;">${escapeHtml(snippet || 'Resume content is available for download.')}</p>
-    `;
-
-    document.getElementById('downloadSelectedResumeBtn')?.addEventListener('click', () => {
-      const idx = latestResumeEntries.findIndex((item) => String(item._id) === String(selected._id));
-      downloadResumeEntry(selected, idx >= 0 ? idx + 1 : 1);
-    });
-  }
-
   function renderResumeLibrary() {
     if (!resumeLibraryList) return;
 
     if (!latestResumeEntries.length) {
       resumeLibraryList.innerHTML = '';
-      renderResumeLibraryPreview();
       if (downloadLatestResumeBtn) downloadLatestResumeBtn.disabled = true;
       if (noResumeMsg) {
         noResumeMsg.textContent = 'No resume found. Please upload or paste your resume.';
@@ -243,31 +210,26 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    if (!selectedResumeId || !latestResumeEntries.some((item) => String(item._id) === String(selectedResumeId))) {
-      selectedResumeId = String(latestResumeEntries[0]._id || '');
-    }
-
     if (downloadLatestResumeBtn) downloadLatestResumeBtn.disabled = false;
     if (noResumeMsg) noResumeMsg.style.display = 'none';
 
     resumeLibraryList.innerHTML = latestResumeEntries.map((resume, index) => {
-      const isActive = String(resume._id) === String(selectedResumeId);
       return `
-        <button type="button" class="dashboard-resume-item${isActive ? ' is-active' : ''}" data-resume-id="${escapeHtml(String(resume._id || index))}">
+        <div class="dashboard-resume-item" role="group" aria-label="Saved resume ${index + 1}">
           <span class="dashboard-resume-item__title">${escapeHtml(resume.title || `Resume ${index + 1}`)}</span>
           <span class="dashboard-resume-item__meta">${escapeHtml(formatResumeTimestamp(resume.createdAt))}</span>
-        </button>
+          <button type="button" class="secondary-btn" data-download-resume="${escapeHtml(String(resume._id || index))}">Download</button>
+        </div>
       `;
     }).join('');
 
-    resumeLibraryList.querySelectorAll('[data-resume-id]').forEach((button) => {
+    resumeLibraryList.querySelectorAll('[data-download-resume]').forEach((button) => {
       button.addEventListener('click', () => {
-        selectedResumeId = String(button.dataset.resumeId || '');
-        renderResumeLibrary();
+        const targetId = String(button.dataset.downloadResume || '');
+        const idx = latestResumeEntries.findIndex((item, i) => String(item._id || i) === targetId);
+        if (idx >= 0) downloadResumeEntry(latestResumeEntries[idx], idx + 1);
       });
     });
-
-    renderResumeLibraryPreview();
   }
 
   async function loadDashboardIdentity() {
