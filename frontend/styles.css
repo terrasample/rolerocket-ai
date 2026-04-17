@@ -3291,7 +3291,7 @@ pre {
   margin: 0 auto;
   width: 100%;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 48px;
   align-items: stretch;
 }
@@ -3329,6 +3329,7 @@ pre {
 /* Premium Features Card Styles */
 .premium-features-card {
   margin-top: 24px;
+  width: 100%;
   padding: 28px;
   background: linear-gradient(135deg, rgba(224, 242, 254, 0.5) 0%, rgba(191, 219, 254, 0.3) 100%);
   border: 2px solid #e0f2fe;
@@ -3529,6 +3530,7 @@ pre {
 .auth-card {
   background: rgba(255, 255, 255, 0.97);
   color: #111827;
+  width: 100%;
   border-radius: 24px;
   padding: 28px;
   box-shadow: 0 24px 50px rgba(15, 23, 42, 0.18);
