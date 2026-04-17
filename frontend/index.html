@@ -16,7 +16,7 @@
   <meta property="og:title" content="RoleRocket AI – Land Better Jobs Faster with AI" />
   <meta property="og:description" content="AI-powered job search, ATS resume optimizer, cover letter generator, interview prep, and 1-click apply. Join thousands landing better jobs faster." />
   <meta property="og:url" content="https://www.rolerocketai.com/" />
-  <meta property="og:image" content="https://www.rolerocketai.com/og-image.png" />
+  <meta property="og:image" content="https://www.rolerocketai.com/assets/rolerocket-logo-square.svg" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta property="og:locale" content="en_US" />
@@ -25,8 +25,8 @@
   <meta name="twitter:site" content="@RoleRocketAI" />
   <meta name="twitter:title" content="RoleRocket AI – Land Better Jobs Faster with AI" />
   <meta name="twitter:description" content="AI-powered job search, resume optimizer, cover letters, interview prep, and 1-click apply. Start free today." />
-  <meta name="twitter:image" content="https://www.rolerocketai.com/og-image.png" />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>" />
+  <meta name="twitter:image" content="https://www.rolerocketai.com/assets/rolerocket-logo-square.svg" />
+  <link rel="icon" type="image/svg+xml" href="assets/rolerocket-logo-square.svg" />
   <link rel="stylesheet" href="styles.css" />
   <script src="js/api-base.js"></script>
   <script src="js/api-base.js"></script>
@@ -80,7 +80,7 @@
         "url": "https://www.rolerocketai.com/",
         "logo": {
           "@type": "ImageObject",
-          "url": "https://www.rolerocketai.com/og-image.png"
+          "url": "https://www.rolerocketai.com/assets/rolerocket-logo-square.svg"
         },
         "sameAs": [
           "https://twitter.com/RoleRocketAI"
@@ -98,7 +98,7 @@
         },
         "description": "AI-powered platform to find jobs, optimize resumes for ATS, generate cover letters, prep for interviews, and apply faster.",
         "url": "https://www.rolerocketai.com/",
-        "screenshot": "https://www.rolerocketai.com/og-image.png",
+        "screenshot": "https://www.rolerocketai.com/assets/rolerocket-logo-square.svg",
         "featureList": "AI job search, ATS resume optimizer, cover letter generator, interview prep, 1-click apply, job tracker"
       },
       {
@@ -164,7 +164,6 @@
         <a class="sidebar-link-btn" href="job-tracking.html">Find, Search & Track</a>
         <a class="sidebar-link-btn" href="ai-recruiter-assist.html">AI Recruiter Assist</a>
         
-        <a class="sidebar-link-btn" href="pricing.html">Pricing</a>
         <a class="sidebar-link-btn" href="contact-us.html">Contact Us</a>
         <hr />
         <p id="planBadge">Free Plan</p>
@@ -240,23 +239,12 @@
         <div class="quickstart-progress" id="quickstartProgress">Progress: 0/4 completed</div>
       </section>
 
-      <section class="marketing-card who-we-are-section" aria-label="Who we are">
-        <h3 style="text-align:center;">Who we are</h3>
-        <p style="text-align:center;">RoleRocket AI is a career execution platform built for people who want progress, not guesswork. We combine job discovery, resume intelligence, interview prep, and tracker workflows into one premium system so your effort compounds weekly.</p>
-        <div class="who-we-are-points">
-          <article>
-            <strong>Precision over noise</strong>
-            <p>Focus on high-fit opportunities and stop wasting time on low-probability applications.</p>
-          </article>
-          <article>
-            <strong>Execution over intention</strong>
-            <p>Convert saved opportunities into applied roles with clear status movement and fast actions.</p>
-          </article>
-          <article>
-            <strong>Signal over opinion</strong>
-            <p>Use match scores, ATS insights, and interview prep to improve outcomes with real feedback loops.</p>
-          </article>
+      <section class="marketing-card quickstart-next-steps" id="quickstartNextSteps" aria-label="Recommended next steps" hidden>
+        <div class="quickstart-head">
+          <h3>What To Do Next</h3>
+          <p id="quickstartNextStepsIntro">You finished the first 15 minutes. Here is the highest-value next move.</p>
         </div>
+        <div id="quickstartNextStepsBody"></div>
       </section>
 
       <!-- 5 Most In-Demand Jobs Section (moved above stats) -->
@@ -267,66 +255,6 @@
         <div id="jobsByIndustryError" style="display:none;margin-top:12px;text-align:center;color:#fca5a5;"></div>
       </section>
 
-      <section class="marketing-card premium-stats-section analytics-summary-card" aria-label="Platform leadership snapshot" style="margin-bottom:24px;">
-        <div class="premium-stats-header analytics-summary-header">
-          <div>
-            <h3>The #1 AI Career Execution Platform</h3>
-            <p>Live adoption and workflow volume that make the leadership claim measurable before login.</p>
-          </div>
-          <p class="stats-footnote" id="homepageStatsStatus">Loading live platform stats...</p>
-        </div>
-
-        <div class="premium-stats-grid" style="margin-bottom:18px;">
-          <div class="stats-chart-wrap">
-            <div
-              class="stats-pie"
-              id="homepageStatsPie"
-              role="img"
-              aria-label="Usage distribution for resumes built, jobs tracked, and applications logged"
-            ></div>
-            <ul class="stats-legend" aria-label="Usage legend">
-              <li><span class="swatch resumes" aria-hidden="true"></span>Resumes built <strong id="homepageResumesTotal">--</strong></li>
-              <li><span class="swatch jobs" aria-hidden="true"></span>Jobs tracked <strong id="homepageJobsTotal">--</strong></li>
-              <li><span class="swatch applications" aria-hidden="true"></span>Applications logged <strong id="homepageApplicationsTotal">--</strong></li>
-            </ul>
-          </div>
-
-          <div class="stats-kpis" aria-label="Key platform totals">
-            <button type="button" class="stat-kpi stat-kpi-button" data-stat-prefix="homepage" data-stat-detail="users">
-              <span class="kpi-label">Total signups</span>
-              <strong id="homepageUsersTotal">--</strong>
-            </button>
-            <button type="button" class="stat-kpi stat-kpi-button" data-stat-prefix="homepage" data-stat-detail="subscribers">
-              <span class="kpi-label">Active paid members</span>
-              <strong id="homepageSubscribersTotal">--</strong>
-            </button>
-            <button type="button" class="stat-kpi stat-kpi-button" data-stat-prefix="homepage" data-stat-detail="activity">
-              <span class="kpi-label">Total recorded activity</span>
-              <strong id="homepageUsageTotal">--</strong>
-            </button>
-          </div>
-        </div>
-
-        <section class="stats-detail-panel" aria-live="polite" aria-label="Homepage platform stat details">
-          <h4 id="homepageStatsDetailTitle">Platform details</h4>
-          <div id="homepageStatsDetailBody">Click a platform total to inspect the underlying data.</div>
-        </section>
-
-        <div class="analytics-split-grid">
-          <section>
-            <h4>Market Proof</h4>
-            <div id="homepageStatsNarrative" class="analytics-narrative empty-state">Loading summary...</div>
-          </section>
-          <section>
-            <h4>Why it wins</h4>
-            <div class="analytics-list">
-              <div class="analytics-row"><strong>One command center</strong><span>Search, optimize, track, and apply without fragmented tools.</span></div>
-              <div class="analytics-row"><strong>Paid demand</strong><span id="homepagePaidShare">--</span></div>
-              <div class="analytics-row"><strong>See the stack</strong><span><a href="pricing.html" style="color:#93c5fd;font-weight:700;">Compare plans</a></span></div>
-            </div>
-          </section>
-        </div>
-      </section>
 
       <section class="marketing-card" aria-label="What job seekers want to know">
         <h3>What Job Seekers Want To Know Right Now</h3>
@@ -377,11 +305,11 @@
         </article>
       </section>
 
-      <!-- Unlock Pro Button (visible on homepage) -->
+      <!-- Upgrade Now & Unlock Pro Button (visible on homepage) -->
       <section id="nextPlanCta" class="marketing-card tier-feature pro" style="margin: 32px 0; text-align: center;">
-        <h2 id="nextPlanTitle">Unlock Pro</h2>
+        <h2 id="nextPlanTitle">Upgrade Now & Unlock Pro</h2>
         <p id="nextPlanDescription">Get all Pro features instantly: Resume Generator, Cover Letter AI, Job Match Analysis, LinkedIn Optimization, and more.</p>
-        <button id="unlockProBtn" class="checkout-btn" style="font-size:1.2em;padding:16px 32px;margin-top:12px;">Unlock Pro →</button>
+        <button id="unlockProBtn" class="checkout-btn" style="font-size:1.2em;padding:16px 32px;margin-top:12px;">Upgrade Now & Unlock Pro →</button>
         <div id="nextPlanNote" style="margin-top:10px;font-size:0.95em;color:#64748b;">No recurring fees until you choose. Cancel anytime.</div>
       </section>
 
@@ -452,36 +380,36 @@
       const nextPlanConfig = {
         free: {
           cardClass: 'pro',
-          title: 'Unlock Pro',
+          title: 'Upgrade Now & Unlock Pro',
           description: 'Get all Pro features instantly: Resume Generator, Cover Letter AI, Job Match Analysis, LinkedIn Optimization, and more.',
-          button: 'Unlock Pro →',
+          button: 'Upgrade Now & Unlock Pro →',
           note: 'No recurring fees until you choose. Cancel anytime.',
           plan: 'pro',
           endpoint: '/api/create-checkout-session'
         },
         pro: {
           cardClass: 'premium',
-          title: 'Upgrade to Premium',
+          title: 'Upgrade Now & Unlock Premium',
           description: 'Move up to Premium for Interview Prep, 1-Click Apply Queue, AI Portfolio Builder, Networking AI, and AI Reference Generator.',
-          button: 'Unlock Premium →',
+          button: 'Upgrade Now & Unlock Premium →',
           note: 'Premium adds faster execution and stronger candidate positioning.',
           plan: 'premium',
           endpoint: '/api/create-checkout-session'
         },
         premium: {
           cardClass: 'elite',
-          title: 'Upgrade to Elite',
+          title: 'Upgrade Now & Unlock Elite',
           description: 'Elite adds Career Coach, Career Path Simulator, Offer Negotiation Coach, Calendar & Task AI, AI Application Tracker, and AI Job Agent.',
-          button: 'Unlock Elite →',
+          button: 'Upgrade Now & Unlock Elite →',
           note: 'Elite is built for users who want a full execution system, not just isolated tools.',
           plan: 'elite',
           endpoint: '/api/create-checkout-session'
         },
         elite: {
           cardClass: 'premium',
-          title: 'Upgrade to Lifetime Access',
+          title: 'Upgrade Now & Get Lifetime Access',
           description: 'Move from Elite to lifetime access and keep every candidate feature without recurring billing.',
-          button: 'Get Lifetime Access →',
+          button: 'Upgrade Now & Get Lifetime →',
           note: 'One-time purchase. Non-recurring. Cancellation no longer applies after lifetime purchase.',
           plan: 'lifetime',
           endpoint: '/api/create-lifetime-checkout'
@@ -497,9 +425,9 @@
         },
         recruiter: {
           cardClass: 'premium',
-          title: 'Upgrade to Recruiter Lifetime',
+          title: 'Upgrade Now & Get Recruiter Lifetime',
           description: 'Move to Recruiter Lifetime for permanent access to AI Recruiter Assist and recruiter dashboard features.',
-          button: 'Get Recruiter Lifetime →',
+          button: 'Upgrade Now & Get Recruiter Lifetime →',
           note: 'One-time recruiter purchase. No recurring billing.',
           plan: 'recruiter_lifetime',
           endpoint: '/api/create-lifetime-checkout'
@@ -515,7 +443,120 @@
         }
       };
 
+      const quickstartNextStepConfig = {
+        free: {
+          intro: 'You have the foundation in place. Stay focused on the highest-leverage free actions next.',
+          items: [
+            { title: 'Tailor one more role', copy: 'Use your saved resume to create a second role-specific version while the workflow is still fresh.', href: 'resume-generator.html', label: 'Generate another resume' },
+            { title: 'Build a live pipeline', copy: 'Save 3 strong-fit jobs so you are working a real pipeline instead of one-off applications.', href: 'job-tracking.html', label: 'Save more jobs' },
+            { title: 'Unlock more execution tools', copy: 'Pro opens ATS optimization and additional layout depth so you can move faster without guessing.', href: 'pricing.html', label: 'See plan options' }
+          ]
+        },
+        pro: {
+          intro: 'Your next gains come from improving quality control and applying with stronger positioning.',
+          items: [
+            { title: 'Run ATS Optimizer', copy: 'Check your resume against a real job description before you apply again.', href: 'optimizer.html', label: 'Open ATS Optimizer' },
+            { title: 'Strengthen your core resume', copy: 'Use Resume Optimizer so future tailored versions start from a stronger base.', href: 'resume-optimizer.html', label: 'Open Resume Optimizer' },
+            { title: 'Keep your pipeline moving', copy: 'Track status changes so saved jobs become applied jobs this week.', href: 'job-tracking.html', label: 'Update job tracking' }
+          ]
+        },
+        premium: {
+          intro: 'You have enough tools to improve both speed and conversion. Focus on the workflow after the resume.',
+          items: [
+            { title: 'Prep before the interview arrives', copy: 'Use Interview Prep AI now so you already have stories and frameworks ready.', href: 'interview-prep-ai.html', label: 'Open Interview Prep' },
+            { title: 'Queue stronger applications', copy: 'Move your best-fit roles into the 1-Click Apply flow so you can execute quickly.', href: 'one-click-apply-queue.html', label: 'Open 1-Click Apply' },
+            { title: 'Expand your signal', copy: 'Use Networking AI to improve warm outreach while applications are in motion.', href: 'networking-ai.html', label: 'Open Networking AI' }
+          ]
+        },
+        elite: {
+          intro: 'Elite works best when you combine execution with strategy and live support in high-stakes moments.',
+          items: [
+            { title: 'Practice with live support', copy: 'Use Interview Assist for real-time answer structure when the pressure is highest.', href: 'ai-interview-assist.html', label: 'Open Interview Assist' },
+            { title: 'Pressure-test your path', copy: 'Use Career Coach or Career Path Simulator to decide where the best upside is.', href: 'ai-career-coach.html', label: 'Open Career Coach' },
+            { title: 'Automate more of the search', copy: 'Let AI Job Agent and Application Tracker keep your pipeline moving with less manual drag.', href: 'ai-job-agent.html', label: 'Open AI Job Agent' }
+          ]
+        },
+        lifetime: {
+          intro: 'You already have full access. The best next step is using the system consistently across the whole search cycle.',
+          items: [
+            { title: 'Keep the dashboard active', copy: 'Use your dashboard as the control center for resumes, job tracking, and next actions.', href: 'dashboard.html', label: 'Open Dashboard' },
+            { title: 'Use the advanced stack', copy: 'Move through Interview Assist, Career Coach, and AI Job Agent as one connected workflow.', href: 'features.html', label: 'Review all features' },
+            { title: 'Turn momentum into proof', copy: 'Track progress weekly so you can see which actions are driving interviews and offers.', href: 'job-tracking.html', label: 'Track progress' }
+          ]
+        },
+        recruiter: {
+          intro: 'Your highest-value next move is using recruiter tools to screen faster and stay consistent.',
+          items: [
+            { title: 'Open recruiter tools', copy: 'Use the recruiter workflow to review fit and prioritize strong candidates faster.', href: 'ai-recruiter-assist.html', label: 'Open Recruiter Assist' }
+          ]
+        },
+        recruiter_lifetime: {
+          intro: 'Your recruiter lifetime access is active. Keep using the dashboard as your operating center.',
+          items: [
+            { title: 'Open recruiter tools', copy: 'Review candidates and keep the recruiter dashboard active across searches.', href: 'ai-recruiter-assist.html', label: 'Open Recruiter Assist' }
+          ]
+        }
+      };
+
       let currentUpgradeConfig = nextPlanConfig.free;
+      let homepageUserContext = { plan: 'free', isRecruiter: false, isAdmin: false };
+
+      async function loadHomepageUserContext() {
+        const token = localStorage.getItem('token');
+        let planKey = 'free';
+        let isRecruiter = false;
+        let isAdmin = false;
+
+        if (token) {
+          try {
+            const res = await fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } });
+            const data = await res.json();
+            const plan = String(data.user?.plan || 'free').toLowerCase();
+            isRecruiter = plan.includes('recruiter');
+            isAdmin = Boolean(data.user?.isAdmin);
+            if (isRecruiter && plan.includes('lifetime')) {
+              planKey = 'recruiter_lifetime';
+            } else if (isRecruiter) {
+              planKey = 'recruiter';
+            } else if (nextPlanConfig[plan]) {
+              planKey = plan;
+            }
+          } catch (_error) {
+            planKey = 'free';
+          }
+        }
+
+        homepageUserContext = { plan: planKey, isRecruiter, isAdmin };
+        return homepageUserContext;
+      }
+
+      function renderQuickstartNextSteps(summary) {
+        const nextStepsEl = document.getElementById('quickstartNextSteps');
+        const introEl = document.getElementById('quickstartNextStepsIntro');
+        const bodyEl = document.getElementById('quickstartNextStepsBody');
+        if (!nextStepsEl || !introEl || !bodyEl) return;
+
+        if (!summary || summary.completed < summary.total) {
+          nextStepsEl.hidden = true;
+          return;
+        }
+
+        const planKey = quickstartNextStepConfig[homepageUserContext.plan] ? homepageUserContext.plan : 'free';
+        const config = quickstartNextStepConfig[planKey];
+        introEl.textContent = config.intro;
+        bodyEl.innerHTML = `
+          <div class="quickstart-next-step-grid">
+            ${config.items.map((item) => `
+              <article class="quickstart-next-step-card">
+                <strong>${item.title}</strong>
+                <p>${item.copy}</p>
+                <a href="${item.href}">${item.label}</a>
+              </article>
+            `).join('')}
+          </div>
+        `;
+        nextStepsEl.hidden = false;
+      }
 
       function initQuickstartSprint() {
         const quickstart = window.RoleRocketQuickstart;
@@ -530,6 +571,7 @@
             checkbox.checked = !!(step && summary.state[step]);
           });
           progressEl.textContent = `Progress: ${summary.completed}/${summary.total} completed`;
+          renderQuickstartNextSteps(summary);
         }
 
         checks.forEach((checkbox) => {
@@ -590,7 +632,6 @@
       }
 
       async function syncHomepageUpgradeCta() {
-        const token = localStorage.getItem('token');
         const titleEl = document.getElementById('nextPlanTitle');
         const descriptionEl = document.getElementById('nextPlanDescription');
         const noteEl = document.getElementById('nextPlanNote');
@@ -598,24 +639,8 @@
         const cardEl = document.getElementById('nextPlanCta');
         if (!titleEl || !descriptionEl || !noteEl || !buttonEl || !cardEl) return;
 
-        let planKey = 'free';
-        if (token) {
-          try {
-            const res = await fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } });
-            const data = await res.json();
-            const plan = String(data.user?.plan || 'free').toLowerCase();
-            const isRecruiter = plan.includes('recruiter');
-            if (isRecruiter && plan.includes('lifetime')) {
-              planKey = 'recruiter_lifetime';
-            } else if (isRecruiter) {
-              planKey = 'recruiter';
-            } else if (nextPlanConfig[plan]) {
-              planKey = plan;
-            }
-          } catch (_error) {
-            planKey = 'free';
-          }
-        }
+        const context = await loadHomepageUserContext();
+        const planKey = context.plan || 'free';
 
         currentUpgradeConfig = nextPlanConfig[planKey] || nextPlanConfig.free;
         titleEl.textContent = currentUpgradeConfig.title;
@@ -660,7 +685,10 @@
         }
       });
 
-      syncHomepageUpgradeCta();
+      loadHomepageUserContext().then(() => {
+        syncHomepageUpgradeCta();
+        renderQuickstartNextSteps(window.RoleRocketQuickstart?.getSummary?.());
+      });
       initQuickstartSprint();
       initQuickstartNudge();
       </script>
