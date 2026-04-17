@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', function () {
   const generateBtn = document.getElementById('generateResumeBtnGen');
+  const clearFieldsBtn = document.getElementById('clearResumeFieldsBtnGen');
   const savePdfBtn = document.getElementById('saveResumePdfBtnGen');
   const saveWordBtn = document.getElementById('saveResumeWordBtnGen');
   const output = document.getElementById('resumeOutputGen');
@@ -794,6 +795,30 @@ document.addEventListener('DOMContentLoaded', function () {
     renderPhotoPreview();
   }
 
+  function clearGeneratorFields() {
+    const jobTitleInput = document.getElementById('resumeJobTitleGen');
+    const companyInput = document.getElementById('resumeCompanyGen');
+    const baseResumeInput = document.getElementById('resumeBaseGen');
+    const jobDescriptionInput = document.getElementById('resumeJobDescriptionGen');
+
+    if (jobTitleInput) jobTitleInput.value = '';
+    if (companyInput) companyInput.value = '';
+    if (baseResumeInput) baseResumeInput.value = '';
+    if (jobDescriptionInput) jobDescriptionInput.value = '';
+    if (resumeUploadInput) resumeUploadInput.value = '';
+
+    if (resumeUploadMessage) {
+      resumeUploadMessage.textContent = '';
+      resumeUploadMessage.style.color = '#64748b';
+    }
+
+    resetPhotoSelection();
+
+    lastRawResume = '';
+    lastStructuredResume = null;
+    output.innerHTML = '';
+  }
+
   function renderPhotoPreview() {
     if (!photoPreview) return;
 
@@ -1170,6 +1195,11 @@ document.addEventListener('DOMContentLoaded', function () {
     } catch (err) {
       renderError('Could not generate Word document.');
     }
+  });
+
+  clearFieldsBtn?.addEventListener('click', function () {
+    clearGeneratorFields();
+    statusBanner('Fields cleared. Add new details to generate another resume.', true);
   });
 
   renderPhotoPreview();
