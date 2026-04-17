@@ -1239,6 +1239,7 @@ const JOB_ALERT_FREQUENCIES = ['instant', 'daily', 'weekly'];
 const JOB_ALERT_WORK_MODES = ['remote', 'hybrid', 'onsite'];
 const JOB_ALERT_EMPLOYMENT_TYPES = ['full-time', 'contract', 'part-time', 'temporary', 'internship'];
 const JOB_ALERT_SENIORITY_LEVELS = ['internship', 'entry', 'associate', 'mid', 'senior', 'lead', 'manager', 'director', 'executive'];
+const JOB_ALERT_MIN_MATCH_SCORE = 90;
 const JOB_ALERT_SCHEDULE_INTERVAL_MS = 1000 * 60 * 5;
 const JOB_ALERT_FREQUENCY_MS = {
   instant: 1000 * 60 * 60 * 2,
@@ -1514,6 +1515,7 @@ async function runJobAlertSearch(alertDoc) {
         whyMatched
       };
     })
+    .filter((job) => job.matchScore >= JOB_ALERT_MIN_MATCH_SCORE)
     .sort((a, b) => b.matchScore - a.matchScore)
     .slice(0, 12);
 

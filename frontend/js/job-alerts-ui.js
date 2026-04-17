@@ -114,7 +114,7 @@
         <div class="job-alerts-heading-row">
           <div>
             <h3 class="job-alerts-title">🔔 Job Alerts</h3>
-            <p class="job-alerts-subtitle">Create persistent alert profiles, import your latest resume, scan for matches, email results on demand, and save top roles straight into your pipeline.</p>
+            <p class="job-alerts-subtitle">Create persistent alert profiles, import your latest resume, and only surface 90%+ matches that are more likely to convert.</p>
           </div>
           <div class="job-alerts-kicker">Dashboard control center</div>
         </div>
@@ -271,7 +271,7 @@
                     </div>
                   `).join('')}
                 </div>
-              ` : '<div class="job-alert-empty">No in-app results yet. Run a scan to populate matches.</div>'}
+              ` : '<div class="job-alert-empty">No 90%+ matches yet. Run a scan or broaden the alert criteria.</div>'}
             </article>
           `).join('') : '<div class="job-alert-empty">No alert profiles yet. Create your first profile above.</div>'}
         </div>
