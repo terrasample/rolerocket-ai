@@ -164,7 +164,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const saveResumeBtn = document.getElementById('saveResumeBtn');
   const resumeSaveMsg = document.getElementById('resumeSaveMsg');
   const resumeLibraryList = document.getElementById('resumeLibraryList');
-  const downloadLatestResumeBtn = document.getElementById('downloadLatestResumeBtn');
+  const downloadLatestResumePdfBtn = document.getElementById('downloadLatestResumePdfBtn');
+  const downloadLatestResumeWordBtn = document.getElementById('downloadLatestResumeWordBtn');
   const noResumeMsg = document.getElementById('noResumeMsg');
   const dashboardIdentityBanner = document.getElementById('dashboardIdentityBanner');
   let latestResumeEntries = [];
@@ -181,17 +182,85 @@ document.addEventListener('DOMContentLoaded', async () => {
     })}`;
   }
 
-  function buildResumeFilename(resume, fallbackIndex = 1) {
+  function buildResumeFilenameBase(resume, fallbackIndex = 1) {
     const title = String(resume?.title || `resume-${fallbackIndex}`).trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-    return `${title || `resume-${fallbackIndex}`}.txt`;
+    return title || `resume-${fallbackIndex}`;
   }
 
-  function downloadResumeEntry(resume, fallbackIndex = 1) {
-    if (!resume?.content) return;
-    const blob = new Blob([resume.content], { type: 'text/plain;charset=utf-8' });
+  function getResumeText(resume) {
+    return String(resume?.content || '').replace(/\r\n?/g, '\n').trim();
+  }
+
+  function formatResumeForPdf(text, doc) {
+    const lines = String(text || '').split('\n');
+    let y = 20;
+    doc.setFont('times', 'normal');
+    doc.setFontSize(12);
+
+    lines.forEach((rawLine) => {
+      const line = rawLine || '';
+      const wrapped = doc.splitTextToSize(line, 190);
+
+      if (line.match(/^#{1,3}\s/)) {
+        doc.setFont('times', 'bold');
+        doc.text(line.replace(/^#{1,3}\s*/, ''), 10, y);
+        doc.setFont('times', 'normal');
+        y += 6;
+      } else if (line.trim() === '') {
+        y += 4;
+      } else {
+        wrapped.forEach((segment) => {
+          doc.text(segment, 10, y);
+          y += 6;
+          if (y > 270) {
+            doc.addPage();
+            y = 20;
+          }
+        });
+      }
+
+      if (y > 270) {
+        doc.addPage();
+        y = 20;
+      }
+    });
+  }
+
+  function downloadResumeEntryAsPdf(resume, fallbackIndex = 1) {
+    const text = getResumeText(resume);
+    if (!text) return;
+    if (!window.jspdf || !window.jspdf.jsPDF) {
+      showToast('PDF library not loaded. Please refresh and try again.', 'error');
+      return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    formatResumeForPdf(text, doc);
+    doc.save(`${buildResumeFilenameBase(resume, fallbackIndex)}.pdf`);
+  }
+
+  function formatResumeForWord(text) {
+    return String(text || '')
+      .replace(/^### (.*)$/gm, '\n\n$1\n----------------------------------------')
+      .replace(/^## (.*)$/gm, '\n\n$1\n------------------------------')
+      .replace(/^# (.*)$/gm, '\n\n$1\n--------------------')
+      .replace(/\*\*(.*?)\*\*/g, '$1'.toUpperCase())
+      .replace(/^- /gm, '  • ')
+      .replace(/\n{2,}/g, '\n\n')
+      .trim();
+  }
+
+  function downloadResumeEntryAsWord(resume, fallbackIndex = 1) {
+    const text = getResumeText(resume);
+    if (!text) return;
+
+    const content = formatResumeForWord(text);
+    const html = `<!DOCTYPE html><html><body style="font-family:'Times New Roman', Times, serif;font-size:12pt;line-height:1.5;color:#000;white-space:pre-wrap;">${escapeHtml(content).replace(/\n/g, '<br>')}</body></html>`;
+    const blob = new Blob(['\ufeff', html], { type: 'application/msword;charset=utf-8' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = buildResumeFilename(resume, fallbackIndex);
+    link.download = `${buildResumeFilenameBase(resume, fallbackIndex)}.doc`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -203,7 +272,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (!latestResumeEntries.length) {
       resumeLibraryList.innerHTML = '';
-      if (downloadLatestResumeBtn) downloadLatestResumeBtn.disabled = true;
+      if (downloadLatestResumePdfBtn) downloadLatestResumePdfBtn.disabled = true;
+      if (downloadLatestResumeWordBtn) downloadLatestResumeWordBtn.disabled = true;
       if (noResumeMsg) {
         noResumeMsg.textContent = 'No resume found. Please upload or paste your resume.';
         noResumeMsg.style.display = '';
@@ -211,7 +281,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    if (downloadLatestResumeBtn) downloadLatestResumeBtn.disabled = false;
+    if (downloadLatestResumePdfBtn) downloadLatestResumePdfBtn.disabled = false;
+    if (downloadLatestResumeWordBtn) downloadLatestResumeWordBtn.disabled = false;
     if (noResumeMsg) noResumeMsg.style.display = 'none';
 
     resumeLibraryList.innerHTML = latestResumeEntries.map((resume, index) => {
@@ -219,7 +290,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         <div class="dashboard-resume-item" role="group" aria-label="Saved resume ${index + 1}">
           <span class="dashboard-resume-item__title">${escapeHtml(resume.title || `Resume ${index + 1}`)}</span>
           <span class="dashboard-resume-item__meta">${escapeHtml(formatResumeTimestamp(resume.createdAt))}</span>
-          <button type="button" class="secondary-btn" data-download-resume="${escapeHtml(String(resume._id || index))}">Download</button>
+          <button type="button" class="secondary-btn" data-download-resume="${escapeHtml(String(resume._id || index))}">Download PDF</button>
         </div>
       `;
     }).join('');
@@ -228,7 +299,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       button.addEventListener('click', () => {
         const targetId = String(button.dataset.downloadResume || '');
         const idx = latestResumeEntries.findIndex((item, i) => String(item._id || i) === targetId);
-        if (idx >= 0) downloadResumeEntry(latestResumeEntries[idx], idx + 1);
+        if (idx >= 0) downloadResumeEntryAsPdf(latestResumeEntries[idx], idx + 1);
       });
     });
   }
@@ -341,9 +412,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   await loadDashboardResume();
 
-  downloadLatestResumeBtn?.addEventListener('click', () => {
+  downloadLatestResumePdfBtn?.addEventListener('click', () => {
     if (!latestResumeEntries.length) return;
-    downloadResumeEntry(latestResumeEntries[0], 1);
+    downloadResumeEntryAsPdf(latestResumeEntries[0], 1);
+  });
+
+  downloadLatestResumeWordBtn?.addEventListener('click', () => {
+    if (!latestResumeEntries.length) return;
+    downloadResumeEntryAsWord(latestResumeEntries[0], 1);
   });
 
     // Job Tracker Section
