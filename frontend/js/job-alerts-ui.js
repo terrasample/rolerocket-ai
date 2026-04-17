@@ -114,7 +114,7 @@
         <div class="job-alerts-heading-row">
           <div>
             <h3 class="job-alerts-title">🔔 Job Alerts</h3>
-            <p class="job-alerts-subtitle">Create persistent alert profiles, import your latest resume, scan for matches, and save top roles straight into your pipeline.</p>
+            <p class="job-alerts-subtitle">Create persistent alert profiles, import your latest resume, scan for matches, email results on demand, and save top roles straight into your pipeline.</p>
           </div>
           <div class="job-alerts-kicker">Dashboard control center</div>
         </div>
@@ -191,7 +191,7 @@
           </div>
 
           <div class="job-alerts-row-grid">
-            <label class="job-alerts-check"><input id="ja-email-enabled" type="checkbox" ${form.emailEnabled ? 'checked' : ''} /><span>Email alert summaries</span></label>
+            <label class="job-alerts-check"><input id="ja-email-enabled" type="checkbox" ${form.emailEnabled ? 'checked' : ''} /><span>Automatic email summaries</span></label>
             <label class="job-alerts-check"><input id="ja-inapp-enabled" type="checkbox" ${form.inAppEnabled ? 'checked' : ''} /><span>Keep in-app matches on dashboard</span></label>
             <label class="job-alerts-check"><input id="ja-include-similar" type="checkbox" ${form.includeSimilarTitles ? 'checked' : ''} /><span>Include similar titles</span></label>
           </div>
@@ -241,12 +241,14 @@
               <div class="job-alert-card__stats">
                 <span><strong>Last checked:</strong> ${escapeHtml(formatDateTime(alert.lastCheckedAt))}</span>
                 <span><strong>Next run:</strong> ${escapeHtml(formatDateTime(alert.nextRunAt))}</span>
+                <span><strong>Last emailed:</strong> ${escapeHtml(formatDateTime(alert.lastEmailedAt))}</span>
                 <span><strong>Total runs:</strong> ${Number(alert.totalRuns || 0)}</span>
                 <span><strong>Resume:</strong> ${escapeHtml(alert.resumeSource || 'none')}</span>
               </div>
               <div class="job-alert-actions">
                 <button type="button" class="secondary-btn" data-action="edit-alert" data-alert-id="${alert._id}">Edit</button>
                 <button type="button" class="secondary-btn" data-action="run-alert" data-alert-id="${alert._id}">Run Scan</button>
+                <button type="button" class="secondary-btn" data-action="email-alert" data-alert-id="${alert._id}">Email Results</button>
                 <button type="button" class="secondary-btn" data-action="toggle-alert" data-alert-id="${alert._id}" data-paused="${alert.isPaused ? '1' : '0'}">${alert.isPaused ? 'Resume Alert' : 'Pause Alert'}</button>
                 <button type="button" class="secondary-btn" data-action="delete-alert" data-alert-id="${alert._id}">Delete</button>
               </div>
@@ -335,7 +337,7 @@
           </label>
         </div>
         <div class="job-alerts-row-grid">
-          <label class="job-alerts-check"><input id="jad-email-enabled" type="checkbox" ${defaults.emailEnabled !== false ? 'checked' : ''} /><span>Email summaries by default</span></label>
+          <label class="job-alerts-check"><input id="jad-email-enabled" type="checkbox" ${defaults.emailEnabled !== false ? 'checked' : ''} /><span>Automatic email summaries by default</span></label>
           <label class="job-alerts-check"><input id="jad-inapp-enabled" type="checkbox" ${defaults.inAppEnabled !== false ? 'checked' : ''} /><span>Keep dashboard matches by default</span></label>
           <label class="job-alerts-check"><input id="jad-include-similar" type="checkbox" ${defaults.includeSimilarTitles !== false ? 'checked' : ''} /><span>Expand similar titles by default</span></label>
         </div>
@@ -559,6 +561,25 @@
             await api(`/api/job-alerts/${button.getAttribute('data-alert-id')}/run`, { method: 'POST' });
             await loadState();
             state.message = 'Alert scan completed.';
+            state.messageType = 'success';
+            render();
+          } catch (err) {
+            state.message = err.message;
+            state.messageType = 'error';
+            render();
+          }
+        });
+      });
+
+      root.querySelectorAll('[data-action="email-alert"]').forEach((button) => {
+        button.addEventListener('click', async () => {
+          try {
+            await api(`/api/job-alerts/${button.getAttribute('data-alert-id')}/email`, {
+              method: 'POST',
+              body: JSON.stringify({ refresh: true })
+            });
+            await loadState();
+            state.message = 'Alert results emailed to your account address.';
             state.messageType = 'success';
             render();
           } catch (err) {

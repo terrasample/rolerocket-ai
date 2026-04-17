@@ -1525,6 +1525,9 @@ async function executeJobAlertRun(alertDoc, options = {}) {
   const mode = options.mode || 'manual';
   const alert = alertDoc;
   const { results, newJobsFoundCount, resumeText } = await runJobAlertSearch(alert);
+  const shouldEmail = typeof options.sendEmail === 'boolean'
+    ? options.sendEmail
+    : alert.emailEnabled && results.length && (mode === 'manual' || newJobsFoundCount > 0);
 
   alert.latestResults = results;
   alert.lastCheckedAt = new Date();
@@ -1537,7 +1540,7 @@ async function executeJobAlertRun(alertDoc, options = {}) {
     alert.resumeText = resumeText.slice(0, 30000);
   }
 
-  if (alert.emailEnabled && results.length && (mode === 'manual' || newJobsFoundCount > 0)) {
+  if (shouldEmail) {
     const user = await User.findById(alert.userId).select('email name').lean();
     queueJobAlertSummaryEmail({
       to: user?.email,
@@ -3883,6 +3886,40 @@ app.post('/api/job-alerts/:id/run', authenticateToken, async (req, res) => {
   } catch (err) {
     console.error('Job alert run error:', err);
     return res.status(500).json({ error: 'Failed to run job alert' });
+  }
+});
+
+app.post('/api/job-alerts/:id/email', authenticateToken, async (req, res) => {
+  try {
+    const alert = await JobAlert.findOne({ _id: req.params.id, userId: req.user.userId });
+    if (!alert) return res.status(404).json({ error: 'Job alert not found' });
+
+    const needsFreshResults = !Array.isArray(alert.latestResults) || !alert.latestResults.length || req.body?.refresh === true;
+    if (needsFreshResults) {
+      await executeJobAlertRun(alert, { mode: 'manual-email-refresh', sendEmail: false });
+    }
+
+    if (!Array.isArray(alert.latestResults) || !alert.latestResults.length) {
+      return res.status(400).json({ error: 'No alert results available to email yet' });
+    }
+
+    const user = await User.findById(req.user.userId).select('email name').lean();
+    if (!String(user?.email || '').trim()) {
+      return res.status(400).json({ error: 'No email address is available for this account' });
+    }
+
+    queueJobAlertSummaryEmail({
+      to: user.email,
+      alert,
+      results: alert.latestResults
+    });
+    alert.lastEmailedAt = new Date();
+    await alert.save();
+
+    return res.json({ alert, emailed: true });
+  } catch (err) {
+    console.error('Job alert email error:', err);
+    return res.status(500).json({ error: 'Failed to email job alert results' });
   }
 });
 
