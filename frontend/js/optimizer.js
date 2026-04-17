@@ -292,3 +292,26 @@ document.getElementById('saveAtsResumeWordBtn')?.addEventListener('click', () =>
   setOptimizerStatus('Word document downloaded!');
 });
 
+document.getElementById('clearAtsFieldsBtn')?.addEventListener('click', () => {
+  const jobDescriptionEl = document.getElementById('atsJobDescription');
+  const resumeEl = document.getElementById('atsResume');
+  const rewriteOutputEl = document.getElementById('rewriteOutput');
+  const scoreEl = document.getElementById('atsScore');
+
+  if (jobDescriptionEl) jobDescriptionEl.value = '';
+  if (resumeEl) resumeEl.value = '';
+  if (rewriteOutputEl) rewriteOutputEl.textContent = '';
+  if (scoreEl) scoreEl.textContent = '0';
+
+  renderTags('matchedKeywords', [], 'No matched keywords yet.');
+  renderTags('missingKeywords', [], 'No missing keywords found.');
+
+  const redFlagsEl = document.getElementById('redFlags');
+  if (redFlagsEl) redFlagsEl.innerHTML = '<div class="urgency-empty">No red flags to display.</div>';
+
+  const bulletScoresEl = document.getElementById('bulletScores');
+  if (bulletScoresEl) bulletScoresEl.innerHTML = '<div class="urgency-empty">No bullet scores to display.</div>';
+
+  setOptimizerStatus('Fields cleared. Add new details to analyze another resume.');
+});
+

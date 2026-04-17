@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const savePdfBtn = document.getElementById('saveCoverPdfBtn');
   const saveWordBtn = document.getElementById('saveCoverWordBtn');
   const generateBtn = document.getElementById('generateCoverBtn');
+  const clearFieldsBtn = document.getElementById('clearCoverFieldsBtn');
   const output = document.getElementById('coverLetterOutput');
   const resumeUploadInput = document.getElementById('coverResumeUpload');
   const resumeUploadMessage = document.getElementById('coverResumeUploadMessage');
@@ -284,4 +285,26 @@ document.addEventListener('DOMContentLoaded', function () {
       output.insertAdjacentHTML('afterbegin', '<div style="margin-bottom:10px;padding:10px 12px;border-radius:8px;font-size:0.95rem;background:#ecfdf5;color:#166534;border:1px solid #86efac;">Word document downloaded.</div>');
     };
   }
+
+  clearFieldsBtn?.addEventListener('click', function () {
+    const jobTitle = document.getElementById('coverJobTitle');
+    const company = document.getElementById('coverCompany');
+    const resume = document.getElementById('coverResume');
+    const jobDescription = document.getElementById('coverJobDescription');
+
+    if (jobTitle) jobTitle.value = '';
+    if (company) company.value = '';
+    if (resume) resume.value = '';
+    if (jobDescription) jobDescription.value = '';
+    if (resumeUploadInput) resumeUploadInput.value = '';
+
+    if (resumeUploadMessage) {
+      resumeUploadMessage.textContent = '';
+      resumeUploadMessage.style.color = '#64748b';
+    }
+
+    lastCover = '';
+    lastCoverMeta = { name: '', phone: '', email: '' };
+    output.innerHTML = '<div style="color:#166534;background:#ecfdf5;border:1px solid #86efac;border-radius:8px;padding:10px 12px;">Fields cleared. Add new details to generate another cover letter.</div>';
+  });
 });

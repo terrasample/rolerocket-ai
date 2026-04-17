@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const savePdfBtn = document.getElementById('saveResumePdfBtn');
   const saveWordBtn = document.getElementById('saveResumeWordBtn');
   const rewriteBtn = document.getElementById('rewriteResumeBtn');
+  const clearFieldsBtn = document.getElementById('clearResumeOptimizerFieldsBtn');
   const output = document.getElementById('resumeOutput');
   const resumeUploadInput = document.getElementById('resumeBaseUpload');
   const resumeUploadMessage = document.getElementById('resumeBaseUploadMessage');
@@ -199,4 +200,25 @@ document.addEventListener('DOMContentLoaded', function () {
       output.innerHTML = '<div style="color:#16a34a;">Word document downloaded.</div>';
     };
   }
+
+  clearFieldsBtn?.addEventListener('click', function () {
+    const jobTitle = document.getElementById('resumeJobTitle');
+    const company = document.getElementById('resumeCompany');
+    const baseResume = document.getElementById('resumeBase');
+    const jobDescription = document.getElementById('resumeJobDescription');
+
+    if (jobTitle) jobTitle.value = '';
+    if (company) company.value = '';
+    if (baseResume) baseResume.value = '';
+    if (jobDescription) jobDescription.value = '';
+    if (resumeUploadInput) resumeUploadInput.value = '';
+
+    if (resumeUploadMessage) {
+      resumeUploadMessage.textContent = '';
+      resumeUploadMessage.style.color = '#64748b';
+    }
+
+    lastResume = '';
+    output.innerHTML = '<div style="color:#166534;background:#ecfdf5;border:1px solid #86efac;border-radius:8px;padding:10px 12px;">Fields cleared. Add new details to optimize another resume.</div>';
+  });
 });
