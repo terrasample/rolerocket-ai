@@ -2597,6 +2597,13 @@ body[data-dashboard-mode='starter'] .progressive-module {
   contain-intrinsic-size: 700px;
 }
 
+.account-settings-grid {
+  width: 100%;
+  max-width: none;
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  align-items: stretch;
+}
+
 .card {
   background: rgba(255, 255, 255, 0.95);
   padding: 20px;
