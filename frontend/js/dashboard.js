@@ -2271,23 +2271,11 @@ function createImportedJobCard(job) {
   viewLink.textContent = 'Open Original Job';
 
   const saveBtn = document.createElement('button');
-  saveBtn.textContent = 'Save to Saved';
+  saveBtn.textContent = 'Save to Pipeline';
   saveBtn.addEventListener('click', async () => {
     try {
       await saveJobToBackend(job, 'saved');
-      showToast('Role added to Saved pipeline status');
-      await loadTracker();
-    } catch (err) {
-      showToast(`Save error: ${err.message}`, 'error');
-    }
-  });
-
-  const readyBtn = document.createElement('button');
-  readyBtn.textContent = 'Save to Ready';
-  readyBtn.addEventListener('click', async () => {
-    try {
-      await saveJobToBackend(job, 'ready');
-      showToast('Role added to Ready pipeline status');
+      showToast('Role added to pipeline (Saved)');
       await loadTracker();
     } catch (err) {
       showToast(`Save error: ${err.message}`, 'error');
@@ -2300,7 +2288,7 @@ function createImportedJobCard(job) {
   linkedinLink.rel = 'noopener noreferrer';
   linkedinLink.textContent = 'Search LinkedIn';
 
-  actionsDiv.append(viewLink, saveBtn, readyBtn, linkedinLink);
+  actionsDiv.append(viewLink, saveBtn, linkedinLink);
 
   const br = () => document.createElement('br');
   wrapper.append(titleEl, br(), companyEl, br(), locationEl, br(), matchEl, br(), sourceEl, br(), postedEl, br(), br(), actionsDiv);

@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const queueBtn = document.getElementById('queueApplyBtn');
   const refreshBtn = document.getElementById('loadQueueBtn');
   const topMatchesBtn = document.getElementById('runOneClickApplyBtn');
+  const autoSubmitBtn = document.getElementById('autoSubmitQueueBtn');
   const result = document.getElementById('applyQueueResult');
   const queuedJobsList = document.getElementById('queuedJobsList');
   const recommendationsList = document.getElementById('queueRecommendations');
@@ -222,6 +223,51 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
+  async function autoSubmitReadyJobs() {
+    autoSubmitBtn.disabled = true;
+    setMessage('Auto-submit started: opening ready job links and updating pipeline status...', '#475569');
+
+    try {
+      const jobs = await fetchJobs();
+      const readyJobs = jobs.filter((job) => String(job.status || '').toLowerCase() === 'ready');
+      const readyWithLinks = readyJobs.filter((job) => /^https?:\/\//i.test(String(job.link || '').trim()));
+
+      if (!readyWithLinks.length) {
+        setMessage('No ready jobs with valid job links found. Add links or mark jobs ready first.', '#dc2626');
+        return;
+      }
+
+      let openedCount = 0;
+      let updatedCount = 0;
+
+      for (const job of readyWithLinks) {
+        const link = String(job.link || '').trim();
+        const opened = window.open(link, '_blank', 'noopener,noreferrer');
+        if (opened) openedCount += 1;
+
+        const response = await fetch(buildApiUrl(`/api/jobs/${job._id}/status`), {
+          method: 'PUT',
+          headers: getHeaders(true),
+          body: JSON.stringify({ status: 'applied' })
+        });
+        const data = await response.json();
+        if (response.ok) {
+          updatedCount += 1;
+        } else {
+          throw new Error(data.error || 'Failed to mark one or more jobs as applied.');
+        }
+      }
+
+      await loadQueue();
+      await loadTopMatches();
+      setMessage(`Auto-submit complete: opened ${openedCount} job tab${openedCount === 1 ? '' : 's'} and marked ${updatedCount} role${updatedCount === 1 ? '' : 's'} as applied. Final submit steps on each site are still required.`, '#16a34a');
+    } catch (error) {
+      setMessage(error.message || 'Auto-submit could not complete right now.', '#dc2626');
+    } finally {
+      autoSubmitBtn.disabled = false;
+    }
+  }
+
   queueBtn?.addEventListener('click', queueApplications);
   refreshBtn?.addEventListener('click', async function () {
     setMessage('Refreshing queue...', '#475569');
@@ -230,6 +276,7 @@ document.addEventListener('DOMContentLoaded', function () {
     setMessage('Queue refreshed.', '#16a34a');
   });
   topMatchesBtn?.addEventListener('click', loadTopMatches);
+  autoSubmitBtn?.addEventListener('click', autoSubmitReadyJobs);
 
   queuedJobsList?.addEventListener('click', async function (event) {
     const button = event.target.closest('button[data-job-id][data-action]');
