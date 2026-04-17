@@ -2271,12 +2271,28 @@ function createImportedJobCard(job) {
   viewLink.textContent = 'Open Original Job';
 
   const saveBtn = document.createElement('button');
-  saveBtn.textContent = 'Save Job';
-  saveBtn.addEventListener('click', () => window.saveFoundJob(encodeJob(job)));
+  saveBtn.textContent = 'Save to Saved';
+  saveBtn.addEventListener('click', async () => {
+    try {
+      await saveJobToBackend(job, 'saved');
+      showToast('Role added to Saved pipeline status');
+      await loadTracker();
+    } catch (err) {
+      showToast(`Save error: ${err.message}`, 'error');
+    }
+  });
 
-  const oneClickBtn = document.createElement('button');
-  oneClickBtn.textContent = 'Send to 1-Click Apply';
-  oneClickBtn.addEventListener('click', () => window.sendJobToOneClick(encodeJob(job)));
+  const readyBtn = document.createElement('button');
+  readyBtn.textContent = 'Save to Ready';
+  readyBtn.addEventListener('click', async () => {
+    try {
+      await saveJobToBackend(job, 'ready');
+      showToast('Role added to Ready pipeline status');
+      await loadTracker();
+    } catch (err) {
+      showToast(`Save error: ${err.message}`, 'error');
+    }
+  });
 
   const linkedinLink = document.createElement('a');
   linkedinLink.href = safeUrl(job.linkedinSearchUrl);
@@ -2284,7 +2300,7 @@ function createImportedJobCard(job) {
   linkedinLink.rel = 'noopener noreferrer';
   linkedinLink.textContent = 'Search LinkedIn';
 
-  actionsDiv.append(viewLink, saveBtn, oneClickBtn, linkedinLink);
+  actionsDiv.append(viewLink, saveBtn, readyBtn, linkedinLink);
 
   const br = () => document.createElement('br');
   wrapper.append(titleEl, br(), companyEl, br(), locationEl, br(), matchEl, br(), sourceEl, br(), postedEl, br(), br(), actionsDiv);
