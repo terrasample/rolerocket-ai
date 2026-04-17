@@ -240,6 +240,7 @@
               </div>
               <div class="job-alert-card__stats">
                 <span><strong>Last checked:</strong> ${escapeHtml(formatDateTime(alert.lastCheckedAt))}</span>
+                <span><strong>Next run:</strong> ${escapeHtml(formatDateTime(alert.nextRunAt))}</span>
                 <span><strong>Total runs:</strong> ${Number(alert.totalRuns || 0)}</span>
                 <span><strong>Resume:</strong> ${escapeHtml(alert.resumeSource || 'none')}</span>
               </div>

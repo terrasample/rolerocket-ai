@@ -1239,6 +1239,14 @@ const JOB_ALERT_FREQUENCIES = ['instant', 'daily', 'weekly'];
 const JOB_ALERT_WORK_MODES = ['remote', 'hybrid', 'onsite'];
 const JOB_ALERT_EMPLOYMENT_TYPES = ['full-time', 'contract', 'part-time', 'temporary', 'internship'];
 const JOB_ALERT_SENIORITY_LEVELS = ['internship', 'entry', 'associate', 'mid', 'senior', 'lead', 'manager', 'director', 'executive'];
+const JOB_ALERT_SCHEDULE_INTERVAL_MS = 1000 * 60 * 5;
+const JOB_ALERT_FREQUENCY_MS = {
+  instant: 1000 * 60 * 60 * 2,
+  daily: 1000 * 60 * 60 * 24,
+  weekly: 1000 * 60 * 60 * 24 * 7
+};
+let jobAlertSchedulerTimer = null;
+let jobAlertSchedulerRunning = false;
 
 function cleanAlertString(value, maxLen = 160) {
   return String(value || '').replace(/\s+/g, ' ').trim().slice(0, maxLen);
@@ -1280,6 +1288,12 @@ function normalizeJobAlertDefaults(input = {}) {
     inAppEnabled: input.inAppEnabled !== false,
     includeSimilarTitles: input.includeSimilarTitles !== false
   };
+}
+
+function computeNextJobAlertRunAt(frequency, fromDate = new Date()) {
+  const base = fromDate instanceof Date ? fromDate : new Date(fromDate || Date.now());
+  const delta = JOB_ALERT_FREQUENCY_MS[String(frequency || '').toLowerCase()] || JOB_ALERT_FREQUENCY_MS.daily;
+  return new Date(base.getTime() + delta);
 }
 
 function sanitizeJobAlertPayload(input = {}, defaults = {}) {
@@ -1505,6 +1519,77 @@ async function runJobAlertSearch(alertDoc) {
 
   const newJobsFoundCount = ranked.filter((item) => !previousFingerprints.has(item.fingerprint)).length;
   return { results: ranked, newJobsFoundCount, resumeText };
+}
+
+async function executeJobAlertRun(alertDoc, options = {}) {
+  const mode = options.mode || 'manual';
+  const alert = alertDoc;
+  const { results, newJobsFoundCount, resumeText } = await runJobAlertSearch(alert);
+
+  alert.latestResults = results;
+  alert.lastCheckedAt = new Date();
+  alert.nextRunAt = alert.isPaused ? null : computeNextJobAlertRunAt(alert.frequency, alert.lastCheckedAt);
+  alert.lastMatchCount = results.length;
+  alert.newJobsFoundCount = newJobsFoundCount;
+  alert.totalRuns = Number(alert.totalRuns || 0) + 1;
+
+  if (alert.resumeSource !== 'none' && resumeText) {
+    alert.resumeText = resumeText.slice(0, 30000);
+  }
+
+  if (alert.emailEnabled && results.length && (mode === 'manual' || newJobsFoundCount > 0)) {
+    const user = await User.findById(alert.userId).select('email name').lean();
+    queueJobAlertSummaryEmail({
+      to: user?.email,
+      alert,
+      results
+    });
+    alert.lastEmailedAt = new Date();
+  }
+
+  await alert.save();
+  return alert;
+}
+
+async function runDueJobAlerts() {
+  if (jobAlertSchedulerRunning || mongoose.connection.readyState !== 1) return;
+  jobAlertSchedulerRunning = true;
+
+  try {
+    const now = new Date();
+    const dueAlerts = await JobAlert.find({
+      isPaused: false,
+      $or: [
+        { nextRunAt: { $exists: false } },
+        { nextRunAt: null },
+        { nextRunAt: { $lte: now } }
+      ]
+    }).sort({ nextRunAt: 1, updatedAt: 1 }).limit(25);
+
+    for (const alert of dueAlerts) {
+      try {
+        await executeJobAlertRun(alert, { mode: 'scheduled' });
+      } catch (err) {
+        console.error(`Job alert scheduler failed for ${alert._id}:`, err.message);
+        alert.nextRunAt = computeNextJobAlertRunAt(alert.frequency, new Date(Date.now() + 1000 * 60 * 30));
+        await alert.save().catch(() => {});
+      }
+    }
+  } finally {
+    jobAlertSchedulerRunning = false;
+  }
+}
+
+function startJobAlertScheduler() {
+  if (process.env.NODE_ENV === 'test' || jobAlertSchedulerTimer) return;
+  jobAlertSchedulerTimer = setInterval(() => {
+    runDueJobAlerts().catch((err) => {
+      console.error('Job alert scheduler loop failed:', err.message);
+    });
+  }, JOB_ALERT_SCHEDULE_INTERVAL_MS);
+  runDueJobAlerts().catch((err) => {
+    console.error('Initial job alert scheduler run failed:', err.message);
+  });
 }
 
 function buildJobAlertEmailHtml(alert, results) {
@@ -3754,6 +3839,7 @@ app.post('/api/job-alerts', authenticateToken, async (req, res) => {
 
     const alert = await JobAlert.create({
       userId: req.user.userId,
+      nextRunAt: payload.isPaused ? null : new Date(),
       ...payload
     });
 
@@ -3777,6 +3863,7 @@ app.put('/api/job-alerts/:id', authenticateToken, async (req, res) => {
     }
 
     Object.assign(existing, payload);
+  existing.nextRunAt = payload.isPaused ? null : new Date();
     await existing.save();
     return res.json({ alert: existing });
   } catch (err) {
@@ -3790,25 +3877,7 @@ app.post('/api/job-alerts/:id/run', authenticateToken, async (req, res) => {
     const alert = await JobAlert.findOne({ _id: req.params.id, userId: req.user.userId });
     if (!alert) return res.status(404).json({ error: 'Job alert not found' });
 
-    const { results, newJobsFoundCount, resumeText } = await runJobAlertSearch(alert);
-    alert.latestResults = results;
-    alert.lastCheckedAt = new Date();
-    alert.lastMatchCount = results.length;
-    alert.newJobsFoundCount = newJobsFoundCount;
-    alert.totalRuns = Number(alert.totalRuns || 0) + 1;
-    if (alert.resumeSource !== 'none' && resumeText) {
-      alert.resumeText = resumeText.slice(0, 30000);
-    }
-    await alert.save();
-
-    if (alert.emailEnabled && results.length) {
-      const user = await User.findById(req.user.userId).select('email name').lean();
-      queueJobAlertSummaryEmail({
-        to: user?.email,
-        alert,
-        results
-      });
-    }
+    await executeJobAlertRun(alert, { mode: 'manual' });
 
     return res.json({ alert });
   } catch (err) {
@@ -4278,6 +4347,7 @@ app.get('/{*path}', (req, res) => {
 if (process.env.NODE_ENV !== 'test') {
   app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
+    startJobAlertScheduler();
     setTimeout(() => {
       prewarmJobSearches().catch((err) => {
         console.warn('Job prewarm failed:', err.message);

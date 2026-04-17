@@ -52,6 +52,8 @@ const JobAlertSchema = new mongoose.Schema(
     resumeText: { type: String, default: '' },
     resumeLabel: { type: String, default: '' },
     lastCheckedAt: { type: Date, default: null },
+    nextRunAt: { type: Date, default: null },
+    lastEmailedAt: { type: Date, default: null },
     lastMatchCount: { type: Number, default: 0 },
     newJobsFoundCount: { type: Number, default: 0 },
     totalRuns: { type: Number, default: 0 },
