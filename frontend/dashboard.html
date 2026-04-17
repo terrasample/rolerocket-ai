@@ -4,7 +4,34 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>My Dashboard | RoleRocket AI</title>
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css?v=20260417d" />
+  <style>
+    /* Critical dashboard overrides so width/readability fixes apply even with stale CSS cache. */
+    #dashboardMain.marketing-main {
+      max-width: none !important;
+      width: 100% !important;
+    }
+    #dashboardMain .dashboard-grid,
+    #dashboardFeaturesGrid,
+    #dashboardFeaturesSection,
+    #dashboardFeaturesSection .marketing-grid {
+      width: 100% !important;
+      max-width: none !important;
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+    }
+    #dashboardMain .marketing-card h3 {
+      font-size: 1.32rem !important;
+      line-height: 1.38 !important;
+    }
+    #dashboardMain .marketing-card p,
+    #dashboardMain .marketing-card li,
+    #dashboardMain .quickstart-step small,
+    #dashboardMain .stats-legend li {
+      font-size: 1.05rem !important;
+      line-height: 1.72 !important;
+    }
+  </style>
 </head>
 <body>
   <a class="skip-link" href="#dashboardMain">Skip to main content</a>
