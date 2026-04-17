@@ -548,19 +548,26 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const experienceLines = between(sectionIndex.EXPERIENCE, nextSectionStart('EXPERIENCE'));
     let current = null;
+    let pendingTitle = null;
     experienceLines.forEach((line) => {
       const normalized = normalizeBulletText(line);
-      const isNewRole = /\b(20\d{2}|19\d{2})\b/.test(normalized) || normalized.includes('|') || normalized.split(',').length >= 2;
+      if (!normalized) return;
+      const isCompanyDate = (/\b(20\d{2}|19\d{2})\b/.test(normalized) || normalized.includes('|')) && normalized.length > 8;
 
-      if (isNewRole && normalized.length > 8) {
+      if (isCompanyDate) {
         if (current) structured.experiences.push(current);
-        current = { heading: normalized, bullets: [] };
+        current = { title: pendingTitle || '', company: normalized, bullets: [] };
+        pendingTitle = null;
         return;
       }
 
-      if (!current) current = { heading: 'Experience', bullets: [] };
-      current.bullets.push(normalized);
+      if (current) {
+        current.bullets.push(normalized);
+      } else {
+        pendingTitle = normalized;
+      }
     });
+    if (pendingTitle && !current) current = { title: pendingTitle, company: '', bullets: [] };
     if (current) structured.experiences.push(current);
 
     structured.education = between(sectionIndex.EDUCATION, nextSectionStart('EDUCATION'))
@@ -586,7 +593,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (!structured.experiences.length) {
       structured.experiences = [{
-        heading: 'Professional Experience',
+        title: 'Professional Experience',
+        company: '',
         bullets: [
           'Tailored core achievements to align with the target role requirements.',
           'Highlighted impact-driven accomplishments and relevant skills.'
@@ -661,7 +669,8 @@ document.addEventListener('DOMContentLoaded', function () {
             ${renderSectionHeading('EXPERIENCE', theme, '16px')}
             ${model.experiences.map((exp) => `
               <div style="margin-bottom:16px;">
-                <div style="font-size:15px;font-weight:600;color:#111827;margin-bottom:6px;">${escapeHtml(exp.heading)}</div>
+                <div style="font-size:15px;font-weight:700;color:#111827;margin-bottom:2px;">${escapeHtml(exp.title || exp.heading || '')}</div>
+                ${exp.company ? `<div style="font-size:13px;font-weight:400;color:#6b7280;margin-bottom:4px;">${escapeHtml(exp.company)}</div>` : ''}
                 ${renderBulletListHtml(exp.bullets || [], '14px', '#374151', '6px')}
               </div>
             `).join('')}
@@ -698,7 +707,8 @@ document.addEventListener('DOMContentLoaded', function () {
             ${renderSectionHeading('EXPERIENCE', theme, '16px', 'margin-top:18px;')}
             ${model.experiences.map((exp) => `
               <div style="margin-bottom:16px;">
-                <div style="font-size:15px;font-weight:600;color:#111827;margin-bottom:6px;">${escapeHtml(exp.heading)}</div>
+                <div style="font-size:15px;font-weight:700;color:#111827;margin-bottom:2px;">${escapeHtml(exp.title || exp.heading || '')}</div>
+                ${exp.company ? `<div style="font-size:13px;font-weight:400;color:#6b7280;margin-bottom:4px;">${escapeHtml(exp.company)}</div>` : ''}
                 ${renderBulletListHtml(exp.bullets || [], '14px', '#374151', '6px')}
               </div>
             `).join('')}
@@ -736,7 +746,8 @@ document.addEventListener('DOMContentLoaded', function () {
             ${renderSectionHeading('EXPERIENCE', theme, '16px', 'margin:18px 0 8px 0;')}
             ${model.experiences.map((exp) => `
               <div style="margin-bottom:16px;">
-                <div style="font-size:15px;font-weight:600;color:#111827;margin-bottom:6px;">${escapeHtml(exp.heading)}</div>
+                <div style="font-size:15px;font-weight:700;color:#111827;margin-bottom:2px;">${escapeHtml(exp.title || exp.heading || '')}</div>
+                ${exp.company ? `<div style="font-size:13px;font-weight:400;color:#6b7280;margin-bottom:4px;">${escapeHtml(exp.company)}</div>` : ''}
                 ${renderBulletListHtml(exp.bullets || [], '14px', '#374151', '6px')}
               </div>
             `).join('')}
@@ -996,12 +1007,26 @@ document.addEventListener('DOMContentLoaded', function () {
         doc.addPage();
         rightY = 16;
       }
-      doc.setFont('helvetica', 'bold');
-      wrapped = doc.splitTextToSize(exp.heading || '', rightW);
-      doc.text(wrapped, rightX, rightY);
-      rightY += wrapped.length * 4.2;
-
+      const expTitle = exp.title || exp.heading || '';
+      if (expTitle) {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9.5);
+        doc.setTextColor(31, 41, 55);
+        wrapped = doc.splitTextToSize(expTitle, rightW);
+        doc.text(wrapped, rightX, rightY);
+        rightY += wrapped.length * 4.2;
+      }
+      if (exp.company) {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.setTextColor(107, 114, 128);
+        wrapped = doc.splitTextToSize(exp.company, rightW);
+        doc.text(wrapped, rightX, rightY);
+        rightY += wrapped.length * 4.2;
+        doc.setTextColor(31, 41, 55);
+      }
       doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9.5);
       (exp.bullets || []).forEach((bullet) => {
         const cleanBullet = normalizeBulletText(bullet);
         if (!cleanBullet) return;
