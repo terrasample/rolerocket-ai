@@ -8,6 +8,32 @@ let recognition;
 let synth = window.speechSynthesis;
 let liveRecognition = null;
 let liveRecognitionEnabled = false;
+let sharedAudioRecorder = null;
+let sharedAudioCaptureStream = null;
+
+function stopTracks(stream) {
+  if (!stream) return;
+  stream.getTracks().forEach((track) => {
+    try {
+      track.stop();
+    } catch {
+      // Ignore stop errors.
+    }
+  });
+}
+
+function getSupportedAudioMimeType() {
+  if (typeof MediaRecorder === 'undefined') return '';
+
+  const candidates = [
+    'audio/webm;codecs=opus',
+    'audio/webm',
+    'audio/mp4',
+    'audio/ogg;codecs=opus'
+  ];
+
+  return candidates.find((type) => MediaRecorder.isTypeSupported(type)) || '';
+}
 
 function getSpeechRecognitionClass() {
   return window.SpeechRecognition || window.webkitSpeechRecognition || null;
@@ -110,6 +136,68 @@ function startLiveQuestionCapture(handlers = {}) {
   liveRecognition.start();
 }
 
+async function startSharedAudioCapture(handlers = {}) {
+  if (!navigator.mediaDevices?.getDisplayMedia) {
+    throw new Error('Shared audio capture is not supported in this browser.');
+  }
+
+  if (sharedAudioRecorder && sharedAudioRecorder.state !== 'inactive') {
+    return;
+  }
+
+  if (typeof handlers.onState === 'function') handlers.onState('requesting-permission');
+
+  const captureStream = await navigator.mediaDevices.getDisplayMedia({
+    video: true,
+    audio: {
+      echoCancellation: false,
+      noiseSuppression: false,
+      autoGainControl: false
+    }
+  });
+
+  const audioTracks = captureStream.getAudioTracks();
+  if (!audioTracks.length) {
+    stopTracks(captureStream);
+    throw new Error('No shared audio was detected. Choose the interview tab/window and enable audio sharing.');
+  }
+
+  sharedAudioCaptureStream = captureStream;
+  const audioOnlyStream = new MediaStream(audioTracks);
+  const mimeType = getSupportedAudioMimeType();
+  sharedAudioRecorder = mimeType
+    ? new MediaRecorder(audioOnlyStream, { mimeType })
+    : new MediaRecorder(audioOnlyStream);
+
+  audioTracks.forEach((track) => {
+    track.onended = () => {
+      if (typeof handlers.onState === 'function') handlers.onState('stopped');
+      stopSharedAudioCapture();
+    };
+  });
+
+  sharedAudioRecorder.ondataavailable = (event) => {
+    if (!event.data || event.data.size === 0) return;
+    if (typeof handlers.onChunk === 'function') handlers.onChunk(event.data);
+  };
+
+  sharedAudioRecorder.onerror = (event) => {
+    if (typeof handlers.onError === 'function') handlers.onError(event?.error || event);
+  };
+
+  sharedAudioRecorder.onstart = () => {
+    if (typeof handlers.onState === 'function') handlers.onState('listening');
+  };
+
+  sharedAudioRecorder.onstop = () => {
+    stopTracks(sharedAudioCaptureStream);
+    sharedAudioCaptureStream = null;
+    sharedAudioRecorder = null;
+  };
+
+  sharedAudioRecorder.start(3000);
+}
+
 function stopLiveQuestionCapture() {
   liveRecognitionEnabled = false;
   if (!liveRecognition) return;
@@ -120,6 +208,21 @@ function stopLiveQuestionCapture() {
     // Ignore stop errors.
   }
   liveRecognition = null;
+}
+
+function stopSharedAudioCapture() {
+  if (sharedAudioRecorder && sharedAudioRecorder.state !== 'inactive') {
+    try {
+      sharedAudioRecorder.stop();
+    } catch {
+      // Ignore stop errors.
+    }
+  }
+
+  if (!sharedAudioRecorder) {
+    stopTracks(sharedAudioCaptureStream);
+    sharedAudioCaptureStream = null;
+  }
 }
 
 // Play AI feedback using text-to-speech
@@ -136,5 +239,7 @@ window.AIInterviewAudio = {
   startSpeechRecognition,
   startLiveQuestionCapture,
   stopLiveQuestionCapture,
+  startSharedAudioCapture,
+  stopSharedAudioCapture,
   speakText
 };

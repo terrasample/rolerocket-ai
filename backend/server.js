@@ -9,6 +9,7 @@ const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
+const { File } = require('buffer');
 const OpenAI = require('openai');
 const Stripe = require('stripe');
 const rateLimit = require('express-rate-limit');
@@ -3376,6 +3377,40 @@ app.post('/api/career-coach', authenticateToken, async (req, res) => {
 });
 
 // ─── Interview Assist ────────────────────────────────────────────────────────
+app.post('/api/interview-assist/transcribe', authenticateToken, upload.single('audio'), async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId);
+    if (!hasRequiredPlan(user, 'elite')) {
+      return res.status(403).json({ error: 'Upgrade to Elite to use Interview Assist.' });
+    }
+
+    if (!req.file || !req.file.buffer?.length) {
+      return res.status(400).json({ error: 'Audio sample is required.' });
+    }
+
+    const mimeType = String(req.file.mimetype || 'audio/webm');
+    const extension = path.extname(req.file.originalname || '') || '.webm';
+    const audioFile = new File([req.file.buffer], `interview-live${extension}`, { type: mimeType });
+
+    const transcription = await openai.audio.transcriptions.create({
+      file: audioFile,
+      model: 'gpt-4o-mini-transcribe',
+      prompt: 'Transcribe interview audio accurately. Prioritize recruiter questions and return plain text only.'
+    });
+
+    const text = String(
+      typeof transcription === 'string'
+        ? transcription
+        : transcription?.text || transcription?.data?.text || ''
+    ).trim();
+
+    return res.json({ text });
+  } catch (err) {
+    console.error('Interview assist transcription error:', err);
+    return res.status(500).json({ error: 'Live transcription failed.' });
+  }
+});
+
 app.post('/api/interview-assist', authenticateToken, async (req, res) => {
   try {
     const { question, role, resume, scenario, history, liveMode } = req.body || {};

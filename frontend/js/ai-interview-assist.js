@@ -17,6 +17,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let liveDebounceTimer = null;
   let pendingTranscript = '';
   let liveInFlight = false;
+  let liveTranscriptionQueue = Promise.resolve();
+  let lastTranscriptChunk = '';
   let currentPlan = 'free';
   let practiceCount = 0;
   let practiceKey = 'rr_interview_practice_count_free';
@@ -200,6 +202,85 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!q || q.length < 15) return false;
     if (q.endsWith('?')) return true;
     return /^(how|what|why|when|where|can you|could you|would you|tell me|walk me|describe|give me)/.test(q);
+  }
+
+  function getLatestQuestionCandidate(text) {
+    const parts = String(text || '')
+      .split(/(?<=[?.!])\s+/)
+      .map((part) => part.trim())
+      .filter(Boolean);
+
+    for (let i = parts.length - 1; i >= 0; i -= 1) {
+      if (looksLikeQuestion(parts[i])) return parts[i];
+    }
+
+    return parts.length ? parts[parts.length - 1] : '';
+  }
+
+  function appendTranscriptForDetection(text) {
+    const normalized = String(text || '').replace(/\s+/g, ' ').trim();
+    if (!normalized) return;
+    if (normalized === lastTranscriptChunk) return;
+
+    lastTranscriptChunk = normalized;
+    pendingTranscript = `${pendingTranscript} ${normalized}`.trim();
+
+    if (liveDebounceTimer) clearTimeout(liveDebounceTimer);
+    liveDebounceTimer = setTimeout(() => {
+      const candidate = getLatestQuestionCandidate(pendingTranscript);
+      pendingTranscript = '';
+
+      if (looksLikeQuestion(candidate)) {
+        resolveLiveQuestion(candidate, Date.now());
+      } else if (candidate) {
+        setLiveStatus(`Listening... ${candidate.slice(-90)}`, '#0f766e');
+      }
+    }, 900);
+  }
+
+  async function transcribeLiveAudioChunk(blob) {
+    const token = getToken();
+    if (!token) {
+      throw new Error('You must be logged in to use Interview Assist.');
+    }
+
+    const extension = blob.type && blob.type.includes('mp4')
+      ? 'mp4'
+      : blob.type && blob.type.includes('ogg')
+        ? 'ogg'
+        : 'webm';
+
+    const formData = new FormData();
+    formData.append('audio', blob, `interview-live.${extension}`);
+
+    const res = await fetch('/api/interview-assist/transcribe', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`
+      },
+      body: formData
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Live transcription failed.');
+    }
+
+    return String(data.text || '').trim();
+  }
+
+  function queueLiveTranscription(blob) {
+    liveTranscriptionQueue = liveTranscriptionQueue
+      .then(async () => {
+        if (!liveListenerEnabled) return;
+        const transcript = await transcribeLiveAudioChunk(blob);
+        if (!liveListenerEnabled || !transcript) return;
+        appendTranscriptForDetection(transcript);
+      })
+      .catch((err) => {
+        if (!liveListenerEnabled) return;
+        setLiveStatus(`Live transcription error: ${err.message || err}`, '#dc2626');
+      });
   }
 
   async function resolveLiveQuestion(question, detectedAtMs) {
@@ -453,42 +534,36 @@ document.addEventListener('DOMContentLoaded', () => {
       renderPracticeAccessBanner();
       return;
     }
-    if (!window.AIInterviewAudio?.startLiveQuestionCapture) {
+    if (!window.AIInterviewAudio?.startSharedAudioCapture) {
       setLiveStatus('Live listening is not supported in this browser.', '#dc2626');
       return;
     }
 
     try {
-      await window.AIInterviewAudio.startAudioStream();
       liveListenerEnabled = true;
+      liveTranscriptionQueue = Promise.resolve();
+      pendingTranscript = '';
+      lastTranscriptChunk = '';
       setLiveButtons(true);
-      setLiveStatus('Listening... Speak normally while recruiter asks questions.', '#0f766e');
+      setLiveStatus('Choose the interview tab or audio source and enable Share audio.', '#0f766e');
 
-      window.AIInterviewAudio.startLiveQuestionCapture({
-        onInterim(interimText) {
-          if (!liveListenerEnabled) return;
-          setLiveStatus(`Listening... ${interimText.slice(-70)}`, '#0f766e');
-        },
-        onFinal(finalText) {
-          if (!liveListenerEnabled) return;
-          pendingTranscript = `${pendingTranscript} ${String(finalText || '')}`.trim();
-          if (liveDebounceTimer) clearTimeout(liveDebounceTimer);
-          liveDebounceTimer = setTimeout(() => {
-            const candidate = pendingTranscript.trim();
-            pendingTranscript = '';
-            if (looksLikeQuestion(candidate)) {
-              resolveLiveQuestion(candidate, Date.now());
-            } else if (candidate) {
-              setLiveStatus('Heard speech, waiting for full question...', '#0f766e');
-            }
-          }, 550);
+      await window.AIInterviewAudio.startSharedAudioCapture({
+        onChunk(blob) {
+          queueLiveTranscription(blob);
         },
         onError(event) {
-          setLiveStatus(`Live listening error: ${event?.error || 'unknown'}`, '#dc2626');
+          setLiveStatus(`Live listening error: ${event?.message || event?.error || 'unknown'}`, '#dc2626');
+          stopLiveListening();
         },
         onState(state) {
           if (!liveListenerEnabled) return;
-          if (state === 'restarting') setLiveStatus('Reconnecting listener...', '#b45309');
+          if (state === 'requesting-permission') {
+            setLiveStatus('Waiting for you to share the interview audio...', '#1d4ed8');
+          } else if (state === 'listening') {
+            setLiveStatus('Listening to shared interview audio...', '#0f766e');
+          } else if (state === 'stopped') {
+            stopLiveListening();
+          }
         }
       });
     } catch (err) {
@@ -503,8 +578,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (liveDebounceTimer) clearTimeout(liveDebounceTimer);
     liveDebounceTimer = null;
     pendingTranscript = '';
-    if (window.AIInterviewAudio?.stopLiveQuestionCapture) {
-      window.AIInterviewAudio.stopLiveQuestionCapture();
+    lastTranscriptChunk = '';
+    if (window.AIInterviewAudio?.stopSharedAudioCapture) {
+      window.AIInterviewAudio.stopSharedAudioCapture();
     }
     setLiveButtons(false);
     setLiveStatus('Live listener stopped.', '#475569');
