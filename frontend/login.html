@@ -296,17 +296,24 @@
       const DESKTOP_MIN_WIDTH = 1001;
 
       function applySync() {
+        const shell = document.querySelector('.auth-shell');
         const leftCard = document.querySelector('.premium-features-card');
         const rightCard = document.querySelector('.auth-card');
-        if (!leftCard || !rightCard) return;
+        if (!shell || !leftCard || !rightCard) return;
 
         if (window.innerWidth < DESKTOP_MIN_WIDTH) {
+          rightCard.style.marginTop = '';
           rightCard.style.minHeight = '';
           rightCard.style.height = '';
           return;
         }
 
+        const shellTop = shell.getBoundingClientRect().top;
+        const leftTop = leftCard.getBoundingClientRect().top;
+        const topOffset = Math.max(0, Math.ceil(leftTop - shellTop));
         const leftHeight = Math.ceil(leftCard.getBoundingClientRect().height);
+
+        rightCard.style.marginTop = `${topOffset}px`;
         if (leftHeight > 0) {
           rightCard.style.minHeight = `${leftHeight}px`;
           rightCard.style.height = `${leftHeight}px`;
