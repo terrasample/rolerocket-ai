@@ -225,7 +225,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   async function autoSubmitReadyJobs() {
     autoSubmitBtn.disabled = true;
-    setMessage('Auto-submit started: opening ready job links and updating pipeline status...', '#475569');
+    setMessage('Opening ready job links in new tabs...', '#475569');
 
     try {
       const jobs = await fetchJobs();
@@ -238,29 +238,15 @@ document.addEventListener('DOMContentLoaded', function () {
       }
 
       let openedCount = 0;
-      let updatedCount = 0;
-
       for (const job of readyWithLinks) {
         const link = String(job.link || '').trim();
         const opened = window.open(link, '_blank', 'noopener,noreferrer');
         if (opened) openedCount += 1;
-
-        const response = await fetch(buildApiUrl(`/api/jobs/${job._id}/status`), {
-          method: 'PUT',
-          headers: getHeaders(true),
-          body: JSON.stringify({ status: 'applied' })
-        });
-        const data = await response.json();
-        if (response.ok) {
-          updatedCount += 1;
-        } else {
-          throw new Error(data.error || 'Failed to mark one or more jobs as applied.');
-        }
       }
 
       await loadQueue();
       await loadTopMatches();
-      setMessage(`Auto-submit complete: opened ${openedCount} job tab${openedCount === 1 ? '' : 's'} and marked ${updatedCount} role${updatedCount === 1 ? '' : 's'} as applied. Final submit steps on each site are still required.`, '#16a34a');
+      setMessage(`Opened ${openedCount} ready job tab${openedCount === 1 ? '' : 's'}. Apply on each site, then mark jobs as Applied in pipeline when finished.`, '#16a34a');
     } catch (error) {
       setMessage(error.message || 'Auto-submit could not complete right now.', '#dc2626');
     } finally {
