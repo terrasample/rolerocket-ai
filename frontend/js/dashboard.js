@@ -164,8 +164,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const saveResumeBtn = document.getElementById('saveResumeBtn');
   const resumeSaveMsg = document.getElementById('resumeSaveMsg');
   const resumeLibraryList = document.getElementById('resumeLibraryList');
-  const downloadLatestResumePdfBtn = document.getElementById('downloadLatestResumePdfBtn');
-  const downloadLatestResumeWordBtn = document.getElementById('downloadLatestResumeWordBtn');
   const noResumeMsg = document.getElementById('noResumeMsg');
   const dashboardIdentityBanner = document.getElementById('dashboardIdentityBanner');
   let latestResumeEntries = [];
@@ -272,8 +270,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (!latestResumeEntries.length) {
       resumeLibraryList.innerHTML = '';
-      if (downloadLatestResumePdfBtn) downloadLatestResumePdfBtn.disabled = true;
-      if (downloadLatestResumeWordBtn) downloadLatestResumeWordBtn.disabled = true;
       if (noResumeMsg) {
         noResumeMsg.textContent = 'No resume found. Please upload or paste your resume.';
         noResumeMsg.style.display = '';
@@ -281,8 +277,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    if (downloadLatestResumePdfBtn) downloadLatestResumePdfBtn.disabled = false;
-    if (downloadLatestResumeWordBtn) downloadLatestResumeWordBtn.disabled = false;
     if (noResumeMsg) noResumeMsg.style.display = 'none';
 
     resumeLibraryList.innerHTML = latestResumeEntries.map((resume, index) => {
@@ -290,16 +284,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         <div class="dashboard-resume-item" role="group" aria-label="Saved resume ${index + 1}">
           <span class="dashboard-resume-item__title">${escapeHtml(resume.title || `Resume ${index + 1}`)}</span>
           <span class="dashboard-resume-item__meta">${escapeHtml(formatResumeTimestamp(resume.createdAt))}</span>
-          <button type="button" class="secondary-btn" data-download-resume="${escapeHtml(String(resume._id || index))}">Download PDF</button>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <button type="button" class="secondary-btn" data-download-resume-pdf="${escapeHtml(String(resume._id || index))}">Download Latest PDF</button>
+            <button type="button" class="secondary-btn" data-download-resume-word="${escapeHtml(String(resume._id || index))}">Download Latest Word</button>
+          </div>
         </div>
       `;
     }).join('');
 
-    resumeLibraryList.querySelectorAll('[data-download-resume]').forEach((button) => {
+    resumeLibraryList.querySelectorAll('[data-download-resume-pdf]').forEach((button) => {
       button.addEventListener('click', () => {
-        const targetId = String(button.dataset.downloadResume || '');
+        const targetId = String(button.dataset.downloadResumePdf || '');
         const idx = latestResumeEntries.findIndex((item, i) => String(item._id || i) === targetId);
         if (idx >= 0) downloadResumeEntryAsPdf(latestResumeEntries[idx], idx + 1);
+      });
+    });
+
+    resumeLibraryList.querySelectorAll('[data-download-resume-word]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const targetId = String(button.dataset.downloadResumeWord || '');
+        const idx = latestResumeEntries.findIndex((item, i) => String(item._id || i) === targetId);
+        if (idx >= 0) downloadResumeEntryAsWord(latestResumeEntries[idx], idx + 1);
       });
     });
   }
@@ -411,16 +416,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
   await loadDashboardResume();
-
-  downloadLatestResumePdfBtn?.addEventListener('click', () => {
-    if (!latestResumeEntries.length) return;
-    downloadResumeEntryAsPdf(latestResumeEntries[0], 1);
-  });
-
-  downloadLatestResumeWordBtn?.addEventListener('click', () => {
-    if (!latestResumeEntries.length) return;
-    downloadResumeEntryAsWord(latestResumeEntries[0], 1);
-  });
 
     // Job Tracker Section
     const jobTrackerEl = document.getElementById('dashboardJobTracker');
