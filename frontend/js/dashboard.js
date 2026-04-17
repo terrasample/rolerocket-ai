@@ -245,6 +245,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       .replace(/^# (.*)$/gm, '\n\n$1\n--------------------')
       .replace(/\*\*(.*?)\*\*/g, '$1'.toUpperCase())
       .replace(/^- /gm, '  • ')
+      .replace(/^(\s*•\s*){2,}/gm, '  • ')
       .replace(/\n{2,}/g, '\n\n')
       .trim();
   }

@@ -213,6 +213,15 @@ document.addEventListener('DOMContentLoaded', function () {
       .replace(/'/g, '&#39;');
   }
 
+  function normalizeBulletText(value) {
+    return String(value || '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .replace(/^[\u2022\u25cf\u25e6\u25aa\-*]+\s*/, '')
+      .replace(/^\d+[.)]\s*/, '')
+      .trim();
+  }
+
   function splitName(fullName) {
     const parts = (fullName || '').trim().split(/\s+/).filter(Boolean);
     return {
@@ -539,7 +548,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const experienceLines = between(sectionIndex.EXPERIENCE, nextSectionStart('EXPERIENCE'));
     let current = null;
     experienceLines.forEach((line) => {
-      const normalized = line.replace(/^[-*]\s*/, '').trim();
+      const normalized = normalizeBulletText(line);
       const isNewRole = /\b(20\d{2}|19\d{2})\b/.test(normalized) || normalized.includes('|') || normalized.split(',').length >= 2;
 
       if (isNewRole && normalized.length > 8) {
@@ -553,14 +562,18 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     if (current) structured.experiences.push(current);
 
-    structured.education = between(sectionIndex.EDUCATION, nextSectionStart('EDUCATION'));
+    structured.education = between(sectionIndex.EDUCATION, nextSectionStart('EDUCATION'))
+      .map((line) => normalizeBulletText(line))
+      .filter(Boolean);
     structured.skills = between(sectionIndex.SKILLS, nextSectionStart('SKILLS'))
       .join(', ')
       .split(/[,|]/)
-      .map((s) => s.trim())
+      .map((s) => normalizeBulletText(s))
       .filter(Boolean)
       .slice(0, 20);
-    structured.awards = between(sectionIndex.AWARDS, nextSectionStart('AWARDS'));
+    structured.awards = between(sectionIndex.AWARDS, nextSectionStart('AWARDS'))
+      .map((line) => normalizeBulletText(line))
+      .filter(Boolean);
 
     if (!cleanCandidateName(structured.fullName)) {
       structured.fullName = cleanCandidateName(fallbackFromBase.fullName) || cleanCandidateName(accountName) || 'Professional Candidate';
@@ -601,12 +614,12 @@ document.addEventListener('DOMContentLoaded', function () {
   function sentenceBullets(text) {
     return String(text || '')
       .split(/(?<=[.!?])\s+/)
-      .map((line) => line.trim())
+      .map((line) => normalizeBulletText(line))
       .filter(Boolean);
   }
 
   function renderBulletListHtml(items, fontSize, color, marginBottom) {
-    return (items || []).map((item) => `
+    return (items || []).map((item) => normalizeBulletText(item)).filter(Boolean).map((item) => `
       <div style="display:flex;align-items:flex-start;gap:10px;font-size:${fontSize};line-height:1.6;color:${color};margin-bottom:${marginBottom};font-weight:400;">
         <span style="font-weight:600;line-height:1.2;">•</span>
         <span style="font-weight:400;flex:1;">${escapeHtml(item)}</span>
@@ -917,7 +930,9 @@ document.addEventListener('DOMContentLoaded', function () {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     (model.skills || []).slice(0, 10).forEach((skill) => {
-      const wrapped = doc.splitTextToSize(`• ${skill}`, leftW - 4);
+      const cleanSkill = normalizeBulletText(skill);
+      if (!cleanSkill) return;
+      const wrapped = doc.splitTextToSize(`• ${cleanSkill}`, leftW - 4);
       doc.text(wrapped, leftX, leftY);
       leftY += wrapped.length * 4.2;
     });
@@ -942,7 +957,9 @@ document.addEventListener('DOMContentLoaded', function () {
     doc.setFontSize(9.5);
     let wrapped = [];
     sentenceBullets(model.profile).forEach((line) => {
-      wrapped = doc.splitTextToSize(`• ${line}`, rightW);
+      const cleanLine = normalizeBulletText(line);
+      if (!cleanLine) return;
+      wrapped = doc.splitTextToSize(`• ${cleanLine}`, rightW);
       doc.text(wrapped, rightX, rightY);
       rightY += wrapped.length * 4.2;
     });
@@ -961,7 +978,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
       doc.setFont('helvetica', 'normal');
       (exp.bullets || []).forEach((bullet) => {
-        const bulletWrapped = doc.splitTextToSize(`• ${bullet}`, rightW);
+        const cleanBullet = normalizeBulletText(bullet);
+        if (!cleanBullet) return;
+        const bulletWrapped = doc.splitTextToSize(`• ${cleanBullet}`, rightW);
         doc.text(bulletWrapped, rightX, rightY);
         rightY += bulletWrapped.length * 4.2;
       });
@@ -970,7 +989,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     drawTitle('EDUCATION');
     (model.education || []).forEach((line) => {
-      wrapped = doc.splitTextToSize(`• ${line}`, rightW);
+      const cleanLine = normalizeBulletText(line);
+      if (!cleanLine) return;
+      wrapped = doc.splitTextToSize(`• ${cleanLine}`, rightW);
       doc.text(wrapped, rightX, rightY);
       rightY += wrapped.length * 4.2;
     });
@@ -978,7 +999,9 @@ document.addEventListener('DOMContentLoaded', function () {
     rightY += 2;
     drawTitle('CERTIFICATIONS');
     (model.awards.length ? model.awards : ['N/A']).forEach((line) => {
-      wrapped = doc.splitTextToSize(`• ${line}`, rightW);
+      const cleanLine = normalizeBulletText(line);
+      if (!cleanLine) return;
+      wrapped = doc.splitTextToSize(`• ${cleanLine}`, rightW);
       doc.text(wrapped, rightX, rightY);
       rightY += wrapped.length * 4.2;
     });
