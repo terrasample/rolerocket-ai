@@ -66,10 +66,11 @@
         <article class="tracker-panel">
           <h3>Import Role</h3>
           <div class="tracker-tools">
-            <input id="importJobUrl" placeholder="Job URL (optional)" aria-label="Import job URL" />
-            <textarea id="importJobText" placeholder="Paste full job description" rows="7" aria-label="Import job text"></textarea>
+            <input id="importJobUrl" type="url" placeholder="Job URL (required)" aria-label="Import job URL" required />
+            <small style="color:#64748b;margin-bottom:8px;display:block;">We'll automatically pull the job details from the URL. The description below is optional.</small>
+            <textarea id="importJobText" placeholder="(Optional) Additional job description or notes" rows="5" aria-label="Import job text"></textarea>
             <div class="tracker-btn-row">
-              <button id="importJobBtn">Import Role</button>
+              <button id="importJobBtn">Fetch & Import Role</button>
             </div>
           </div>
           <div id="importedJobBox"></div>

@@ -282,7 +282,7 @@ document.getElementById('saveAtsResumeWordBtn')?.addEventListener('click', () =>
     return;
   }
   const html = `<!DOCTYPE html><html><body style="font-family:'Times New Roman', Times, serif;font-size:12pt;line-height:1.5;color:#000;white-space:pre-wrap;">${resume.replace(/\n/g, '<br>')}</body></html>`;
-  const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+  const blob = new Blob(['\ufeff', html], { type: 'application/msword;charset=utf-8' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'ats-optimized-resume.doc';

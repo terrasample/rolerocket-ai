@@ -150,7 +150,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
       const content = formatPlanForWord(lastPlan);
       const html = `<!DOCTYPE html><html><body style="font-family:'Times New Roman', Times, serif;font-size:12pt;line-height:1.5;color:#000;white-space:pre-wrap;">${content.replace(/\n/g, '<br>')}</body></html>`;
-      const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+      const blob = new Blob(['\ufeff', html], { type: 'application/msword;charset=utf-8' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = 'career-coach-focus-plan.doc';

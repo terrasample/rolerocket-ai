@@ -144,7 +144,7 @@ document.addEventListener('DOMContentLoaded', function () {
           .map((line) => `<p style="margin:0 0 12pt 0;">${line || '&nbsp;'}</p>`)
           .join('')}</body></html>`;
         const blob = new Blob(['\ufeff', htmlDocument], {
-          type: 'application/msword'
+          type: 'application/msword;charset=utf-8'
         });
         downloadBlob(blob, `${getCurrentFileBaseName()}.doc`);
         setMessage('Word document downloaded.', '#16a34a');
