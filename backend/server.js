@@ -3230,13 +3230,68 @@ app.get('/api/jobs/sources-diagnostics', authenticateToken, async (req, res) => 
 
 app.post('/api/jobs/import', authenticateToken, async (req, res) => {
   try {
-    const { jobText, sourceUrl } = req.body;
+    const { jobText, sourceUrl, additionalNotes } = req.body || {};
+    const rawUrl = String(sourceUrl || '').trim();
+    const pastedText = String(jobText || '').trim();
+    const notesText = String(additionalNotes || '').trim();
 
-    if (!jobText || !jobText.trim()) {
-      return res.status(400).json({ error: 'jobText is required' });
+    if (!rawUrl && !pastedText && !notesText) {
+      return res.status(400).json({ error: 'Job URL or job text is required' });
     }
 
-    const job = await parseJobFromAnywhere(jobText, sourceUrl || '');
+    let mergedText = [pastedText, notesText].filter(Boolean).join('\n\n').trim();
+
+    if (rawUrl) {
+      let validatedUrl;
+      try {
+        validatedUrl = new URL(rawUrl);
+        if (!['http:', 'https:'].includes(validatedUrl.protocol)) {
+          return res.status(400).json({ error: 'Invalid URL format' });
+        }
+      } catch {
+        return res.status(400).json({ error: 'Invalid URL format' });
+      }
+
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 7000);
+        const response = await fetch(validatedUrl.toString(), {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 RoleRocketAI/1.0',
+            Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+          },
+          signal: controller.signal
+        });
+        clearTimeout(timeout);
+
+        if (response.ok) {
+          const html = await response.text();
+          const extracted = String(html || '')
+            .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+            .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+            .replace(/<[^>]+>/g, ' ')
+            .replace(/&nbsp;/gi, ' ')
+            .replace(/&amp;/gi, '&')
+            .replace(/\s+/g, ' ')
+            .trim()
+            .slice(0, 12000);
+
+          mergedText = [mergedText, extracted].filter(Boolean).join('\n\n').trim();
+        } else if (!mergedText) {
+          return res.status(400).json({ error: 'Could not fetch job details from the provided URL' });
+        }
+      } catch (fetchError) {
+        if (!mergedText) {
+          return res.status(400).json({ error: 'Could not fetch job details from the provided URL' });
+        }
+      }
+    }
+
+    if (!mergedText) {
+      mergedText = rawUrl ? `Imported role from ${rawUrl}` : 'Imported role';
+    }
+
+    const job = await parseJobFromAnywhere(mergedText, rawUrl || '');
     return res.json({ job });
   } catch (err) {
     console.error('Import job error:', err);

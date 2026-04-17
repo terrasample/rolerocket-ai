@@ -1541,13 +1541,27 @@ h3,
 }
 
 .tracker-tools input,
-.tracker-tools select {
+.tracker-tools select,
+.tracker-tools textarea {
   width: 100%;
   padding: 10px 12px;
   border: 1px solid rgba(125, 211, 252, 0.35);
   border-radius: 10px;
   background: rgba(15, 23, 42, 0.65);
   color: #e0f2fe;
+}
+
+.tracker-tools input:focus,
+.tracker-tools select:focus,
+.tracker-tools textarea:focus {
+  background: rgba(15, 23, 42, 0.82);
+  color: #f8fafc;
+  border-color: #38bdf8;
+}
+
+.tracker-tools input::placeholder,
+.tracker-tools textarea::placeholder {
+  color: #a7c3e5;
 }
 
 .tracker-btn-row {
