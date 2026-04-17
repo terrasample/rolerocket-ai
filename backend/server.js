@@ -3790,6 +3790,10 @@ app.delete('/api/jobs/:id', authenticateToken, async (req, res) => {
 
 app.get('/api/job-alerts/defaults', authenticateToken, async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.user.userId)) {
+      return res.json({ defaults: normalizeJobAlertDefaults({}) });
+    }
+
     const user = await User.findById(req.user.userId).select('jobAlertDefaults').lean();
     return res.json({ defaults: normalizeJobAlertDefaults(user?.jobAlertDefaults || {}) });
   } catch (err) {

@@ -102,6 +102,24 @@
     };
   }
 
+  function createFallbackDefaults() {
+    return {
+      location: 'Remote',
+      frequency: 'daily',
+      workModes: ['remote'],
+      employmentTypes: ['full-time'],
+      seniorityLevels: [],
+      industries: [],
+      includeKeywords: [],
+      excludeKeywords: [],
+      excludedCompanies: [],
+      salaryMin: '',
+      emailEnabled: true,
+      inAppEnabled: true,
+      includeSimilarTitles: true
+    };
+  }
+
   function collectChecked(root, name) {
     return Array.from(root.querySelectorAll(`input[name="${name}"]:checked`)).map((input) => input.value);
   }
@@ -361,14 +379,34 @@
     };
 
     async function loadState() {
-      const [defaultsData, alertsData, recsData] = await Promise.all([
+      const [defaultsResult, alertsResult, recsResult] = await Promise.allSettled([
         api('/api/job-alerts/defaults', { method: 'GET' }),
         api('/api/job-alerts', { method: 'GET' }),
         api('/api/job-alerts/recommendations', { method: 'GET' })
       ]);
-      state.defaults = defaultsData.defaults || {};
-      state.alerts = alertsData.alerts || [];
-      state.recommendations = recsData.titles || [];
+
+      state.defaults = defaultsResult.status === 'fulfilled'
+        ? (defaultsResult.value.defaults || createFallbackDefaults())
+        : createFallbackDefaults();
+
+      state.alerts = alertsResult.status === 'fulfilled'
+        ? (alertsResult.value.alerts || [])
+        : [];
+
+      state.recommendations = recsResult.status === 'fulfilled'
+        ? (recsResult.value.titles || [])
+        : [];
+
+      if (defaultsResult.status === 'rejected' && !state.message) {
+        state.message = 'Could not load saved alert defaults. Using fallback defaults for now.';
+        state.messageType = 'info';
+      }
+
+      if (alertsResult.status === 'rejected' && !state.message) {
+        state.message = 'Could not load existing alerts yet. You can still create a new one.';
+        state.messageType = 'info';
+      }
+
       if (!state.editingId) state.form = createDefaultFormState(state.defaults);
     }
 
@@ -659,8 +697,14 @@
     const state = { defaults: {}, message: '', messageType: '' };
 
     async function loadDefaults() {
-      const data = await api('/api/job-alerts/defaults', { method: 'GET' });
-      state.defaults = data.defaults || {};
+      try {
+        const data = await api('/api/job-alerts/defaults', { method: 'GET' });
+        state.defaults = data.defaults || createFallbackDefaults();
+      } catch (_err) {
+        state.defaults = createFallbackDefaults();
+        state.message = 'Could not load saved defaults. Showing fallback defaults.';
+        state.messageType = 'info';
+      }
     }
 
     function render() {
