@@ -292,6 +292,36 @@
   <script src="js/api-base.js"></script>
   <script src="js/auth-storage.js"></script>
   <script>
+    (function syncLoginCardsHeight() {
+      const DESKTOP_MIN_WIDTH = 1001;
+
+      function applySync() {
+        const leftCard = document.querySelector('.premium-features-card');
+        const rightCard = document.querySelector('.auth-card');
+        if (!leftCard || !rightCard) return;
+
+        if (window.innerWidth < DESKTOP_MIN_WIDTH) {
+          rightCard.style.minHeight = '';
+          rightCard.style.height = '';
+          return;
+        }
+
+        const leftHeight = Math.ceil(leftCard.getBoundingClientRect().height);
+        if (leftHeight > 0) {
+          rightCard.style.minHeight = `${leftHeight}px`;
+          rightCard.style.height = `${leftHeight}px`;
+        }
+      }
+
+      window.addEventListener('load', applySync);
+      window.addEventListener('resize', applySync);
+
+      // Recalculate once the browser has applied final layout and fonts.
+      setTimeout(applySync, 0);
+      setTimeout(applySync, 250);
+    })();
+  </script>
+  <script>
     function safeJson(text) {
       try {
         return text ? JSON.parse(text) : {};
