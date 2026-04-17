@@ -12,6 +12,49 @@ if (!token) {
 const SESSION_TIMEOUT_MINUTES = 30; // Set timeout duration here
 // ─── RoleRocket Dashboard (Personalized) ─────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
+    function enforceDashboardTopCardStretch() {
+      const dashboardMain = document.getElementById('dashboardMain');
+      const dashboardGrid = document.querySelector('.dashboard-grid');
+      const featuresSection = document.getElementById('dashboardFeaturesSection');
+      const featuresGrid = document.getElementById('dashboardFeaturesGrid');
+
+      if (dashboardMain) {
+        dashboardMain.style.setProperty('max-width', 'none');
+        dashboardMain.style.setProperty('width', '100%');
+      }
+
+      if (dashboardGrid) {
+        dashboardGrid.style.setProperty('max-width', 'none');
+        dashboardGrid.style.setProperty('width', '100%');
+        dashboardGrid.style.setProperty('margin-left', '0');
+        dashboardGrid.style.setProperty('margin-right', '0');
+        if (window.innerWidth > 1120) {
+          dashboardGrid.style.setProperty('grid-template-columns', 'repeat(2, minmax(0, 1fr))');
+        }
+      }
+
+      if (featuresSection) {
+        featuresSection.style.setProperty('max-width', 'none');
+        featuresSection.style.setProperty('width', '100%');
+      }
+
+      if (featuresGrid) {
+        featuresGrid.style.setProperty('max-width', 'none');
+        featuresGrid.style.setProperty('width', '100%');
+        featuresGrid.style.setProperty('margin-left', '0');
+        featuresGrid.style.setProperty('margin-right', '0');
+      }
+
+      document.querySelectorAll('.dashboard-grid > .marketing-card').forEach((card) => {
+        card.style.setProperty('width', '100%');
+        card.style.setProperty('max-width', 'none');
+        card.style.setProperty('min-width', '0');
+      });
+    }
+
+    enforceDashboardTopCardStretch();
+    window.addEventListener('resize', enforceDashboardTopCardStretch);
+
     // --- Dynamic Feature Rendering by Plan ---
     const featureTiers = [
       {
