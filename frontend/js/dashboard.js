@@ -168,9 +168,107 @@ document.addEventListener('DOMContentLoaded', async () => {
   const resumeTextarea = document.getElementById('resumeText');
   const saveResumeBtn = document.getElementById('saveResumeBtn');
   const resumeSaveMsg = document.getElementById('resumeSaveMsg');
-  const latestResumeContent = document.getElementById('latestResumeContent');
+  const resumeLibraryList = document.getElementById('resumeLibraryList');
+  const resumeLibraryPreview = document.getElementById('resumeLibraryPreview');
+  const downloadLatestResumeBtn = document.getElementById('downloadLatestResumeBtn');
   const noResumeMsg = document.getElementById('noResumeMsg');
   const dashboardIdentityBanner = document.getElementById('dashboardIdentityBanner');
+  let latestResumeEntries = [];
+  let selectedResumeId = '';
+
+  function formatResumeTimestamp(value) {
+    const parsed = value ? new Date(value) : null;
+    if (!parsed || Number.isNaN(parsed.getTime())) return 'Saved recently';
+    return parsed.toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  function buildResumeFilename(resume, fallbackIndex = 1) {
+    const title = String(resume?.title || `resume-${fallbackIndex}`).trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    return `${title || `resume-${fallbackIndex}`}.txt`;
+  }
+
+  function downloadResumeEntry(resume, fallbackIndex = 1) {
+    if (!resume?.content) return;
+    const blob = new Blob([resume.content], { type: 'text/plain;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = buildResumeFilename(resume, fallbackIndex);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+  }
+
+  function renderResumeLibraryPreview() {
+    if (!resumeLibraryPreview) return;
+
+    const selected = latestResumeEntries.find((item) => String(item._id) === String(selectedResumeId)) || latestResumeEntries[0];
+    if (!selected) {
+      resumeLibraryPreview.hidden = true;
+      resumeLibraryPreview.innerHTML = '';
+      return;
+    }
+
+    const previewText = String(selected.content || '').replace(/\s+/g, ' ').trim();
+    const snippet = previewText.length > 240 ? `${previewText.slice(0, 240)}...` : previewText;
+    resumeLibraryPreview.hidden = false;
+    resumeLibraryPreview.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+        <div>
+          <strong style="display:block;color:#0f172a;">${escapeHtml(selected.title || 'Saved Resume')}</strong>
+          <div style="font-size:0.9rem;color:#64748b;margin-top:4px;">${escapeHtml(formatResumeTimestamp(selected.createdAt))}</div>
+        </div>
+        <button type="button" class="secondary-btn" id="downloadSelectedResumeBtn">Download This Resume</button>
+      </div>
+      <p style="margin:12px 0 0 0;color:#334155;line-height:1.7;">${escapeHtml(snippet || 'Resume content is available for download.')}</p>
+    `;
+
+    document.getElementById('downloadSelectedResumeBtn')?.addEventListener('click', () => {
+      const idx = latestResumeEntries.findIndex((item) => String(item._id) === String(selected._id));
+      downloadResumeEntry(selected, idx >= 0 ? idx + 1 : 1);
+    });
+  }
+
+  function renderResumeLibrary() {
+    if (!resumeLibraryList) return;
+
+    if (!latestResumeEntries.length) {
+      resumeLibraryList.innerHTML = '';
+      renderResumeLibraryPreview();
+      if (downloadLatestResumeBtn) downloadLatestResumeBtn.disabled = true;
+      if (noResumeMsg) {
+        noResumeMsg.textContent = 'No resume found. Please upload or paste your resume.';
+        noResumeMsg.style.display = '';
+      }
+      return;
+    }
+
+    if (!selectedResumeId || !latestResumeEntries.some((item) => String(item._id) === String(selectedResumeId))) {
+      selectedResumeId = String(latestResumeEntries[0]._id || '');
+    }
+
+    if (downloadLatestResumeBtn) downloadLatestResumeBtn.disabled = false;
+    if (noResumeMsg) noResumeMsg.style.display = 'none';
+
+    resumeLibraryList.innerHTML = latestResumeEntries.map((resume, index) => {
+      const isActive = String(resume._id) === String(selectedResumeId);
+      return `
+        <button type="button" class="dashboard-resume-item${isActive ? ' is-active' : ''}" data-resume-id="${escapeHtml(String(resume._id || index))}">
+          <span class="dashboard-resume-item__title">${escapeHtml(resume.title || `Resume ${index + 1}`)}</span>
+          <span class="dashboard-resume-item__meta">${escapeHtml(formatResumeTimestamp(resume.createdAt))}</span>
+        </button>
+      `;
+    }).join('');
+
+    resumeLibraryList.querySelectorAll('[data-resume-id]').forEach((button) => {
+      button.addEventListener('click', () => {
+        selectedResumeId = String(button.dataset.resumeId || '');
+        renderResumeLibrary();
+      });
+    });
+
+    renderResumeLibraryPreview();
+  }
 
   async function loadDashboardIdentity() {
     if (!dashboardIdentityBanner) return;
@@ -231,22 +329,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch (e) { /* ignore errors */ }
 
   async function loadDashboardResume() {
-    if (!latestResumeContent) return;
+    if (!resumeLibraryList) return;
     try {
       const res = await fetch('/api/resume', { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
-      if (data.resumes && data.resumes.length > 0 && data.resumes[0].content) {
-        latestResumeContent.textContent = data.resumes[0].content;
-        if (noResumeMsg) noResumeMsg.style.display = 'none';
-      } else {
-        latestResumeContent.textContent = '';
-        if (noResumeMsg) {
-          noResumeMsg.textContent = 'No resume found. Please upload or paste your resume.';
-          noResumeMsg.style.display = '';
-        }
-      }
+      latestResumeEntries = Array.isArray(data.resumes)
+        ? data.resumes.filter((resume) => resume && resume.content).slice(0, 3)
+        : [];
+      renderResumeLibrary();
     } catch (err) {
-      latestResumeContent.textContent = '';
+      latestResumeEntries = [];
+      renderResumeLibrary();
       if (noResumeMsg) {
         noResumeMsg.textContent = 'Error loading resume. Please try again.';
         noResumeMsg.style.display = '';
@@ -285,31 +378,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   await loadDashboardResume();
 
-  // Referral Code
-  const referralInput = document.getElementById('dashboardReferralCode');
-  const referralMsg = document.getElementById('dashboardReferralMsg');
-  const copyReferralBtn = document.getElementById('copyDashboardReferralBtn');
-  async function loadReferralCode() {
-    if (!referralInput) return;
-    referralInput.value = 'Loading...';
-    try {
-      const res = await fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } });
-      const data = await res.json();
-          if (data.user && data.user.referralCode) {
-            referralInput.value = data.user.referralCode;
-            referralMsg.textContent = '';
-          } else {
-            referralInput.value = '';
-            referralMsg.innerHTML = 'Referral code not found.<br>If you just signed up, please refresh this page.<br>If the issue persists, <a href="contact-us.html" style="color:#2563eb;text-decoration:underline;">contact support</a>.';
-          }
-    } catch (err) {
-      referralInput.value = 'Error';
-      if (referralMsg) {
-        referralMsg.textContent = 'Error loading referral code.';
-        referralMsg.style.color = '#dc2626';
-      }
-    }
-  }
+  downloadLatestResumeBtn?.addEventListener('click', () => {
+    if (!latestResumeEntries.length) return;
+    downloadResumeEntry(latestResumeEntries[0], 1);
+  });
+
     // Job Tracker Section
     const jobTrackerEl = document.getElementById('dashboardJobTracker');
     async function loadJobTracker() {
@@ -328,24 +401,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     }
     await loadJobTracker();
-  if (copyReferralBtn && referralInput) {
-    copyReferralBtn.addEventListener('click', async () => {
-      try {
-        await navigator.clipboard.writeText(referralInput.value);
-        if (referralMsg) {
-          referralMsg.textContent = 'Copied!';
-          referralMsg.style.color = '#16a34a';
-          setTimeout(() => { referralMsg.textContent = ''; }, 2000);
-        }
-      } catch {
-        if (referralMsg) {
-          referralMsg.textContent = 'Copy failed.';
-          referralMsg.style.color = '#dc2626';
-        }
-      }
-    });
-  }
-  await loadReferralCode();
 
     // AI Recruiter Assist Subscribe
     const aiRecruiterAssistBtn = document.getElementById('aiRecruiterAssistSubscribeBtn');
@@ -547,6 +602,7 @@ const modeKpiSessionsEl = document.getElementById('modeKpiSessions');
 const modeKpiStarterEl = document.getElementById('modeKpiStarter');
 const modeKpiPowerEl = document.getElementById('modeKpiPower');
 const statsPieEl = document.getElementById('statsPie');
+const dashboardPlatformStatsCardEl = document.getElementById('dashboardPlatformStatsCard');
 const legendResumesEl = document.getElementById('legendResumes');
 const legendJobsEl = document.getElementById('legendJobs');
 const legendApplicationsEl = document.getElementById('legendApplications');
@@ -1098,6 +1154,7 @@ async function loadPlatformStats() {
   }
 
   if (!window.currentUserIsAdmin) {
+    if (dashboardPlatformStatsCardEl) dashboardPlatformStatsCardEl.hidden = true;
     if (statUsersCardEl) statUsersCardEl.hidden = true;
     renderDashboardSignupRoster();
     if (adminKpiTabsSectionEl) adminKpiTabsSectionEl.hidden = true;
@@ -1105,6 +1162,8 @@ async function loadPlatformStats() {
     if (outcomeKpiSectionEl) outcomeKpiSectionEl.hidden = true;
     return;
   }
+
+  if (dashboardPlatformStatsCardEl) dashboardPlatformStatsCardEl.hidden = false;
 
   try {
     const [adminStats, adminUsers] = await Promise.all([
@@ -2733,42 +2792,6 @@ document.getElementById('careerCoachBtn')?.addEventListener('click', async () =>
   }
 });
 
-async function loadReferral() {
-  try {
-    const data = await api('/api/referral', { method: 'GET' });
-    const referralLinkInput = document.getElementById('referralLink');
-    const refCountEl = document.getElementById('refCount');
-
-    if (referralLinkInput) {
-      referralLinkInput.value = `${window.location.origin}/signup.html?ref=${data.referralCode}`;
-    }
-
-    if (refCountEl) {
-      refCountEl.textContent = data.referralCount || 0;
-    }
-  } catch (err) {
-    console.error('Referral load failed:', err.message);
-  }
-}
-
-window.copyReferral = async function copyReferral() {
-  const input = document.getElementById('referralLink');
-  if (!input) return;
-
-  try {
-    await navigator.clipboard.writeText(input.value);
-    showToast('Referral link copied!');
-  } catch {
-    input.select();
-    document.execCommand('copy');
-    showToast('Referral link copied!');
-  }
-};
-
-document.getElementById('copyReferralBtn')?.addEventListener('click', () => {
-  copyReferral();
-});
-
 const planToPriceIdMap = {
   pro: 'price_1THMq2KtQrGDcYVPvR3OcRyN',
   premium: 'price_1THMqvKtQrGDcYVP6K605mhv',
@@ -3453,7 +3476,6 @@ async function loadModeImpactKpis() {
 
 function scheduleHeavyLoads() {
   const run = () => {
-    loadReferral();
     loadModeImpactKpis();
   };
 
