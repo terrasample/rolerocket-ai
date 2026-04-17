@@ -32,6 +32,22 @@ function safeUrl(url) {
   return '#';
 }
 
+function compactJobText(value, fallback, maxLen) {
+  const text = String(value || '').replace(/\s+/g, ' ').trim();
+  if (!text) return fallback;
+
+  const markerRegex = /(skip to main content|this button displays|jobs people learning|clear text|join or sign in)/i;
+  const markerMatch = text.match(markerRegex);
+  let cleaned = markerMatch && markerMatch.index > 20 ? text.slice(0, markerMatch.index).trim() : text;
+
+  if (cleaned.length > maxLen) {
+    const clipped = cleaned.slice(0, maxLen);
+    cleaned = clipped.replace(/\s+\S*$/, '').trim() + '...';
+  }
+
+  return cleaned || fallback;
+}
+
 async function api(path, options = {}) {
   const headers = {
     Authorization: `Bearer ${token}`,
@@ -186,18 +202,18 @@ function createImportedJobCard(job) {
 
   // Job Title
   const titleEl = document.createElement('h3');
-  titleEl.textContent = job.title || 'Imported Role';
+  titleEl.textContent = compactJobText(job.title, 'Imported Role', 95);
   titleEl.style.cssText = 'margin: 0 0 8px 0; color: #0ea5e9; font-size: 1.3em;';
 
   // Company
   const companyEl = document.createElement('div');
   companyEl.style.cssText = 'font-size: 1.1em; color: #1e293b; font-weight: 600; margin-bottom: 6px;';
-  companyEl.textContent = `Company: ${job.company || 'Not specified'}`;
+  companyEl.textContent = `Company: ${compactJobText(job.company, 'Not specified', 65)}`;
 
   // Location
   const locationEl = document.createElement('div');
   locationEl.style.cssText = 'color: #475569; margin-bottom: 6px;';
-  locationEl.innerHTML = `<strong>📍 Location:</strong> ${escapeHtml(job.location || 'Remote')}`;
+  locationEl.innerHTML = `<strong>📍 Location:</strong> ${escapeHtml(compactJobText(job.location, 'Remote', 45))}`;
 
   // Job Link (if available)
   const linkEl = document.createElement('div');
@@ -273,13 +289,13 @@ function createTrackerCard(job) {
   const currentStatus = String(job.status || 'saved').toLowerCase();
 
   const titleEl = document.createElement('strong');
-  titleEl.textContent = job.title || 'Untitled Job';
+  titleEl.textContent = compactJobText(job.title, 'Untitled Job', 95);
 
   const companyEl = document.createElement('span');
-  companyEl.textContent = job.company || 'Unknown Company';
+  companyEl.textContent = compactJobText(job.company, 'Unknown Company', 65);
 
   const locationEl = document.createElement('small');
-  locationEl.textContent = job.location || 'Location not provided';
+  locationEl.textContent = compactJobText(job.location, 'Location not provided', 45);
 
   // Create a clickable job source link
   const jobLinkEl = document.createElement('small');

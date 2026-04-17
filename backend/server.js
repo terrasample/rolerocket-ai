@@ -1390,12 +1390,34 @@ function extractCompanyName(text = '') {
 }
 
 function extractJobTitle(text = '') {
-  const titleLine =
+  const fromLabel =
     text.match(/job title[:\s]+([^\n]+)/i)?.[1] ||
     text.match(/title[:\s]+([^\n]+)/i)?.[1] ||
-    text.split('\n').find((line) => line.trim().length > 5)?.trim() ||
-    'Imported Role';
-  return titleLine.trim();
+    '';
+
+  const firstLine = text
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .find((line) => line.length > 5) ||
+    '';
+
+  let titleLine = String(fromLabel || firstLine || 'Imported Role').replace(/\s+/g, ' ').trim();
+
+  const markerMatch = titleLine.match(/(skip to main content|this button displays|jobs people learning|clear text|join or sign in)/i);
+  if (markerMatch && markerMatch.index > 20) {
+    titleLine = titleLine.slice(0, markerMatch.index).trim();
+  }
+
+  const splitMatch = titleLine.match(/^(.{8,120}?)(?:\s+[|\-]\s+|\s+at\s+|\s+in\s+)/i);
+  if (splitMatch && splitMatch[1]) {
+    titleLine = splitMatch[1].trim();
+  }
+
+  if (titleLine.length > 120) {
+    titleLine = titleLine.slice(0, 120).replace(/\s+\S*$/, '').trim();
+  }
+
+  return titleLine || 'Imported Role';
 }
 
 function extractLocation(text = '') {
