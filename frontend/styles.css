@@ -1141,6 +1141,97 @@ h3,
   font-weight: 700;
 }
 
+.quickstart-next-steps {
+  border-color: rgba(34, 197, 94, 0.25);
+}
+
+.quickstart-next-step-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.quickstart-next-step-card {
+  border: 1px solid rgba(125, 211, 252, 0.22);
+  border-radius: 12px;
+  padding: 14px;
+  background: rgba(15, 23, 42, 0.42);
+}
+
+.quickstart-next-step-card strong {
+  display: block;
+  color: #f8fafc;
+  margin-bottom: 6px;
+}
+
+.quickstart-next-step-card p {
+  margin: 0 0 12px;
+  color: #bfdbfe;
+  line-height: 1.55;
+}
+
+.quickstart-next-step-card a {
+  display: inline-block;
+  color: #e0f2fe;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.dashboard-grid {
+  width: 100%;
+}
+
+.dashboard-resume-card {
+  width: 100%;
+  max-width: 100%;
+}
+
+.dashboard-resume-library {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.dashboard-resume-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  width: 100%;
+  border: 1px solid #dbe3ea;
+  border-radius: 12px;
+  padding: 14px;
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
+  color: #0f172a;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.dashboard-resume-item:hover,
+.dashboard-resume-item.is-active {
+  border-color: #38bdf8;
+  box-shadow: 0 10px 24px rgba(14, 165, 233, 0.12);
+  transform: translateY(-1px);
+}
+
+.dashboard-resume-item__title {
+  font-weight: 700;
+}
+
+.dashboard-resume-item__meta {
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.dashboard-resume-preview {
+  margin-top: 14px;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+}
+
 .quickstart-conversion-card {
   margin-top: 14px;
   border-color: rgba(56, 189, 248, 0.35);
@@ -2241,6 +2332,7 @@ body[data-dashboard-mode='starter'] .progressive-module {
 .price-card button {
   margin-top: auto;
   width: 100%;
+  box-sizing: border-box;
 }
 
 .billing-toggle-row {
@@ -3674,7 +3766,9 @@ pre {
   background: linear-gradient(135deg, #1d4ed8, #0284c7);
   color: #fff;
   transition: opacity 0.2s, transform 0.15s;
-  margin-top: 8px;
+  margin-top: auto;
+  display: block;
+  box-sizing: border-box;
 }
 
 .checkout-btn:hover:not(:disabled) {
