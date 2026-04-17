@@ -155,6 +155,24 @@ function renderStatsError(prefix) {
 }
 
 async function loadHomepagePlatformStats() {
+  // Only load platform stats for admin users
+  const token = localStorage.getItem('token');
+  if (!token) {
+    return; // Not logged in, don't load stats
+  }
+
+  try {
+    const response = await fetch((typeof getApiBase === 'function' ? getApiBase() : '') + '/api/me', {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const data = await response.json();
+    if (!data.user?.isAdmin) {
+      return; // Not an admin, don't load stats
+    }
+  } catch (_err) {
+    return; // Error checking user, don't load stats
+  }
+
   const homepageElements = getStatsElements('homepage');
   const pricingElements = getStatsElements('pricing');
   if (!homepageElements.usersEl && !pricingElements.usersEl) {
@@ -162,10 +180,10 @@ async function loadHomepagePlatformStats() {
   }
 
   try {
-    const response = await fetch(apiUrl('/api/public/stats'));
-    if (!response.ok) throw new Error('Failed to load platform stats');
+    const statsResponse = await fetch(apiUrl('/api/public/stats'));
+    if (!statsResponse.ok) throw new Error('Failed to load platform stats');
 
-    const stats = await response.json();
+    const stats = await statsResponse.json();
     window.roleRocketPublicStats = stats;
     renderStatsSummary('homepage', stats);
     renderStatsSummary('pricing', stats);
