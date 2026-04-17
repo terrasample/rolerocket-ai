@@ -212,34 +212,13 @@ function createImportedJobCard(job) {
     linkEl.appendChild(linkAnchor);
   }
 
-  // Job Description
-  const descHeader = document.createElement('h4');
-  descHeader.textContent = 'Job Description:';
-  descHeader.style.cssText = 'margin: 14px 0 8px 0; color: #1e293b; font-size: 1em;';
-
-  const descEl = document.createElement('div');
-  descEl.style.cssText = `
-    background: #fff;
-    border: 1px solid #cbd5e1;
-    border-radius: 8px;
-    padding: 12px;
-    color: #334155;
-    line-height: 1.6;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    font-size: 0.95em;
-    max-height: 300px;
-    overflow-y: auto;
-  `;
-  descEl.textContent = job.description || 'No description available';
-
-  // Actions
+  // Actions (kept above description so save is immediately visible)
   const actions = document.createElement('div');
   actions.className = 'job-card-actions';
-  actions.style.cssText = 'margin-top: 14px; display: flex; gap: 10px;';
+  actions.style.cssText = 'margin: 12px 0 14px 0; display: flex; gap: 10px;';
 
   const saveBtn = document.createElement('button');
-  saveBtn.textContent = 'Save Job';
+  saveBtn.textContent = 'Save to Pipeline';
   saveBtn.style.cssText = 'flex: 1; padding: 10px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;';
   saveBtn.addEventListener('click', async () => {
     try {
@@ -262,7 +241,28 @@ function createImportedJobCard(job) {
 
   actions.append(saveBtn, clearBtn);
 
-  wrapper.append(titleEl, companyEl, locationEl, linkEl, descHeader, descEl, actions);
+  // Job Description
+  const descHeader = document.createElement('h4');
+  descHeader.textContent = 'Job Description:';
+  descHeader.style.cssText = 'margin: 14px 0 8px 0; color: #1e293b; font-size: 1em;';
+
+  const descEl = document.createElement('div');
+  descEl.style.cssText = `
+    background: #fff;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 12px;
+    color: #334155;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-size: 0.95em;
+    max-height: 300px;
+    overflow-y: auto;
+  `;
+  descEl.textContent = job.description || 'No description available';
+
+  wrapper.append(titleEl, companyEl, locationEl, linkEl, actions, descHeader, descEl);
   return wrapper;
 }
 
