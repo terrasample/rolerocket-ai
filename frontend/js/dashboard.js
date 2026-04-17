@@ -2645,26 +2645,50 @@ todayPrimaryBtn?.addEventListener('click', () => {
 });
 
 todaySecondaryBtn?.addEventListener('click', () => {
-  document.getElementById('importJobText')?.focus();
+  document.getElementById('importJobUrl')?.focus();
   track('today_secondary_clicked', 'activation', { action: 'focus_import' });
 });
 
 document.getElementById('importJobBtn')?.addEventListener('click', async () => {
-  importedJobBoxEl.innerHTML = '<div class="empty-state">Importing job...</div>';
+  const urlInput = document.getElementById('importJobUrl');
+  const textInput = document.getElementById('importJobText');
+  const jobUrl = String(urlInput?.value || '').trim();
+  const additionalNotes = String(textInput?.value || '').trim();
+
+  if (!jobUrl) {
+    importedJobBoxEl.innerHTML = '<div class="empty-state">❌ Job URL is required. Please paste a job listing URL.</div>';
+    return;
+  }
+
+  try {
+    new URL(jobUrl);
+  } catch {
+    importedJobBoxEl.innerHTML = '<div class="empty-state">❌ Invalid URL format. Please provide a valid job listing URL.</div>';
+    return;
+  }
+
+  importedJobBoxEl.innerHTML = '<div class="empty-state">🔄 Fetching job data from URL...</div>';
 
   try {
     const data = await api('/api/jobs/import', {
       method: 'POST',
       body: JSON.stringify({
-        jobText: document.getElementById('importJobText').value,
-        sourceUrl: document.getElementById('importJobUrl').value
+        sourceUrl: jobUrl,
+        additionalNotes
       })
     });
 
     importedJobBoxEl.innerHTML = '';
     importedJobBoxEl.appendChild(createImportedJobCard(data.job));
+
+    if (urlInput) urlInput.value = '';
+    if (textInput) textInput.value = '';
   } catch (err) {
-    importedJobBoxEl.innerHTML = `<div class="empty-state">❌ ${escapeHtml(err.message)}</div>`;
+    let message = err.message || 'Unable to import role.';
+    if (message.toLowerCase().includes('jobtext is required')) {
+      message = 'Could not import from that URL alone. Please verify the URL is public and points to a specific job posting.';
+    }
+    importedJobBoxEl.innerHTML = `<div class="empty-state">❌ ${escapeHtml(message)}</div>`;
   }
 });
 
