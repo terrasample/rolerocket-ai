@@ -4,8 +4,7 @@ window.RoleRocketPricingData = {
       features: [
         'Resume Generator',
         'Cover Letter Generator',
-        'Job Search & Tracking',
-        'Success Stories (read-only)'
+        'Job Search & Tracking'
       ]
     },
     pro: {

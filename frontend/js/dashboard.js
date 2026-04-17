@@ -32,11 +32,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             desc: 'Find jobs, track applications, and organize your job search pipeline.',
             url: 'job-tracking.html',
           },
-          {
-            name: 'Success Stories (read-only)',
-            desc: 'Read inspiring success stories from real users who landed their dream jobs.',
-            url: 'success-stories.html',
-          },
         ],
       },
       {
