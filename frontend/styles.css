@@ -1179,11 +1179,29 @@ h3,
 
 .dashboard-grid {
   width: 100%;
+  max-width: 1560px;
+  margin: 0 auto;
+  grid-template-columns: repeat(2, minmax(460px, 1fr));
+  gap: 24px;
 }
 
 .dashboard-resume-card {
   width: 100%;
   max-width: 100%;
+}
+
+#dashboardMain.marketing-main {
+  max-width: 1600px;
+}
+
+#dashboardPlatformStatsCard {
+  max-width: none;
+}
+
+@media (max-width: 1120px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .dashboard-resume-library {

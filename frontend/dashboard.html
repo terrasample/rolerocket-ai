@@ -22,7 +22,6 @@
         <a class="sidebar-link-btn" href="features.html">Features</a>
         <a class="sidebar-link-btn" href="job-tracking.html">Find, Search & Track</a>
         <a class="sidebar-link-btn" href="ai-recruiter-assist.html">AI Recruiter Assist</a>
-        <a class="sidebar-link-btn" href="pricing.html">Pricing</a>
         <a class="sidebar-link-btn" href="contact-us.html">Contact Us</a>
         <a class="sidebar-link-btn active" href="dashboard.html">My Dashboard</a>
         <hr />
@@ -33,9 +32,9 @@
     </aside>
     <main class="main marketing-main" id="dashboardMain" tabindex="-1">
       <button onclick="window.history.back()" class="back-arrow-btn" aria-label="Go back" style="margin:12px 0 0 12px;background:none;border:none;cursor:pointer;font-size:1.6em;color:#2563eb;"><span aria-hidden="true">&#8592;</span> Back</button>
-      <div class="grid" style="max-width: 1100px;">
+      <div class="grid dashboard-grid">
         <!-- Real platform activity (moved from homepage) -->
-        <div class="marketing-card premium-stats-section" aria-label="Live platform statistics" style="margin-bottom:24px;min-width:340px;max-width:1000px;">
+        <div id="dashboardPlatformStatsCard" class="marketing-card premium-stats-section" aria-label="Live platform statistics" style="margin-bottom:24px;min-width:340px;" hidden>
           <div class="premium-stats-header" style="text-align:center;">
             <h3>Real platform activity</h3>
             <p>Live data from real usage across RoleRocket AI.</p>
@@ -111,27 +110,21 @@
         </div>
 
         <!-- Resume Section (with upload/save) -->
-        <div class="marketing-card" style="margin-bottom:18px;">
+        <div class="marketing-card dashboard-resume-card" style="margin-bottom:18px;">
           <h3>📄 Your Resume</h3>
           <textarea id="resumeText" rows="8" style="width:100%;max-width:100%;margin-bottom:8px;" placeholder="Paste your resume here or upload a file..."></textarea>
           <input type="file" id="resumeFile" accept=".txt,.pdf,.doc,.docx" style="margin-bottom:8px;" />
           <button id="saveResumeBtn" class="auth-submit-btn" style="margin-bottom:8px;">Save Resume</button>
           <div id="resumeSaveMsg" style="font-size:0.95em;margin-bottom:8px;"></div>
-          <div id="latestResumeBlock" style="margin-top:10px;">
-            <strong>Latest Saved Resume:</strong>
-            <pre id="latestResumeContent" style="background:#fffbe6;padding:14px;border-radius:8px;max-height:400px;overflow:auto;font-size:1.15em;color:#1e293b;font-family: 'Fira Mono', 'Consolas', 'Menlo', monospace; border:2px solid #f59e42;"></pre>
-            <div id="noResumeMsg" style="display:none;font-size:1.3em;font-weight:900;color:#dc2626;background:#fff0f0;padding:18px 12px;margin:12px 0 0 0;border-radius:8px;text-align:center;box-shadow:0 2px 12px #fca5a5a0;">No resume saved yet.</div>
+          <div id="latestResumeBlock" style="margin-top:14px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
+              <strong>Latest Saved Resumes</strong>
+              <button id="downloadLatestResumeBtn" class="auth-submit-btn" type="button">Download Latest Resume</button>
+            </div>
+            <div id="resumeLibraryList" class="dashboard-resume-library"></div>
+            <div id="resumeLibraryPreview" class="dashboard-resume-preview" hidden></div>
+            <div id="noResumeMsg" style="display:none;font-size:1.05em;font-weight:800;color:#dc2626;background:#fff0f0;padding:16px 12px;margin:12px 0 0 0;border-radius:8px;text-align:center;box-shadow:0 2px 12px #fca5a5a0;">No resume saved yet.</div>
           </div>
-        </div>
-
-        <!-- Referral Code Section -->
-        <div class="card">
-          <h3>🔗 Your Referral Code</h3>
-          <div style="display:flex;align-items:center;gap:10px;">
-            <input id="dashboardReferralCode" type="text" readonly style="font-size:1.1em;padding:8px 12px;border-radius:8px;border:1.5px solid #cbd5e1;background:#f8fafc;width:220px;" value="Loading..." />
-            <button id="copyDashboardReferralBtn" class="auth-submit-btn" style="padding:8px 18px;">Copy</button>
-          </div>
-          <div id="dashboardReferralMsg" style="font-size:0.95em;margin-top:8px;color:#16a34a;"></div>
         </div>
       </div>
 
