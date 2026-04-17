@@ -3590,6 +3590,219 @@ pre {
   color: #6b7280;
 }
 
+.job-alerts-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.job-alerts-heading-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.job-alerts-title {
+  margin: 0;
+  color: #0f172a;
+}
+
+.job-alerts-subtitle {
+  margin: 6px 0 0;
+  color: #475569;
+  line-height: 1.6;
+}
+
+.job-alerts-kicker {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.job-alerts-panel,
+.job-alert-card {
+  background: #fff;
+  border: 1px solid #dbeafe;
+  border-radius: 18px;
+  padding: 18px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+}
+
+.job-alert-card.is-paused {
+  opacity: 0.82;
+}
+
+.job-alerts-panel-head,
+.job-alert-card__head,
+.job-alert-card__stats,
+.job-alert-actions,
+.job-alerts-toolbar,
+.job-alerts-pill-row,
+.job-alert-badge-row,
+.job-alert-result__why {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.job-alerts-panel-head,
+.job-alert-card__head {
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.job-alerts-panel-note,
+.job-alert-card__meta,
+.job-alert-result__meta,
+.job-alerts-muted,
+.job-alerts-resume-copy {
+  color: #64748b;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.job-alerts-grid,
+.job-alerts-row-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.job-alerts-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.job-alerts-grid--textareas {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.job-alerts-row-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.job-alerts-field,
+.job-alerts-field-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.job-alerts-field span,
+.job-alerts-field-label {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.job-alerts-check-grid {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.job-alerts-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #1e293b;
+}
+
+.job-alerts-resume-box,
+.job-alerts-recommendations {
+  border: 1px dashed #bfdbfe;
+  background: #f8fbff;
+  border-radius: 16px;
+  padding: 14px;
+}
+
+.job-alerts-pill {
+  border: 1px solid #93c5fd;
+  background: #dbeafe;
+  color: #1d4ed8;
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.job-alert-badge,
+.job-alert-score,
+.job-alert-result__reason {
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.job-alert-badge,
+.job-alert-result__reason {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.job-alert-score {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.job-alert-result {
+  border-top: 1px solid #e2e8f0;
+  padding-top: 14px;
+  margin-top: 14px;
+}
+
+.job-alert-result__top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.job-alerts-status {
+  min-height: 20px;
+  font-weight: 600;
+}
+
+.job-alerts-status.success {
+  color: #15803d;
+}
+
+.job-alerts-status.error {
+  color: #dc2626;
+}
+
+.job-alerts-status.info {
+  color: #1d4ed8;
+}
+
+.job-alert-empty {
+  border: 1px dashed #cbd5e1;
+  border-radius: 16px;
+  padding: 18px;
+  color: #64748b;
+  background: #f8fafc;
+}
+
+.job-alert-link-btn {
+  text-decoration: none;
+}
+
+@media (max-width: 1100px) {
+  .job-alerts-grid,
+  .job-alerts-grid--textareas,
+  .job-alerts-row-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (min-width: 1101px) {
   .auth-card {
     margin-top: 24px;

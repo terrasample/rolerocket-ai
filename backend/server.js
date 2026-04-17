@@ -240,6 +240,7 @@ const { runATSAnalysis } = require('./services/atsScorer');
 const User = require('./models/User');
 const Resume = require('./models/Resume');
 const Job = require('./models/Job');
+const JobAlert = require('./models/JobAlert');
 const Application = require('./models/Application');
 const Telemetry = require('./models/Telemetry');
 const RoleProfile = require('./models/RoleProfile');
@@ -1232,6 +1233,314 @@ function warmJobSearchCache({ title, location, resume }) {
 
   jobSearchInFlight.set(cacheKey, task);
   return task;
+}
+
+const JOB_ALERT_FREQUENCIES = ['instant', 'daily', 'weekly'];
+const JOB_ALERT_WORK_MODES = ['remote', 'hybrid', 'onsite'];
+const JOB_ALERT_EMPLOYMENT_TYPES = ['full-time', 'contract', 'part-time', 'temporary', 'internship'];
+const JOB_ALERT_SENIORITY_LEVELS = ['internship', 'entry', 'associate', 'mid', 'senior', 'lead', 'manager', 'director', 'executive'];
+
+function cleanAlertString(value, maxLen = 160) {
+  return String(value || '').replace(/\s+/g, ' ').trim().slice(0, maxLen);
+}
+
+function toAlertList(value, maxItems = 10, maxLen = 60) {
+  const raw = Array.isArray(value)
+    ? value
+    : String(value || '')
+        .split(/[\n,|]/)
+        .map((item) => item.trim());
+
+  return raw
+    .map((item) => cleanAlertString(item, maxLen))
+    .filter(Boolean)
+    .filter((item, idx, arr) => arr.indexOf(item) === idx)
+    .slice(0, maxItems);
+}
+
+function toAllowedList(value, allowed) {
+  return toAlertList(value, allowed.length, 30).filter((item) => allowed.includes(String(item || '').toLowerCase()));
+}
+
+function normalizeJobAlertDefaults(input = {}) {
+  const frequency = cleanAlertString(input.frequency || 'daily', 20).toLowerCase();
+  const salaryMinRaw = Number(input.salaryMin);
+  return {
+    location: cleanAlertString(input.location || 'Remote', 120) || 'Remote',
+    frequency: JOB_ALERT_FREQUENCIES.includes(frequency) ? frequency : 'daily',
+    workModes: toAllowedList((input.workModes || []).map ? input.workModes.map((item) => String(item).toLowerCase()) : input.workModes, JOB_ALERT_WORK_MODES),
+    employmentTypes: toAllowedList((input.employmentTypes || []).map ? input.employmentTypes.map((item) => String(item).toLowerCase()) : input.employmentTypes, JOB_ALERT_EMPLOYMENT_TYPES),
+    seniorityLevels: toAllowedList((input.seniorityLevels || []).map ? input.seniorityLevels.map((item) => String(item).toLowerCase()) : input.seniorityLevels, JOB_ALERT_SENIORITY_LEVELS),
+    industries: toAlertList(input.industries, 8, 50),
+    includeKeywords: toAlertList(input.includeKeywords, 12, 40),
+    excludeKeywords: toAlertList(input.excludeKeywords, 12, 40),
+    excludedCompanies: toAlertList(input.excludedCompanies, 12, 60),
+    salaryMin: Number.isFinite(salaryMinRaw) && salaryMinRaw > 0 ? Math.round(salaryMinRaw) : null,
+    emailEnabled: input.emailEnabled !== false,
+    inAppEnabled: input.inAppEnabled !== false,
+    includeSimilarTitles: input.includeSimilarTitles !== false
+  };
+}
+
+function sanitizeJobAlertPayload(input = {}, defaults = {}) {
+  const normalizedDefaults = normalizeJobAlertDefaults(defaults || {});
+  const normalizedInput = normalizeJobAlertDefaults(input || {});
+  const merged = { ...normalizedDefaults, ...normalizedInput };
+  const titles = toAlertList(input.titles || [input.title1, input.title2, input.title3], 3, 80);
+  const resumeSource = ['dashboard', 'upload', 'none'].includes(String(input.resumeSource || '').toLowerCase())
+    ? String(input.resumeSource || '').toLowerCase()
+    : 'none';
+  const resumeText = resumeSource === 'none' ? '' : String(input.resumeText || '').slice(0, 30000).trim();
+  const name = cleanAlertString(input.name || titles.join(' / '), 120) || 'Job Alert';
+
+  return {
+    ...merged,
+    name,
+    titles,
+    resumeSource,
+    resumeText,
+    resumeLabel: cleanAlertString(input.resumeLabel || '', 120),
+    isPaused: Boolean(input.isPaused)
+  };
+}
+
+function fingerprintJob(job) {
+  return [job.title, job.company, job.link || job.location].map((item) => String(item || '').trim().toLowerCase()).join('::');
+}
+
+function expandSimilarTitles(titles = []) {
+  const map = {
+    'project manager': ['program manager', 'implementation manager', 'project coordinator', 'pmo analyst'],
+    'program manager': ['project manager', 'implementation manager', 'operations program manager'],
+    'operations manager': ['business operations manager', 'operations lead', 'operations coordinator'],
+    'business analyst': ['data analyst', 'operations analyst', 'systems analyst'],
+    'customer success manager': ['client success manager', 'account manager', 'customer success lead'],
+    'product manager': ['associate product manager', 'program manager'],
+    'administrative assistant': ['office coordinator', 'executive assistant', 'operations coordinator']
+  };
+
+  const expanded = new Set();
+  titles.forEach((title) => {
+    const clean = String(title || '').toLowerCase().trim();
+    if (!clean) return;
+    expanded.add(title);
+    (map[clean] || []).forEach((related) => expanded.add(related));
+  });
+  return Array.from(expanded).slice(0, 8);
+}
+
+function recommendJobTitlesFromResume(resumeText = '') {
+  const text = String(resumeText || '').toLowerCase();
+  if (!text.trim()) return [];
+
+  const patterns = [
+    { title: 'Project Manager', terms: ['project manager', 'project coordination', 'stakeholder', 'timeline'] },
+    { title: 'Program Manager', terms: ['program manager', 'cross-functional', 'roadmap'] },
+    { title: 'Operations Manager', terms: ['operations', 'process improvement', 'workflow'] },
+    { title: 'Business Analyst', terms: ['business analyst', 'requirements', 'analysis', 'reporting'] },
+    { title: 'Product Manager', terms: ['product manager', 'product roadmap', 'launch'] },
+    { title: 'Administrative Assistant', terms: ['administrative assistant', 'calendar', 'scheduling'] },
+    { title: 'Customer Success Manager', terms: ['customer success', 'client relationship', 'retention'] },
+    { title: 'Implementation Manager', terms: ['implementation', 'onboarding', 'rollout'] }
+  ];
+
+  return patterns
+    .map((pattern) => ({
+      title: pattern.title,
+      score: pattern.terms.reduce((sum, term) => sum + (text.includes(term) ? 1 : 0), 0)
+    }))
+    .filter((item) => item.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .map((item) => item.title)
+    .slice(0, 5);
+}
+
+function detectWorkModes(job) {
+  const haystack = `${job.title || ''} ${job.location || ''} ${job.description || ''}`.toLowerCase();
+  const matches = [];
+  if (/\bremote\b/.test(haystack)) matches.push('remote');
+  if (/\bhybrid\b/.test(haystack)) matches.push('hybrid');
+  if (/\bonsite\b|on-site|in office|in-office/.test(haystack)) matches.push('onsite');
+  return matches;
+}
+
+function detectEmploymentTypes(job) {
+  const haystack = `${job.title || ''} ${job.description || ''}`.toLowerCase();
+  const matches = [];
+  if (/full[ -]?time|permanent/.test(haystack)) matches.push('full-time');
+  if (/contract|contractor/.test(haystack)) matches.push('contract');
+  if (/part[ -]?time/.test(haystack)) matches.push('part-time');
+  if (/temporary|temp\b/.test(haystack)) matches.push('temporary');
+  if (/intern(ship)?/.test(haystack)) matches.push('internship');
+  return matches;
+}
+
+function detectSeniority(job) {
+  const haystack = `${job.title || ''} ${job.description || ''}`.toLowerCase();
+  const matches = [];
+  if (/intern(ship)?/.test(haystack)) matches.push('internship');
+  if (/entry|junior|associate/.test(haystack)) matches.push('entry');
+  if (/associate/.test(haystack)) matches.push('associate');
+  if (/mid|ii\b|iii\b/.test(haystack)) matches.push('mid');
+  if (/senior|sr\b/.test(haystack)) matches.push('senior');
+  if (/lead|principal/.test(haystack)) matches.push('lead');
+  if (/manager/.test(haystack)) matches.push('manager');
+  if (/director|head of/.test(haystack)) matches.push('director');
+  if (/vp|vice president|chief|cxo|executive/.test(haystack)) matches.push('executive');
+  return matches;
+}
+
+function buildJobAlertReasons(job, alert, resumeText) {
+  const reasons = [];
+  const title = String(job.title || '').toLowerCase();
+  const location = String(job.location || '').toLowerCase();
+  const description = String(job.description || '').toLowerCase();
+  const titleMatch = (alert.titles || []).find((item) => title.includes(String(item || '').toLowerCase()));
+
+  if (titleMatch) reasons.push(`Title match: ${titleMatch}`);
+  if (alert.location && (location.includes(alert.location.toLowerCase()) || location.includes('remote'))) {
+    reasons.push(`Location fit: ${alert.location}`);
+  }
+
+  const keywordHit = (alert.includeKeywords || []).find((item) => description.includes(String(item || '').toLowerCase()) || title.includes(String(item || '').toLowerCase()));
+  if (keywordHit) reasons.push(`Keyword match: ${keywordHit}`);
+
+  const workModeHit = detectWorkModes(job).find((item) => (alert.workModes || []).includes(item));
+  if (workModeHit) reasons.push(`Work mode: ${workModeHit}`);
+
+  const seniorityHit = detectSeniority(job).find((item) => (alert.seniorityLevels || []).includes(item));
+  if (seniorityHit) reasons.push(`Seniority: ${seniorityHit}`);
+
+  const industryHit = (alert.industries || []).find((item) => description.includes(String(item || '').toLowerCase()));
+  if (industryHit) reasons.push(`Industry: ${industryHit}`);
+
+  if (resumeText && (job.matchScore || 0) >= 70) {
+    reasons.push('Aligned with your imported resume');
+  }
+
+  return reasons.slice(0, 4);
+}
+
+function passesJobAlertFilters(job, alert) {
+  const haystack = `${job.title || ''} ${job.company || ''} ${job.location || ''} ${job.description || ''}`.toLowerCase();
+  const company = String(job.company || '').toLowerCase();
+  const workModes = detectWorkModes(job);
+  const employmentTypes = detectEmploymentTypes(job);
+  const seniority = detectSeniority(job);
+
+  if ((alert.excludedCompanies || []).some((item) => company.includes(String(item || '').toLowerCase()))) {
+    return false;
+  }
+
+  if ((alert.excludeKeywords || []).some((item) => haystack.includes(String(item || '').toLowerCase()))) {
+    return false;
+  }
+
+  if ((alert.workModes || []).length && workModes.length && !workModes.some((item) => alert.workModes.includes(item))) {
+    return false;
+  }
+
+  if ((alert.employmentTypes || []).length && employmentTypes.length && !employmentTypes.some((item) => alert.employmentTypes.includes(item))) {
+    return false;
+  }
+
+  if ((alert.seniorityLevels || []).length && seniority.length && !seniority.some((item) => alert.seniorityLevels.includes(item))) {
+    return false;
+  }
+
+  return true;
+}
+
+async function getAlertResumeText(alert) {
+  if (!alert || alert.resumeSource === 'none') return '';
+  if (alert.resumeSource === 'upload' && alert.resumeText) return alert.resumeText;
+  const latestResume = await Resume.findOne({ userId: alert.userId }).sort({ createdAt: -1 }).lean();
+  return String(latestResume?.content || alert.resumeText || '').trim();
+}
+
+async function runJobAlertSearch(alertDoc) {
+  const alert = alertDoc.toObject ? alertDoc.toObject() : alertDoc;
+  const resumeText = await getAlertResumeText(alert);
+  const queries = alert.includeSimilarTitles ? expandSimilarTitles(alert.titles) : (alert.titles || []).slice(0, 3);
+
+  const settled = await Promise.allSettled(
+    queries.filter(Boolean).map((title) => searchJobsFast({
+      title,
+      location: alert.location || 'Remote',
+      resume: resumeText
+    }))
+  );
+
+  const combined = [];
+  settled.forEach((result) => {
+    if (result.status === 'fulfilled' && Array.isArray(result.value?.jobs)) {
+      combined.push(...result.value.jobs);
+    }
+  });
+
+  const previousFingerprints = new Set((alert.latestResults || []).map((item) => item.fingerprint));
+
+  const ranked = dedupeJobs(combined)
+    .filter((job) => passesJobAlertFilters(job, alert))
+    .map((job) => {
+      const whyMatched = buildJobAlertReasons(job, alert, resumeText);
+      const includeKeywordBonus = whyMatched.some((item) => item.startsWith('Keyword match')) ? 6 : 0;
+      const titleBonus = whyMatched.some((item) => item.startsWith('Title match')) ? 10 : 0;
+      const fingerprint = fingerprintJob(job);
+      return {
+        fingerprint,
+        title: cleanAlertString(job.title, 140),
+        company: cleanAlertString(job.company, 100),
+        location: cleanAlertString(job.location, 100),
+        link: cleanAlertString(job.link, 500),
+        description: cleanAlertString(job.description, 1500),
+        source: cleanAlertString(job.source, 60),
+        postedAt: job.postedAt ? new Date(job.postedAt) : null,
+        matchScore: Math.max(1, Math.min(99, Math.round(Number(job.matchScore || 60) + includeKeywordBonus + titleBonus))),
+        whyMatched
+      };
+    })
+    .sort((a, b) => b.matchScore - a.matchScore)
+    .slice(0, 12);
+
+  const newJobsFoundCount = ranked.filter((item) => !previousFingerprints.has(item.fingerprint)).length;
+  return { results: ranked, newJobsFoundCount, resumeText };
+}
+
+function buildJobAlertEmailHtml(alert, results) {
+  const top = (results || []).slice(0, 5);
+  const items = top
+    .map((job) => `
+      <li style="margin:0 0 14px;">
+        <strong>${job.title}</strong> at ${job.company}<br />
+        <span style="color:#475569;">${job.location} · Match ${job.matchScore}%</span><br />
+        <a href="${job.link}" style="color:#0284c7;">Open job</a>
+      </li>
+    `)
+    .join('');
+
+  return `
+    <div style="font-family:Segoe UI,Arial,sans-serif;color:#0f172a;line-height:1.6;max-width:640px;">
+      <h2 style="margin:0 0 10px;">${alert.name}: ${results.length} fresh alert matches</h2>
+      <p style="margin:0 0 14px;">Here are the latest matches from your RoleRocket AI alert profile.</p>
+      <ol style="padding-left:18px;">${items}</ol>
+    </div>
+  `;
+}
+
+function queueJobAlertSummaryEmail({ to, alert, results }) {
+  if (!to || !results.length) return;
+  setImmediate(async () => {
+    try {
+      await sendEmail({
+        to,
+        subject: `${alert.name}: ${results.length} job alert matches`,
+        html: buildJobAlertEmailHtml(alert, results)
+      });
+    } catch (err) {
+      console.error('Job alert email send failed:', err.message);
+    }
+  });
 }
 
 const IN_DEMAND_JOBS_CACHE_MS = 24 * 60 * 60 * 1000;
@@ -3386,6 +3695,183 @@ app.delete('/api/jobs/:id', authenticateToken, async (req, res) => {
   } catch (err) {
     console.error('Delete job error:', err);
     return res.status(500).json({ error: 'Failed to delete job' });
+  }
+});
+
+app.get('/api/job-alerts/defaults', authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId).select('jobAlertDefaults').lean();
+    return res.json({ defaults: normalizeJobAlertDefaults(user?.jobAlertDefaults || {}) });
+  } catch (err) {
+    console.error('Job alert defaults load error:', err);
+    return res.status(500).json({ error: 'Failed to load job alert defaults' });
+  }
+});
+
+app.put('/api/job-alerts/defaults', authenticateToken, async (req, res) => {
+  try {
+    const defaults = normalizeJobAlertDefaults(req.body || {});
+    await User.findByIdAndUpdate(req.user.userId, { $set: { jobAlertDefaults: defaults } });
+    return res.json({ defaults });
+  } catch (err) {
+    console.error('Job alert defaults save error:', err);
+    return res.status(500).json({ error: 'Failed to save job alert defaults' });
+  }
+});
+
+app.get('/api/job-alerts/recommendations', authenticateToken, async (req, res) => {
+  try {
+    const latestResume = await Resume.findOne({ userId: req.user.userId }).sort({ createdAt: -1 }).lean();
+    const resumeText = String(latestResume?.content || '').trim();
+    return res.json({
+      resumeAvailable: Boolean(resumeText),
+      titles: recommendJobTitlesFromResume(resumeText)
+    });
+  } catch (err) {
+    console.error('Job alert recommendations error:', err);
+    return res.status(500).json({ error: 'Failed to load recommendations' });
+  }
+});
+
+app.get('/api/job-alerts', authenticateToken, async (req, res) => {
+  try {
+    const alerts = await JobAlert.find({ userId: req.user.userId }).sort({ updatedAt: -1 }).lean();
+    return res.json({ alerts });
+  } catch (err) {
+    console.error('Job alerts load error:', err);
+    return res.status(500).json({ error: 'Failed to load job alerts' });
+  }
+});
+
+app.post('/api/job-alerts', authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId).select('jobAlertDefaults').lean();
+    const payload = sanitizeJobAlertPayload(req.body || {}, user?.jobAlertDefaults || {});
+
+    if (!payload.titles.length) {
+      return res.status(400).json({ error: 'At least one job title is required' });
+    }
+
+    const alert = await JobAlert.create({
+      userId: req.user.userId,
+      ...payload
+    });
+
+    return res.json({ alert });
+  } catch (err) {
+    console.error('Job alert create error:', err);
+    return res.status(500).json({ error: 'Failed to create job alert' });
+  }
+});
+
+app.put('/api/job-alerts/:id', authenticateToken, async (req, res) => {
+  try {
+    const existing = await JobAlert.findOne({ _id: req.params.id, userId: req.user.userId });
+    if (!existing) return res.status(404).json({ error: 'Job alert not found' });
+
+    const user = await User.findById(req.user.userId).select('jobAlertDefaults').lean();
+    const payload = sanitizeJobAlertPayload(req.body || {}, user?.jobAlertDefaults || {});
+
+    if (!payload.titles.length) {
+      return res.status(400).json({ error: 'At least one job title is required' });
+    }
+
+    Object.assign(existing, payload);
+    await existing.save();
+    return res.json({ alert: existing });
+  } catch (err) {
+    console.error('Job alert update error:', err);
+    return res.status(500).json({ error: 'Failed to update job alert' });
+  }
+});
+
+app.post('/api/job-alerts/:id/run', authenticateToken, async (req, res) => {
+  try {
+    const alert = await JobAlert.findOne({ _id: req.params.id, userId: req.user.userId });
+    if (!alert) return res.status(404).json({ error: 'Job alert not found' });
+
+    const { results, newJobsFoundCount, resumeText } = await runJobAlertSearch(alert);
+    alert.latestResults = results;
+    alert.lastCheckedAt = new Date();
+    alert.lastMatchCount = results.length;
+    alert.newJobsFoundCount = newJobsFoundCount;
+    alert.totalRuns = Number(alert.totalRuns || 0) + 1;
+    if (alert.resumeSource !== 'none' && resumeText) {
+      alert.resumeText = resumeText.slice(0, 30000);
+    }
+    await alert.save();
+
+    if (alert.emailEnabled && results.length) {
+      const user = await User.findById(req.user.userId).select('email name').lean();
+      queueJobAlertSummaryEmail({
+        to: user?.email,
+        alert,
+        results
+      });
+    }
+
+    return res.json({ alert });
+  } catch (err) {
+    console.error('Job alert run error:', err);
+    return res.status(500).json({ error: 'Failed to run job alert' });
+  }
+});
+
+app.post('/api/job-alerts/:id/save-match', authenticateToken, async (req, res) => {
+  try {
+    const alert = await JobAlert.findOne({ _id: req.params.id, userId: req.user.userId }).lean();
+    if (!alert) return res.status(404).json({ error: 'Job alert not found' });
+
+    const bodyMatch = req.body?.match || null;
+    const fingerprint = cleanAlertString(req.body?.fingerprint || bodyMatch?.fingerprint || '', 300);
+    const match = (alert.latestResults || []).find((item) => item.fingerprint === fingerprint) || bodyMatch;
+
+    if (!match || !match.title) {
+      return res.status(400).json({ error: 'Selected match is missing' });
+    }
+
+    const existing = await Job.findOne({
+      userId: req.user.userId,
+      $or: [
+        { link: String(match.link || '').trim() },
+        {
+          title: String(match.title || '').trim(),
+          company: String(match.company || '').trim()
+        }
+      ]
+    });
+
+    if (existing) {
+      return res.json({ job: existing, alreadySaved: true });
+    }
+
+    const job = await Job.create({
+      userId: req.user.userId,
+      title: cleanAlertString(match.title, 140),
+      company: cleanAlertString(match.company, 100),
+      location: cleanAlertString(match.location, 100),
+      link: cleanAlertString(match.link, 500),
+      description: cleanAlertString(match.description, 2000),
+      matchScore: Number(match.matchScore || 0),
+      status: 'saved',
+      notes: `Saved from alert: ${cleanAlertString(alert.name, 120)}`
+    });
+
+    return res.json({ job, alreadySaved: false });
+  } catch (err) {
+    console.error('Job alert save match error:', err);
+    return res.status(500).json({ error: 'Failed to save match to pipeline' });
+  }
+});
+
+app.delete('/api/job-alerts/:id', authenticateToken, async (req, res) => {
+  try {
+    const alert = await JobAlert.findOneAndDelete({ _id: req.params.id, userId: req.user.userId });
+    if (!alert) return res.status(404).json({ error: 'Job alert not found' });
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('Job alert delete error:', err);
+    return res.status(500).json({ error: 'Failed to delete job alert' });
   }
 });
 

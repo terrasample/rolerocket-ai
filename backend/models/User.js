@@ -32,6 +32,22 @@ const UserSchema = new mongoose.Schema(
       queue: { type: [Number], default: [] },
       lastTemplateIdx: { type: Number, default: -1 },
       updatedAt: { type: Date, default: null }
+    },
+
+    jobAlertDefaults: {
+      location: { type: String, default: 'Remote' },
+      frequency: { type: String, default: 'daily' },
+      workModes: { type: [String], default: ['remote'] },
+      employmentTypes: { type: [String], default: ['full-time'] },
+      seniorityLevels: { type: [String], default: [] },
+      industries: { type: [String], default: [] },
+      includeKeywords: { type: [String], default: [] },
+      excludeKeywords: { type: [String], default: [] },
+      excludedCompanies: { type: [String], default: [] },
+      salaryMin: { type: Number, default: null },
+      emailEnabled: { type: Boolean, default: true },
+      inAppEnabled: { type: Boolean, default: true },
+      includeSimilarTitles: { type: Boolean, default: true }
     }
   },
   { timestamps: true }
