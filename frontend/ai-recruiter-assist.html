@@ -63,7 +63,7 @@
         </div>
         <button id="recruiterDashboardBtn" class="checkout-btn" style="display:none;">Open Dashboard</button>
       </section>
-      <section id="recruiterDashboardSection" class="marketing-card" style="max-width:980px;margin:0 auto 40px auto;">
+      <section id="recruiterDashboardSection" class="marketing-card" style="max-width:980px;margin:0 auto 40px auto;display:none;">
         <h2 style="margin-top:0;text-align:center;">Recruiter Dashboard</h2>
         <p style="text-align:center;color:#cbd5e1;max-width:760px;margin:0 auto 18px auto;line-height:1.7;">Use the recruiter dashboard controls below to move between the core AI Recruiter Assist capabilities and review the information you need while testing admin access.</p>
         <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:22px;">
@@ -288,6 +288,7 @@
 
         if (!isAdmin && !isRecruiterPlan) return;
 
+        recruiterDashboardSection.style.display = '';
         planPill.textContent = isAdmin ? 'ADMIN ACCESS' : 'RECRUITER ACCESS';
         titleEl.textContent = 'AI Recruiter Assist Unlocked';
         priceEl.style.display = 'none';
