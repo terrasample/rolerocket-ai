@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const pdfBtn = document.getElementById('downloadMarketRadarPdfBtn');
   const wordBtn = document.getElementById('downloadMarketRadarWordBtn');
   const textArea = document.getElementById('marketRadarText');
+  const preview = document.getElementById('marketRadarPreview');
   const output = document.getElementById('marketRadarOutput');
 
   function setMessage(message, color) {
@@ -40,20 +41,121 @@ document.addEventListener('DOMContentLoaded', function () {
       .slice(0, 6);
   }
 
+  function roleKeywords(role) {
+    return String(role || '')
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter((token) => token.length > 2);
+  }
+
+  function scoreRoleMatch(candidateRole, targetRole) {
+    const targetTokens = roleKeywords(targetRole);
+    const candidate = String(candidateRole || '').toLowerCase();
+    if (!targetTokens.length) return 0;
+    const hits = targetTokens.filter((token) => candidate.includes(token)).length;
+    return Math.round((hits / targetTokens.length) * 100);
+  }
+
+  function topRoleMatches(industries, targetRole) {
+    const allRoles = Object.entries(industries || {}).flatMap(([industry, roles]) =>
+      (roles || []).map((role) => ({ industry, role, match: scoreRoleMatch(role, targetRole) }))
+    );
+
+    return allRoles
+      .sort((a, b) => b.match - a.match)
+      .slice(0, 6);
+  }
+
+  function buildActionPlan(targetRole, location, skills) {
+    const primarySkills = skills.slice(0, 3).join(', ') || 'role-specific keywords';
+    return [
+      `Tailor your resume headline to "${targetRole}" and location preference "${location}".`,
+      `Add measurable bullets using these skill signals: ${primarySkills}.`,
+      'Run 2-3 targeted applications daily and mirror wording from each job post.',
+      'Use STAR-format examples for interview prep based on your strongest projects.'
+    ];
+  }
+
   function buildReport(data, role, location) {
     const industries = data.industries || {};
-    const flattenedRoles = Object.values(industries).flat().slice(0, 6);
-    const trendingRoles = flattenedRoles.length ? flattenedRoles.join(', ') : 'No live role data available';
-    const skills = extractSkillSignals(industries).join(', ') || 'Market data loading';
+    const matches = topRoleMatches(industries, role);
+    const flattenedRoles = Object.values(industries).flat().slice(0, 8);
+    const trendingRoles = flattenedRoles.length ? flattenedRoles : [];
+    const skillsList = extractSkillSignals(industries);
+    const skills = skillsList.join(', ') || 'Market data loading';
     const refreshDate = data.updatedAt ? new Date(data.updatedAt).toLocaleDateString() : 'today';
+    const actionPlan = buildActionPlan(role, location, skillsList);
+    const confidence = matches.length ? Math.max(45, Math.round(matches.reduce((sum, item) => sum + item.match, 0) / matches.length)) : 40;
 
-    return [
+    const reportText = [
       `Job Market Radar for ${role} in ${location}`,
       '',
-      `Top trending roles: ${trendingRoles}`,
+      `Market confidence score: ${confidence}/100`,
+      '',
+      'Top role matches:',
+      ...(matches.length
+        ? matches.map((item, idx) => `${idx + 1}. ${item.role} (${item.industry}) - ${item.match}% match`)
+        : ['1. No role matches available right now.']),
+      '',
+      `Top trending roles: ${trendingRoles.join(', ') || 'No live role data available'}`,
       `In-demand skills: ${skills}`,
-      `Market insights: Live market feed refreshed on ${refreshDate}. Remote-friendly roles remain strong, and candidates who align their resume to role-specific skills are getting faster traction.`
+      '',
+      `Market insights: Live market feed refreshed on ${refreshDate}. Remote-friendly roles remain strong, and candidates who align their resume to role-specific skills are getting faster traction.`,
+      '',
+      'Recommended next actions:',
+      ...actionPlan.map((step, idx) => `${idx + 1}. ${step}`)
     ].join('\n');
+
+    return {
+      reportText,
+      confidence,
+      refreshDate,
+      matches,
+      skillsList,
+      actionPlan
+    };
+  }
+
+  function renderPreview(model, role, location) {
+    if (!preview) return;
+
+    const matchesMarkup = model.matches.length
+      ? model.matches.map((item) => `<li>${item.role} <span style="color:#64748b;">(${item.industry}, ${item.match}% match)</span></li>`).join('')
+      : '<li>No role matches available right now.</li>';
+
+    const skillsMarkup = model.skillsList.length
+      ? model.skillsList.map((skill) => `<li>${skill}</li>`).join('')
+      : '<li>Skill data is still loading.</li>';
+
+    const actionsMarkup = model.actionPlan.map((step) => `<li>${step}</li>`).join('');
+
+    preview.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:14px;">
+        <div style="padding:12px;border:1px solid #bfdbfe;border-radius:10px;background:#eff6ff;">
+          <div style="font-size:0.8rem;color:#1d4ed8;font-weight:700;text-transform:uppercase;">Target</div>
+          <div style="margin-top:4px;color:#0f172a;font-weight:700;">${role}</div>
+          <div style="color:#334155;">${location}</div>
+        </div>
+        <div style="padding:12px;border:1px solid #bbf7d0;border-radius:10px;background:#f0fdf4;">
+          <div style="font-size:0.8rem;color:#15803d;font-weight:700;text-transform:uppercase;">Confidence</div>
+          <div style="margin-top:4px;color:#0f172a;font-weight:700;">${model.confidence}/100</div>
+          <div style="color:#334155;">Last refresh: ${model.refreshDate}</div>
+        </div>
+      </div>
+      <div style="margin-bottom:12px;">
+        <strong style="display:block;margin-bottom:6px;">Top Role Matches</strong>
+        <ul style="margin:0 0 0 18px;padding:0;line-height:1.6;">${matchesMarkup}</ul>
+      </div>
+      <div style="margin-bottom:12px;">
+        <strong style="display:block;margin-bottom:6px;">In-Demand Skills to Mirror</strong>
+        <ul style="margin:0 0 0 18px;padding:0;line-height:1.6;">${skillsMarkup}</ul>
+      </div>
+      <div>
+        <strong style="display:block;margin-bottom:6px;">Action Plan (Next 7 Days)</strong>
+        <ol style="margin:0 0 0 18px;padding:0;line-height:1.6;">${actionsMarkup}</ol>
+      </div>
+    `;
+    preview.style.display = 'block';
   }
 
   function formatPdf(text, doc) {
@@ -102,7 +204,9 @@ document.addEventListener('DOMContentLoaded', function () {
       try {
         const response = await fetch('/api/in-demand-jobs', { cache: 'no-store' });
         const data = await response.json();
-        textArea.value = buildReport(data, role, location);
+        const reportModel = buildReport(data, role, location);
+        textArea.value = reportModel.reportText;
+        renderPreview(reportModel, role, location);
         resultWrap.style.display = 'block';
         downloadsWrap.style.display = 'block';
         setMessage('Job Market Radar generated and ready to download.', '#16a34a');
