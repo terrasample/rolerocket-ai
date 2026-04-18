@@ -36,10 +36,12 @@ function getKeywords(jobDescription, resume) {
   const stopWords = new Set([
     'and', 'the', 'for', 'with', 'that', 'this', 'from', 'your', 'you', 'are', 'our', 'will', 'into',
     'their', 'have', 'has', 'had', 'can', 'not', 'but', 'all', 'any', 'job', 'role', 'work', 'team',
-    'years', 'year', 'experience', 'required', 'preferred', 'ability', 'skills', 'skill', 'strong'
+    'years', 'year', 'experience', 'required', 'preferred', 'ability', 'skills', 'skill', 'strong',
+    'seeking', 'looking', 'must', 'should', 'may', 'who', 'what', 'they', 'them', 'its', 'such',
+    'well', 'also', 'use', 'using', 'used', 'new', 'get', 'set', 'per', 'key', 'top', 'due'
   ]);
 
-  const jobWords = tokenize(jobDescription).filter((word) => word.length >= 3 && !stopWords.has(word));
+  const jobWords = tokenize(jobDescription).filter((word) => word.length >= 4 && !stopWords.has(word));
   const uniqueJobWords = Array.from(new Set(jobWords));
   const resumeWords = new Set(tokenize(resume));
 
@@ -103,49 +105,45 @@ function isRewriteEligibleLine(text) {
   return true;
 }
 
-function rewriteBullet(original, index) {
+function rewriteBullet(original, index, missingKeywords = []) {
   let cleaned = normalizeLineForRewrite(original);
-  cleaned = cleaned.replace(/\.$/, ''); // Remove trailing period
-  
-  // Special handling for certifications: recommend additional certs or job duties instead
+  cleaned = cleaned.replace(/\.$/, '');
+
+  // Certifications/in-progress lines should never be rewritten
   if (isCertificationLikeLine(original)) {
-    const suggestions = [
-      `Consider pairing ${cleaned} with a complementary skill or responsibility.`,
-      `${cleaned}, actively applying and maintaining this credential in daily work.`,
-      `Holder of ${cleaned}; recommend documenting specific projects or achievements where this certification was applied.`
-    ];
-    return suggestions[index % suggestions.length];
+    return null; // Signal to skip this entry
   }
-  
-  // Broader action verb detection: includes past-tense and present-tense verbs
+
   const hasAnyActionVerb = /^(led|managed|improved|delivered|built|launched|designed|developed|implemented|optimized|created|drove|owned|analyze|analyzed|provide|provided|assess|assessed|support|supported|maintain|maintained|ensure|ensured|establish|established|execute|executed|manage|coordinate|oversee|direct|supervise|drive|architect|engineer|plan|planned|planning|evaluate|evaluated|review|reviewed|monitor|monitored|facilitate|facilitated|collaborate|collaborated|guide|guided)\b/i.test(cleaned);
   const hasMetric = /\d+/.test(cleaned);
 
-  // If it already has strong action verb, enhance it minimally
-  if (hasAnyActionVerb) {
-    const capitalized = capitalizeFirst(cleaned);
-    // If already has metrics or is sufficiently detailed, return as-is
-    if (hasMetric || cleaned.length > 80) {
-      return capitalized;
+  // Pick 1-2 relevant missing keywords to weave into the suggestion
+  const relevantKeywords = missingKeywords
+    .filter((kw) => kw.length > 3 && !cleaned.toLowerCase().includes(kw.toLowerCase()))
+    .slice(0, 2);
+  const keywordPhrase = relevantKeywords.length > 0
+    ? ` Add keywords: "${relevantKeywords.join('", "')}" to align with the job description.`
+    : '';
+
+  // If bullet already has an action verb and metrics — it's strong, just suggest keywords
+  if (hasAnyActionVerb && hasMetric) {
+    if (keywordPhrase) {
+      return `${capitalizeFirst(cleaned)}.${keywordPhrase}`;
     }
-    // Only add impact clause if it's short and vague
-    if (cleaned.length < 50 && !/result|impact|outcome|improvement|save|deliver/i.test(cleaned)) {
-      return `${capitalized}, delivering measurable impact through XX% improvement, $X cost savings, or X additional projects.`;
-    }
-    return capitalized;
+    return null; // Already strong, no rewrite needed
   }
 
-  // Only add starter verb if bullet is truly weak (no structure, no metrics, too generic)
-  const isWeakBullet = cleaned.length < 50 && !hasMetric && /^(responsible|helped|worked|did|handled|support)\b/i.test(cleaned);
-  if (!isWeakBullet) {
-    // If has reasonable structure but missing metrics, just capitalize
-    return capitalizeFirst(cleaned);
+  // Has action verb but no metrics — suggest adding a result and keywords
+  if (hasAnyActionVerb) {
+    const verb = cleaned.split(' ')[0];
+    const rest = cleaned.slice(verb.length).trim();
+    return `${capitalizeFirst(verb)} ${rest}, achieving a measurable result (e.g., XX% improvement or $X savings).${keywordPhrase}`;
   }
-  
-  // Only for truly weak bullets, add starter verb
-  const starters = ['Led', 'Improved', 'Delivered', 'Built', 'Launched'];
+
+  // Weak bullet — no action verb, suggest full rewrite
+  const starters = ['Led', 'Improved', 'Delivered', 'Executed', 'Spearheaded'];
   const starter = starters[index % starters.length];
-  return `${starter} ${cleaned.charAt(0).toLowerCase()}${cleaned.slice(1)}, delivering a measurable outcome such as XX% faster execution or X more completed projects.`;
+  return `${starter} ${cleaned.charAt(0).toLowerCase()}${cleaned.slice(1)}, resulting in measurable improvement.${keywordPhrase}`;
 }
 
 function getRedFlags(resume) {
@@ -229,10 +227,13 @@ function runATSAnalysis(job, resume) {
   const weakBullets = bulletScores
     .filter((b) => b.score < 60 && isRewriteEligibleLine(b.text))
     .slice(0, 4);
-  const rewrittenBullets = weakBullets.map((b, index) => ({
-    original: b.text,
-    improved: rewriteBullet(b.text, index)
-  }));
+  const rewrittenBullets = weakBullets
+    .map((b, index) => {
+      const improved = rewriteBullet(b.text, index, missingKeywords);
+      if (!improved) return null;
+      return { original: b.text, improved };
+    })
+    .filter(Boolean);
   const quickFixes = getQuickFixes({
     missingKeywords,
     weakBullets,
