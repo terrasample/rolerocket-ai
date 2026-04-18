@@ -13,20 +13,14 @@
     <button onclick="window.history.back()" class="back-arrow-btn" aria-label="Go back" style="margin:12px 0 0 12px;background:none;border:none;cursor:pointer;font-size:1.6em;color:#2563eb;"><span aria-hidden="true">&#8592;</span> Back</button>
   </div>
   <main class="main" tabindex="-1">
-    <div class="card feature-form-grid" style="max-width:1120px;width:min(1120px, calc(100vw - 64px));margin:32px auto;">
-      <div class="feature-form-field feature-form-field--full">
-        <label for="portfolioResume"><strong>Paste Your Resume</strong></label>
-        <textarea id="portfolioResume" rows="6" style="width:100%;" placeholder="Paste your resume here..."></textarea>
-      </div>
-      <div class="feature-form-field">
-        <label for="portfolioTarget"><strong>Target Job/Field</strong></label>
-        <input id="portfolioTarget" type="text" style="width:100%;" placeholder="e.g. Data Scientist" />
-      </div>
-      <div class="feature-form-actions">
-        <button id="generatePortfolioBtn" class="auth-submit-btn">Generate Portfolio</button>
-      </div>
-      <div id="portfolioResult" class="feature-form-result" style="margin-top:18px;"></div>
-      <div class="feature-form-actions" style="justify-content:center;margin-top:18px;">
+    <div class="card" style="max-width:1120px;width:min(1120px, calc(100vw - 64px));margin:32px auto;">
+      <label for="portfolioResume"><strong>Paste Your Resume</strong></label>
+      <textarea id="portfolioResume" rows="6" style="width:100%;margin-bottom:10px;" placeholder="Paste your resume here..."></textarea>
+      <label for="portfolioTarget"><strong>Target Job/Field</strong></label>
+      <input id="portfolioTarget" type="text" style="width:100%;margin-bottom:10px;" placeholder="e.g. Data Scientist" />
+      <button id="generatePortfolioBtn" class="auth-submit-btn" style="margin-bottom:10px;">Generate Portfolio</button>
+      <div id="portfolioResult" style="margin-top:18px;"></div>
+      <div style="display:flex;gap:12px;justify-content:center;margin-top:18px;">
         <button id="savePortfolioPdfBtn" class="auth-submit-btn" style="background:#38bdf8;color:#1e293b;min-width:140px;">Save as PDF</button>
         <button id="savePortfolioWordBtn" class="auth-submit-btn" style="background:#6366f1;color:#fff;min-width:140px;">Save as Word</button>
       </div>

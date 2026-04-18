@@ -12,16 +12,12 @@
     <p>Generate likely interview questions, answer themes, and smart questions to ask the interviewer for your target role.</p>
     <button onclick="window.history.back()" class="back-arrow-btn" aria-label="Go back" style="margin:12px 0 0 12px;background:none;border:none;cursor:pointer;font-size:1.6em;color:#2563eb;"><span aria-hidden="true">&#8592;</span> Back</button>
   </div>
-  <div class="card premium-interview-card feature-form-grid" style="max-width:1120px;width:min(1120px, calc(100vw - 64px));margin:40px auto 32px auto;box-shadow:0 8px 32px #0ea5e950;">
-    <div class="feature-form-field">
-      <label for="interviewRole" style="font-size:1.1em;"><strong>Role Title</strong></label>
-      <input id="interviewRole" type="text" class="premium-input" placeholder="e.g. Product Manager" />
-    </div>
-    <div class="feature-form-field feature-form-field--full">
-      <label for="interviewJobDescription" style="font-size:1.1em;"><strong>Job Description (optional)</strong></label>
-      <textarea id="interviewJobDescription" rows="5" class="premium-input" placeholder="Paste the job description here..."></textarea>
-    </div>
-    <div class="tool-action-bar feature-form-field--full">
+  <div class="card premium-interview-card" style="max-width:1120px;width:min(1120px, calc(100vw - 64px));margin:40px auto 32px auto;box-shadow:0 8px 32px #0ea5e950;">
+    <label for="interviewRole" style="font-size:1.1em;"><strong>Role Title</strong></label>
+    <input id="interviewRole" type="text" class="premium-input" placeholder="e.g. Product Manager" />
+    <label for="interviewJobDescription" style="font-size:1.1em;"><strong>Job Description (optional)</strong></label>
+    <textarea id="interviewJobDescription" rows="5" class="premium-input" placeholder="Paste the job description here..."></textarea>
+    <div class="tool-action-bar">
       <div class="tool-primary-actions">
         <button id="interviewPrepBtn" class="auth-submit-btn premium-btn tool-action-btn tool-action-btn--primary" type="button">Generate Questions</button>
       </div>
@@ -30,7 +26,7 @@
         <button id="saveInterviewPrepWordBtn" class="auth-submit-btn tool-action-btn tool-action-btn--secondary" type="button">Save as Word</button>
       </div>
     </div>
-    <div id="interviewPrepResult" class="premium-result feature-form-result" style="margin-top:24px;min-height:120px;"></div>
+    <div id="interviewPrepResult" class="premium-result" style="margin-top:24px;min-height:120px;"></div>
   </div>
   <style>
     .premium-interview-card {
