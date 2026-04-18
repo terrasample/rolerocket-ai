@@ -1,3 +1,29 @@
+let latestAtsAnalysis = null;
+
+function showLoadingSpinner(show) {
+  let spinner = document.getElementById('atsLoadingSpinner');
+  if (!spinner) {
+    spinner = document.createElement('div');
+    spinner.id = 'atsLoadingSpinner';
+    spinner.style.position = 'fixed';
+    spinner.style.top = '0';
+    spinner.style.left = '0';
+    spinner.style.width = '100vw';
+    spinner.style.height = '100vh';
+    spinner.style.background = 'rgba(255,255,255,0.6)';
+    spinner.style.display = 'flex';
+    spinner.style.alignItems = 'center';
+    spinner.style.justifyContent = 'center';
+    spinner.style.zIndex = '9999';
+    spinner.innerHTML = '<div style="border:8px solid #e0e7ef;border-top:8px solid #2563eb;border-radius:50%;width:60px;height:60px;animation:spin 1s linear infinite;"></div>';
+    document.body.appendChild(spinner);
+    const style = document.createElement('style');
+    style.innerHTML = '@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }';
+    document.head.appendChild(style);
+  }
+  spinner.style.display = show ? 'flex' : 'none';
+}
+
 // --- New ATS Optimizer Button Logic ---
 document.getElementById('analyzeResumeBtn')?.addEventListener('click', async () => {
   const jobDescription = document.getElementById('atsJobDescription').value.trim();
@@ -28,11 +54,12 @@ document.getElementById('analyzeResumeBtn')?.addEventListener('click', async () 
       throw new Error((data && data.error) || 'Failed to run ATS analysis. Please check your input and try again.');
     }
     const analysis = data.analysis;
+    latestAtsAnalysis = analysis;
     document.getElementById('atsScore').textContent = analysis.atsScore || 0;
     renderTags('matchedKeywords', analysis.matchedKeywords, 'No matched keywords yet.');
     renderTags('missingKeywords', analysis.missingKeywords, 'No missing keywords found.');
-    renderList('formattingWarnings', analysis.formattingWarnings, 'No formatting warnings.');
-    renderList('quickFixes', analysis.quickFixes, 'No quick fixes suggested.');
+    renderAnalysisWarnings(analysis.redFlags, analysis.formattingWarnings, analysis.quickFixes);
+    renderBulletScores(analysis.bulletScores);
     renderRewrites(analysis.rewrittenBullets);
     setOptimizerStatus('Analysis complete.');
   } catch (err) {
@@ -45,38 +72,47 @@ document.getElementById('analyzeResumeBtn')?.addEventListener('click', async () 
 });
 
 document.getElementById('applyFixBtn')?.addEventListener('click', () => {
-  // Example: Apply quick fixes (mock logic)
-  setOptimizerStatus('Applying quick fixes...');
-  showLoadingSpinner(true);
-  setTimeout(() => {
-    setOptimizerStatus('Applied quick fixes to resume. (mock)');
-    showLoadingSpinner(false);
-  }, 800);
+  const resumeField = document.getElementById('atsResume');
+  const rewriteOutput = document.getElementById('rewriteOutput');
+  const resume = resumeField?.value || '';
 
-// Show/hide a loading spinner overlay
-function showLoadingSpinner(show) {
-  let spinner = document.getElementById('atsLoadingSpinner');
-  if (!spinner) {
-    spinner = document.createElement('div');
-    spinner.id = 'atsLoadingSpinner';
-    spinner.style.position = 'fixed';
-    spinner.style.top = '0';
-    spinner.style.left = '0';
-    spinner.style.width = '100vw';
-    spinner.style.height = '100vh';
-    spinner.style.background = 'rgba(255,255,255,0.6)';
-    spinner.style.display = 'flex';
-    spinner.style.alignItems = 'center';
-    spinner.style.justifyContent = 'center';
-    spinner.style.zIndex = '9999';
-    spinner.innerHTML = '<div style="border:8px solid #e0e7ef;border-top:8px solid #2563eb;border-radius:50%;width:60px;height:60px;animation:spin 1s linear infinite;"></div>';
-    document.body.appendChild(spinner);
-    const style = document.createElement('style');
-    style.innerHTML = '@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }';
-    document.head.appendChild(style);
+  if (!resumeField || !resume.trim()) {
+    setOptimizerStatus('Add your resume before applying fixes.', true);
+    return;
   }
-  spinner.style.display = show ? 'flex' : 'none';
-}
+
+  if (!latestAtsAnalysis || !latestAtsAnalysis.rewrittenBullets || !latestAtsAnalysis.rewrittenBullets.length) {
+    setOptimizerStatus('Run Analyze Resume first to generate fixes.', true);
+    return;
+  }
+
+  let updatedResume = resume;
+  let appliedCount = 0;
+
+  latestAtsAnalysis.rewrittenBullets.forEach((item) => {
+    if (!item.original || !item.improved) return;
+    if (updatedResume.includes(item.original)) {
+      updatedResume = updatedResume.replace(item.original, item.improved);
+      appliedCount += 1;
+    }
+  });
+
+  if (!appliedCount) {
+    setOptimizerStatus('No matching lines were found to update in the current resume.', true);
+    return;
+  }
+
+  resumeField.value = updatedResume;
+  if (rewriteOutput) {
+    rewriteOutput.innerHTML = `
+      <div class="job-result-card">
+        <strong>Applied ${appliedCount} fix${appliedCount === 1 ? '' : 'es'}</strong>
+        <p>Your resume text was updated using the latest ATS rewrite suggestions.</p>
+      </div>
+    `;
+  }
+
+  setOptimizerStatus(`Applied ${appliedCount} ATS fix${appliedCount === 1 ? '' : 'es'} to your resume.`);
 });
 
 document.getElementById('saveAtsResumeBtn')?.addEventListener('click', async () => {
@@ -116,10 +152,69 @@ document.getElementById('downloadAtsReportBtn')?.addEventListener('click', () =>
   doc.save('ats-report.pdf');
 });
 const token = typeof getStoredToken === 'function' ? getStoredToken() : localStorage.getItem('token');
+const atsResumeUploadInput = document.getElementById('atsResumeUpload');
+const atsResumeUploadBtn = document.getElementById('uploadAtsResumeBtn');
+const atsResumeUploadMessage = document.getElementById('atsResumeUploadMessage');
 
 if (!token) {
   window.location.href = 'login.html';
 }
+
+async function loadResumeFileIntoAtsField(file) {
+  const resumeField = document.getElementById('atsResume');
+  if (!file || !resumeField) return;
+
+  if (atsResumeUploadMessage) {
+    atsResumeUploadMessage.textContent = 'Loading resume file...';
+    atsResumeUploadMessage.style.color = '#64748b';
+  }
+
+  try {
+    if (file.type === 'application/pdf' || file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+      const formData = new FormData();
+      formData.append('resumeFile', file);
+
+      const res = await fetch(apiUrl('/api/resume/upload'), {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to parse uploaded resume.');
+      resumeField.value = data.content || '';
+    } else if (file.type.startsWith('text/') || /\.(txt|md|rtf)$/i.test(file.name)) {
+      resumeField.value = await file.text();
+    } else {
+      throw new Error('Use a TXT, PDF, or DOCX resume file.');
+    }
+
+    if (atsResumeUploadMessage) {
+      atsResumeUploadMessage.textContent = `Loaded ${file.name}.`;
+      atsResumeUploadMessage.style.color = '#16a34a';
+    }
+
+    setOptimizerStatus('Resume uploaded successfully.');
+  } catch (error) {
+    if (atsResumeUploadMessage) {
+      atsResumeUploadMessage.textContent = error.message || 'Could not load the uploaded resume.';
+      atsResumeUploadMessage.style.color = '#dc2626';
+    }
+
+    setOptimizerStatus(error.message || 'Could not load the uploaded resume.', true);
+  }
+}
+
+atsResumeUploadBtn?.addEventListener('click', () => {
+  atsResumeUploadInput?.click();
+});
+
+atsResumeUploadInput?.addEventListener('change', async (event) => {
+  const file = event.target.files?.[0];
+  await loadResumeFileIntoAtsField(file);
+});
 
 function renderTags(containerId, items, emptyMessage) {
   const container = document.getElementById(containerId);
@@ -151,12 +246,67 @@ function renderList(containerId, items, emptyMessage) {
   `;
 }
 
-function renderRewrites(items) {
-  const container = document.getElementById('rewrittenBullets');
+function renderAnalysisWarnings(redFlags, formattingWarnings, quickFixes) {
+  const container = document.getElementById('redFlags');
+  if (!container) return;
+
+  const sections = [];
+
+  if (redFlags && redFlags.length) {
+    sections.push(`
+      <div class="job-result-card">
+        <strong>Red Flags</strong>
+        <ul class="urgency-reason-list">${redFlags.map((item) => `<li>${item}</li>`).join('')}</ul>
+      </div>
+    `);
+  }
+
+  if (formattingWarnings && formattingWarnings.length) {
+    sections.push(`
+      <div class="job-result-card">
+        <strong>Formatting Warnings</strong>
+        <ul class="urgency-reason-list">${formattingWarnings.map((item) => `<li>${item}</li>`).join('')}</ul>
+      </div>
+    `);
+  }
+
+  if (quickFixes && quickFixes.length) {
+    sections.push(`
+      <div class="job-result-card">
+        <strong>Quick Fixes</strong>
+        <ul class="urgency-reason-list">${quickFixes.map((item) => `<li>${item}</li>`).join('')}</ul>
+      </div>
+    `);
+  }
+
+  container.innerHTML = sections.length
+    ? sections.join('')
+    : '<div class="urgency-empty">No red flags to display.</div>';
+}
+
+function renderBulletScores(items) {
+  const container = document.getElementById('bulletScores');
   if (!container) return;
 
   if (!items || !items.length) {
-    container.innerHTML = `<div class="urgency-empty">No weak bullets found. Good job.</div>`;
+    container.innerHTML = '<div class="urgency-empty">No bullet scores to display.</div>';
+    return;
+  }
+
+  container.innerHTML = items.map((item) => `
+    <div class="job-result-card">
+      <strong>Score: ${item.score}</strong>
+      <p>${item.text}</p>
+    </div>
+  `).join('');
+}
+
+function renderRewrites(items) {
+  const container = document.getElementById('rewriteOutput');
+  if (!container) return;
+
+  if (!items || !items.length) {
+    container.innerHTML = '<div class="urgency-empty">No weak bullets found. Good job.</div>';
     return;
   }
 
@@ -202,11 +352,12 @@ document.getElementById('runATSBtn')?.addEventListener('click', async () => {
       throw new Error(data.error || 'Failed to run ATS analysis');
     }
     const analysis = data.analysis;
+    latestAtsAnalysis = analysis;
     document.getElementById('atsScore').textContent = analysis.atsScore || 0;
     renderTags('matchedKeywords', analysis.matchedKeywords, 'No matched keywords yet.');
     renderTags('missingKeywords', analysis.missingKeywords, 'No missing keywords found.');
-    renderList('formattingWarnings', analysis.formattingWarnings, 'No formatting warnings.');
-    renderList('quickFixes', analysis.quickFixes, 'No quick fixes suggested.');
+    renderAnalysisWarnings(analysis.redFlags, analysis.formattingWarnings, analysis.quickFixes);
+    renderBulletScores(analysis.bulletScores);
     renderRewrites(analysis.rewrittenBullets);
     setOptimizerStatus('Analysis complete.');
   } catch (err) {
@@ -302,15 +453,17 @@ document.getElementById('clearAtsFieldsBtn')?.addEventListener('click', () => {
   if (resumeEl) resumeEl.value = '';
   if (rewriteOutputEl) rewriteOutputEl.textContent = '';
   if (scoreEl) scoreEl.textContent = '0';
+  latestAtsAnalysis = null;
+  if (atsResumeUploadInput) atsResumeUploadInput.value = '';
+  if (atsResumeUploadMessage) {
+    atsResumeUploadMessage.textContent = '';
+    atsResumeUploadMessage.style.color = '#64748b';
+  }
 
   renderTags('matchedKeywords', [], 'No matched keywords yet.');
   renderTags('missingKeywords', [], 'No missing keywords found.');
-
-  const redFlagsEl = document.getElementById('redFlags');
-  if (redFlagsEl) redFlagsEl.innerHTML = '<div class="urgency-empty">No red flags to display.</div>';
-
-  const bulletScoresEl = document.getElementById('bulletScores');
-  if (bulletScoresEl) bulletScoresEl.innerHTML = '<div class="urgency-empty">No bullet scores to display.</div>';
+  renderAnalysisWarnings([], [], []);
+  renderBulletScores([]);
 
   setOptimizerStatus('Fields cleared. Add new details to analyze another resume.');
 });

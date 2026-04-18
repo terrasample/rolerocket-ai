@@ -4003,6 +4003,139 @@ app.get('/api/jobs', authenticateToken, async (req, res) => {
   }
 });
 
+app.post('/api/ai-recruiter-assist/subscribe', authenticateToken, async (req, res) => {
+  try {
+    if (ensureDbReady(res, 'Recruiter Assist subscribe') !== true) return;
+
+    const user = await User.findByIdAndUpdate(
+      req.user.userId,
+      { $set: { recruiterAssistSubscribed: true } },
+      { new: true }
+    ).select('recruiterAssistSubscribed');
+
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    return res.json({
+      success: true,
+      recruiterAssistSubscribed: Boolean(user.recruiterAssistSubscribed)
+    });
+  } catch (err) {
+    console.error('AI Recruiter Assist subscribe error:', err);
+    return res.status(500).json({ error: 'Failed to subscribe to AI Recruiter Assist' });
+  }
+});
+
+app.get('/api/jobs/tracker', authenticateToken, async (req, res) => {
+  try {
+    const jobs = await Job.find({ userId: req.user.userId }).select('status').lean();
+    const tracker = {
+      saved: 0,
+      ready: 0,
+      applied: 0,
+      interview: 0,
+      offer: 0,
+      rejected: 0
+    };
+
+    for (const job of jobs) {
+      const status = String(job.status || 'saved').toLowerCase();
+      if (Object.prototype.hasOwnProperty.call(tracker, status)) {
+        tracker[status] += 1;
+      }
+    }
+
+    return res.json(tracker);
+  } catch (err) {
+    console.error('Job tracker load error:', err);
+    return res.status(500).json({ error: 'Failed to load job tracker' });
+  }
+});
+
+app.get('/api/jobs/applied', authenticateToken, async (req, res) => {
+  try {
+    const jobs = await Job.find({
+      userId: req.user.userId,
+      status: { $in: ['applied', 'interview', 'offer', 'rejected'] }
+    })
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .lean();
+
+    return res.json({ jobs });
+  } catch (err) {
+    console.error('Applied jobs load error:', err);
+    return res.status(500).json({ error: 'Failed to load applied jobs' });
+  }
+});
+
+app.get('/api/jobs/status-breakdown', authenticateToken, async (req, res) => {
+  try {
+    const statuses = ['saved', 'ready', 'applied', 'interview', 'offer', 'rejected'];
+    const jobs = await Job.find({ userId: req.user.userId }).select('status').lean();
+    const countsByStatus = new Map(statuses.map((status) => [status, 0]));
+
+    for (const job of jobs) {
+      const status = String(job.status || 'saved').toLowerCase();
+      if (countsByStatus.has(status)) {
+        countsByStatus.set(status, countsByStatus.get(status) + 1);
+      }
+    }
+
+    return res.json({
+      labels: statuses.map((status) => status.charAt(0).toUpperCase() + status.slice(1)),
+      counts: statuses.map((status) => countsByStatus.get(status) || 0)
+    });
+  } catch (err) {
+    console.error('Status breakdown error:', err);
+    return res.status(500).json({ error: 'Failed to load status breakdown' });
+  }
+});
+
+app.get('/api/jobs/activity', authenticateToken, async (req, res) => {
+  try {
+    const now = new Date();
+    const labels = [];
+    const ranges = [];
+
+    for (let i = 7; i >= 0; i -= 1) {
+      const start = new Date(now);
+      start.setDate(now.getDate() - (i * 7));
+      start.setHours(0, 0, 0, 0);
+
+      const end = new Date(start);
+      end.setDate(start.getDate() + 7);
+
+      labels.push(`${start.getMonth() + 1}/${start.getDate()}`);
+      ranges.push({ start, end });
+    }
+
+    const oldestStart = ranges[0].start;
+    const jobs = await Job.find({
+      userId: req.user.userId,
+      createdAt: { $gte: oldestStart }
+    })
+      .select('createdAt')
+      .lean();
+
+    const counts = new Array(ranges.length).fill(0);
+    for (const job of jobs) {
+      const createdAt = new Date(job.createdAt);
+      for (let index = 0; index < ranges.length; index += 1) {
+        const range = ranges[index];
+        if (createdAt >= range.start && createdAt < range.end) {
+          counts[index] += 1;
+          break;
+        }
+      }
+    }
+
+    return res.json({ labels, counts });
+  } catch (err) {
+    console.error('Jobs activity error:', err);
+    return res.status(500).json({ error: 'Failed to load jobs activity' });
+  }
+});
+
 app.put('/api/jobs/:id/status', authenticateToken, async (req, res) => {
   try {
     const allowedStatuses = ['saved', 'ready', 'applied', 'interview', 'offer', 'rejected'];

@@ -1,6 +1,6 @@
 {
   "appId": "com.rolerocket.ai",
-  "appName": "RoleRocket AI",
+  "appName": "RoleRocketAI",
   "webDir": "frontend",
   "ios": {
     "contentInset": "automatic"

@@ -27,6 +27,11 @@
 
     <div class="card">
       <h3>Your Resume</h3>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
+        <button id="uploadAtsResumeBtn" type="button">Upload Resume</button>
+        <input id="atsResumeUpload" type="file" accept=".pdf,.doc,.docx,.txt,.md,.rtf,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" style="display:none;" />
+        <span id="atsResumeUploadMessage" class="section-subtitle" style="margin:0;"></span>
+      </div>
       <textarea id="atsResume" placeholder="Paste your full resume here"></textarea>
     </div>
 

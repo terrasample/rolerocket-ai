@@ -12,6 +12,7 @@ const UserSchema = new mongoose.Schema(
       enum: ['free', 'pro', 'premium', 'elite', 'lifetime'],
       default: 'free'
     },
+    recruiterAssistSubscribed: { type: Boolean, default: false },
 
     referralCode: { type: String, unique: true, sparse: true },
     referredBy: { type: String, default: null },

@@ -12,7 +12,7 @@ router.post('/analyze', authenticateToken, async (req, res) => {
   if (!jobDescription || !resume) return res.status(400).json({ error: 'Required fields missing' });
   try {
     const analysis = runATSAnalysis(jobDescription, resume);
-    res.json(analysis);
+    res.json({ analysis });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -27,7 +27,21 @@ router.post('/rewrite', authenticateToken, async (req, res) => {
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
-        { role: 'system', content: 'Rewrite the resume below to better match the job description. Return only the improved resume text.' },
+        {
+          role: 'system',
+          content: `You are an ATS resume optimization specialist.
+
+Rewrite the candidate's resume to better match the target job description while preserving facts.
+
+Rules:
+- Do not invent employers, titles, dates, degrees, certifications, or tools not supported by the source resume.
+- Keep the candidate's actual contact details exactly as provided.
+- Improve clarity, keyword alignment, and bullet strength.
+- Prefer action + scope + measurable result phrasing.
+- Keep the output plain text and ready to paste into a resume editor.
+- Preserve section structure when present.
+- Return only the rewritten resume text.`
+        },
         { role: 'user', content: `Job Description:\n${jobDescription}\nResume:\n${resume}` }
       ]
     });
