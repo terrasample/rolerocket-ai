@@ -4239,6 +4239,227 @@ app.delete('/api/job-alerts/:id', authenticateToken, async (req, res) => {
   }
 });
 
+function normalizeAutopilotSettings(rawConfig) {
+  const modeRaw = String(rawConfig?.mode || 'manual').toLowerCase();
+  const mode = ['manual', 'one-tap', 'autopilot'].includes(modeRaw) ? modeRaw : 'manual';
+
+  const maxDailyApplicationsRaw = Number(rawConfig?.maxDailyApplications);
+  const maxDailyApplications = Number.isFinite(maxDailyApplicationsRaw)
+    ? Math.min(Math.max(Math.round(maxDailyApplicationsRaw), 1), 25)
+    : 5;
+
+  const excludedCompanies = Array.isArray(rawConfig?.excludedCompanies)
+    ? rawConfig.excludedCompanies
+      .map((value) => String(value || '').trim().toLowerCase())
+      .filter(Boolean)
+      .slice(0, 30)
+    : [];
+
+  const topJobMatchThresholdRaw = Number(rawConfig?.topJobMatchThreshold);
+  const topJobMatchThreshold = Number.isFinite(topJobMatchThresholdRaw)
+    ? Math.min(Math.max(Math.round(topJobMatchThresholdRaw), 1), 100)
+    : 85;
+
+  return {
+    mode,
+    maxDailyApplications,
+    excludedCompanies,
+    requireApprovalForTopJobs: rawConfig?.requireApprovalForTopJobs !== false,
+    topJobMatchThreshold
+  };
+}
+
+function normalizeAutopilotUsage(rawUsage) {
+  return Array.isArray(rawUsage)
+    ? rawUsage
+      .map((entry) => ({
+        day: String(entry?.day || '').slice(0, 10),
+        count: Number(entry?.count || 0)
+      }))
+      .filter((entry) => /^\d{4}-\d{2}-\d{2}$/.test(entry.day) && Number.isFinite(entry.count) && entry.count >= 0)
+      .slice(-30)
+    : [];
+}
+
+app.get('/api/apply/autopilot/settings', authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId).select('plan autopilotConfig autopilotUsage');
+    if (!hasRequiredPlan(user, 'premium')) {
+      return res.status(403).json({ error: 'Upgrade to Premium to use 1-Click Apply Autopilot.' });
+    }
+
+    const settings = normalizeAutopilotSettings(user?.autopilotConfig || {});
+    const usage = normalizeAutopilotUsage(user?.autopilotUsage || []);
+    const today = new Date().toISOString().slice(0, 10);
+    const todayCount = usage.find((entry) => entry.day === today)?.count || 0;
+
+    return res.json({
+      settings,
+      usage: {
+        today,
+        todayCount,
+        remainingToday: Math.max(0, settings.maxDailyApplications - todayCount)
+      }
+    });
+  } catch (err) {
+    console.error('Autopilot settings load error:', err);
+    return res.status(500).json({ error: 'Failed to load autopilot settings.' });
+  }
+});
+
+app.put('/api/apply/autopilot/settings', authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId).select('plan autopilotConfig');
+    if (!hasRequiredPlan(user, 'premium')) {
+      return res.status(403).json({ error: 'Upgrade to Premium to use 1-Click Apply Autopilot.' });
+    }
+
+    const settings = normalizeAutopilotSettings(req.body || {});
+    user.autopilotConfig = settings;
+    await user.save();
+
+    return res.json({ settings });
+  } catch (err) {
+    console.error('Autopilot settings save error:', err);
+    return res.status(500).json({ error: 'Failed to save autopilot settings.' });
+  }
+});
+
+app.post('/api/apply/autopilot/run', authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId).select('plan autopilotConfig autopilotUsage');
+    if (!hasRequiredPlan(user, 'premium')) {
+      return res.status(403).json({ error: 'Upgrade to Premium to use 1-Click Apply Autopilot.' });
+    }
+
+    const savedSettings = normalizeAutopilotSettings(user?.autopilotConfig || {});
+    const requestedMode = String(req.body?.mode || '').toLowerCase();
+    const runMode = ['manual', 'one-tap', 'autopilot'].includes(requestedMode) ? requestedMode : savedSettings.mode;
+    const confirmed = req.body?.confirmed === true;
+
+    const jobs = await Job.find({
+      userId: req.user.userId,
+      status: 'ready'
+    }).sort({ matchScore: -1, createdAt: -1 });
+
+    const eligibleJobs = jobs.filter((job) => {
+      const link = String(job.link || '').trim();
+      if (!/^https?:\/\//i.test(link)) return false;
+      const company = String(job.company || '').trim().toLowerCase();
+      if (!company) return true;
+      return !savedSettings.excludedCompanies.some((blocked) => company.includes(blocked));
+    });
+
+    const today = new Date().toISOString().slice(0, 10);
+    const usage = normalizeAutopilotUsage(user?.autopilotUsage || []);
+    const todayUsage = usage.find((entry) => entry.day === today);
+    const alreadyAppliedToday = todayUsage?.count || 0;
+    const remainingToday = Math.max(0, savedSettings.maxDailyApplications - alreadyAppliedToday);
+
+    const candidateJobs = eligibleJobs.slice(0, remainingToday);
+    const needsApproval = savedSettings.requireApprovalForTopJobs
+      ? candidateJobs.filter((job) => Number(job.matchScore || 0) >= savedSettings.topJobMatchThreshold)
+      : [];
+    const needsApprovalIds = new Set(needsApproval.map((job) => String(job._id)));
+
+    const autoEligibleJobs = candidateJobs.filter((job) => !needsApprovalIds.has(String(job._id)));
+
+    if (runMode === 'manual') {
+      return res.json({
+        mode: runMode,
+        settings: savedSettings,
+        previewJobs: candidateJobs.map((job) => ({
+          id: String(job._id),
+          title: job.title,
+          company: job.company,
+          link: job.link,
+          matchScore: Number(job.matchScore || 0)
+        })),
+        approvalRequiredJobs: needsApproval.map((job) => ({
+          id: String(job._id),
+          title: job.title,
+          company: job.company,
+          link: job.link,
+          matchScore: Number(job.matchScore || 0)
+        })),
+        appliedCount: 0,
+        alreadyAppliedToday,
+        remainingToday
+      });
+    }
+
+    if (runMode === 'one-tap' && !confirmed) {
+      return res.json({
+        mode: runMode,
+        requiresConfirmation: true,
+        settings: savedSettings,
+        previewJobs: candidateJobs.map((job) => ({
+          id: String(job._id),
+          title: job.title,
+          company: job.company,
+          link: job.link,
+          matchScore: Number(job.matchScore || 0)
+        })),
+        approvalRequiredJobs: needsApproval.map((job) => ({
+          id: String(job._id),
+          title: job.title,
+          company: job.company,
+          link: job.link,
+          matchScore: Number(job.matchScore || 0)
+        })),
+        appliedCount: 0,
+        alreadyAppliedToday,
+        remainingToday
+      });
+    }
+
+    const appliedJobs = runMode === 'one-tap'
+      ? candidateJobs
+      : autoEligibleJobs;
+
+    if (appliedJobs.length) {
+      await Job.updateMany(
+        {
+          _id: { $in: appliedJobs.map((job) => job._id) },
+          userId: req.user.userId
+        },
+        { $set: { status: 'applied' } }
+      );
+    }
+
+    const appliedCount = appliedJobs.length;
+    const updatedUsage = usage.filter((entry) => entry.day !== today);
+    updatedUsage.push({ day: today, count: alreadyAppliedToday + appliedCount });
+    user.autopilotUsage = updatedUsage.slice(-30);
+    await user.save();
+
+    return res.json({
+      mode: runMode,
+      settings: savedSettings,
+      jobsToOpen: appliedJobs.map((job) => ({
+        id: String(job._id),
+        title: job.title,
+        company: job.company,
+        link: job.link,
+        matchScore: Number(job.matchScore || 0)
+      })),
+      approvalRequiredJobs: needsApproval.map((job) => ({
+        id: String(job._id),
+        title: job.title,
+        company: job.company,
+        link: job.link,
+        matchScore: Number(job.matchScore || 0)
+      })),
+      appliedCount,
+      alreadyAppliedToday,
+      remainingToday: Math.max(0, savedSettings.maxDailyApplications - (alreadyAppliedToday + appliedCount))
+    });
+  } catch (err) {
+    console.error('Autopilot run error:', err);
+    return res.status(500).json({ error: 'Failed to run autopilot apply flow.' });
+  }
+});
+
 app.post('/api/apply/one-click', authenticateToken, async (req, res) => {
   try {
     const user = await User.findById(req.user.userId);

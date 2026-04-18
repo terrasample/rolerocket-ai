@@ -48,6 +48,28 @@ const UserSchema = new mongoose.Schema(
       emailEnabled: { type: Boolean, default: true },
       inAppEnabled: { type: Boolean, default: true },
       includeSimilarTitles: { type: Boolean, default: true }
+    },
+
+    autopilotConfig: {
+      mode: {
+        type: String,
+        enum: ['manual', 'one-tap', 'autopilot'],
+        default: 'manual'
+      },
+      maxDailyApplications: { type: Number, default: 5 },
+      excludedCompanies: { type: [String], default: [] },
+      requireApprovalForTopJobs: { type: Boolean, default: true },
+      topJobMatchThreshold: { type: Number, default: 85 }
+    },
+
+    autopilotUsage: {
+      type: [
+        {
+          day: { type: String, default: '' },
+          count: { type: Number, default: 0 }
+        }
+      ],
+      default: []
     }
   },
   { timestamps: true }

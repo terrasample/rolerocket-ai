@@ -8,6 +8,13 @@ document.addEventListener('DOMContentLoaded', function () {
   const result = document.getElementById('applyQueueResult');
   const queuedJobsList = document.getElementById('queuedJobsList');
   const recommendationsList = document.getElementById('queueRecommendations');
+  let autopilotSettings = {
+    mode: 'manual',
+    maxDailyApplications: 5,
+    excludedCompanies: [],
+    requireApprovalForTopJobs: true,
+    topJobMatchThreshold: 85
+  };
 
   function getToken() {
     return typeof getStoredToken === 'function' ? getStoredToken() : localStorage.getItem('token');
@@ -77,6 +84,101 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function renderEmptyState(container, message) {
     container.innerHTML = `<p class="queue-empty-state">${message}</p>`;
+  }
+
+  function prettyMode(mode) {
+    if (mode === 'one-tap') return 'One-Tap';
+    if (mode === 'autopilot') return 'Autopilot';
+    return 'Manual';
+  }
+
+  async function loadAutopilotSettings() {
+    try {
+      const response = await fetch(buildApiUrl('/api/apply/autopilot/settings'), {
+        headers: getHeaders(false)
+      });
+
+      if (!response.ok) {
+        return;
+      }
+
+      const data = await response.json();
+      autopilotSettings = {
+        ...autopilotSettings,
+        ...(data.settings || {})
+      };
+    } catch {
+      // Leave defaults if settings are unavailable.
+    }
+  }
+
+  function appendAutopilotSettingsButton() {
+    const secondaryActions = document.querySelector('.tool-secondary-actions');
+    if (!secondaryActions || document.getElementById('autopilotSettingsBtn')) return;
+
+    const settingsBtn = document.createElement('button');
+    settingsBtn.id = 'autopilotSettingsBtn';
+    settingsBtn.type = 'button';
+    settingsBtn.className = 'auth-submit-btn tool-action-btn tool-action-btn--secondary';
+    settingsBtn.textContent = 'Autopilot Settings';
+    secondaryActions.appendChild(settingsBtn);
+
+    settingsBtn.addEventListener('click', async function () {
+      const modeInput = String(prompt('Autopilot mode: manual, one-tap, or autopilot', autopilotSettings.mode) || '').trim().toLowerCase();
+      if (!['manual', 'one-tap', 'autopilot'].includes(modeInput)) {
+        setMessage('Settings unchanged. Please enter manual, one-tap, or autopilot.', '#dc2626');
+        return;
+      }
+
+      const maxInput = prompt('Max daily applications (1-25)', String(autopilotSettings.maxDailyApplications || 5));
+      const maxDailyApplications = Number.parseInt(String(maxInput || '').trim(), 10);
+      if (Number.isNaN(maxDailyApplications) || maxDailyApplications < 1 || maxDailyApplications > 25) {
+        setMessage('Settings unchanged. Max daily applications must be between 1 and 25.', '#dc2626');
+        return;
+      }
+
+      const blockedInput = String(prompt('Excluded companies (comma-separated)', (autopilotSettings.excludedCompanies || []).join(', ')) || '');
+      const excludedCompanies = blockedInput
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean)
+        .slice(0, 30);
+
+      const requireApprovalInput = String(prompt('Require approval for top-match jobs? yes or no', autopilotSettings.requireApprovalForTopJobs ? 'yes' : 'no') || '').trim().toLowerCase();
+      const requireApprovalForTopJobs = requireApprovalInput !== 'no';
+
+      const thresholdInput = prompt('Top-match threshold (1-100)', String(autopilotSettings.topJobMatchThreshold || 85));
+      const topJobMatchThreshold = Number.parseInt(String(thresholdInput || '').trim(), 10);
+      if (Number.isNaN(topJobMatchThreshold) || topJobMatchThreshold < 1 || topJobMatchThreshold > 100) {
+        setMessage('Settings unchanged. Top-match threshold must be between 1 and 100.', '#dc2626');
+        return;
+      }
+
+      const payload = {
+        mode: modeInput,
+        maxDailyApplications,
+        excludedCompanies,
+        requireApprovalForTopJobs,
+        topJobMatchThreshold
+      };
+
+      try {
+        const response = await fetch(buildApiUrl('/api/apply/autopilot/settings'), {
+          method: 'PUT',
+          headers: getHeaders(true),
+          body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Could not save autopilot settings.');
+        autopilotSettings = {
+          ...autopilotSettings,
+          ...(data.settings || payload)
+        };
+        setMessage(`Autopilot settings saved. Mode: ${prettyMode(autopilotSettings.mode)}.`, '#16a34a');
+      } catch (error) {
+        setMessage(error.message || 'Could not save autopilot settings.', '#dc2626');
+      }
+    });
   }
 
   async function fetchJobs() {
@@ -225,28 +327,62 @@ document.addEventListener('DOMContentLoaded', function () {
 
   async function autoSubmitReadyJobs() {
     autoSubmitBtn.disabled = true;
-    setMessage('Opening ready job links in new tabs...', '#475569');
+    setMessage('Running controlled apply flow...', '#475569');
 
     try {
-      const jobs = await fetchJobs();
-      const readyJobs = jobs.filter((job) => String(job.status || '').toLowerCase() === 'ready');
-      const readyWithLinks = readyJobs.filter((job) => /^https?:\/\//i.test(String(job.link || '').trim()));
+      const runAutopilot = async function (confirmed) {
+        const response = await fetch(buildApiUrl('/api/apply/autopilot/run'), {
+          method: 'POST',
+          headers: getHeaders(true),
+          body: JSON.stringify({ mode: autopilotSettings.mode, confirmed })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Could not run apply flow.');
+        return data;
+      };
 
-      if (!readyWithLinks.length) {
-        setMessage('No ready jobs with valid job links found. Add links or mark jobs ready first.', '#dc2626');
+      let data = await runAutopilot(false);
+      if (data.requiresConfirmation) {
+        const plannedCount = Array.isArray(data.previewJobs) ? data.previewJobs.length : 0;
+        const shouldContinue = window.confirm(`One-Tap will process ${plannedCount} job(s). Continue?`);
+        if (!shouldContinue) {
+          setMessage('One-Tap run canceled.', '#475569');
+          return;
+        }
+        data = await runAutopilot(true);
+      }
+
+      if (data.mode === 'manual') {
+        const previewCount = Array.isArray(data.previewJobs) ? data.previewJobs.length : 0;
+        setMessage(`Manual mode preview ready: ${previewCount} job(s). Switch mode in Autopilot Settings to send/open.`, '#2563eb');
+        return;
+      }
+
+      const jobsToOpen = Array.isArray(data.jobsToOpen) ? data.jobsToOpen : [];
+      if (!jobsToOpen.length) {
+        setMessage('No eligible ready jobs found within your current guardrails.', '#dc2626');
+        await loadQueue();
+        await loadTopMatches();
         return;
       }
 
       let openedCount = 0;
-      for (const job of readyWithLinks) {
+      for (const job of jobsToOpen) {
         const link = String(job.link || '').trim();
         const opened = window.open(link, '_blank', 'noopener,noreferrer');
         if (opened) openedCount += 1;
       }
 
+      const approvalCount = Array.isArray(data.approvalRequiredJobs) ? data.approvalRequiredJobs.length : 0;
       await loadQueue();
       await loadTopMatches();
-      setMessage(`Opened ${openedCount} ready job tab${openedCount === 1 ? '' : 's'}. Apply on each site, then mark jobs as Applied in pipeline when finished.`, '#16a34a');
+      const summary = [
+        `Mode ${prettyMode(data.mode)}: opened ${openedCount} tab${openedCount === 1 ? '' : 's'} and moved ${Number(data.appliedCount || 0)} job${Number(data.appliedCount || 0) === 1 ? '' : 's'} to Applied.`
+      ];
+      if (approvalCount) {
+        summary.push(`${approvalCount} top-match job${approvalCount === 1 ? '' : 's'} held for manual approval.`);
+      }
+      setMessage(summary.join(' '), '#16a34a');
     } catch (error) {
       setMessage(error.message || 'Auto-submit could not complete right now.', '#dc2626');
     } finally {
@@ -272,4 +408,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
   loadQueue();
   loadTopMatches();
+  loadAutopilotSettings();
+  appendAutopilotSettingsButton();
 });
