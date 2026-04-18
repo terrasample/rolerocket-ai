@@ -34,14 +34,28 @@ function tokenize(text) {
 
 function getKeywords(jobDescription, resume) {
   const stopWords = new Set([
+    // Articles, conjunctions, prepositions
     'and', 'the', 'for', 'with', 'that', 'this', 'from', 'your', 'you', 'are', 'our', 'will', 'into',
-    'their', 'have', 'has', 'had', 'can', 'not', 'but', 'all', 'any', 'job', 'role', 'work', 'team',
-    'years', 'year', 'experience', 'required', 'preferred', 'ability', 'skills', 'skill', 'strong',
-    'seeking', 'looking', 'must', 'should', 'may', 'who', 'what', 'they', 'them', 'its', 'such',
-    'well', 'also', 'use', 'using', 'used', 'new', 'get', 'set', 'per', 'key', 'top', 'due'
+    'their', 'have', 'has', 'had', 'can', 'not', 'but', 'all', 'any', 'its', 'such', 'also', 'per',
+    'who', 'what', 'they', 'them', 'well', 'use', 'using', 'used', 'new', 'get', 'set', 'due',
+    'each', 'both', 'few', 'more', 'most', 'other', 'some', 'than', 'then', 'when', 'where', 'while',
+    // Job posting filler words
+    'job', 'role', 'work', 'team', 'years', 'year', 'experience', 'required', 'preferred', 'ability',
+    'skills', 'skill', 'strong', 'seeking', 'looking', 'must', 'should', 'may', 'key', 'top',
+    'description', 'responsibilities', 'requirements', 'qualifications', 'position', 'candidate',
+    'applicant', 'company', 'organization', 'primary', 'secondary', 'following', 'including', 'include',
+    'provide', 'ensure', 'support', 'across', 'within', 'about', 'above', 'below', 'between',
+    'through', 'during', 'before', 'after', 'under', 'over', 'while', 'along', 'upon',
+    'basis', 'level', 'type', 'area', 'areas', 'field', 'fields', 'based', 'related', 'relevant',
+    'various', 'multiple', 'overall', 'daily', 'ongoing', 'current', 'general', 'specific',
+    'minimum', 'maximum', 'highly', 'great', 'good', 'best', 'high', 'large', 'small',
+    // Too generic to be meaningful resume keywords
+    'project', 'manager', 'member', 'member', 'team', 'teams', 'people', 'person', 'group',
+    'overseeing', 'oversee', 'manage', 'managing', 'working', 'making', 'taking', 'doing',
+    'report', 'reports', 'reporting', 'meeting', 'meetings', 'tasks', 'task', 'activities'
   ]);
 
-  const jobWords = tokenize(jobDescription).filter((word) => word.length >= 4 && !stopWords.has(word));
+  const jobWords = tokenize(jobDescription).filter((word) => word.length >= 5 && !stopWords.has(word));
   const uniqueJobWords = Array.from(new Set(jobWords));
   const resumeWords = new Set(tokenize(resume));
 
@@ -107,43 +121,58 @@ function isRewriteEligibleLine(text) {
 
 function rewriteBullet(original, index, missingKeywords = []) {
   let cleaned = normalizeLineForRewrite(original);
-  cleaned = cleaned.replace(/\.$/, '');
+  cleaned = cleaned.replace(/\.$/, '').trim();
 
-  // Certifications/in-progress lines should never be rewritten
-  if (isCertificationLikeLine(original)) {
-    return null; // Signal to skip this entry
-  }
+  if (!cleaned || cleaned.length < 10) return null;
+  if (isCertificationLikeLine(original)) return null;
 
-  const hasAnyActionVerb = /^(led|managed|improved|delivered|built|launched|designed|developed|implemented|optimized|created|drove|owned|analyze|analyzed|provide|provided|assess|assessed|support|supported|maintain|maintained|ensure|ensured|establish|established|execute|executed|manage|coordinate|oversee|direct|supervise|drive|architect|engineer|plan|planned|planning|evaluate|evaluated|review|reviewed|monitor|monitored|facilitate|facilitated|collaborate|collaborated|guide|guided)\b/i.test(cleaned);
+  const hasAnyActionVerb = /^(led|managed|improved|delivered|built|launched|designed|developed|implemented|optimized|created|drove|owned|analyzed|provided|assessed|supported|maintained|ensured|established|executed|coordinated|oversaw|directed|supervised|drove|architected|engineered|planned|evaluated|reviewed|monitored|facilitated|collaborated|guided|analyze|provide|assess|support|maintain|ensure|establish|execute|manage|coordinate|oversee|direct|supervise|drive|plan|evaluate|review|monitor|facilitate|collaborate|guide)\b/i.test(cleaned);
   const hasMetric = /\d+/.test(cleaned);
 
-  // Pick 1-2 relevant missing keywords to weave into the suggestion
-  const relevantKeywords = missingKeywords
-    .filter((kw) => kw.length > 3 && !cleaned.toLowerCase().includes(kw.toLowerCase()))
-    .slice(0, 2);
-  const keywordPhrase = relevantKeywords.length > 0
-    ? ` Add keywords: "${relevantKeywords.join('", "')}" to align with the job description.`
-    : '';
-
-  // If bullet already has an action verb and metrics — it's strong, just suggest keywords
-  if (hasAnyActionVerb && hasMetric) {
-    if (keywordPhrase) {
-      return `${capitalizeFirst(cleaned)}.${keywordPhrase}`;
+  // Pick the best keyword for this specific bullet — cycle through so each gets a different one
+  // Prefer concrete domain skills over generic nouns
+  const genericNouns = new Set(['expertise', 'management', 'allocation', 'resource', 'timelines', 'initiative', 'initiatives']);
+  const keyword = (missingKeywords || []).find(
+    (kw, i) => {
+      if (kw.length < 5) return false;
+      if (cleaned.toLowerCase().includes(kw.toLowerCase())) return false;
+      if (genericNouns.has(kw.toLowerCase())) return false;
+      // Cycle: each bullet index skips the first `index` valid keywords
+      return (missingKeywords.filter((k, j) => {
+        if (k.length < 5) return false;
+        if (cleaned.toLowerCase().includes(k.toLowerCase())) return false;
+        if (genericNouns.has(k.toLowerCase())) return false;
+        return j < missingKeywords.indexOf(kw);
+      }).length === index % Math.max(1, missingKeywords.length));
     }
-    return null; // Already strong, no rewrite needed
+  ) || (missingKeywords || []).find(
+    (kw) => kw.length >= 5 && !cleaned.toLowerCase().includes(kw.toLowerCase()) && !genericNouns.has(kw.toLowerCase())
+  ) || null;
+
+  // Helper: build phrase weaving keyword naturally
+  const withKeyword = (base) => {
+    if (!keyword) return `${base}, achieving measurable results (e.g., XX% improvement or $X saved).`;
+    return `${base}, leveraging ${keyword} to achieve measurable results (e.g., XX% improvement or $X saved).`;
+  };
+
+  // Already has verb + metric — strong bullet, only suggest keyword if available
+  if (hasAnyActionVerb && hasMetric) {
+    if (keyword) {
+      return `${capitalizeFirst(cleaned)}, with a focus on ${keyword} to drive further impact.`;
+    }
+    return null; // No improvement needed
   }
 
-  // Has action verb but no metrics — suggest adding a result and keywords
+  // Has action verb but no metric — keep verb, add metric + keyword naturally
   if (hasAnyActionVerb) {
-    const verb = cleaned.split(' ')[0];
-    const rest = cleaned.slice(verb.length).trim();
-    return `${capitalizeFirst(verb)} ${rest}, achieving a measurable result (e.g., XX% improvement or $X savings).${keywordPhrase}`;
+    return withKeyword(capitalizeFirst(cleaned));
   }
 
-  // Weak bullet — no action verb, suggest full rewrite
-  const starters = ['Led', 'Improved', 'Delivered', 'Executed', 'Spearheaded'];
+  // Weak bullet — rewrite with a strong action verb + keyword
+  const starters = ['Led', 'Managed', 'Delivered', 'Executed', 'Spearheaded'];
   const starter = starters[index % starters.length];
-  return `${starter} ${cleaned.charAt(0).toLowerCase()}${cleaned.slice(1)}, resulting in measurable improvement.${keywordPhrase}`;
+  const lower = cleaned.charAt(0).toLowerCase() + cleaned.slice(1);
+  return withKeyword(`${starter} ${lower}`);
 }
 
 function getRedFlags(resume) {
