@@ -102,19 +102,19 @@
   }
 
   function handleBackButtonClick(event) {
-    const backButton = event.target.closest('.back-arrow-btn, .legal-back, [data-back-button]');
+    const backButton = event.target.closest('.back-arrow-btn, .legal-back, [data-back-button], button[onclick*="history.back("]');
     if (!backButton) return false;
 
     event.preventDefault();
     event.stopPropagation();
 
     const currentNormalized = sanitizeRelativeUrl(getCurrentRelativeUrl());
+    const referrerTarget = sanitizeRelativeUrl(document.referrer || '');
     const storedReturn = sanitizeRelativeUrl(sessionStorage.getItem(RETURN_URL_KEY) || '');
-    let target = storedReturn;
-    if (!target) {
-      const ref = sanitizeRelativeUrl(document.referrer || '');
-      target = ref;
-    }
+    // Prefer the browser referrer first so Back reflects the actual previous page.
+    const target = referrerTarget && referrerTarget !== currentNormalized
+      ? referrerTarget
+      : storedReturn;
 
     if (!target || target === currentNormalized) {
       window.history.back();
