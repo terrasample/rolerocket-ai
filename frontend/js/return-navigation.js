@@ -42,10 +42,15 @@
     };
   }
 
-  function saveCurrentPageState() {
+  function saveCurrentScrollState() {
+    const relativeUrl = getCurrentRelativeUrl();
+    sessionStorage.setItem(getScrollKeyForUrl(relativeUrl), JSON.stringify(readScrollState()));
+  }
+
+  function setReturnTargetToCurrentPage() {
     const relativeUrl = getCurrentRelativeUrl();
     sessionStorage.setItem(RETURN_URL_KEY, relativeUrl);
-    sessionStorage.setItem(getScrollKeyForUrl(relativeUrl), JSON.stringify(readScrollState()));
+    saveCurrentScrollState();
   }
 
   function setPendingRestore(relativeUrl) {
@@ -103,6 +108,7 @@
     event.preventDefault();
     event.stopPropagation();
 
+    const currentNormalized = sanitizeRelativeUrl(getCurrentRelativeUrl());
     const storedReturn = sanitizeRelativeUrl(sessionStorage.getItem(RETURN_URL_KEY) || '');
     let target = storedReturn;
     if (!target) {
@@ -110,7 +116,7 @@
       target = ref;
     }
 
-    if (!target || target === getCurrentRelativeUrl()) {
+    if (!target || target === currentNormalized) {
       window.history.back();
       return true;
     }
@@ -145,26 +151,26 @@
   }
 
   restoreScrollIfRequested();
-  saveCurrentPageState();
-  window.addEventListener('scroll', saveCurrentPageState, { passive: true });
+  saveCurrentScrollState();
+  window.addEventListener('scroll', saveCurrentScrollState, { passive: true });
   const primaryScrollContainer = getPrimaryScrollContainer();
   if (primaryScrollContainer) {
-    primaryScrollContainer.addEventListener('scroll', saveCurrentPageState, { passive: true });
+    primaryScrollContainer.addEventListener('scroll', saveCurrentScrollState, { passive: true });
   }
-  window.addEventListener('beforeunload', saveCurrentPageState);
+  window.addEventListener('beforeunload', saveCurrentScrollState);
 
   document.addEventListener('click', (event) => {
     if (handleBackButtonClick(event)) return;
 
     const anchor = event.target.closest('a[href]');
     if (isNavigableAnchor(anchor)) {
-      saveCurrentPageState();
+      setReturnTargetToCurrentPage();
       return;
     }
 
     const button = event.target.closest('button');
     if (looksLikeNavigatingButton(button)) {
-      saveCurrentPageState();
+      setReturnTargetToCurrentPage();
     }
   }, true);
 })();
