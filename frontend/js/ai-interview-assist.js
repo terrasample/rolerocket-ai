@@ -563,6 +563,8 @@ document.addEventListener('DOMContentLoaded', () => {
             setLiveStatus('Shared audio was unavailable. Switched to microphone listening.', '#b45309');
           } else if (state === 'listening') {
             setLiveStatus('Listening to shared interview audio...', '#0f766e');
+          } else if (state === 'listening-mixed') {
+            setLiveStatus('Listening to shared audio + microphone (recruiter and your voice).', '#0f766e');
           } else if (state === 'listening-mic') {
             setLiveStatus('Listening via microphone fallback. Keep speaker volume up so recruiter audio is captured.', '#0f766e');
           } else if (state === 'stopped') {

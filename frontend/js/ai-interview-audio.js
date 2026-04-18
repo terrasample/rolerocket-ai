@@ -11,6 +11,9 @@ let liveRecognitionEnabled = false;
 let sharedAudioRecorder = null;
 let sharedAudioCaptureStream = null;
 let sharedAudioMode = 'shared';
+let sharedAudioMicStream = null;
+let sharedAudioContext = null;
+let sharedAudioDestination = null;
 
 function stopTracks(stream) {
   if (!stream) return;
@@ -21,6 +24,22 @@ function stopTracks(stream) {
       // Ignore stop errors.
     }
   });
+}
+
+function cleanupSharedAudioMix() {
+  stopTracks(sharedAudioMicStream);
+  sharedAudioMicStream = null;
+
+  if (sharedAudioContext) {
+    try {
+      sharedAudioContext.close();
+    } catch {
+      // Ignore close errors.
+    }
+  }
+
+  sharedAudioContext = null;
+  sharedAudioDestination = null;
 }
 
 function getSupportedAudioMimeType() {
@@ -163,6 +182,7 @@ async function startSharedAudioCapture(handlers = {}) {
   }
 
   let activeStream = captureStream;
+  let recordSourceStream = null;
   let audioTracks = captureStream.getAudioTracks();
   sharedAudioMode = 'shared';
 
@@ -180,6 +200,44 @@ async function startSharedAudioCapture(handlers = {}) {
     audioTracks = activeStream.getAudioTracks();
     sharedAudioMode = 'mic';
     if (typeof handlers.onState === 'function') handlers.onState('fallback-mic');
+    recordSourceStream = activeStream;
+  } else {
+    // When shared audio is available, also add microphone input so the user voice is captured.
+    try {
+      sharedAudioMicStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
+      });
+
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtx) {
+        sharedAudioContext = new AudioCtx();
+        sharedAudioDestination = sharedAudioContext.createMediaStreamDestination();
+
+        const sharedSource = sharedAudioContext.createMediaStreamSource(new MediaStream(audioTracks));
+        sharedSource.connect(sharedAudioDestination);
+
+        const micTracks = sharedAudioMicStream.getAudioTracks();
+        if (micTracks.length) {
+          const micSource = sharedAudioContext.createMediaStreamSource(new MediaStream(micTracks));
+          micSource.connect(sharedAudioDestination);
+          sharedAudioMode = 'mixed';
+        }
+
+        recordSourceStream = sharedAudioDestination.stream;
+      }
+    } catch {
+      // If mic permission is denied/unavailable, continue with shared audio only.
+      stopTracks(sharedAudioMicStream);
+      sharedAudioMicStream = null;
+    }
+
+    if (!recordSourceStream) {
+      recordSourceStream = new MediaStream(audioTracks);
+    }
   }
 
   if (!audioTracks.length) {
@@ -188,11 +246,10 @@ async function startSharedAudioCapture(handlers = {}) {
   }
 
   sharedAudioCaptureStream = activeStream;
-  const audioOnlyStream = new MediaStream(audioTracks);
   const mimeType = getSupportedAudioMimeType();
   sharedAudioRecorder = mimeType
-    ? new MediaRecorder(audioOnlyStream, { mimeType })
-    : new MediaRecorder(audioOnlyStream);
+    ? new MediaRecorder(recordSourceStream, { mimeType })
+    : new MediaRecorder(recordSourceStream);
 
   audioTracks.forEach((track) => {
     track.onended = () => {
@@ -212,7 +269,13 @@ async function startSharedAudioCapture(handlers = {}) {
 
   sharedAudioRecorder.onstart = () => {
     if (typeof handlers.onState === 'function') {
-      handlers.onState(sharedAudioMode === 'mic' ? 'listening-mic' : 'listening');
+      if (sharedAudioMode === 'mic') {
+        handlers.onState('listening-mic');
+      } else if (sharedAudioMode === 'mixed') {
+        handlers.onState('listening-mixed');
+      } else {
+        handlers.onState('listening');
+      }
     }
   };
 
@@ -220,6 +283,8 @@ async function startSharedAudioCapture(handlers = {}) {
     stopTracks(sharedAudioCaptureStream);
     sharedAudioCaptureStream = null;
     sharedAudioRecorder = null;
+    cleanupSharedAudioMix();
+    sharedAudioMode = 'shared';
   };
 
   sharedAudioRecorder.start(3000);
@@ -249,6 +314,7 @@ function stopSharedAudioCapture() {
   if (!sharedAudioRecorder) {
     stopTracks(sharedAudioCaptureStream);
     sharedAudioCaptureStream = null;
+    cleanupSharedAudioMix();
     sharedAudioMode = 'shared';
   }
 }
