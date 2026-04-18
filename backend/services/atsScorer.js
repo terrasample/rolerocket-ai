@@ -74,7 +74,7 @@ function normalizeLineForRewrite(text) {
 }
 
 function isCertificationLikeLine(text) {
-  return /(pmp|pcp|cisn|cissp|gcp|aws|azure|certified|certification|credential|accredited|license|exam|passed|obtained|earned|awarded)\b/i.test(String(text || ''));
+  return /(pmp|pcp|cisn|cissp|gcp|aws|azure|certified|certificate|certification|credential|accredited|license|exam|passed|obtained|earned|awarded)\b/i.test(String(text || ''));
 }
 
 function isEducationLikeLine(text) {
