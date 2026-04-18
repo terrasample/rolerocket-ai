@@ -547,6 +547,27 @@ document.addEventListener('DOMContentLoaded', () => {
       setLiveButtons(true);
       setLiveStatus('Choose the interview tab or audio source and enable Share audio.', '#0f766e');
 
+      // Start browser speech recognition in parallel as a resilient fallback path.
+      if (window.AIInterviewAudio?.startLiveQuestionCapture) {
+        try {
+          window.AIInterviewAudio.startLiveQuestionCapture({
+            onInterim(text) {
+              if (!liveListenerEnabled || !text) return;
+              appendTranscriptForDetection(text);
+            },
+            onFinal(text) {
+              if (!liveListenerEnabled || !text) return;
+              appendTranscriptForDetection(text);
+            },
+            onError() {
+              // Ignore browser recognition errors and continue with shared audio capture.
+            }
+          });
+        } catch {
+          // Ignore unsupported/permission errors and continue with shared audio capture.
+        }
+      }
+
       await window.AIInterviewAudio.startSharedAudioCapture({
         onChunk(blob) {
           queueLiveTranscription(blob);
@@ -587,6 +608,9 @@ document.addEventListener('DOMContentLoaded', () => {
     lastTranscriptChunk = '';
     if (window.AIInterviewAudio?.stopSharedAudioCapture) {
       window.AIInterviewAudio.stopSharedAudioCapture();
+    }
+    if (window.AIInterviewAudio?.stopLiveQuestionCapture) {
+      window.AIInterviewAudio.stopLiveQuestionCapture();
     }
     setLiveButtons(false);
     setLiveStatus('Live listener stopped.', '#475569');
