@@ -3359,6 +3359,69 @@ app.post('/api/interview-prep', authenticateToken, async (req, res) => {
   }
 });
 
+app.post('/api/video-interview-practice/questions', authenticateToken, async (req, res) => {
+  try {
+    const roleTitle = String(req.body?.roleTitle || '').trim();
+    const count = Math.max(3, Math.min(8, Number(req.body?.count || 5)));
+
+    const user = await User.findById(req.user.userId);
+    if (!hasRequiredPlan(user, 'elite')) {
+      return res.status(403).json({ error: 'Upgrade to Elite to use Video Interview Practice.' });
+    }
+
+    const fallbackQuestions = [
+      `Tell me about yourself${roleTitle ? ` as a ${roleTitle}` : ''}.`,
+      `Why are you interested in this${roleTitle ? ` ${roleTitle}` : ''} role?`,
+      'Describe a challenge you faced and how you handled it.',
+      'What is your strongest professional skill, and how have you used it?',
+      'How do you prioritize when handling multiple deadlines?'
+    ].slice(0, count);
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an expert interviewer. Return ONLY a valid JSON array of interview questions. No markdown, no explanations.'
+        },
+        {
+          role: 'user',
+          content: `Generate ${count} interview questions for this role: ${roleTitle || 'General professional role'}. Include a mix of behavioral, situational, and role-specific questions.`
+        }
+      ]
+    });
+
+    const raw = String(completion.choices?.[0]?.message?.content || '').trim();
+    let questions = [];
+
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        questions = parsed
+          .map((q) => String(q || '').trim())
+          .filter(Boolean)
+          .slice(0, count);
+      }
+    } catch {
+      // Fallback parsing for line-based model output.
+      questions = raw
+        .split(/\n+/)
+        .map((line) => line.replace(/^[-*\d.)\s]+/, '').trim())
+        .filter(Boolean)
+        .slice(0, count);
+    }
+
+    if (!questions.length) {
+      questions = fallbackQuestions;
+    }
+
+    return res.json({ questions, roleTitle: roleTitle || null });
+  } catch (err) {
+    console.error('Video interview questions error:', err);
+    return res.status(500).json({ error: 'Failed to generate video interview questions.' });
+  }
+});
+
 app.post('/api/career-coach', authenticateToken, async (req, res) => {
   try {
     const { resume, goals } = req.body;

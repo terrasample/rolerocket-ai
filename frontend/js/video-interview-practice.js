@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', function () {
   const output = document.getElementById('videoInterviewOutput');
   const startBtn = document.getElementById('startInterviewBtn');
+  const roleInput = document.getElementById('videoInterviewRole');
   const videoCallContainer = document.getElementById('videoCallContainer');
   const qaContainer = document.getElementById('interviewQAContainer');
   const timerDiv = document.getElementById('interviewTimer');
@@ -22,6 +23,43 @@ document.addEventListener('DOMContentLoaded', function () {
     'Why should we hire you?',
     'Do you have any questions for us?'
   ];
+
+  function getToken() {
+    if (typeof getStoredToken === 'function') return getStoredToken() || '';
+    if (typeof window.getStoredToken === 'function') return window.getStoredToken() || '';
+    return localStorage.getItem('token') || sessionStorage.getItem('token') || '';
+  }
+
+  async function getInterviewQuestions(roleTitle) {
+    const token = getToken();
+    if (!token) {
+      return questionsBank.slice().sort(() => Math.random() - 0.5).slice(0, 5);
+    }
+
+    try {
+      const res = await fetch('/api/video-interview-practice/questions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ roleTitle, count: 5 })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Question generation failed');
+
+      const questions = Array.isArray(data.questions)
+        ? data.questions.map((q) => String(q || '').trim()).filter(Boolean)
+        : [];
+
+      if (questions.length) return questions.slice(0, 5);
+    } catch (err) {
+      console.warn('Using fallback interview questions:', err?.message || err);
+    }
+
+    return questionsBank.slice().sort(() => Math.random() - 0.5).slice(0, 5);
+  }
 
   // Text-to-speech for AI recruiter
   function speakAI(text) {
@@ -92,14 +130,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Start video call
   async function startVideoCall() {
+    const roleTitle = (roleInput?.value || '').trim();
+    output.innerHTML = `<div style='margin:0 0 12px 0;color:#93c5fd;'>Generating ${roleTitle ? `${roleTitle} ` : ''}interview questions...</div>`;
+
+    const questions = await getInterviewQuestions(roleTitle);
+
     startBtn.style.display = 'none';
     videoCallContainer.style.display = 'flex';
     qaContainer.style.display = 'block';
     output.innerHTML = '';
     timerDiv.style.display = 'block';
     webcamToggleWrap.style.display = 'flex';
-    // Shuffle and pick 5 random questions
-    const questions = questionsBank.slice().sort(() => Math.random() - 0.5).slice(0, 5);
     let useWebcam = webcamToggle ? webcamToggle.checked : true;
     permissionWarning = '';
     mediaStream = await requestInterviewMedia(useWebcam);
