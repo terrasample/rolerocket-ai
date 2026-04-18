@@ -3308,7 +3308,7 @@ app.post('/api/job-match', authenticateToken, async (req, res) => {
 
 app.post('/api/interview-prep', authenticateToken, async (req, res) => {
   try {
-    const { role, jobDescription } = req.body;
+    const { role, jobDescription, mode, questions } = req.body;
 
     if (!role && !jobDescription) {
       return res.status(400).json({ error: 'role or jobDescription is required' });
@@ -3319,22 +3319,40 @@ app.post('/api/interview-prep', authenticateToken, async (req, res) => {
       return res.status(403).json({ error: 'Upgrade to Premium to use Interview Prep AI.' });
     }
 
+    const wantsAnswers = String(mode || '').toLowerCase() === 'answers';
+    const cleanedQuestions = String(questions || '').trim();
+
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content:
-            'Create concise interview prep for this role: 8 likely questions, strong answer themes, and 3 smart questions to ask the interviewer.'
-        },
-        {
-          role: 'user',
-          content: `Role: ${role || 'Not provided'}\n\nJob Description:\n${jobDescription || 'Not provided'}`
-        }
-      ]
+      messages: wantsAnswers
+        ? [
+            {
+              role: 'system',
+              content:
+                'You are an interview coach. Using the provided interview questions, return concise, legible model answers. For each question, include: 1) a direct sample answer (70-120 words), 2) why this answer works (one line), and 3) one metric/result line when applicable.'
+            },
+            {
+              role: 'user',
+              content: `Role: ${role || 'Not provided'}\n\nJob Description:\n${jobDescription || 'Not provided'}\n\nQuestions:\n${cleanedQuestions || 'Not provided'}`
+            }
+          ]
+        : [
+            {
+              role: 'system',
+              content:
+                'Create concise interview prep for this role: 8 likely questions, strong answer themes, and 3 smart questions to ask the interviewer.'
+            },
+            {
+              role: 'user',
+              content: `Role: ${role || 'Not provided'}\n\nJob Description:\n${jobDescription || 'Not provided'}`
+            }
+          ]
     });
 
-    return res.json({ result: completion.choices[0].message.content });
+    return res.json({
+      result: completion.choices[0].message.content,
+      mode: wantsAnswers ? 'answers' : 'questions'
+    });
   } catch (err) {
     console.error('Interview prep error:', err);
     return res.status(500).json({ error: 'Interview prep failed' });

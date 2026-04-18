@@ -102,8 +102,11 @@
             <div id="statsDetailBody">Click a platform total to inspect the underlying data.</div>
           </section>
           <section class="stats-detail-panel" id="dashboardSignupRosterSection" aria-live="polite" aria-label="Signed up users roster" hidden>
-            <h4>Signed up users</h4>
-            <div id="dashboardSignupRosterBody">Loading signed up users...</div>
+            <button type="button" class="stats-collapsible-trigger" id="dashboardSignupRosterToggle" aria-expanded="false" aria-controls="dashboardSignupRosterBody">
+              <span>Signed up users</span>
+              <span class="stats-collapsible-count" id="dashboardSignupRosterCount">0</span>
+            </button>
+            <div id="dashboardSignupRosterBody" hidden>Loading signed up users...</div>
           </section>
           <section class="stats-detail-panel" id="adminKpiTabsSection" aria-live="polite" aria-label="Admin KPI tabs" hidden>
             <div class="quickstart-conversion-head">
@@ -153,9 +156,6 @@
           </div>
         </div>
 
-        <div class="marketing-card dashboard-job-alerts-card" style="margin-bottom:18px;grid-column:1 / -1;">
-          <div id="jobAlertsDashboardApp"></div>
-        </div>
       </div>
 
       <!-- Features Section: OUTSIDE the .grid, full width -->
@@ -177,7 +177,6 @@
   <script src="js/api-base.js"></script>
   <script src="js/auth-storage.js"></script>
   <script src="js/dashboard.js"></script>
-  <script src="js/job-alerts-ui.js"></script>
   <script src="js/dashboard-charts.js"></script>
 </body>
 </html>

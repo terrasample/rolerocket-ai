@@ -695,6 +695,8 @@ const statsDetailPanelEl = document.getElementById('statsDetailPanel');
 const statsDetailTitleEl = document.getElementById('statsDetailTitle');
 const statsDetailBodyEl = document.getElementById('statsDetailBody');
 const dashboardSignupRosterSectionEl = document.getElementById('dashboardSignupRosterSection');
+const dashboardSignupRosterToggleEl = document.getElementById('dashboardSignupRosterToggle');
+const dashboardSignupRosterCountEl = document.getElementById('dashboardSignupRosterCount');
 const dashboardSignupRosterBodyEl = document.getElementById('dashboardSignupRosterBody');
 const adminKpiTabsSectionEl = document.getElementById('adminKpiTabsSection');
 const quickstartConversionSectionEl = document.getElementById('quickstartConversionSection');
@@ -738,6 +740,8 @@ let latestPlatformUsersError = '';
 let quickstartConversionDays = 30;
 let outcomeKpiDays = 30;
 let activeAdminKpiTab = 'quickstart';
+let lastInterviewPrepQuestions = '';
+let signupRosterCollapsed = true;
 let activePlanGuide = 'pro';
 
 const PLAN_GUIDE_CONTENT = {
@@ -981,14 +985,25 @@ function renderDashboardSignupRoster() {
   }
 
   dashboardSignupRosterSectionEl.hidden = false;
+  if (dashboardSignupRosterCountEl) {
+    dashboardSignupRosterCountEl.textContent = String(latestPlatformUsers.length || 0);
+  }
 
   if (latestPlatformUsersError) {
     dashboardSignupRosterBodyEl.innerHTML = `<p>${escapeHtml(latestPlatformUsersError)}</p>`;
+    dashboardSignupRosterBodyEl.hidden = false;
+    if (dashboardSignupRosterToggleEl) {
+      dashboardSignupRosterToggleEl.setAttribute('aria-expanded', 'true');
+    }
     return;
   }
 
   if (!latestPlatformUsers.length) {
     dashboardSignupRosterBodyEl.innerHTML = '<p>No signed up users are available yet.</p>';
+    dashboardSignupRosterBodyEl.hidden = false;
+    if (dashboardSignupRosterToggleEl) {
+      dashboardSignupRosterToggleEl.setAttribute('aria-expanded', 'true');
+    }
     return;
   }
 
@@ -1008,7 +1023,20 @@ function renderDashboardSignupRoster() {
       `).join('')}
     </div>
   `;
+
+  dashboardSignupRosterBodyEl.hidden = signupRosterCollapsed;
+  if (dashboardSignupRosterToggleEl) {
+    dashboardSignupRosterToggleEl.setAttribute('aria-expanded', signupRosterCollapsed ? 'false' : 'true');
+  }
 }
+
+dashboardSignupRosterToggleEl?.addEventListener('click', () => {
+  signupRosterCollapsed = !signupRosterCollapsed;
+  if (dashboardSignupRosterBodyEl) {
+    dashboardSignupRosterBodyEl.hidden = signupRosterCollapsed;
+  }
+  dashboardSignupRosterToggleEl.setAttribute('aria-expanded', signupRosterCollapsed ? 'false' : 'true');
+});
 
 function renderQuickstartConversion(data) {
   if (!quickstartConversionBodyEl) return;
@@ -2850,27 +2878,74 @@ document.getElementById('matchBtn')?.addEventListener('click', async () => {
   }
 });
 
-document.getElementById('interviewPrepBtn')?.addEventListener('click', async () => {
+const interviewPrepBtn = document.getElementById('interviewPrepBtn');
+const interviewRoleInput = document.getElementById('interviewRole');
+const interviewJobDescriptionInput = document.getElementById('interviewJobDescription');
+
+function setInterviewPrepButtonMode(mode) {
+  if (!interviewPrepBtn) return;
+  interviewPrepBtn.dataset.mode = mode;
+  interviewPrepBtn.textContent = mode === 'answers' ? 'Generate Answers' : 'Generate Questions';
+}
+
+interviewRoleInput?.addEventListener('input', () => {
+  lastInterviewPrepQuestions = '';
+  setInterviewPrepButtonMode('questions');
+});
+
+interviewJobDescriptionInput?.addEventListener('input', () => {
+  lastInterviewPrepQuestions = '';
+  setInterviewPrepButtonMode('questions');
+});
+
+setInterviewPrepButtonMode('questions');
+
+interviewPrepBtn?.addEventListener('click', async () => {
   if (!hasPlan('premium')) {
     showToast('Upgrade to Premium to unlock Interview Prep.', 'warn');
     return;
   }
 
   const result = document.getElementById('interviewPrepResult');
-  setAILoading(result);
+  const role = document.getElementById('interviewRole')?.value || '';
+  const jobDescription = document.getElementById('interviewJobDescription')?.value || '';
+  const nextMode = interviewPrepBtn.dataset.mode === 'answers' ? 'answers' : 'questions';
+
+  if (nextMode === 'answers' && !lastInterviewPrepQuestions.trim()) {
+    setInterviewPrepButtonMode('questions');
+  }
+
+  setAILoading(result, nextMode === 'answers' ? 'Generating sample answers...' : 'Generating interview questions...');
 
   try {
     const data = await api('/api/interview-prep', {
       method: 'POST',
       body: JSON.stringify({
-        role: document.getElementById('interviewRole').value,
-        jobDescription: document.getElementById('interviewJobDescription').value
+        role,
+        jobDescription,
+        mode: nextMode,
+        questions: nextMode === 'answers' ? lastInterviewPrepQuestions : undefined
       })
     });
 
-    renderAIOutput(data.result || 'No result returned.', result);
+    const generatedText = data.result || 'No result returned.';
+    renderAIOutput(generatedText, result);
+
+    if (nextMode === 'questions') {
+      lastInterviewPrepQuestions = generatedText;
+      setInterviewPrepButtonMode('answers');
+      showToast('Questions generated. Next step: Generate Answers.', 'success');
+    } else {
+      setInterviewPrepButtonMode('questions');
+      showToast('Answers generated for your interview questions.', 'success');
+    }
   } catch (err) {
     renderAIOutput(`Error: ${err.message}`, result);
+    if (nextMode === 'answers') {
+      setInterviewPrepButtonMode('answers');
+    } else {
+      setInterviewPrepButtonMode('questions');
+    }
   }
 });
 

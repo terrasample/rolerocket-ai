@@ -19,7 +19,7 @@
     <textarea id="interviewJobDescription" rows="5" class="premium-input" placeholder="Paste the job description here..."></textarea>
     <div class="tool-action-bar">
       <div class="tool-primary-actions">
-        <button id="interviewPrepBtn" class="auth-submit-btn premium-btn tool-action-btn tool-action-btn--primary" type="button">Generate Interview Prep</button>
+        <button id="interviewPrepBtn" class="auth-submit-btn premium-btn tool-action-btn tool-action-btn--primary" type="button">Generate Questions</button>
       </div>
       <div class="tool-secondary-actions">
         <button id="saveInterviewPrepPdfBtn" class="auth-submit-btn tool-action-btn tool-action-btn--secondary" type="button">Save as PDF</button>
@@ -87,6 +87,39 @@
       font-size: 1em;
       color: #0369a1;
       border-left: 3px solid #bae6fd;
+    }
+    .premium-result .ai-output-header {
+      background: #f8fbff;
+      border-bottom: 1px solid #dbeafe;
+    }
+    .premium-result .ai-output-label {
+      color: #38bdf8;
+    }
+    .premium-result .ai-copy-output-btn {
+      background: #ecfeff;
+      border-color: #bae6fd;
+      color: #0c4a6e;
+    }
+    .premium-result .ai-copy-output-btn:hover {
+      background: #dbeafe;
+    }
+    .premium-result .ai-section-heading {
+      color: #0f172a;
+      font-size: 0.96rem;
+      letter-spacing: 0.02em;
+    }
+    .premium-result .ai-paragraph {
+      color: #334155;
+      font-size: 1.03rem;
+      line-height: 1.72;
+    }
+    .premium-result .ai-bullet-item {
+      background: #eaf6ff;
+      border-left-color: #0ea5e9;
+      color: #334155;
+      font-size: 1.04rem;
+      line-height: 1.6;
+      font-weight: 600;
     }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
