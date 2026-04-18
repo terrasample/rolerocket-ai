@@ -20,6 +20,9 @@ document.addEventListener('DOMContentLoaded', () => {
   let liveInFlight = false;
   let liveTranscriptionQueue = Promise.resolve();
   let lastTranscriptChunk = '';
+  let pendingTranscriptSegments = [];
+  let lastDetectedQuestion = '';
+  let lastDetectedAtMs = 0;
   let currentPlan = 'free';
   let practiceCount = 0;
   let practiceKey = 'rr_interview_practice_count_free';
@@ -205,6 +208,46 @@ document.addEventListener('DOMContentLoaded', () => {
     return /^(how|what|why|when|where|can you|could you|would you|tell me|walk me|describe|give me)/.test(q);
   }
 
+  function normalizeSpeechText(text) {
+    return String(text || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function isNearDuplicateText(a, b) {
+    const one = normalizeSpeechText(a);
+    const two = normalizeSpeechText(b);
+    if (!one || !two) return false;
+    if (one === two) return true;
+    if (one.includes(two) || two.includes(one)) return true;
+    if (one.length < 20 || two.length < 20) return false;
+
+    const overlap = one.split(' ').filter((word) => two.includes(word)).length;
+    const ratio = overlap / Math.max(one.split(' ').length, two.split(' ').length);
+    return ratio >= 0.8;
+  }
+
+  function collapseRepeatedQuestionText(text) {
+    const raw = String(text || '').replace(/\s+/g, ' ').trim();
+    if (!raw) return '';
+
+    const lowered = raw.toLowerCase();
+    const repeatedStarters = ['can you', 'could you', 'would you', 'tell me', 'describe'];
+
+    for (const starter of repeatedStarters) {
+      const first = lowered.indexOf(starter);
+      if (first === -1) continue;
+      const second = lowered.indexOf(starter, first + starter.length + 8);
+      if (second > first) {
+        return raw.slice(0, second).trim();
+      }
+    }
+
+    return raw;
+  }
+
   function getLatestQuestionCandidate(text) {
     const parts = String(text || '')
       .split(/(?<=[?.!])\s+/)
@@ -221,20 +264,35 @@ document.addEventListener('DOMContentLoaded', () => {
   function appendTranscriptForDetection(text) {
     const normalized = String(text || '').replace(/\s+/g, ' ').trim();
     if (!normalized) return;
-    if (normalized === lastTranscriptChunk) return;
+    if (isNearDuplicateText(normalized, lastTranscriptChunk)) return;
+
+    if (pendingTranscriptSegments.some((segment) => isNearDuplicateText(segment, normalized))) {
+      return;
+    }
 
     lastTranscriptChunk = normalized;
-    pendingTranscript = `${pendingTranscript} ${normalized}`.trim();
+    pendingTranscriptSegments.push(normalized);
+    pendingTranscriptSegments = pendingTranscriptSegments.slice(-4);
+    pendingTranscript = pendingTranscriptSegments.join(' ').trim();
 
     if (liveDebounceTimer) clearTimeout(liveDebounceTimer);
     liveDebounceTimer = setTimeout(() => {
       const candidate = getLatestQuestionCandidate(pendingTranscript);
       pendingTranscript = '';
+      pendingTranscriptSegments = [];
 
-      if (looksLikeQuestion(candidate)) {
-        resolveLiveQuestion(candidate, Date.now());
-      } else if (candidate) {
-        setLiveStatus(`Listening... ${candidate.slice(-90)}`, '#0f766e');
+      const cleanedCandidate = collapseRepeatedQuestionText(candidate);
+
+      if (looksLikeQuestion(cleanedCandidate)) {
+        const now = Date.now();
+        if (isNearDuplicateText(cleanedCandidate, lastDetectedQuestion) && now - lastDetectedAtMs < 12000) {
+          return;
+        }
+        lastDetectedQuestion = cleanedCandidate;
+        lastDetectedAtMs = now;
+        resolveLiveQuestion(cleanedCandidate, now);
+      } else if (cleanedCandidate) {
+        setLiveStatus(`Listening... ${cleanedCandidate.slice(-90)}`, '#0f766e');
       }
     }, 900);
   }
@@ -608,7 +666,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (liveDebounceTimer) clearTimeout(liveDebounceTimer);
     liveDebounceTimer = null;
     pendingTranscript = '';
+    pendingTranscriptSegments = [];
     lastTranscriptChunk = '';
+    lastDetectedQuestion = '';
+    lastDetectedAtMs = 0;
     if (window.AIInterviewAudio?.stopSharedAudioCapture) {
       window.AIInterviewAudio.stopSharedAudioCapture({ preserveStream: true });
     }
