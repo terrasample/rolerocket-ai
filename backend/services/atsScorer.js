@@ -104,7 +104,8 @@ function isRewriteEligibleLine(text) {
 }
 
 function rewriteBullet(original, index) {
-  const cleaned = normalizeLineForRewrite(original);
+  let cleaned = normalizeLineForRewrite(original);
+  cleaned = cleaned.replace(/\.$/, ''); // Remove trailing period
   
   // Special handling for certifications: recommend additional certs or job duties instead
   if (isCertificationLikeLine(original)) {
@@ -116,19 +117,23 @@ function rewriteBullet(original, index) {
     return suggestions[index % suggestions.length];
   }
   
-  const starters = ['Led', 'Improved', 'Delivered', 'Built', 'Launched'];
-  const starter = starters[index % starters.length];
-  const startsWithActionVerb = /^(led|managed|improved|delivered|built|launched|designed|developed|implemented|optimized|created|drove|owned)\b/i.test(cleaned);
+  // Broader action verb detection: includes past-tense and present-tense verbs
+  const hasAnyActionVerb = /^(led|managed|improved|delivered|built|launched|designed|developed|implemented|optimized|created|drove|owned|analyze|analyzed|provide|provided|assess|assessed|support|supported|maintain|maintained|ensure|ensured|establish|established|execute|executed|manage|coordinate|oversee|direct|supervise|drive|architect|engineer)\b/i.test(cleaned);
   const hasMetric = /\d+/.test(cleaned);
 
-  if (startsWithActionVerb && hasMetric) {
-    return capitalizeFirst(cleaned);
+  // If it already has strong action verb, just capitalize it
+  if (hasAnyActionVerb) {
+    const capitalized = capitalizeFirst(cleaned);
+    if (hasMetric) {
+      return capitalized;
+    }
+    return `${capitalized}, delivering measurable impact through XX% improvement, $X cost savings, or X additional projects.`;
   }
 
-  if (startsWithActionVerb) {
-    return `${capitalizeFirst(cleaned)}, driving a measurable result such as XX% improvement, $X savings, or X more conversions.`;
-  }
-
+  // If no action verb, add one
+  const starters = ['Led', 'Improved', 'Delivered', 'Built', 'Launched'];
+  const starter = starters[index % starters.length];
+  
   if (hasMetric) {
     return `${starter} ${cleaned.charAt(0).toLowerCase()}${cleaned.slice(1)}`;
   }
