@@ -726,6 +726,21 @@ h3,
   justify-content: flex-start;
 }
 
+.features-page-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+}
+
+.features-page-grid .marketing-card {
+  min-height: 230px;
+  padding: 30px;
+}
+
+.features-page-grid .feature-title {
+  font-size: 1.45rem;
+  line-height: 1.3;
+}
+
 .marketing-card {
   background: linear-gradient(145deg, #0b1628 0%, #0e2044 55%, #0c4a6e 100%);
   border: 1px solid rgba(99, 190, 245, 0.22);
@@ -1280,6 +1295,10 @@ h3,
   }
 
   #dashboardFeaturesGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .features-page-grid {
     grid-template-columns: 1fr;
   }
 }
