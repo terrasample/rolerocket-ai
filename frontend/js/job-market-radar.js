@@ -25,6 +25,14 @@ document.addEventListener('DOMContentLoaded', function () {
     return slugify(`${roleInput?.value || 'market'}-${locationInput?.value || 'radar'}`);
   }
 
+  function makeLinkedInSearchUrl(title = '', location = '') {
+    return `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(title)}&location=${encodeURIComponent(location)}`;
+  }
+
+  function makeGoogleJobsUrl(title = '', location = '') {
+    return `https://www.google.com/search?q=${encodeURIComponent(`${title} ${location} jobs`)}`;
+  }
+
   function extractSkillSignals(industries) {
     const skillMap = {
       technology: ['Python', 'Cloud', 'AI/ML', 'Platform Engineering'],
@@ -188,7 +196,18 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!preview) return;
 
     const matchesMarkup = model.matches.length
-      ? model.matches.map((item) => `<li style="color:#1e293b;font-size:1.06rem;">${item.role} <span style="color:#475569;">(${item.industry}, ${item.match}% match)</span></li>`).join('')
+      ? model.matches.map((item) => {
+        const linkedInUrl = makeLinkedInSearchUrl(item.role, location);
+        const googleJobsUrl = makeGoogleJobsUrl(item.role, location);
+        return `<li style="color:#1e293b;font-size:1.06rem;">
+          <a href="${googleJobsUrl}" target="_blank" rel="noopener noreferrer" style="color:#0f4cbe;font-weight:700;text-decoration:underline;">${item.role}</a>
+          <span style="color:#475569;">(${item.industry}, ${item.match}% match)</span>
+          <span style="color:#64748b;"> - </span>
+          <a href="${googleJobsUrl}" target="_blank" rel="noopener noreferrer" style="color:#0f4cbe;text-decoration:underline;">Google Jobs</a>
+          <span style="color:#64748b;"> | </span>
+          <a href="${linkedInUrl}" target="_blank" rel="noopener noreferrer" style="color:#0f4cbe;text-decoration:underline;">LinkedIn</a>
+        </li>`;
+      }).join('')
       : '<li>No role matches available right now.</li>';
 
     const skillsMarkup = model.skillsList.length
