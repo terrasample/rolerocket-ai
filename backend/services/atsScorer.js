@@ -213,8 +213,47 @@ function rewriteBullet(original, index, missingKeywords = []) {
   const alreadyStartsWithVerb = /^(identified|coordinated|communicated|leveraged|proactively|supported|analyzed|evaluated|monitored)$/i.test(firstWord);
   const base = alreadyStartsWithVerb ? capitalizeFirst(cleaned) : `${starter} ${lower}`;
   return withKeyword(base);
-}
+  }
 
+  // Weave multiple keywords naturally into a single bullet for maximum keyword matching
+  function rewriteBulletWithMultipleKeywords(original, index, missingKeywords = []) {
+    let rewritten = rewriteBullet(original, index, missingKeywords);
+    if (!rewritten || rewritten === original) return rewritten;
+  
+    // Add up to 2 more keywords if available and not already in the text
+    const keywordsToAdd = missingKeywords
+      .filter((kw) => kw.length >= 5 && !rewritten.toLowerCase().includes(kw.toLowerCase()))
+      .slice(0, 2);
+  
+    if (keywordsToAdd.length > 0) {
+      // Insert additional keywords near the end, before the period
+      const lastPeriod = rewritten.lastIndexOf('.');
+      if (lastPeriod > 0) {
+        const beforePeriod = rewritten.substring(0, lastPeriod);
+        const period = rewritten.substring(lastPeriod);
+        const additionalKeywords = keywordsToAdd.join(' and ');
+        return `${beforePeriod}, with expertise in ${additionalKeywords}${period}`;
+      }
+    }
+  
+    return rewritten;
+  }
+  // Estimate what the score will be after applying fixes
+  function estimateScoreAfterFixes(original, rewritten, missingKeywords) {
+    // Check if rewritten version includes any keywords
+    const rewriteLower = rewritten.toLowerCase();
+    const keywordBoost = (missingKeywords || []).filter(kw => rewriteLower.includes(kw.toLowerCase())).length * 2;
+  
+    // Check if rewritten version has metrics
+    const hasMetric = /\d+/.test(rewritten) ? 5 : 0;
+  
+    // Check for strong action verbs
+    const strongVerbBoost = /led|managed|delivered|executed|built|created|launched|designed|implemented|optimized|increased|reduced/i.test(rewritten) ? 10 : 0;
+  
+    const originalScore = scoreBullet(original);
+    const estimatedNewScore = Math.min(100, originalScore + keywordBoost + hasMetric + strongVerbBoost);
+    return estimatedNewScore;
+  }
 function getRedFlags(resume) {
   const flags = [];
   const normalizedResume = String(resume || '').toLowerCase();
@@ -303,7 +342,16 @@ function runATSAnalysis(job, resume) {
       return { original: b.text, improved };
     })
     .filter(Boolean);
-  const quickFixes = getQuickFixes({
+    // Use multi-keyword rewrite for better keyword coverage
+    const rewrittenBulletsOptimized = weakBullets
+      .map((b, index) => {
+        const improved = rewriteBulletWithMultipleKeywords(b.text, index, missingKeywords);
+        if (!improved || improved === b.text) return null;
+        return { original: b.text, improved };
+      })
+      .filter(Boolean);
+
+    const quickFixes = getQuickFixes({
     missingKeywords,
     weakBullets,
     redFlags: flags,
@@ -329,6 +377,17 @@ function runATSAnalysis(job, resume) {
     quickFixes,
     rewrittenBullets
   };
-}
+      // Return optimized rewritten bullets with multiple keywords
+      return {
+      atsScore,
+      bulletScores,
+      redFlags: flags,
+      matchedKeywords,
+      missingKeywords,
+      formattingWarnings,
+      quickFixes,
+      rewrittenBullets: rewrittenBulletsOptimized.length > 0 ? rewrittenBulletsOptimized : rewrittenBullets
+    };
+  }
 
 module.exports = { runATSAnalysis };

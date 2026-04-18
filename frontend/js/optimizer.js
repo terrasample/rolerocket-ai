@@ -252,7 +252,15 @@ document.getElementById('downloadAtsReportBtn')?.addEventListener('click', () =>
   }
 
   doc.save('ats-report.pdf');
-});
+    // Next Steps
+    addHeading('Next Steps', 12);
+    addLine('1. Apply the AI fixes to your resume with the "⚡ Apply Fix" button.', 3);
+    addLine('2. Re-run "Analyze Resume" with the same job description.', 3);
+    addLine('3. Your score will improve significantly with better keyword matching.', 3);
+    addLine('4. Target: 80+ for strong ATS compatibility.', 3);
+
+    doc.save('ats-report.pdf');
+  });
 const token = typeof getStoredToken === 'function' ? getStoredToken() : localStorage.getItem('token');
 const atsResumeUploadInput = document.getElementById('atsResumeUpload');
 const atsResumeUploadBtn = document.getElementById('uploadAtsResumeBtn');
