@@ -3471,13 +3471,24 @@ app.post('/api/interview-assist/transcribe', authenticateToken, upload.single('a
 
     const mimeType = String(req.file.mimetype || 'audio/webm');
     const extension = path.extname(req.file.originalname || '') || '.webm';
-    const audioFile = new File([req.file.buffer], `interview-live${extension}`, { type: mimeType });
+    const prompt = 'Transcribe interview audio accurately. Prioritize recruiter questions and return plain text only.';
 
-    const transcription = await openai.audio.transcriptions.create({
-      file: audioFile,
-      model: 'gpt-4o-mini-transcribe',
-      prompt: 'Transcribe interview audio accurately. Prioritize recruiter questions and return plain text only.'
-    });
+    async function transcribeWithModel(modelName) {
+      const audioFile = new File([req.file.buffer], `interview-live${extension}`, { type: mimeType });
+      return openai.audio.transcriptions.create({
+        file: audioFile,
+        model: modelName,
+        prompt
+      });
+    }
+
+    let transcription;
+    try {
+      transcription = await transcribeWithModel('gpt-4o-mini-transcribe');
+    } catch (firstErr) {
+      // Fallback for environments where the newer transcription model is unavailable.
+      transcription = await transcribeWithModel('whisper-1');
+    }
 
     const text = String(
       typeof transcription === 'string'
@@ -3487,8 +3498,29 @@ app.post('/api/interview-assist/transcribe', authenticateToken, upload.single('a
 
     return res.json({ text });
   } catch (err) {
+    const status = Number(err?.status || err?.statusCode || 500);
+    const rawMessage = String(
+      err?.error?.message || err?.message || err?.error || 'Live transcription failed.'
+    );
+    const lowerMessage = rawMessage.toLowerCase();
+    const recoverableChunkError =
+      status === 400 ||
+      status === 413 ||
+      status === 415 ||
+      status === 422 ||
+      lowerMessage.includes('too short') ||
+      lowerMessage.includes('no speech') ||
+      lowerMessage.includes('silence') ||
+      lowerMessage.includes('empty audio') ||
+      lowerMessage.includes('invalid file format') ||
+      lowerMessage.includes('unsupported audio');
+
+    if (recoverableChunkError) {
+      return res.json({ text: '' });
+    }
+
     console.error('Interview assist transcription error:', err);
-    return res.status(500).json({ error: 'Live transcription failed.' });
+    return res.status(500).json({ error: rawMessage || 'Live transcription failed.' });
   }
 });
 
