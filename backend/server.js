@@ -741,7 +741,9 @@ function hasRequiredPlan(user, requiredPlan) {
   if (!user) return false;
   // Admins always have access to everything
   const email = String(user.email || '').toLowerCase();
-  if (ADMIN_EMAILS.length && ADMIN_EMAILS.includes(email)) {
+  const isConfiguredAdmin = ADMIN_EMAILS.length && ADMIN_EMAILS.includes(email);
+  const isInternalAdmin = email.endsWith('@rolerocketai.com');
+  if (isConfiguredAdmin || isInternalAdmin) {
     return true;
   }
   return getPlanLevel(user.plan || 'free') >= getPlanLevel(requiredPlan);

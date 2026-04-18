@@ -108,6 +108,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           { name: 'Calendar & Task AI', desc: 'AI-powered calendar and task management for your job search workflow.', url: 'calendar-task-ai.html' },
           { name: 'AI Application Tracker', desc: 'Track all your applications, interviews, and offers in one place with AI insights.', url: 'ai-application-tracker.html' },
           { name: 'AI Job Agent', desc: 'Let AI scout and recommend jobs for you, tailored to your goals and preferences.', url: 'ai-job-agent.html' },
+          { name: 'Outcome Command Center', desc: 'A single dashboard that tracks pipeline health, predicts interview odds, highlights bottlenecks, and gives your next best action daily.', url: 'outcome-command-center.html' },
         ],
       },
     ];
