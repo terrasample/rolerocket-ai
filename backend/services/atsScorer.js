@@ -50,7 +50,12 @@ function tokenize(text) {
 }
 
 function normalizeText(text) {
-  return String(text || '').toLowerCase().replace(/\s+/g, ' ').trim();
+  return String(text || '')
+    .toLowerCase()
+    .replace(/[’']/g, '')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function escapeRegex(value) {
@@ -60,6 +65,7 @@ function escapeRegex(value) {
 const STOP_WORDS = new Set([
   'and', 'the', 'for', 'with', 'that', 'this', 'from', 'your', 'you', 'are', 'our', 'will', 'into',
   'their', 'have', 'has', 'had', 'can', 'not', 'but', 'all', 'any', 'its', 'such', 'also', 'per',
+  'must', 'need', 'needs', 'able', 'willing', 'valid', 'driver', 'regularly', 'overnight',
   'who', 'what', 'they', 'them', 'well', 'use', 'using', 'used', 'new', 'get', 'set', 'due',
   'each', 'both', 'few', 'more', 'most', 'other', 'some', 'than', 'then', 'when', 'where', 'while',
   'job', 'role', 'work', 'team', 'years', 'year', 'experience', 'required', 'preferred', 'ability',
@@ -187,12 +193,34 @@ function extractMustHaveTerms(jobDescription) {
   for (const segment of segments) {
     if (!mustSignals.test(segment)) continue;
 
+    const normalizedSegment = normalizeText(segment);
+    if (/\bvalid\s+drivers?\s+license\b/.test(normalizedSegment)) {
+      terms.push('valid drivers license');
+      terms.push('drivers license');
+    } else if (/\bdrivers?\s+license\b/.test(normalizedSegment)) {
+      terms.push('drivers license');
+    }
+
+    const travelRequirement = normalizedSegment.match(/\b(willing\s+and\s+able\s+to\s+travel(?:\s+regularly)?(?:\s+including\s+overnight)?)/);
+    if (travelRequirement && travelRequirement[1]) {
+      terms.push(travelRequirement[1]);
+    } else if (/\btravel\b/.test(normalizedSegment)) {
+      if (/\bovernight\b/.test(normalizedSegment)) {
+        terms.push('travel including overnight');
+        terms.push('overnight travel');
+      }
+      if (/\bregularly\b/.test(normalizedSegment)) {
+        terms.push('travel regularly');
+      }
+      terms.push('travel');
+    }
+
     const cleaned = segment
-      .replace(/\b(must|required|mandatory|minimum|need to|license|certification|degree|bachelor|master|clearance)\b/gi, ' ')
+      .replace(/\b(must|required|mandatory|minimum|need to|need|needs to)\b/gi, ' ')
       .replace(/\s+/g, ' ')
       .trim();
 
-    const parts = cleaned.split(/\band\b|\bor\b|,|\//i).map((p) => p.trim()).filter(Boolean);
+    const parts = cleaned.split(/,|;|\//i).map((p) => p.trim()).filter(Boolean);
 
     for (const part of parts) {
       const partTokens = tokenize(part).filter((w) => w.length >= 4 && !STOP_WORDS.has(w));
@@ -207,7 +235,18 @@ function extractMustHaveTerms(jobDescription) {
     }
   }
 
-  return uniqueOrdered(terms).slice(0, 15);
+  const singleWordAllowlist = new Set([
+    'license', 'travel', 'clearance', 'bachelor', 'master', 'degree', 'pmp', 'cissp', 'security'
+  ]);
+
+  const filtered = uniqueOrdered(terms).filter((term) => {
+    if (/\blicense\s+travel\b/i.test(term)) return false;
+    if (/\bdrivers?\s+license\s+travel\b/i.test(term)) return false;
+    if (term.includes(' ')) return term.length >= 8;
+    return singleWordAllowlist.has(term);
+  });
+
+  return filtered.slice(0, 15);
 }
 
 function termMatchInText(term, text) {
@@ -231,6 +270,9 @@ function buildTrueLikeTerms(jobDescription) {
   const mustHave = extractMustHaveTerms(jobDescription);
 
   const weightedTerms = [];
+
+  // Always include explicit must-have phrases/terms so full requirement clauses are evaluated.
+  for (const term of mustHave) weightedTerms.push({ term, type: 'must-have', mustHave: true });
 
   for (const term of bigrams) weightedTerms.push({ term, type: 'phrase', mustHave: mustHave.includes(term) });
   for (const term of trigrams) weightedTerms.push({ term, type: 'phrase', mustHave: mustHave.includes(term) });
@@ -391,27 +433,36 @@ function rewriteBullet(original, index, missingKeywords = []) {
   const keyword = candidates.length ? candidates[index % candidates.length] : null;
 
   const connectors = [
-    (kw) => `incorporating ${kw} principles`,
-    (kw) => `applying ${kw} strategies`,
-    (kw) => `driving ${kw} outcomes`,
-    (kw) => `integrating ${kw} best practices`,
-    (kw) => `demonstrating ${kw} expertise`,
-    (kw) => `utilizing ${kw} methodologies`
+    (kw) => `translating ${kw} requirements into execution`,
+    (kw) => `aligning delivery plans with ${kw} expectations`,
+    (kw) => `embedding ${kw} into day-to-day operations`,
+    (kw) => `strengthening ${kw} consistency across teams`,
+    (kw) => `expanding impact by focusing on ${kw}`,
+    (kw) => `applying ${kw} to improve delivery quality`
   ];
   const connector = connectors[index % connectors.length];
 
+  const outcomeTails = [
+    'improving consistency, speed, and stakeholder confidence.',
+    'raising delivery quality while reducing execution risk.',
+    'increasing on-time performance and operational reliability.',
+    'improving cross-team alignment and measurable business outcomes.',
+    'creating clearer ownership and faster issue resolution.'
+  ];
+  const tail = outcomeTails[index % outcomeTails.length];
+
   const withKeyword = (base) => {
-    if (!keyword) return `${base}, achieving measurable results (e.g., XX% improvement or $X saved).`;
-    return `${base}, ${connector(keyword)} to achieve measurable results (e.g., XX% improvement or $X saved).`;
+    if (!keyword) return `${base}, ${tail}`;
+    return `${base}, ${connector(keyword)}, ${tail}`;
   };
 
   if (hasAnyActionVerb && hasMetric) {
     if (keyword) {
       const strongConnectors = [
-        `expanding impact through ${keyword}`,
-        `strengthening ${keyword} across the organization`,
-        `advancing ${keyword} initiatives`,
-        `optimizing outcomes via ${keyword}`
+        `amplifying results through ${keyword}`,
+        `reinforcing ${keyword} standards across delivery`,
+        `driving stronger outcomes with ${keyword}`,
+        `extending value by prioritizing ${keyword}`
       ];
       return `${capitalizeFirst(cleaned)}, ${strongConnectors[index % strongConnectors.length]}.`;
     }
@@ -447,7 +498,13 @@ function rewriteBulletWithMultipleKeywords(original, index, missingKeywords = []
   const beforePeriod = rewritten.substring(0, lastPeriod);
   const period = rewritten.substring(lastPeriod);
   const additionalKeywords = candidates.join(' and ');
-  return `${beforePeriod}, with expertise in ${additionalKeywords}${period}`;
+  const addOns = [
+    `while reinforcing ${additionalKeywords}`,
+    `with added focus on ${additionalKeywords}`,
+    `while deepening capability in ${additionalKeywords}`,
+    `to further support ${additionalKeywords}`
+  ];
+  return `${beforePeriod}, ${addOns[index % addOns.length]}${period}`;
 }
 
 function getRedFlags(resume) {
