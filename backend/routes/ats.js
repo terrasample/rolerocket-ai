@@ -26,6 +26,8 @@ router.post('/rewrite', authenticateToken, async (req, res) => {
   try {
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
+      max_tokens: 1800,
+      temperature: 0.5,
       messages: [
         {
           role: 'system',

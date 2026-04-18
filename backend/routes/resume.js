@@ -157,6 +157,8 @@ router.post('/generate', authenticateToken, async (req, res) => {
     // Call OpenAI to generate improved resume
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
+      max_tokens: 1800,
+      temperature: 0.5,
       messages: [
         {
           role: 'system',
@@ -199,7 +201,6 @@ ${resume}
           `,
         },
       ],
-      temperature: 0.7,
     });
 
     const aiResponse = completion.choices[0].message.content;

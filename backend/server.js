@@ -1851,6 +1851,8 @@ async function parseJobFromAnywhere(rawText, sourceUrl) {
   try {
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
+      max_tokens: 1200,
+      temperature: 0.5,
       temperature: 0.2,
       messages: [
         {
@@ -3227,6 +3229,8 @@ app.post('/api/resume/generate', authenticateToken, async (req, res) => {
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
+      max_tokens: 1200,
+      temperature: 0.5,
       messages: [
         {
           role: 'system',
@@ -3260,6 +3264,8 @@ app.post('/api/generate-cover-letter', authenticateToken, async (req, res) => {
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
+      max_tokens: 1200,
+      temperature: 0.5,
       messages: [
         {
           role: 'system',
@@ -3293,6 +3299,8 @@ app.post('/api/job-match', authenticateToken, async (req, res) => {
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
+      max_tokens: 1200,
+      temperature: 0.5,
       messages: [
         {
           role: 'system',
@@ -3331,6 +3339,8 @@ app.post('/api/interview-prep', authenticateToken, async (req, res) => {
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
+      max_tokens: 1200,
+      temperature: 0.5,
       messages: wantsAnswers
         ? [
             {
@@ -3386,6 +3396,8 @@ app.post('/api/video-interview-practice/questions', authenticateToken, async (re
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
+      max_tokens: 1200,
+      temperature: 0.5,
       messages: [
         {
           role: 'system',
@@ -3444,6 +3456,8 @@ app.post('/api/career-coach', authenticateToken, async (req, res) => {
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
+      max_tokens: 1200,
+      temperature: 0.5,
       messages: [
         {
           role: 'system',
@@ -3530,6 +3544,8 @@ app.post('/api/ai-application-tracker/analyze', authenticateToken, async (req, r
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
+      max_tokens: 1200,
+      temperature: 0.5,
       messages: [
         {
           role: 'system',
@@ -3664,6 +3680,8 @@ Role: ${role || 'N/A'}
 Scenario: ${scenario || ''}`;
       const completion = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
+      max_tokens: 1200,
+      temperature: 0.5,
         messages: [
           { role: 'system', content: 'You are a helpful assistant.' },
           { role: 'user', content: prompt }
@@ -3717,6 +3735,8 @@ Rules:
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
+      max_tokens: 1200,
+      temperature: 0.5,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userContent }

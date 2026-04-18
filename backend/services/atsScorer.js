@@ -149,16 +149,32 @@ function rewriteBullet(original, index, missingKeywords = []) {
     (kw) => kw.length >= 5 && !cleaned.toLowerCase().includes(kw.toLowerCase()) && !genericNouns.has(kw.toLowerCase())
   ) || null;
 
-  // Helper: build phrase weaving keyword naturally
+  // Helper: build phrase weaving keyword naturally using varied vocabulary
+  const connectors = [
+    (kw) => `incorporating ${kw} principles`,
+    (kw) => `applying ${kw} strategies`,
+    (kw) => `driving ${kw} outcomes`,
+    (kw) => `integrating ${kw} best practices`,
+    (kw) => `demonstrating ${kw} expertise`,
+    (kw) => `utilizing ${kw} methodologies`,
+  ];
+  const connector = connectors[index % connectors.length];
+
   const withKeyword = (base) => {
     if (!keyword) return `${base}, achieving measurable results (e.g., XX% improvement or $X saved).`;
-    return `${base}, leveraging ${keyword} to achieve measurable results (e.g., XX% improvement or $X saved).`;
+    return `${base}, ${connector(keyword)} to achieve measurable results (e.g., XX% improvement or $X saved).`;
   };
 
   // Already has verb + metric — strong bullet, only suggest keyword if available
   if (hasAnyActionVerb && hasMetric) {
     if (keyword) {
-      return `${capitalizeFirst(cleaned)}, with a focus on ${keyword} to drive further impact.`;
+      const strongConnectors = [
+        `expanding impact through ${keyword}`,
+        `strengthening ${keyword} across the organization`,
+        `advancing ${keyword} initiatives`,
+        `optimizing outcomes via ${keyword}`,
+      ];
+      return `${capitalizeFirst(cleaned)}, ${strongConnectors[index % strongConnectors.length]}.`;
     }
     return null; // No improvement needed
   }
