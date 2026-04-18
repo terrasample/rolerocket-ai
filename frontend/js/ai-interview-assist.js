@@ -559,8 +559,12 @@ document.addEventListener('DOMContentLoaded', () => {
           if (!liveListenerEnabled) return;
           if (state === 'requesting-permission') {
             setLiveStatus('Waiting for you to share the interview audio...', '#1d4ed8');
+          } else if (state === 'fallback-mic') {
+            setLiveStatus('Shared audio was unavailable. Switched to microphone listening.', '#b45309');
           } else if (state === 'listening') {
             setLiveStatus('Listening to shared interview audio...', '#0f766e');
+          } else if (state === 'listening-mic') {
+            setLiveStatus('Listening via microphone fallback. Keep speaker volume up so recruiter audio is captured.', '#0f766e');
           } else if (state === 'stopped') {
             stopLiveListening();
           }

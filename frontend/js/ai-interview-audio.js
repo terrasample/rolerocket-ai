@@ -10,6 +10,7 @@ let liveRecognition = null;
 let liveRecognitionEnabled = false;
 let sharedAudioRecorder = null;
 let sharedAudioCaptureStream = null;
+let sharedAudioMode = 'shared';
 
 function stopTracks(stream) {
   if (!stream) return;
@@ -147,22 +148,46 @@ async function startSharedAudioCapture(handlers = {}) {
 
   if (typeof handlers.onState === 'function') handlers.onState('requesting-permission');
 
-  const captureStream = await navigator.mediaDevices.getDisplayMedia({
-    video: true,
-    audio: {
-      echoCancellation: false,
-      noiseSuppression: false,
-      autoGainControl: false
-    }
-  });
-
-  const audioTracks = captureStream.getAudioTracks();
-  if (!audioTracks.length) {
-    stopTracks(captureStream);
-    throw new Error('No shared audio was detected. Choose the interview tab/window and enable audio sharing.');
+  let captureStream;
+  try {
+    captureStream = await navigator.mediaDevices.getDisplayMedia({
+      video: true,
+      audio: {
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false
+      }
+    });
+  } catch (err) {
+    throw err;
   }
 
-  sharedAudioCaptureStream = captureStream;
+  let activeStream = captureStream;
+  let audioTracks = captureStream.getAudioTracks();
+  sharedAudioMode = 'shared';
+
+  // Some browser/window combinations do not expose shared-system audio tracks.
+  // Fallback to microphone capture so live listening still works instead of failing.
+  if (!audioTracks.length) {
+    stopTracks(captureStream);
+    activeStream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false
+      }
+    });
+    audioTracks = activeStream.getAudioTracks();
+    sharedAudioMode = 'mic';
+    if (typeof handlers.onState === 'function') handlers.onState('fallback-mic');
+  }
+
+  if (!audioTracks.length) {
+    stopTracks(activeStream);
+    throw new Error('No audio input detected. Share interview audio or allow microphone access.');
+  }
+
+  sharedAudioCaptureStream = activeStream;
   const audioOnlyStream = new MediaStream(audioTracks);
   const mimeType = getSupportedAudioMimeType();
   sharedAudioRecorder = mimeType
@@ -186,7 +211,9 @@ async function startSharedAudioCapture(handlers = {}) {
   };
 
   sharedAudioRecorder.onstart = () => {
-    if (typeof handlers.onState === 'function') handlers.onState('listening');
+    if (typeof handlers.onState === 'function') {
+      handlers.onState(sharedAudioMode === 'mic' ? 'listening-mic' : 'listening');
+    }
   };
 
   sharedAudioRecorder.onstop = () => {
@@ -222,6 +249,7 @@ function stopSharedAudioCapture() {
   if (!sharedAudioRecorder) {
     stopTracks(sharedAudioCaptureStream);
     sharedAudioCaptureStream = null;
+    sharedAudioMode = 'shared';
   }
 }
 
