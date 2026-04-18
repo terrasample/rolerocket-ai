@@ -12,18 +12,26 @@
     <h1>Career Coach</h1>
     <p>Get strategic direction, next-best moves, and salary trajectory insights for your career path. (Demo page  customize as needed!)</p>
   </div>
-  <div class="card" style="max-width:1120px;width:min(1120px, calc(100vw - 64px));margin:32px auto;">
-    <label for="careerRole"><strong>Target Role or Path</strong></label>
-    <input id="careerRole" type="text" style="width:100%;margin-bottom:12px;" placeholder="e.g. Senior Product Manager" />
-    <label for="careerGoals"><strong>Your Career Goals (optional)</strong></label>
-    <textarea id="careerGoals" rows="4" style="width:100%;margin-bottom:12px;" placeholder="Describe your goals, challenges, or questions..."></textarea>
-    <button id="careerCoachBtn" class="auth-submit-btn" style="width:100%;">Get Career Coaching</button>
-    <button id="saveCareerCoachPdfBtn" class="auth-submit-btn" style="width:100%;margin-top:10px;background:#38bdf8;color:#1e293b;">Save as PDF</button>
-    <button id="saveCareerCoachWordBtn" class="auth-submit-btn" style="width:100%;margin-top:10px;background:#6366f1;color:#fff;">Save as Word</button>
-      <label for="resumeUpload" style="margin-top:10px;"><strong>Upload Resume (PDF or DOCX)</strong></label>
-      <input id="resumeUpload" type="file" accept=".pdf,.doc,.docx" style="width:100%;margin-bottom:12px;" />
-      <div id="resumeFileName" style="margin-bottom:8px;color:#2563eb;font-size:0.98em;"></div>
-      <div id="careerCoachResult" style="margin-top:18px;min-height:80px;background:#fffbe6;padding:22px 18px;border-radius:12px;font-size:1.18em;line-height:1.7;color:#1e293b;font-family:'Inter', 'Segoe UI', Arial, sans-serif;border:2.5px solid #f59e42;box-shadow:0 2px 16px #facc1530;"></div>
+  <div class="card feature-form-grid" style="max-width:1120px;width:min(1120px, calc(100vw - 64px));margin:32px auto;">
+    <div class="feature-form-field">
+      <label for="careerRole"><strong>Target Role or Path</strong></label>
+      <input id="careerRole" type="text" style="width:100%;" placeholder="e.g. Senior Product Manager" />
+    </div>
+    <div class="feature-form-field">
+      <label for="resumeUpload"><strong>Upload Resume (PDF or DOCX)</strong></label>
+      <input id="resumeUpload" type="file" accept=".pdf,.doc,.docx" style="width:100%;" />
+    </div>
+    <div class="feature-form-field feature-form-field--full">
+      <label for="careerGoals"><strong>Your Career Goals (optional)</strong></label>
+      <textarea id="careerGoals" rows="4" style="width:100%;" placeholder="Describe your goals, challenges, or questions..."></textarea>
+    </div>
+    <div id="resumeFileName" class="feature-form-field--full" style="margin-bottom:8px;color:#2563eb;font-size:0.98em;"></div>
+    <div class="feature-form-actions">
+      <button id="careerCoachBtn" class="auth-submit-btn" style="flex:1 1 220px;">Get Career Coaching</button>
+      <button id="saveCareerCoachPdfBtn" class="auth-submit-btn" style="flex:1 1 170px;background:#38bdf8;color:#1e293b;">Save as PDF</button>
+      <button id="saveCareerCoachWordBtn" class="auth-submit-btn" style="flex:1 1 170px;background:#6366f1;color:#fff;">Save as Word</button>
+    </div>
+    <div id="careerCoachResult" class="feature-form-result" style="margin-top:18px;min-height:80px;background:#fffbe6;padding:22px 18px;border-radius:12px;font-size:1.18em;line-height:1.7;color:#1e293b;font-family:'Inter', 'Segoe UI', Arial, sans-serif;border:2.5px solid #f59e42;box-shadow:0 2px 16px #facc1530;"></div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   </div>
   <script src="js/api-base.js"></script>

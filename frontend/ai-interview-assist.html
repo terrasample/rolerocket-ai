@@ -33,23 +33,29 @@
       </div>
     </div>
   </div>
-  <div class="card" style="max-width:1120px;width:min(1120px, calc(100vw - 64px));margin:32px auto;">
-    <div id="interviewPracticeLimitBanner" style="display:none;margin-bottom:12px;padding:12px 14px;border-radius:10px;border:1px solid #bfdbfe;background:#eff6ff;color:#1e3a8a;"></div>
-    <label for="interviewRole"><strong>Role Title</strong></label>
-    <input id="interviewRole" type="text" style="width:100%;margin-bottom:12px;" placeholder="e.g. Software Engineer" />
-    <label for="interviewScenario"><strong>Interview Scenario (optional)</strong></label>
-    <textarea id="interviewScenario" rows="4" style="width:100%;margin-bottom:12px;" placeholder="Describe the scenario or focus area..."></textarea>
-    <label for="liveQuestionInput"><strong>Live Recruiter Question</strong></label>
-    <textarea id="liveQuestionInput" rows="3" style="width:100%;margin-bottom:12px;" placeholder="Type exactly what the recruiter just asked..."></textarea>
-    <div style="margin-bottom:10px;font-size:0.9rem;color:#475569;">Recommended flow: start live listening, choose the interview tab or shared audio source, and enable audio sharing so recruiter questions are captured.</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+  <div class="card feature-form-grid" style="max-width:1120px;width:min(1120px, calc(100vw - 64px));margin:32px auto;">
+    <div id="interviewPracticeLimitBanner" class="feature-form-field--full" style="display:none;margin-bottom:12px;padding:12px 14px;border-radius:10px;border:1px solid #bfdbfe;background:#eff6ff;color:#1e3a8a;"></div>
+    <div class="feature-form-field">
+      <label for="interviewRole"><strong>Role Title</strong></label>
+      <input id="interviewRole" type="text" style="width:100%;" placeholder="e.g. Software Engineer" />
+    </div>
+    <div class="feature-form-field">
+      <label for="interviewScenario"><strong>Interview Scenario (optional)</strong></label>
+      <textarea id="interviewScenario" rows="4" style="width:100%;" placeholder="Describe the scenario or focus area..."></textarea>
+    </div>
+    <div class="feature-form-field feature-form-field--full">
+      <label for="liveQuestionInput"><strong>Live Recruiter Question</strong></label>
+      <textarea id="liveQuestionInput" rows="3" style="width:100%;" placeholder="Type exactly what the recruiter just asked..."></textarea>
+    </div>
+    <div class="feature-form-field--full" style="margin-bottom:10px;font-size:0.9rem;color:#475569;">Recommended flow: start live listening, choose the interview tab or shared audio source, and enable audio sharing so recruiter questions are captured.</div>
+    <div class="feature-form-field--full" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
       <button id="startLiveCaptureBtn" class="auth-submit-btn" type="button">Start Live Listening</button>
       <button id="stopLiveCaptureBtn" class="auth-submit-btn" type="button" disabled>Stop Live Listening</button>
     </div>
-    <div id="liveCaptureStatus" style="margin-bottom:10px;font-size:0.92rem;color:#475569;">Live listener is off.</div>
-    <div style="margin-bottom:12px;font-size:0.85rem;color:#64748b;line-height:1.6;">On macOS, recruiter audio is captured when you share the interview tab or another source with audio enabled. Mic-only capture will hear you, not the recruiter.</div>
-    <button id="getLiveAnswerBtn" class="auth-submit-btn" style="width:100%;margin-bottom:10px;">Get Live Copilot Answer</button>
-    <details style="margin-top:12px;border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px;background:#f8fafc;">
+    <div id="liveCaptureStatus" class="feature-form-field--full" style="margin-bottom:10px;font-size:0.92rem;color:#475569;">Live listener is off.</div>
+    <div class="feature-form-field--full" style="margin-bottom:12px;font-size:0.85rem;color:#64748b;line-height:1.6;">On macOS, recruiter audio is captured when you share the interview tab or another source with audio enabled. Mic-only capture will hear you, not the recruiter.</div>
+    <button id="getLiveAnswerBtn" class="auth-submit-btn feature-form-field--full" style="width:100%;margin-bottom:10px;">Get Live Copilot Answer</button>
+    <details class="feature-form-field--full" style="margin-top:12px;border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px;background:#f8fafc;">
       <summary style="cursor:pointer;font-weight:700;color:#334155;">Practice Mode (optional)</summary>
       <div style="margin-top:10px;display:grid;gap:10px;">
         <button id="startInterviewBtn" class="auth-submit-btn" style="width:100%;">Start Interview Practice</button>
@@ -57,7 +63,7 @@
       </div>
     </details>
     <audio id="localAudio" style="display:none;" controls></audio>
-    <div id="interviewAssistResult" style="margin-top:18px;min-height:80px;"></div>
+    <div id="interviewAssistResult" class="feature-form-result" style="margin-top:18px;min-height:80px;"></div>
   </div>
   <script src="js/api-base.js"></script>
   <script src="js/auth-storage.js"></script>
