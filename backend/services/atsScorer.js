@@ -73,6 +73,10 @@ function normalizeLineForRewrite(text) {
     .trim();
 }
 
+function isCertificationLikeLine(text) {
+  return /(pmp|pcp|cisn|cissp|gcp|aws|azure|certified|certification|credential|accredited|license|exam|passed|obtained|earned|awarded)\b/i.test(String(text || ''));
+}
+
 function isEducationLikeLine(text) {
   return /(bachelor|master|doctor|phd|mba|degree|university|college|expected\s+(fall|spring|summer|winter)|gpa|dean'?s list|coursework|graduat)/i.test(String(text || ''));
 }
@@ -94,12 +98,24 @@ function isRewriteEligibleLine(text) {
   if (!cleaned) return false;
   if (isEducationLikeLine(cleaned)) return false;
   if (isSkillsLikeLine(cleaned)) return false;
+  if (isCertificationLikeLine(cleaned)) return false;
   if (cleaned.length < 24) return false;
   return true;
 }
 
 function rewriteBullet(original, index) {
   const cleaned = normalizeLineForRewrite(original);
+  
+  // Special handling for certifications: recommend additional certs or job duties instead
+  if (isCertificationLikeLine(original)) {
+    const suggestions = [
+      `Consider pairing ${cleaned} with a complementary skill or responsibility.`,
+      `${cleaned}, actively applying and maintaining this credential in daily work.`,
+      `Holder of ${cleaned}; recommend documenting specific projects or achievements where this certification was applied.`
+    ];
+    return suggestions[index % suggestions.length];
+  }
+  
   const starters = ['Led', 'Improved', 'Delivered', 'Built', 'Launched'];
   const starter = starters[index % starters.length];
   const startsWithActionVerb = /^(led|managed|improved|delivered|built|launched|designed|developed|implemented|optimized|created|drove|owned)\b/i.test(cleaned);
