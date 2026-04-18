@@ -73,6 +73,31 @@ function normalizeLineForRewrite(text) {
     .trim();
 }
 
+function isEducationLikeLine(text) {
+  return /(bachelor|master|doctor|phd|mba|degree|university|college|expected\s+(fall|spring|summer|winter)|gpa|dean'?s list|coursework|graduat)/i.test(String(text || ''));
+}
+
+function isSkillsLikeLine(text) {
+  const cleaned = normalizeLineForRewrite(text);
+  const commaParts = cleaned.split(',').map((part) => part.trim()).filter(Boolean);
+  const hasActionVerb = /\b(led|managed|improved|delivered|built|launched|designed|developed|implemented|optimized|created|drove|owned)\b/i.test(cleaned);
+
+  if (hasActionVerb) return false;
+  if (commaParts.length >= 3) return true;
+  if (/^(skills|technical skills|core competencies|tools|technologies)\b/i.test(cleaned)) return true;
+
+  return false;
+}
+
+function isRewriteEligibleLine(text) {
+  const cleaned = normalizeLineForRewrite(text);
+  if (!cleaned) return false;
+  if (isEducationLikeLine(cleaned)) return false;
+  if (isSkillsLikeLine(cleaned)) return false;
+  if (cleaned.length < 24) return false;
+  return true;
+}
+
 function rewriteBullet(original, index) {
   const cleaned = normalizeLineForRewrite(original);
   const starters = ['Led', 'Improved', 'Delivered', 'Built', 'Launched'];
@@ -173,7 +198,9 @@ function runATSAnalysis(job, resume) {
 
   const flags = getRedFlags(resume);
   const formattingWarnings = getFormattingWarnings(resume, bullets);
-  const weakBullets = bulletScores.filter((b) => b.score < 60).slice(0, 4);
+  const weakBullets = bulletScores
+    .filter((b) => b.score < 60 && isRewriteEligibleLine(b.text))
+    .slice(0, 4);
   const rewrittenBullets = weakBullets.map((b, index) => ({
     original: b.text,
     improved: rewriteBullet(b.text, index)
