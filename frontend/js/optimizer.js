@@ -142,13 +142,115 @@ document.getElementById('saveAtsResumeBtn')?.addEventListener('click', async () 
 });
 
 document.getElementById('downloadAtsReportBtn')?.addEventListener('click', () => {
-  // Example: Download ATS report as PDF (mock logic)
+  if (!latestAtsAnalysis) {
+    alert('Run Analyze Resume first to generate a report.');
+    return;
+  }
+  if (!window.jspdf || !window.jspdf.jsPDF) {
+    alert('PDF library not loaded. Please refresh the page and try again.');
+    return;
+  }
+
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
-  const score = document.getElementById('atsScore').textContent;
-  const matched = document.getElementById('matchedKeywords').textContent;
-  const missing = document.getElementById('missingKeywords')?.textContent || '';
-  doc.text(`ATS Score: ${score}\nMatched: ${matched}\nMissing: ${missing}`, 10, 20);
+  let yPos = 20;
+  const lineHeight = 7;
+  const pageHeight = doc.internal.pageSize.height;
+  const margin = 15;
+  const maxWidth = doc.internal.pageSize.width - 2 * margin;
+
+  function addHeading(text, size = 14) {
+    if (yPos + lineHeight > pageHeight - 10) {
+      doc.addPage();
+      yPos = margin;
+    }
+    doc.setFontSize(size);
+    doc.setFont(undefined, 'bold');
+    doc.text(text, margin, yPos);
+    yPos += lineHeight + 3;
+    doc.setFont(undefined, 'normal');
+    doc.setFontSize(11);
+  }
+
+  function addLine(text, indent = 0) {
+    if (yPos + lineHeight > pageHeight - 10) {
+      doc.addPage();
+      yPos = margin;
+    }
+    const lines = doc.splitTextToSize(text, maxWidth - indent);
+    doc.text(lines, margin + indent, yPos);
+    yPos += lines.length * lineHeight;
+  }
+
+  // Title
+  addHeading('ATS Analysis Report', 16);
+  yPos += 3;
+
+  // Score Section
+  addHeading('ATS Score', 12);
+  addLine(`Score: ${latestAtsAnalysis.atsScore || 0}`);
+  yPos += 3;
+
+  // Matched Keywords
+  addHeading('Matched Keywords', 12);
+  if (latestAtsAnalysis.matchedKeywords && latestAtsAnalysis.matchedKeywords.length) {
+    addLine(latestAtsAnalysis.matchedKeywords.join(', '));
+  } else {
+    addLine('No matched keywords found.');
+  }
+  yPos += 3;
+
+  // Missing Keywords
+  addHeading('Missing Keywords', 12);
+  if (latestAtsAnalysis.missingKeywords && latestAtsAnalysis.missingKeywords.length) {
+    addLine(latestAtsAnalysis.missingKeywords.join(', '));
+  } else {
+    addLine('No missing keywords identified.');
+  }
+  yPos += 3;
+
+  // Red Flags
+  if (latestAtsAnalysis.redFlags && latestAtsAnalysis.redFlags.length) {
+    addHeading('Red Flags', 12);
+    latestAtsAnalysis.redFlags.forEach(flag => addLine(`• ${flag}`, 3));
+    yPos += 3;
+  }
+
+  // Formatting Warnings
+  if (latestAtsAnalysis.formattingWarnings && latestAtsAnalysis.formattingWarnings.length) {
+    addHeading('Formatting Warnings', 12);
+    latestAtsAnalysis.formattingWarnings.forEach(warning => addLine(`• ${warning}`, 3));
+    yPos += 3;
+  }
+
+  // Quick Fixes
+  if (latestAtsAnalysis.quickFixes && latestAtsAnalysis.quickFixes.length) {
+    addHeading('Quick Fixes', 12);
+    latestAtsAnalysis.quickFixes.forEach(fix => addLine(`• ${fix}`, 3));
+    yPos += 3;
+  }
+
+  // Bullet Scores
+  if (latestAtsAnalysis.bulletScores && latestAtsAnalysis.bulletScores.length) {
+    addHeading('Bullet Scores', 12);
+    latestAtsAnalysis.bulletScores.forEach(bullet => {
+      addLine(`Score: ${bullet.score}`, 3);
+      addLine(`${bullet.text.substring(0, 100)}${bullet.text.length > 100 ? '...' : ''}`, 6);
+    });
+    yPos += 3;
+  }
+
+  // AI Rewritten Bullets
+  if (latestAtsAnalysis.rewrittenBullets && latestAtsAnalysis.rewrittenBullets.length) {
+    addHeading('AI Rewrite Suggestions', 12);
+    latestAtsAnalysis.rewrittenBullets.forEach((bullet, idx) => {
+      addLine(`Suggestion ${idx + 1}:`, 3);
+      addLine(`Original: ${bullet.original}`, 6);
+      addLine(`Improved: ${bullet.improved}`, 6);
+      yPos += 2;
+    });
+  }
+
   doc.save('ats-report.pdf');
 });
 const token = typeof getStoredToken === 'function' ? getStoredToken() : localStorage.getItem('token');
