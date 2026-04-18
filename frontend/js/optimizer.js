@@ -182,6 +182,12 @@ document.getElementById('downloadAtsReportBtn')?.addEventListener('click', () =>
     yPos += lines.length * lineHeight;
   }
 
+  function addNumberedItems(items, indent = 3) {
+    items.forEach((item, index) => {
+      addLine(`${index + 1}. ${item}`, indent);
+    });
+  }
+
   // Title
   addHeading('ATS Analysis Report', 16);
   yPos += 3;
@@ -194,7 +200,7 @@ document.getElementById('downloadAtsReportBtn')?.addEventListener('click', () =>
   // Matched Keywords
   addHeading('Matched Keywords', 12);
   if (latestAtsAnalysis.matchedKeywords && latestAtsAnalysis.matchedKeywords.length) {
-    addLine(latestAtsAnalysis.matchedKeywords.join(', '));
+    addNumberedItems(latestAtsAnalysis.matchedKeywords, 3);
   } else {
     addLine('No matched keywords found.');
   }
@@ -203,7 +209,7 @@ document.getElementById('downloadAtsReportBtn')?.addEventListener('click', () =>
   // Missing Keywords
   addHeading('Missing Keywords', 12);
   if (latestAtsAnalysis.missingKeywords && latestAtsAnalysis.missingKeywords.length) {
-    addLine(latestAtsAnalysis.missingKeywords.join(', '));
+    addNumberedItems(latestAtsAnalysis.missingKeywords, 3);
   } else {
     addLine('No missing keywords identified.');
   }
@@ -251,16 +257,15 @@ document.getElementById('downloadAtsReportBtn')?.addEventListener('click', () =>
     });
   }
 
-  doc.save('ats-report.pdf');
-    // Next Steps
-    addHeading('Next Steps', 12);
-    addLine('1. Apply the AI fixes to your resume with the "⚡ Apply Fix" button.', 3);
-    addLine('2. Re-run "Analyze Resume" with the same job description.', 3);
-    addLine('3. Your score will improve significantly with better keyword matching.', 3);
-    addLine('4. Target: 80+ for strong ATS compatibility.', 3);
+  // Next Steps
+  addHeading('Next Steps', 12);
+  addLine('1. Apply the AI fixes to your resume with the "Apply Fix" button.', 3);
+  addLine('2. Re-run "Analyze Resume" with the same job description.', 3);
+  addLine('3. Your score will improve with stronger keyword matching.', 3);
+  addLine('4. Target: 80+ for strong ATS compatibility.', 3);
 
-    doc.save('ats-report.pdf');
-  });
+  doc.save('ats-report.pdf');
+});
 const token = typeof getStoredToken === 'function' ? getStoredToken() : localStorage.getItem('token');
 const atsResumeUploadInput = document.getElementById('atsResumeUpload');
 const atsResumeUploadBtn = document.getElementById('uploadAtsResumeBtn');
@@ -335,9 +340,15 @@ function renderTags(containerId, items, emptyMessage) {
     return;
   }
 
-  container.innerHTML = items
-    .map((item) => `<span class="urgency-badge">${item}</span>`)
-    .join(' ');
+  container.innerHTML = `
+    <ol style="margin:0;padding-left:20px;display:grid;gap:8px;">
+      ${items.map((item) => `
+        <li style="font-size:0.95em;line-height:1.5;color:#0f172a;">
+          <span style="display:inline-block;background:#f8fafc;border:1px solid #e2e8f0;border-radius:999px;padding:4px 10px;font-weight:600;">${item}</span>
+        </li>
+      `).join('')}
+    </ol>
+  `;
 }
 
 function renderList(containerId, items, emptyMessage) {
