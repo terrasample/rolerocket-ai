@@ -12,7 +12,7 @@
     <p>Generate likely interview questions, answer themes, and smart questions to ask the interviewer for your target role.</p>
     <button onclick="window.history.back()" class="back-arrow-btn" aria-label="Go back" style="margin:12px 0 0 12px;background:none;border:none;cursor:pointer;font-size:1.6em;color:#2563eb;"><span aria-hidden="true">&#8592;</span> Back</button>
   </div>
-  <div class="card premium-interview-card" style="max-width:540px;margin:40px auto 32px auto;box-shadow:0 8px 32px #0ea5e950;">
+  <div class="card premium-interview-card" style="max-width:1120px;width:min(1120px, calc(100vw - 64px));margin:40px auto 32px auto;box-shadow:0 8px 32px #0ea5e950;">
     <label for="interviewRole" style="font-size:1.1em;"><strong>Role Title</strong></label>
     <input id="interviewRole" type="text" class="premium-input" placeholder="e.g. Product Manager" />
     <label for="interviewJobDescription" style="font-size:1.1em;"><strong>Job Description (optional)</strong></label>
@@ -35,6 +35,7 @@
       border-radius: 22px;
       box-shadow: 0 12px 40px #0ea5e930;
       padding: 32px 28px 28px 28px;
+      width: min(1120px, calc(100vw - 64px));
     }
     .premium-input {
       font-size: 1.13em;
@@ -120,6 +121,12 @@
       font-size: 1.04rem;
       line-height: 1.6;
       font-weight: 600;
+    }
+    @media (max-width: 700px) {
+      .premium-interview-card {
+        width: calc(100vw - 28px);
+        padding: 20px 14px 16px;
+      }
     }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
