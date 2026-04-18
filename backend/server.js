@@ -749,6 +749,11 @@ function hasRequiredPlan(user, requiredPlan) {
   return getPlanLevel(user.plan || 'free') >= getPlanLevel(requiredPlan);
 }
 
+function hasOneClickApplyAccess(user) {
+  if (!user) return false;
+  return hasRequiredPlan(user, 'premium') || user.isSubscribed === true;
+}
+
 function makeLinkedInSearchUrl(title = '', location = '') {
   return `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(title)}&location=${encodeURIComponent(location)}`;
 }
@@ -4286,8 +4291,8 @@ function normalizeAutopilotUsage(rawUsage) {
 app.get('/api/apply/autopilot/settings', authenticateToken, async (req, res) => {
   try {
     const user = await User.findById(req.user.userId).select('plan autopilotConfig autopilotUsage');
-    if (!hasRequiredPlan(user, 'premium')) {
-      return res.status(403).json({ error: 'Upgrade to Premium to use 1-Click Apply Autopilot.' });
+    if (!hasOneClickApplyAccess(user)) {
+      return res.status(403).json({ error: 'Upgrade to a paid plan to use 1-Click Apply Autopilot.' });
     }
 
     const settings = normalizeAutopilotSettings(user?.autopilotConfig || {});
@@ -4312,8 +4317,8 @@ app.get('/api/apply/autopilot/settings', authenticateToken, async (req, res) => 
 app.put('/api/apply/autopilot/settings', authenticateToken, async (req, res) => {
   try {
     const user = await User.findById(req.user.userId).select('plan autopilotConfig');
-    if (!hasRequiredPlan(user, 'premium')) {
-      return res.status(403).json({ error: 'Upgrade to Premium to use 1-Click Apply Autopilot.' });
+    if (!hasOneClickApplyAccess(user)) {
+      return res.status(403).json({ error: 'Upgrade to a paid plan to use 1-Click Apply Autopilot.' });
     }
 
     const settings = normalizeAutopilotSettings(req.body || {});
@@ -4330,8 +4335,8 @@ app.put('/api/apply/autopilot/settings', authenticateToken, async (req, res) => 
 app.post('/api/apply/autopilot/run', authenticateToken, async (req, res) => {
   try {
     const user = await User.findById(req.user.userId).select('plan autopilotConfig autopilotUsage');
-    if (!hasRequiredPlan(user, 'premium')) {
-      return res.status(403).json({ error: 'Upgrade to Premium to use 1-Click Apply Autopilot.' });
+    if (!hasOneClickApplyAccess(user)) {
+      return res.status(403).json({ error: 'Upgrade to a paid plan to use 1-Click Apply Autopilot.' });
     }
 
     const savedSettings = normalizeAutopilotSettings(user?.autopilotConfig || {});
@@ -4465,8 +4470,8 @@ app.post('/api/apply/autopilot/run', authenticateToken, async (req, res) => {
 app.post('/api/apply/one-click', authenticateToken, async (req, res) => {
   try {
     const user = await User.findById(req.user.userId);
-    if (!hasRequiredPlan(user, 'premium')) {
-      return res.status(403).json({ error: 'Upgrade to Premium to use 1-Click Apply.' });
+    if (!hasOneClickApplyAccess(user)) {
+      return res.status(403).json({ error: 'Upgrade to a paid plan to use 1-Click Apply.' });
     }
 
     const jobs = await Job.find({
