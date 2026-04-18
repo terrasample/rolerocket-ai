@@ -2,7 +2,7 @@ function extractBullets(resume) {
   const lines = String(resume || '').split('\n').map((line) => line.trim());
   const bullets = [];
   let current = null;
-  // Matches section headers, employer/job lines (contain commas + dates or location patterns)
+
   const breaker = /^[A-Z][A-Z\s,&]{3,}$|^(EXPERIENCE|EDUCATION|SKILLS|CERTIFICATION|CERTIFICATIONS|SUMMARY|PROFILE|PROJECTS|AWARDS|CORE SKILLS)\b/i;
   const jobLine = /,\s*(FL|PA|NY|TX|CA|OH|GA|VA|DC|MD|NC|SC|IL|WA|MA|NJ|AZ|CO|MN|OR|TN|IN|MI)\b|,\s*(LLC|Inc|Corp|Company|University|College|Reserve|Army|Navy|Air Force)\b|\d{2}\/\d{4}/i;
 
@@ -11,13 +11,13 @@ function extractBullets(resume) {
       if (current) bullets.push(current);
       current = line.replace(/^[-*•]\s*/, '').trim();
     } else if (current && line.length > 0 && !breaker.test(line) && !jobLine.test(line)) {
-      // Continuation of current bullet — join it
-      current = current + ' ' + line;
+      current = `${current} ${line}`;
     } else {
       if (current) bullets.push(current);
       current = null;
     }
   }
+
   if (current) bullets.push(current);
   return bullets;
 }
@@ -37,8 +37,8 @@ function extractScorableLines(resume) {
     return line.length >= 18;
   });
 
-  if (contentLines.length) return contentLines.slice(0, 12);
-  return lines.slice(0, 12);
+  if (contentLines.length) return contentLines.slice(0, 14);
+  return lines.slice(0, 14);
 }
 
 function tokenize(text) {
@@ -49,44 +49,277 @@ function tokenize(text) {
     .filter(Boolean);
 }
 
-function getKeywords(jobDescription, resume) {
-  const stopWords = new Set([
-    // Articles, conjunctions, prepositions
-    'and', 'the', 'for', 'with', 'that', 'this', 'from', 'your', 'you', 'are', 'our', 'will', 'into',
-    'their', 'have', 'has', 'had', 'can', 'not', 'but', 'all', 'any', 'its', 'such', 'also', 'per',
-    'who', 'what', 'they', 'them', 'well', 'use', 'using', 'used', 'new', 'get', 'set', 'due',
-    'each', 'both', 'few', 'more', 'most', 'other', 'some', 'than', 'then', 'when', 'where', 'while',
-    // Job posting filler words
-    'job', 'role', 'work', 'team', 'years', 'year', 'experience', 'required', 'preferred', 'ability',
-    'skills', 'skill', 'strong', 'seeking', 'looking', 'must', 'should', 'may', 'key', 'top',
-    'description', 'responsibilities', 'requirements', 'qualifications', 'position', 'candidate',
-    'applicant', 'company', 'organization', 'primary', 'secondary', 'following', 'including', 'include',
-    'provide', 'ensure', 'support', 'across', 'within', 'about', 'above', 'below', 'between',
-    'through', 'during', 'before', 'after', 'under', 'over', 'while', 'along', 'upon',
-    'basis', 'level', 'type', 'area', 'areas', 'field', 'fields', 'based', 'related', 'relevant',
-    'various', 'multiple', 'overall', 'daily', 'ongoing', 'current', 'general', 'specific',
-    'minimum', 'maximum', 'highly', 'great', 'good', 'best', 'high', 'large', 'small',
-    // Too generic to be meaningful resume keywords
-    'project', 'manager', 'member', 'member', 'team', 'teams', 'people', 'person', 'group',
-    'overseeing', 'oversee', 'manage', 'managing', 'working', 'making', 'taking', 'doing',
-    'report', 'reports', 'reporting', 'meeting', 'meetings', 'tasks', 'task', 'activities'
-  ]);
+function normalizeText(text) {
+  return String(text || '').toLowerCase().replace(/\s+/g, ' ').trim();
+}
 
-  const jobWords = tokenize(jobDescription).filter((word) => word.length >= 5 && !stopWords.has(word));
-  const uniqueJobWords = Array.from(new Set(jobWords));
+function escapeRegex(value) {
+  return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+const STOP_WORDS = new Set([
+  'and', 'the', 'for', 'with', 'that', 'this', 'from', 'your', 'you', 'are', 'our', 'will', 'into',
+  'their', 'have', 'has', 'had', 'can', 'not', 'but', 'all', 'any', 'its', 'such', 'also', 'per',
+  'who', 'what', 'they', 'them', 'well', 'use', 'using', 'used', 'new', 'get', 'set', 'due',
+  'each', 'both', 'few', 'more', 'most', 'other', 'some', 'than', 'then', 'when', 'where', 'while',
+  'job', 'role', 'work', 'team', 'years', 'year', 'experience', 'required', 'preferred', 'ability',
+  'skills', 'skill', 'strong', 'seeking', 'looking', 'must', 'should', 'may', 'key', 'top',
+  'description', 'responsibilities', 'requirements', 'qualifications', 'position', 'candidate',
+  'applicant', 'company', 'organization', 'primary', 'secondary', 'following', 'including', 'include',
+  'provide', 'ensure', 'support', 'across', 'within', 'about', 'above', 'below', 'between',
+  'through', 'during', 'before', 'after', 'under', 'over', 'along', 'upon',
+  'basis', 'level', 'type', 'area', 'areas', 'field', 'fields', 'based', 'related', 'relevant',
+  'various', 'multiple', 'overall', 'daily', 'ongoing', 'current', 'general', 'specific',
+  'minimum', 'maximum', 'highly', 'great', 'good', 'best', 'high', 'large', 'small',
+  'project', 'manager', 'member', 'teams', 'people', 'person', 'group', 'overseeing', 'oversee',
+  'manage', 'managing', 'working', 'making', 'taking', 'doing', 'report', 'reports', 'reporting',
+  'meeting', 'meetings', 'tasks', 'task', 'activities'
+]);
+
+function uniqueOrdered(items) {
+  const seen = new Set();
+  const out = [];
+  for (const item of items) {
+    const value = String(item || '').trim();
+    if (!value) continue;
+    if (seen.has(value)) continue;
+    seen.add(value);
+    out.push(value);
+  }
+  return out;
+}
+
+function parseResumeSections(resume) {
+  const lines = String(resume || '').split('\n').map((line) => line.trim());
+  const map = {
+    experience: '',
+    skills: '',
+    education: '',
+    summary: '',
+    certifications: '',
+    other: ''
+  };
+
+  let section = 'other';
+
+  for (const line of lines) {
+    if (!line) continue;
+
+    if (/^(experience|work experience|professional experience)\b/i.test(line)) {
+      section = 'experience';
+      continue;
+    }
+    if (/^(skills|technical skills|core competencies|tools|technologies)\b/i.test(line)) {
+      section = 'skills';
+      continue;
+    }
+    if (/^(education)\b/i.test(line)) {
+      section = 'education';
+      continue;
+    }
+    if (/^(summary|profile|objective)\b/i.test(line)) {
+      section = 'summary';
+      continue;
+    }
+    if (/^(certification|certifications|licenses|license)\b/i.test(line)) {
+      section = 'certifications';
+      continue;
+    }
+
+    map[section] = `${map[section]} ${line}`.trim();
+  }
+
+  return map;
+}
+
+function getKeywordsBasic(jobDescription, resume) {
+  const jobWords = tokenize(jobDescription).filter((word) => word.length >= 5 && !STOP_WORDS.has(word));
+  const uniqueJobWords = uniqueOrdered(jobWords);
   const resumeWords = new Set(tokenize(resume));
 
   const matchedKeywords = uniqueJobWords.filter((word) => resumeWords.has(word)).slice(0, 25);
   const missingKeywords = uniqueJobWords.filter((word) => !resumeWords.has(word)).slice(0, 25);
 
-  return { matchedKeywords, missingKeywords };
+  return {
+    matchedKeywords,
+    missingKeywords,
+    coverage: (matchedKeywords.length + missingKeywords.length)
+      ? matchedKeywords.length / (matchedKeywords.length + missingKeywords.length)
+      : 0,
+    mustHaveMatched: [],
+    mustHaveMissing: []
+  };
+}
+
+function extractNGrams(tokens, size) {
+  const out = [];
+  for (let i = 0; i <= tokens.length - size; i += 1) {
+    const chunk = tokens.slice(i, i + size);
+    if (chunk.some((t) => STOP_WORDS.has(t))) continue;
+    if (chunk.some((t) => t.length < 4)) continue;
+    out.push(chunk.join(' '));
+  }
+  return out;
+}
+
+function extractNGramsFromText(text, size) {
+  const segments = String(text || '')
+    .split(/[\n,.;:]/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  const out = [];
+  for (const segment of segments) {
+    const tokens = tokenize(segment);
+    out.push(...extractNGrams(tokens, size));
+  }
+  return out;
+}
+
+function extractMustHaveTerms(jobDescription) {
+  const mustSignals = /(must|required|mandatory|minimum|need to|license|certification|degree|bachelor|master|clearance|pmp|pe)\b/i;
+  const segments = String(jobDescription || '')
+    .split(/[\n.;]/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  const terms = [];
+  for (const segment of segments) {
+    if (!mustSignals.test(segment)) continue;
+
+    const cleaned = segment
+      .replace(/\b(must|required|mandatory|minimum|need to|license|certification|degree|bachelor|master|clearance)\b/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    const parts = cleaned.split(/\band\b|\bor\b|,|\//i).map((p) => p.trim()).filter(Boolean);
+
+    for (const part of parts) {
+      const partTokens = tokenize(part).filter((w) => w.length >= 4 && !STOP_WORDS.has(w));
+      if (!partTokens.length) continue;
+
+      const phrase = partTokens.slice(0, 3).join(' ');
+      if (phrase.length >= 5) terms.push(phrase);
+
+      for (const token of partTokens) {
+        if (token.length >= 6) terms.push(token);
+      }
+    }
+  }
+
+  return uniqueOrdered(terms).slice(0, 15);
+}
+
+function termMatchInText(term, text) {
+  const normalizedTerm = normalizeText(term);
+  const normalizedText = normalizeText(text);
+
+  if (!normalizedTerm || !normalizedText) return false;
+  if (normalizedTerm.includes(' ')) {
+    return normalizedText.includes(normalizedTerm);
+  }
+
+  const re = new RegExp(`\\b${escapeRegex(normalizedTerm)}\\b`, 'i');
+  return re.test(normalizedText);
+}
+
+function buildTrueLikeTerms(jobDescription) {
+  const jobTokens = tokenize(jobDescription);
+  const keywords = uniqueOrdered(jobTokens.filter((w) => w.length >= 5 && !STOP_WORDS.has(w))).slice(0, 35);
+  const bigrams = uniqueOrdered(extractNGramsFromText(jobDescription, 2)).slice(0, 20);
+  const trigrams = uniqueOrdered(extractNGramsFromText(jobDescription, 3)).slice(0, 12);
+  const mustHave = extractMustHaveTerms(jobDescription);
+
+  const weightedTerms = [];
+
+  for (const term of bigrams) weightedTerms.push({ term, type: 'phrase', mustHave: mustHave.includes(term) });
+  for (const term of trigrams) weightedTerms.push({ term, type: 'phrase', mustHave: mustHave.includes(term) });
+  for (const term of keywords) weightedTerms.push({ term, type: 'keyword', mustHave: mustHave.includes(term) });
+
+  const deduped = [];
+  const seen = new Set();
+  for (const item of weightedTerms) {
+    if (seen.has(item.term)) continue;
+    seen.add(item.term);
+    deduped.push(item);
+  }
+
+  return {
+    terms: deduped.slice(0, 45),
+    mustHave
+  };
+}
+
+function getKeywordsTrueLike(jobDescription, resume) {
+  const { terms, mustHave } = buildTrueLikeTerms(jobDescription);
+  const sections = parseResumeSections(resume);
+
+  const sectionWeight = {
+    experience: 1.0,
+    certifications: 0.95,
+    skills: 0.85,
+    summary: 0.75,
+    education: 0.55,
+    other: 0.65
+  };
+
+  let totalWeight = 0;
+  let matchedWeight = 0;
+
+  const matchedKeywords = [];
+  const missingKeywords = [];
+  const mustHaveMatched = [];
+  const mustHaveMissing = [];
+
+  for (const item of terms) {
+    const typeMultiplier = item.type === 'phrase' ? 1.25 : 1;
+    const mustHaveMultiplier = item.mustHave ? 1.8 : 1;
+    const importance = typeMultiplier * mustHaveMultiplier;
+
+    totalWeight += importance;
+
+    let bestSectionScore = 0;
+    let matched = false;
+
+    for (const [sectionName, sectionText] of Object.entries(sections)) {
+      if (!sectionText) continue;
+      if (!termMatchInText(item.term, sectionText)) continue;
+
+      matched = true;
+      const score = sectionWeight[sectionName] || 0.6;
+      if (score > bestSectionScore) bestSectionScore = score;
+    }
+
+    if (matched) {
+      matchedWeight += importance * bestSectionScore;
+      matchedKeywords.push(item.mustHave ? `${item.term} (must-have)` : item.term);
+      if (item.mustHave) mustHaveMatched.push(item.term);
+    } else {
+      missingKeywords.push(item.mustHave ? `${item.term} (must-have)` : item.term);
+      if (item.mustHave) mustHaveMissing.push(item.term);
+    }
+  }
+
+  const prioritizedMissing = [
+    ...missingKeywords.filter((k) => k.includes('(must-have)')),
+    ...missingKeywords.filter((k) => !k.includes('(must-have)'))
+  ];
+
+  return {
+    matchedKeywords: uniqueOrdered(matchedKeywords).slice(0, 25),
+    missingKeywords: uniqueOrdered(prioritizedMissing).slice(0, 25),
+    coverage: totalWeight ? matchedWeight / totalWeight : 0,
+    mustHaveMatched: uniqueOrdered(mustHaveMatched),
+    mustHaveMissing: uniqueOrdered(mustHaveMissing),
+    mustHaveTotal: uniqueOrdered(mustHave).length
+  };
 }
 
 function scoreBullet(b) {
   let score = 0;
 
   if (/\d+/.test(b)) score += 30;
-  if (/led|managed|improved|delivered/i.test(b)) score += 30;
+  if (/led|managed|improved|delivered|analyzed|executed|owned|drove|planned|coordinated/i.test(b)) score += 30;
   if (/built|created|launched|designed|developed|implemented|optimized|increased|reduced|streamlined/i.test(b)) score += 20;
   if (b.length > 80) score += 20;
   if (/responsible|helped/i.test(b)) score -= 20;
@@ -103,7 +336,7 @@ function normalizeLineForRewrite(text) {
   return String(text || '')
     .replace(/^[-*•]\s*/, '')
     .replace(/\s+/g, ' ')
-    .replace(/[,\s]+$/, '') // Remove trailing commas and whitespace
+    .replace(/[\s,;:]+$/, '')
     .trim();
 }
 
@@ -137,6 +370,13 @@ function isRewriteEligibleLine(text) {
   return true;
 }
 
+function sanitizeRewriteKeywords(missingKeywords) {
+  return (missingKeywords || [])
+    .map((k) => String(k || '').replace(/\s*\(must-have\)$/i, '').trim())
+    .filter((k) => k.length >= 5)
+    .slice(0, 20);
+}
+
 function rewriteBullet(original, index, missingKeywords = []) {
   let cleaned = normalizeLineForRewrite(original);
   cleaned = cleaned.replace(/\.$/, '').trim();
@@ -144,37 +384,19 @@ function rewriteBullet(original, index, missingKeywords = []) {
   if (!cleaned || cleaned.length < 10) return null;
   if (isCertificationLikeLine(original)) return null;
 
-  const hasAnyActionVerb = /^(led|managed|improved|delivered|built|launched|designed|developed|implemented|optimized|created|drove|owned|analyzed|provided|assessed|supported|maintained|ensured|established|executed|coordinated|oversaw|directed|supervised|drove|architected|engineered|planned|evaluated|reviewed|monitored|facilitated|collaborated|guided|analyze|provide|assess|support|maintain|ensure|establish|execute|manage|coordinate|oversee|direct|supervise|drive|plan|evaluate|review|monitor|facilitate|collaborate|guide)\b/i.test(cleaned);
+  const hasAnyActionVerb = /^(led|managed|improved|delivered|built|launched|designed|developed|implemented|optimized|created|drove|owned|analyzed|provided|assessed|supported|maintained|ensured|established|executed|coordinated|oversaw|directed|supervised|architected|engineered|planned|evaluated|reviewed|monitored|facilitated|collaborated|guided|analyze|provide|assess|support|maintain|ensure|establish|execute|manage|coordinate|oversee|direct|supervise|drive|plan|evaluate|review|monitor|facilitate|collaborate|guide)\b/i.test(cleaned);
   const hasMetric = /\d+/.test(cleaned);
 
-  // Pick the best keyword for this specific bullet — cycle through so each gets a different one
-  // Prefer concrete domain skills over generic nouns
-  const genericNouns = new Set(['expertise', 'management', 'allocation', 'resource', 'timelines', 'initiative', 'initiatives']);
-  const keyword = (missingKeywords || []).find(
-    (kw, i) => {
-      if (kw.length < 5) return false;
-      if (cleaned.toLowerCase().includes(kw.toLowerCase())) return false;
-      if (genericNouns.has(kw.toLowerCase())) return false;
-      // Cycle: each bullet index skips the first `index` valid keywords
-      return (missingKeywords.filter((k, j) => {
-        if (k.length < 5) return false;
-        if (cleaned.toLowerCase().includes(k.toLowerCase())) return false;
-        if (genericNouns.has(k.toLowerCase())) return false;
-        return j < missingKeywords.indexOf(kw);
-      }).length === index % Math.max(1, missingKeywords.length));
-    }
-  ) || (missingKeywords || []).find(
-    (kw) => kw.length >= 5 && !cleaned.toLowerCase().includes(kw.toLowerCase()) && !genericNouns.has(kw.toLowerCase())
-  ) || null;
+  const candidates = sanitizeRewriteKeywords(missingKeywords);
+  const keyword = candidates.length ? candidates[index % candidates.length] : null;
 
-  // Helper: build phrase weaving keyword naturally using varied vocabulary
   const connectors = [
     (kw) => `incorporating ${kw} principles`,
     (kw) => `applying ${kw} strategies`,
     (kw) => `driving ${kw} outcomes`,
     (kw) => `integrating ${kw} best practices`,
     (kw) => `demonstrating ${kw} expertise`,
-    (kw) => `utilizing ${kw} methodologies`,
+    (kw) => `utilizing ${kw} methodologies`
   ];
   const connector = connectors[index % connectors.length];
 
@@ -183,84 +405,58 @@ function rewriteBullet(original, index, missingKeywords = []) {
     return `${base}, ${connector(keyword)} to achieve measurable results (e.g., XX% improvement or $X saved).`;
   };
 
-  // Already has verb + metric — strong bullet, add keyword enhancement
   if (hasAnyActionVerb && hasMetric) {
     if (keyword) {
       const strongConnectors = [
         `expanding impact through ${keyword}`,
         `strengthening ${keyword} across the organization`,
         `advancing ${keyword} initiatives`,
-        `optimizing outcomes via ${keyword}`,
+        `optimizing outcomes via ${keyword}`
       ];
       return `${capitalizeFirst(cleaned)}, ${strongConnectors[index % strongConnectors.length]}.`;
     }
-    // Even without a keyword, capitalize and clean up
-    return capitalizeFirst(cleaned);
+    return `${capitalizeFirst(cleaned)}.`;
   }
 
-  // Has action verb but no metric — keep verb, add metric + keyword naturally
   if (hasAnyActionVerb) {
     return withKeyword(capitalizeFirst(cleaned));
   }
 
-  // Weak bullet — rewrite with a strong action verb + keyword
-  // Only prepend starter if the bullet doesn't already start with something meaningful
   const starters = ['Led', 'Managed', 'Delivered', 'Executed', 'Spearheaded'];
   const starter = starters[index % starters.length];
   const lower = cleaned.charAt(0).toLowerCase() + cleaned.slice(1);
-  // Avoid "Spearheaded managed..." — if first word is already a noun or verb, don't double up
   const firstWord = cleaned.split(' ')[0].toLowerCase();
   const alreadyStartsWithVerb = /^(identified|coordinated|communicated|leveraged|proactively|supported|analyzed|evaluated|monitored)$/i.test(firstWord);
   const base = alreadyStartsWithVerb ? capitalizeFirst(cleaned) : `${starter} ${lower}`;
   return withKeyword(base);
-  }
+}
 
-  // Weave multiple keywords naturally into a single bullet for maximum keyword matching
-  function rewriteBulletWithMultipleKeywords(original, index, missingKeywords = []) {
-    let rewritten = rewriteBullet(original, index, missingKeywords);
-    if (!rewritten || rewritten === original) return rewritten;
-  
-    // Add up to 2 more keywords if available and not already in the text
-    const keywordsToAdd = missingKeywords
-      .filter((kw) => kw.length >= 5 && !rewritten.toLowerCase().includes(kw.toLowerCase()))
-      .slice(0, 2);
-  
-    if (keywordsToAdd.length > 0) {
-      // Insert additional keywords near the end, before the period
-      const lastPeriod = rewritten.lastIndexOf('.');
-      if (lastPeriod > 0) {
-        const beforePeriod = rewritten.substring(0, lastPeriod);
-        const period = rewritten.substring(lastPeriod);
-        const additionalKeywords = keywordsToAdd.join(' and ');
-        return `${beforePeriod}, with expertise in ${additionalKeywords}${period}`;
-      }
-    }
-  
-    return rewritten;
-  }
-  // Estimate what the score will be after applying fixes
-  function estimateScoreAfterFixes(original, rewritten, missingKeywords) {
-    // Check if rewritten version includes any keywords
-    const rewriteLower = rewritten.toLowerCase();
-    const keywordBoost = (missingKeywords || []).filter(kw => rewriteLower.includes(kw.toLowerCase())).length * 2;
-  
-    // Check if rewritten version has metrics
-    const hasMetric = /\d+/.test(rewritten) ? 5 : 0;
-  
-    // Check for strong action verbs
-    const strongVerbBoost = /led|managed|delivered|executed|built|created|launched|designed|implemented|optimized|increased|reduced/i.test(rewritten) ? 10 : 0;
-  
-    const originalScore = scoreBullet(original);
-    const estimatedNewScore = Math.min(100, originalScore + keywordBoost + hasMetric + strongVerbBoost);
-    return estimatedNewScore;
-  }
+function rewriteBulletWithMultipleKeywords(original, index, missingKeywords = []) {
+  const rewritten = rewriteBullet(original, index, missingKeywords);
+  if (!rewritten || rewritten === original) return rewritten;
+
+  const candidates = sanitizeRewriteKeywords(missingKeywords)
+    .filter((kw) => !rewritten.toLowerCase().includes(kw.toLowerCase()))
+    .slice(0, 2);
+
+  if (!candidates.length) return rewritten;
+
+  const lastPeriod = rewritten.lastIndexOf('.');
+  if (lastPeriod <= 0) return rewritten;
+
+  const beforePeriod = rewritten.substring(0, lastPeriod);
+  const period = rewritten.substring(lastPeriod);
+  const additionalKeywords = candidates.join(' and ');
+  return `${beforePeriod}, with expertise in ${additionalKeywords}${period}`;
+}
+
 function getRedFlags(resume) {
   const flags = [];
   const normalizedResume = String(resume || '').toLowerCase();
 
   if (!normalizedResume.includes('experience')) flags.push('Missing Experience section');
   if (!normalizedResume.includes('skills')) flags.push('Missing Skills section');
-  if (resume.length < 300) flags.push('Resume too short');
+  if (String(resume || '').length < 300) flags.push('Resume too short');
 
   return flags;
 }
@@ -270,16 +466,19 @@ function getFormattingWarnings(resume, bullets) {
 
   if (!/\S+@\S+\.\S+/.test(resume)) warnings.push('Missing a visible professional email in your resume header.');
   if (!bullets.length) warnings.push('Use bullet points for achievements to improve ATS readability.');
-  if (resume.split('\n').some((line) => line.length > 180)) warnings.push('Some resume lines are too long; split long lines into shorter bullets.');
+  if (String(resume || '').split('\n').some((line) => line.length > 180)) warnings.push('Some resume lines are too long; split long lines into shorter bullets.');
 
   return warnings;
 }
 
-function getQuickFixes({ missingKeywords, weakBullets, redFlags, formattingWarnings }) {
+function getQuickFixes({ missingKeywords, weakBullets, redFlags, formattingWarnings, mustHaveMissing }) {
   const fixes = [];
 
+  if (mustHaveMissing && mustHaveMissing.length) {
+    fixes.push(`Address must-have requirements first: ${mustHaveMissing.slice(0, 4).join(', ')}`);
+  }
   if (missingKeywords.length) {
-    fixes.push(`Add these missing keywords where truthful: ${missingKeywords.slice(0, 5).join(', ')}`);
+    fixes.push(`Add these missing terms where truthful: ${missingKeywords.slice(0, 5).join(', ')}`);
   }
   if (weakBullets.length) {
     fixes.push('Rewrite weak bullets with action verbs and measurable outcomes.');
@@ -298,13 +497,7 @@ function clampScore(value) {
   return Math.max(0, Math.min(100, Math.round(value)));
 }
 
-function calculateOverallScore({ matchedKeywords, missingKeywords, bulletScores, redFlags, formattingWarnings, resume }) {
-  const keywordTotal = matchedKeywords.length + missingKeywords.length;
-  const keywordScore = keywordTotal ? (matchedKeywords.length / keywordTotal) * 45 : 20;
-  const bulletAverage = bulletScores.length
-    ? bulletScores.reduce((sum, item) => sum + item.score, 0) / bulletScores.length
-    : 35;
-
+function getSectionAndFormattingHealth(redFlags, formattingWarnings, resume) {
   let sectionScore = 20;
   if (redFlags.includes('Missing Experience section')) sectionScore -= 10;
   if (redFlags.includes('Missing Skills section')) sectionScore -= 10;
@@ -317,77 +510,145 @@ function calculateOverallScore({ matchedKeywords, missingKeywords, bulletScores,
   if (String(resume || '').length > 1200) depthScore += 5;
   else if (String(resume || '').length < 500) depthScore -= 3;
 
-  return clampScore(keywordScore + (bulletAverage * 0.25) + sectionScore + formattingScore + depthScore);
+  return { sectionScore, formattingScore, depthScore };
 }
 
-function runATSAnalysis(job, resume) {
+function calculateOverallScoreBasic({ coverage, bulletScores, redFlags, formattingWarnings, resume }) {
+  const keywordScore = coverage * 45;
+  const bulletAverage = bulletScores.length
+    ? bulletScores.reduce((sum, item) => sum + item.score, 0) / bulletScores.length
+    : 35;
+
+  const { sectionScore, formattingScore, depthScore } = getSectionAndFormattingHealth(redFlags, formattingWarnings, resume);
+
+  const total = keywordScore + (bulletAverage * 0.25) + sectionScore + formattingScore + depthScore;
+
+  return {
+    atsScore: clampScore(total),
+    scoreBreakdown: {
+      mode: 'basic',
+      keywordCoveragePct: Math.round(coverage * 100),
+      keywordScore: Math.round(keywordScore),
+      bulletAverage: Math.round(bulletAverage),
+      bulletScoreContribution: Math.round(bulletAverage * 0.25),
+      sectionScore,
+      formattingScore,
+      depthScore
+    }
+  };
+}
+
+function calculateOverallScoreTrueLike({ coverage, mustHaveMatched, mustHaveMissing, bulletScores, redFlags, formattingWarnings, resume }) {
+  const keywordScore = coverage * 55;
+
+  const mustTotal = mustHaveMatched.length + mustHaveMissing.length;
+  const mustHaveScore = mustTotal ? (mustHaveMatched.length / mustTotal) * 20 : 20;
+
+  const bulletAverage = bulletScores.length
+    ? bulletScores.reduce((sum, item) => sum + item.score, 0) / bulletScores.length
+    : 35;
+
+  let sectionHealth = 10;
+  if (redFlags.includes('Missing Experience section')) sectionHealth -= 5;
+  if (redFlags.includes('Missing Skills section')) sectionHealth -= 3;
+  if (redFlags.includes('Resume too short')) sectionHealth -= 2;
+
+  let formattingHealth = 15;
+  formattingHealth -= Math.min(10, formattingWarnings.length * 2);
+
+  let depthBonus = 0;
+  if (String(resume || '').length > 1200) depthBonus += 2;
+
+  const total = keywordScore + mustHaveScore + (bulletAverage * 0.15) + sectionHealth + formattingHealth + depthBonus;
+
+  return {
+    atsScore: clampScore(total),
+    scoreBreakdown: {
+      mode: 'true-like',
+      weightedKeywordCoveragePct: Math.round(coverage * 100),
+      weightedKeywordScore: Math.round(keywordScore),
+      mustHaveMatched: mustHaveMatched.length,
+      mustHaveMissing: mustHaveMissing.length,
+      mustHaveScore: Math.round(mustHaveScore),
+      bulletAverage: Math.round(bulletAverage),
+      bulletScoreContribution: Math.round(bulletAverage * 0.15),
+      sectionHealth,
+      formattingHealth,
+      depthBonus
+    }
+  };
+}
+
+function runATSAnalysis(job, resume, options = {}) {
+  const mode = options.mode === 'basic' ? 'basic' : 'true-like';
+
   const bullets = extractBullets(resume);
   const scorableLines = bullets.length ? bullets : extractScorableLines(resume);
-  const { matchedKeywords, missingKeywords } = getKeywords(job, resume);
+
+  const keywordData = mode === 'true-like'
+    ? getKeywordsTrueLike(job, resume)
+    : getKeywordsBasic(job, resume);
 
   const bulletScores = scorableLines.map((line) => ({
     text: line,
     score: scoreBullet(line)
   }));
 
-  const flags = getRedFlags(resume);
+  const redFlags = getRedFlags(resume);
   const formattingWarnings = getFormattingWarnings(resume, bullets);
+
   const weakBullets = bulletScores
     .filter((b) => b.score < 80 && isRewriteEligibleLine(b.text))
     .slice(0, 10);
+
   const rewrittenBullets = weakBullets
     .map((b, index) => {
-      const improved = rewriteBullet(b.text, index, missingKeywords);
+      const improved = rewriteBulletWithMultipleKeywords(b.text, index, keywordData.missingKeywords);
       if (!improved || improved === b.text) return null;
       return { original: b.text, improved };
     })
     .filter(Boolean);
-    // Use multi-keyword rewrite for better keyword coverage
-    const rewrittenBulletsOptimized = weakBullets
-      .map((b, index) => {
-        const improved = rewriteBulletWithMultipleKeywords(b.text, index, missingKeywords);
-        if (!improved || improved === b.text) return null;
-        return { original: b.text, improved };
-      })
-      .filter(Boolean);
 
-    const quickFixes = getQuickFixes({
-    missingKeywords,
+  const quickFixes = getQuickFixes({
+    missingKeywords: keywordData.missingKeywords,
     weakBullets,
-    redFlags: flags,
-    formattingWarnings
+    redFlags,
+    formattingWarnings,
+    mustHaveMissing: keywordData.mustHaveMissing
   });
 
-  const atsScore = calculateOverallScore({
-    matchedKeywords,
-    missingKeywords,
-    bulletScores,
-    redFlags: flags,
-    formattingWarnings,
-    resume
-  });
+  const scoreResult = mode === 'true-like'
+    ? calculateOverallScoreTrueLike({
+        coverage: keywordData.coverage,
+        mustHaveMatched: keywordData.mustHaveMatched,
+        mustHaveMissing: keywordData.mustHaveMissing,
+        bulletScores,
+        redFlags,
+        formattingWarnings,
+        resume
+      })
+    : calculateOverallScoreBasic({
+        coverage: keywordData.coverage,
+        bulletScores,
+        redFlags,
+        formattingWarnings,
+        resume
+      });
 
   return {
-    atsScore,
+    analysisMode: mode,
+    atsScore: scoreResult.atsScore,
+    scoreBreakdown: scoreResult.scoreBreakdown,
     bulletScores,
-    redFlags: flags,
-    matchedKeywords,
-    missingKeywords,
+    redFlags,
+    matchedKeywords: keywordData.matchedKeywords,
+    missingKeywords: keywordData.missingKeywords,
+    mustHaveMatched: keywordData.mustHaveMatched,
+    mustHaveMissing: keywordData.mustHaveMissing,
     formattingWarnings,
     quickFixes,
     rewrittenBullets
   };
-      // Return optimized rewritten bullets with multiple keywords
-      return {
-      atsScore,
-      bulletScores,
-      redFlags: flags,
-      matchedKeywords,
-      missingKeywords,
-      formattingWarnings,
-      quickFixes,
-      rewrittenBullets: rewrittenBulletsOptimized.length > 0 ? rewrittenBulletsOptimized : rewrittenBullets
-    };
-  }
+}
 
 module.exports = { runATSAnalysis };

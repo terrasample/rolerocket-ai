@@ -8,10 +8,11 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || '' });
 
 // POST /api/ats/analyze
 router.post('/analyze', authenticateToken, async (req, res) => {
-  const { jobDescription, resume } = req.body;
+  const { jobDescription, resume, mode } = req.body;
   if (!jobDescription || !resume) return res.status(400).json({ error: 'Required fields missing' });
   try {
-    const analysis = runATSAnalysis(jobDescription, resume);
+    const normalizedMode = mode === 'basic' ? 'basic' : 'true-like';
+    const analysis = runATSAnalysis(jobDescription, resume, { mode: normalizedMode });
     res.json({ analysis });
   } catch (err) {
     res.status(500).json({ error: err.message });

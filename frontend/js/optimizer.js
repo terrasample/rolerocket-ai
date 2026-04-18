@@ -28,6 +28,7 @@ function showLoadingSpinner(show) {
 document.getElementById('analyzeResumeBtn')?.addEventListener('click', async () => {
   const jobDescription = document.getElementById('atsJobDescription').value.trim();
   const resume = document.getElementById('atsResume').value.trim();
+  const mode = document.getElementById('atsMode')?.value || 'true-like';
   setOptimizerStatus('Analyzing resume...');
   showLoadingSpinner(true);
   if (!jobDescription || !resume) {
@@ -42,7 +43,7 @@ document.getElementById('analyzeResumeBtn')?.addEventListener('click', async () 
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`
       },
-      body: JSON.stringify({ jobDescription, resume })
+      body: JSON.stringify({ jobDescription, resume, mode })
     });
     let data;
     try {
@@ -61,7 +62,8 @@ document.getElementById('analyzeResumeBtn')?.addEventListener('click', async () 
     renderAnalysisWarnings(analysis.redFlags, analysis.formattingWarnings, analysis.quickFixes);
     renderBulletScores(analysis.bulletScores);
     renderRewrites(analysis.rewrittenBullets);
-    setOptimizerStatus('Analysis complete.');
+    const modeLabel = analysis.analysisMode === 'basic' ? 'Basic Keyword ATS' : 'True-like ATS';
+    setOptimizerStatus(`Analysis complete (${modeLabel}).`);
   } catch (err) {
     console.error(err);
     setOptimizerStatus(err.message || 'Failed to analyze ATS score', true);
@@ -192,9 +194,24 @@ document.getElementById('downloadAtsReportBtn')?.addEventListener('click', () =>
   addHeading('ATS Analysis Report', 16);
   yPos += 3;
 
+  const modeLabel = latestAtsAnalysis.analysisMode === 'basic' ? 'Basic Keyword ATS' : 'True-like ATS';
+  addLine(`Mode: ${modeLabel}`, 0);
+  yPos += 2;
+
   // Score Section
   addHeading('ATS Score', 12);
   addLine(`Score: ${latestAtsAnalysis.atsScore || 0}`);
+  if (latestAtsAnalysis.scoreBreakdown) {
+    const b = latestAtsAnalysis.scoreBreakdown;
+    if (latestAtsAnalysis.analysisMode === 'true-like') {
+      addLine(`Weighted keyword coverage: ${b.weightedKeywordCoveragePct || 0}%`, 3);
+      addLine(`Must-have score: ${b.mustHaveScore || 0}/20`, 3);
+      addLine(`Bullet contribution: ${b.bulletScoreContribution || 0}`, 3);
+    } else {
+      addLine(`Keyword coverage: ${b.keywordCoveragePct || 0}%`, 3);
+      addLine(`Bullet contribution: ${b.bulletScoreContribution || 0}`, 3);
+    }
+  }
   yPos += 3;
 
   // Matched Keywords
@@ -214,6 +231,12 @@ document.getElementById('downloadAtsReportBtn')?.addEventListener('click', () =>
     addLine('No missing keywords identified.');
   }
   yPos += 3;
+
+  if (latestAtsAnalysis.mustHaveMissing && latestAtsAnalysis.mustHaveMissing.length) {
+    addHeading('Missing Must-Haves', 12);
+    addNumberedItems(latestAtsAnalysis.mustHaveMissing, 3);
+    yPos += 3;
+  }
 
   // Red Flags
   if (latestAtsAnalysis.redFlags && latestAtsAnalysis.redFlags.length) {
