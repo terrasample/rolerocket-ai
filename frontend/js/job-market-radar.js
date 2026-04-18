@@ -48,12 +48,67 @@ document.addEventListener('DOMContentLoaded', function () {
       .filter((token) => token.length > 2);
   }
 
+  function isGenericRoleToken(token) {
+    return ['manager', 'engineer', 'analyst', 'specialist', 'coordinator', 'associate', 'lead', 'senior', 'junior', 'staff'].includes(token);
+  }
+
+  function buildTargetRoleSuggestions(targetRole) {
+    const normalized = String(targetRole || '').trim();
+    const lower = normalized.toLowerCase();
+
+    let suggestions;
+    if (lower.includes('project manager')) {
+      suggestions = [
+        'Project Manager',
+        'Technical Project Manager',
+        'Program Manager',
+        'Delivery Manager',
+        'Implementation Manager',
+        'PMO Manager'
+      ];
+    } else if (lower.includes('product manager')) {
+      suggestions = [
+        'Product Manager',
+        'Senior Product Manager',
+        'Technical Product Manager',
+        'Growth Product Manager',
+        'Platform Product Manager',
+        'Product Lead'
+      ];
+    } else {
+      suggestions = [
+        normalized || 'Target Role',
+        `Senior ${normalized || 'Target Role'}`,
+        `${normalized || 'Target Role'} Lead`,
+        `${normalized || 'Target Role'} Specialist`
+      ];
+    }
+
+    return suggestions.filter((value, index, array) => array.indexOf(value) === index);
+  }
+
   function scoreRoleMatch(candidateRole, targetRole) {
     const targetTokens = roleKeywords(targetRole);
-    const candidate = String(candidateRole || '').toLowerCase();
+    const candidate = String(candidateRole || '').toLowerCase().trim();
     if (!targetTokens.length) return 0;
-    const hits = targetTokens.filter((token) => candidate.includes(token)).length;
-    return Math.round((hits / targetTokens.length) * 100);
+
+    const normalizedTarget = String(targetRole || '').toLowerCase().trim();
+    if (candidate === normalizedTarget || candidate.includes(normalizedTarget)) {
+      return 100;
+    }
+
+    const nonGenericTokens = targetTokens.filter((token) => !isGenericRoleToken(token));
+    const genericTokens = targetTokens.filter((token) => isGenericRoleToken(token));
+    const nonGenericHits = nonGenericTokens.filter((token) => candidate.includes(token)).length;
+    const genericHits = genericTokens.filter((token) => candidate.includes(token)).length;
+
+    if (nonGenericTokens.length && nonGenericHits === 0) {
+      return genericHits ? 12 : 0;
+    }
+
+    const nonGenericScore = Math.round((nonGenericHits / Math.max(1, nonGenericTokens.length)) * 85);
+    const genericScore = Math.round((genericHits / Math.max(1, targetTokens.length)) * 15);
+    return Math.min(100, nonGenericScore + genericScore);
   }
 
   function topRoleMatches(industries, targetRole) {
@@ -61,8 +116,21 @@ document.addEventListener('DOMContentLoaded', function () {
       (roles || []).map((role) => ({ industry, role, match: scoreRoleMatch(role, targetRole) }))
     );
 
-    return allRoles
+    const strongMatches = allRoles
+      .filter((item) => item.match >= 40)
       .sort((a, b) => b.match - a.match)
+      .slice(0, 6);
+
+    if (strongMatches.length) return strongMatches;
+
+    const suggestedMatches = buildTargetRoleSuggestions(targetRole).map((role, index) => ({
+      industry: 'Target Track',
+      role,
+      match: Math.max(70, 96 - (index * 5))
+    }));
+
+    return suggestedMatches
+      .concat(allRoles.filter((item) => item.match >= 25).sort((a, b) => b.match - a.match))
       .slice(0, 6);
   }
 
@@ -120,39 +188,39 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!preview) return;
 
     const matchesMarkup = model.matches.length
-      ? model.matches.map((item) => `<li>${item.role} <span style="color:#64748b;">(${item.industry}, ${item.match}% match)</span></li>`).join('')
+      ? model.matches.map((item) => `<li style="color:#1e293b;font-size:1.06rem;">${item.role} <span style="color:#475569;">(${item.industry}, ${item.match}% match)</span></li>`).join('')
       : '<li>No role matches available right now.</li>';
 
     const skillsMarkup = model.skillsList.length
-      ? model.skillsList.map((skill) => `<li>${skill}</li>`).join('')
+      ? model.skillsList.map((skill) => `<li style="color:#1e293b;font-size:1.06rem;">${skill}</li>`).join('')
       : '<li>Skill data is still loading.</li>';
 
-    const actionsMarkup = model.actionPlan.map((step) => `<li>${step}</li>`).join('');
+    const actionsMarkup = model.actionPlan.map((step) => `<li style="color:#1e293b;font-size:1.06rem;">${step}</li>`).join('');
 
     preview.innerHTML = `
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:14px;">
         <div style="padding:12px;border:1px solid #bfdbfe;border-radius:10px;background:#eff6ff;">
           <div style="font-size:0.8rem;color:#1d4ed8;font-weight:700;text-transform:uppercase;">Target</div>
-          <div style="margin-top:4px;color:#0f172a;font-weight:700;">${role}</div>
-          <div style="color:#334155;">${location}</div>
+          <div style="margin-top:4px;color:#0f172a;font-weight:800;font-size:1.95rem;line-height:1.25;">${role}</div>
+          <div style="color:#334155;font-size:1.18rem;">${location}</div>
         </div>
         <div style="padding:12px;border:1px solid #bbf7d0;border-radius:10px;background:#f0fdf4;">
           <div style="font-size:0.8rem;color:#15803d;font-weight:700;text-transform:uppercase;">Confidence</div>
-          <div style="margin-top:4px;color:#0f172a;font-weight:700;">${model.confidence}/100</div>
-          <div style="color:#334155;">Last refresh: ${model.refreshDate}</div>
+          <div style="margin-top:4px;color:#0f172a;font-weight:800;font-size:1.95rem;line-height:1.2;">${model.confidence}/100</div>
+          <div style="color:#334155;font-size:1.16rem;">Last refresh: ${model.refreshDate}</div>
         </div>
       </div>
       <div style="margin-bottom:12px;">
-        <strong style="display:block;margin-bottom:6px;">Top Role Matches</strong>
-        <ul style="margin:0 0 0 18px;padding:0;line-height:1.6;">${matchesMarkup}</ul>
+        <strong style="display:block;margin-bottom:6px;color:#0f172a;font-size:1.45rem;">Top Role Matches</strong>
+        <ul style="margin:0 0 0 22px;padding:0;line-height:1.75;">${matchesMarkup}</ul>
       </div>
       <div style="margin-bottom:12px;">
-        <strong style="display:block;margin-bottom:6px;">In-Demand Skills to Mirror</strong>
-        <ul style="margin:0 0 0 18px;padding:0;line-height:1.6;">${skillsMarkup}</ul>
+        <strong style="display:block;margin-bottom:6px;color:#0f172a;font-size:1.45rem;">In-Demand Skills to Mirror</strong>
+        <ul style="margin:0 0 0 22px;padding:0;line-height:1.75;">${skillsMarkup}</ul>
       </div>
       <div>
-        <strong style="display:block;margin-bottom:6px;">Action Plan (Next 7 Days)</strong>
-        <ol style="margin:0 0 0 18px;padding:0;line-height:1.6;">${actionsMarkup}</ol>
+        <strong style="display:block;margin-bottom:6px;color:#0f172a;font-size:1.45rem;">Action Plan (Next 7 Days)</strong>
+        <ol style="margin:0 0 0 22px;padding:0;line-height:1.75;">${actionsMarkup}</ol>
       </div>
     `;
     preview.style.display = 'block';
