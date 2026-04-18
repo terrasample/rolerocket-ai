@@ -74,7 +74,7 @@ function normalizeLineForRewrite(text) {
 }
 
 function isCertificationLikeLine(text) {
-  return /(pmp|pcp|cisn|cissp|gcp|aws|azure|certified|certificate|certification|credential|accredited|license|exam|passed|obtained|earned|awarded)\b/i.test(String(text || ''));
+  return /(pmp|pcp|cisn|cissp|gcp|aws|azure|certified|certificate|certification|credential|accredited|license|exam|passed|obtained|earned|awarded|in progress)\b/i.test(String(text || ''));
 }
 
 function isEducationLikeLine(text) {
@@ -118,26 +118,33 @@ function rewriteBullet(original, index) {
   }
   
   // Broader action verb detection: includes past-tense and present-tense verbs
-  const hasAnyActionVerb = /^(led|managed|improved|delivered|built|launched|designed|developed|implemented|optimized|created|drove|owned|analyze|analyzed|provide|provided|assess|assessed|support|supported|maintain|maintained|ensure|ensured|establish|established|execute|executed|manage|coordinate|oversee|direct|supervise|drive|architect|engineer)\b/i.test(cleaned);
+  const hasAnyActionVerb = /^(led|managed|improved|delivered|built|launched|designed|developed|implemented|optimized|created|drove|owned|analyze|analyzed|provide|provided|assess|assessed|support|supported|maintain|maintained|ensure|ensured|establish|established|execute|executed|manage|coordinate|oversee|direct|supervise|drive|architect|engineer|plan|planned|planning|evaluate|evaluated|review|reviewed|monitor|monitored|facilitate|facilitated|collaborate|collaborated|guide|guided)\b/i.test(cleaned);
   const hasMetric = /\d+/.test(cleaned);
 
-  // If it already has strong action verb, just capitalize it
+  // If it already has strong action verb, enhance it minimally
   if (hasAnyActionVerb) {
     const capitalized = capitalizeFirst(cleaned);
-    if (hasMetric) {
+    // If already has metrics or is sufficiently detailed, return as-is
+    if (hasMetric || cleaned.length > 80) {
       return capitalized;
     }
-    return `${capitalized}, delivering measurable impact through XX% improvement, $X cost savings, or X additional projects.`;
+    // Only add impact clause if it's short and vague
+    if (cleaned.length < 50 && !/result|impact|outcome|improvement|save|deliver/i.test(cleaned)) {
+      return `${capitalized}, delivering measurable impact through XX% improvement, $X cost savings, or X additional projects.`;
+    }
+    return capitalized;
   }
 
-  // If no action verb, add one
+  // Only add starter verb if bullet is truly weak (no structure, no metrics, too generic)
+  const isWeakBullet = cleaned.length < 50 && !hasMetric && /^(responsible|helped|worked|did|handled|support)\b/i.test(cleaned);
+  if (!isWeakBullet) {
+    // If has reasonable structure but missing metrics, just capitalize
+    return capitalizeFirst(cleaned);
+  }
+  
+  // Only for truly weak bullets, add starter verb
   const starters = ['Led', 'Improved', 'Delivered', 'Built', 'Launched'];
   const starter = starters[index % starters.length];
-  
-  if (hasMetric) {
-    return `${starter} ${cleaned.charAt(0).toLowerCase()}${cleaned.slice(1)}`;
-  }
-
   return `${starter} ${cleaned.charAt(0).toLowerCase()}${cleaned.slice(1)}, delivering a measurable outcome such as XX% faster execution or X more completed projects.`;
 }
 
