@@ -31,6 +31,24 @@
       font-size: 1.05rem !important;
       line-height: 1.72 !important;
     }
+    #dashboardFeaturesGrid {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      gap: 22px !important;
+    }
+    #dashboardFeaturesGrid .marketing-card.tier-feature {
+      min-height: 250px !important;
+      padding: 30px 30px 26px !important;
+    }
+    #dashboardFeaturesGrid .feature-title {
+      font-size: 1.52rem !important;
+      line-height: 1.3 !important;
+      margin-bottom: 12px !important;
+    }
+    @media (max-width: 1120px) {
+      #dashboardFeaturesGrid {
+        grid-template-columns: 1fr !important;
+      }
+    }
   </style>
 </head>
 <body>
