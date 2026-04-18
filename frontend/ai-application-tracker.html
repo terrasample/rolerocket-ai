@@ -37,8 +37,40 @@
         <h2 class="feature-title">AI Application Tracker</h2>
         <p>Track all your applications, interviews, and offers in one place with AI insights.</p>
         <div style="display:grid;gap:12px;text-align:left;width:100%;max-width:1000px;margin:20px auto;">
-          <label for="trackerApplicationsInput"><strong>Applications</strong></label>
-          <textarea id="trackerApplicationsInput" style="width:100%;height:150px;" placeholder="Add one application per line, for example: Stripe | Product Manager | Interview Scheduled"></textarea>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;">
+            <label for="trackerCompanyInput"><strong>Company</strong><input id="trackerCompanyInput" type="text" style="width:100%;margin-top:6px;" placeholder="e.g. Stripe" /></label>
+            <label for="trackerRoleInput"><strong>Role</strong><input id="trackerRoleInput" type="text" style="width:100%;margin-top:6px;" placeholder="e.g. Product Manager" /></label>
+            <label for="trackerStageInput"><strong>Stage</strong>
+              <select id="trackerStageInput" style="width:100%;margin-top:6px;">
+                <option value="Applied">Applied</option>
+                <option value="Phone Screen">Phone Screen</option>
+                <option value="Interview">Interview</option>
+                <option value="Final Round">Final Round</option>
+                <option value="Offer">Offer</option>
+                <option value="Rejected">Rejected</option>
+              </select>
+            </label>
+            <label for="trackerAppliedDateInput"><strong>Applied Date</strong><input id="trackerAppliedDateInput" type="date" style="width:100%;margin-top:6px;" /></label>
+          </div>
+          <label for="trackerJobLinkInput"><strong>Job Link (optional)</strong></label>
+          <input id="trackerJobLinkInput" type="url" style="width:100%;" placeholder="https://..." />
+          <label for="trackerNotesInput"><strong>Notes (optional)</strong></label>
+          <input id="trackerNotesInput" type="text" style="width:100%;" placeholder="e.g. Follow up Thursday; referral from Alex" />
+          <div class="tool-action-bar">
+            <div class="tool-primary-actions">
+              <button id="addTrackerEntryBtn" class="feature-launch-btn tool-action-btn tool-action-btn--primary" type="button">Add Application</button>
+              <button id="saveTrackerBtn" class="feature-launch-btn tool-action-btn tool-action-btn--secondary" type="button">Save Tracker</button>
+            </div>
+            <div class="tool-secondary-actions">
+              <button id="clearTrackerFieldsBtn" class="feature-launch-btn tool-action-btn tool-action-btn--secondary" type="button">Clear Fields</button>
+              <button id="resetTrackerBtn" class="feature-launch-btn tool-action-btn tool-action-btn--secondary" type="button">Reset Tracker</button>
+            </div>
+          </div>
+          <div style="margin-top:8px;">
+            <strong>Application Entries</strong>
+            <div id="trackerEntriesEmpty" style="margin-top:6px;color:#94a3b8;">No applications added yet.</div>
+            <div id="trackerEntriesList" style="margin-top:10px;display:grid;gap:10px;"></div>
+          </div>
           <label for="trackerFocusInput"><strong>Current Focus</strong></label>
           <input id="trackerFocusInput" type="text" style="width:100%;" placeholder="e.g. Improve response rate and prepare for onsite interviews" />
         </div>
@@ -46,7 +78,7 @@
           <button id="generateApplicationTrackerBtn" class="feature-launch-btn">Generate Tracker Summary</button>
         </div>
         <div id="applicationTrackerResult" style="display:none;">
-          <textarea id="applicationTrackerText" readonly style="width:100%;height:220px;margin:18px 0;"></textarea>
+          <textarea id="applicationTrackerText" readonly style="width:100%;height:260px;margin:18px 0;"></textarea>
         </div>
         <div id="applicationTrackerDownloads" style="display:none;margin:18px 0;">
           <button id="downloadApplicationTrackerPdfBtn" class="feature-launch-btn" style="margin-right:12px;">Download as PDF</button>

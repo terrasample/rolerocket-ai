@@ -3457,6 +3457,110 @@ app.post('/api/career-coach', authenticateToken, async (req, res) => {
   }
 });
 
+app.post('/api/ai-application-tracker/analyze', authenticateToken, async (req, res) => {
+  try {
+    const entries = Array.isArray(req.body?.entries) ? req.body.entries : [];
+    const focus = String(req.body?.focus || '').trim();
+
+    if (!entries.length) {
+      return res.status(400).json({ error: 'At least one application entry is required.' });
+    }
+
+    const user = await User.findById(req.user.userId);
+    if (!hasRequiredPlan(user, 'elite')) {
+      return res.status(403).json({ error: 'Upgrade to Elite to use AI Application Tracker.' });
+    }
+
+    const normalizedEntries = entries
+      .map((entry) => ({
+        company: String(entry?.company || '').trim(),
+        role: String(entry?.role || '').trim(),
+        stage: String(entry?.stage || '').trim() || 'Applied',
+        appliedDate: String(entry?.appliedDate || '').trim(),
+        notes: String(entry?.notes || '').trim(),
+        jobLink: String(entry?.jobLink || '').trim()
+      }))
+      .filter((entry) => entry.company && entry.role)
+      .slice(0, 50);
+
+    if (!normalizedEntries.length) {
+      return res.status(400).json({ error: 'Entries must include company and role.' });
+    }
+
+    const stageSummary = normalizedEntries.reduce((acc, entry) => {
+      const stage = entry.stage.toLowerCase();
+      if (stage.includes('offer')) acc.offer += 1;
+      else if (stage.includes('interview') || stage.includes('phone') || stage.includes('final')) acc.interview += 1;
+      else if (stage.includes('reject')) acc.rejected += 1;
+      else acc.waiting += 1;
+      return acc;
+    }, { interview: 0, offer: 0, waiting: 0, rejected: 0 });
+
+    const compactEntries = normalizedEntries
+      .map((entry, idx) => `${idx + 1}. ${entry.company} | ${entry.role} | ${entry.stage}${entry.appliedDate ? ` | ${entry.appliedDate}` : ''}${entry.notes ? ` | ${entry.notes}` : ''}`)
+      .join('\n');
+
+    if (E2E_MOCK_MODE) {
+      return res.json({
+        report: [
+          'AI Application Tracker Summary',
+          '',
+          `Active applications logged: ${normalizedEntries.length}`,
+          `Interviews in motion: ${stageSummary.interview}`,
+          `Offers pending or received: ${stageSummary.offer}`,
+          `Waiting for response: ${stageSummary.waiting}`,
+          `Closed or rejected: ${stageSummary.rejected}`,
+          '',
+          `Current focus: ${focus || 'Improve conversion from applied to interview.'}`,
+          '',
+          'Recommended next actions:',
+          '- Prioritize follow-ups for applications older than 7 business days.',
+          '- Prepare role-specific interview stories for your top active roles.',
+          '- Increase tailored applications in the role family with the highest response rate.'
+        ].join('\n')
+      });
+    }
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an expert job search operations coach. Produce a concise, actionable tracker summary in plain text with headings and bullet points. Focus on pipeline health, bottlenecks, and concrete next steps for the next 7 days.'
+        },
+        {
+          role: 'user',
+          content: [
+            `Current focus: ${focus || 'Not provided'}`,
+            '',
+            'Application entries:',
+            compactEntries,
+            '',
+            `Stage summary: interviews=${stageSummary.interview}, offers=${stageSummary.offer}, waiting=${stageSummary.waiting}, rejected=${stageSummary.rejected}`,
+            '',
+            'Return sections in this order:',
+            '1) AI Application Tracker Summary',
+            '2) Pipeline Snapshot',
+            '3) Bottlenecks',
+            '4) Recommended Next Actions (numbered)',
+            '5) One-week execution plan'
+          ].join('\n')
+        }
+      ]
+    });
+
+    const report = String(completion.choices?.[0]?.message?.content || '').trim();
+    if (!report) {
+      return res.status(500).json({ error: 'Could not generate tracker summary.' });
+    }
+
+    return res.json({ report });
+  } catch (err) {
+    console.error('AI application tracker analyze error:', err);
+    return res.status(500).json({ error: 'Failed to generate AI tracker summary.' });
+  }
+});
+
 // ─── Interview Assist ────────────────────────────────────────────────────────
 app.post('/api/interview-assist/transcribe', authenticateToken, upload.single('audio'), async (req, res) => {
   try {
