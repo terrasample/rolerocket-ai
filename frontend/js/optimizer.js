@@ -306,16 +306,16 @@ function renderRewrites(items) {
   if (!container) return;
 
   if (!items || !items.length) {
-    container.innerHTML = '<div class="urgency-empty">No weak bullets found. Good job.</div>';
+    container.innerHTML = '<div style="color:#16a34a;font-size:0.95em;padding:8px 0;">✓ All bullets look strong. No rewrites needed.</div>';
     return;
   }
 
-  container.innerHTML = items.map((item) => `
-    <div class="job-result-card">
-      <strong>Original</strong>
-      <p>${item.original}</p>
-      <strong>Improved</strong>
-      <p>${item.improved}</p>
+  container.innerHTML = items.map((item, i) => `
+    <div style="border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;margin-bottom:14px;background:#0f172a;">
+      <div style="font-size:0.75em;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Original</div>
+      <div style="color:#cbd5e1;font-size:0.92em;line-height:1.6;margin-bottom:12px;border-left:3px solid #475569;padding-left:10px;">${item.original}</div>
+      <div style="font-size:0.75em;font-weight:700;color:#38bdf8;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">⚡ Improved</div>
+      <div style="color:#e2e8f0;font-size:0.95em;line-height:1.6;border-left:3px solid #38bdf8;padding-left:10px;">${item.improved}</div>
     </div>
   `).join('');
 }

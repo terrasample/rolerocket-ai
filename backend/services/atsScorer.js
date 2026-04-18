@@ -1,8 +1,25 @@
 function extractBullets(resume) {
-  return resume
-    .split('\n')
-    .map((line) => line.trim())
-    .filter((line) => /^[-*•]/.test(line));
+  const lines = String(resume || '').split('\n').map((line) => line.trim());
+  const bullets = [];
+  let current = null;
+  // Matches section headers, employer/job lines (contain commas + dates or location patterns)
+  const breaker = /^[A-Z][A-Z\s,&]{3,}$|^(EXPERIENCE|EDUCATION|SKILLS|CERTIFICATION|CERTIFICATIONS|SUMMARY|PROFILE|PROJECTS|AWARDS|CORE SKILLS)\b/i;
+  const jobLine = /,\s*(FL|PA|NY|TX|CA|OH|GA|VA|DC|MD|NC|SC|IL|WA|MA|NJ|AZ|CO|MN|OR|TN|IN|MI)\b|,\s*(LLC|Inc|Corp|Company|University|College|Reserve|Army|Navy|Air Force)\b|\d{2}\/\d{4}/i;
+
+  for (const line of lines) {
+    if (/^[-*•]/.test(line)) {
+      if (current) bullets.push(current);
+      current = line.replace(/^[-*•]\s*/, '').trim();
+    } else if (current && line.length > 0 && !breaker.test(line) && !jobLine.test(line)) {
+      // Continuation of current bullet — join it
+      current = current + ' ' + line;
+    } else {
+      if (current) bullets.push(current);
+      current = null;
+    }
+  }
+  if (current) bullets.push(current);
+  return bullets;
 }
 
 function extractScorableLines(resume) {
@@ -86,6 +103,7 @@ function normalizeLineForRewrite(text) {
   return String(text || '')
     .replace(/^[-*•]\s*/, '')
     .replace(/\s+/g, ' ')
+    .replace(/[,\s]+$/, '') // Remove trailing commas and whitespace
     .trim();
 }
 
@@ -165,7 +183,7 @@ function rewriteBullet(original, index, missingKeywords = []) {
     return `${base}, ${connector(keyword)} to achieve measurable results (e.g., XX% improvement or $X saved).`;
   };
 
-  // Already has verb + metric — strong bullet, only suggest keyword if available
+  // Already has verb + metric — strong bullet, add keyword enhancement
   if (hasAnyActionVerb && hasMetric) {
     if (keyword) {
       const strongConnectors = [
@@ -176,7 +194,8 @@ function rewriteBullet(original, index, missingKeywords = []) {
       ];
       return `${capitalizeFirst(cleaned)}, ${strongConnectors[index % strongConnectors.length]}.`;
     }
-    return null; // No improvement needed
+    // Even without a keyword, capitalize and clean up
+    return capitalizeFirst(cleaned);
   }
 
   // Has action verb but no metric — keep verb, add metric + keyword naturally
@@ -185,10 +204,15 @@ function rewriteBullet(original, index, missingKeywords = []) {
   }
 
   // Weak bullet — rewrite with a strong action verb + keyword
+  // Only prepend starter if the bullet doesn't already start with something meaningful
   const starters = ['Led', 'Managed', 'Delivered', 'Executed', 'Spearheaded'];
   const starter = starters[index % starters.length];
   const lower = cleaned.charAt(0).toLowerCase() + cleaned.slice(1);
-  return withKeyword(`${starter} ${lower}`);
+  // Avoid "Spearheaded managed..." — if first word is already a noun or verb, don't double up
+  const firstWord = cleaned.split(' ')[0].toLowerCase();
+  const alreadyStartsWithVerb = /^(identified|coordinated|communicated|leveraged|proactively|supported|analyzed|evaluated|monitored)$/i.test(firstWord);
+  const base = alreadyStartsWithVerb ? capitalizeFirst(cleaned) : `${starter} ${lower}`;
+  return withKeyword(base);
 }
 
 function getRedFlags(resume) {
@@ -270,12 +294,12 @@ function runATSAnalysis(job, resume) {
   const flags = getRedFlags(resume);
   const formattingWarnings = getFormattingWarnings(resume, bullets);
   const weakBullets = bulletScores
-    .filter((b) => b.score < 60 && isRewriteEligibleLine(b.text))
-    .slice(0, 4);
+    .filter((b) => b.score < 80 && isRewriteEligibleLine(b.text))
+    .slice(0, 10);
   const rewrittenBullets = weakBullets
     .map((b, index) => {
       const improved = rewriteBullet(b.text, index, missingKeywords);
-      if (!improved) return null;
+      if (!improved || improved === b.text) return null;
       return { original: b.text, improved };
     })
     .filter(Boolean);
