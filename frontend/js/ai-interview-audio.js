@@ -14,6 +14,8 @@ let sharedAudioMode = 'shared';
 let sharedAudioMicStream = null;
 let sharedAudioContext = null;
 let sharedAudioDestination = null;
+let sharedAudioRecordSourceStream = null;
+let sharedAudioKeepAliveOnStop = false;
 
 function stopTracks(stream) {
   if (!stream) return;
@@ -40,6 +42,64 @@ function cleanupSharedAudioMix() {
 
   sharedAudioContext = null;
   sharedAudioDestination = null;
+  sharedAudioRecordSourceStream = null;
+}
+
+function streamHasLiveAudioTrack(stream) {
+  if (!stream) return false;
+  return stream.getAudioTracks().some((track) => track.readyState === 'live');
+}
+
+function buildSharedAudioRecorder(sourceStream, handlers = {}) {
+  const mimeType = getSupportedAudioMimeType();
+  sharedAudioRecorder = mimeType
+    ? new MediaRecorder(sourceStream, { mimeType })
+    : new MediaRecorder(sourceStream);
+
+  const captureAudioTracks = sharedAudioCaptureStream ? sharedAudioCaptureStream.getAudioTracks() : [];
+  captureAudioTracks.forEach((track) => {
+    track.onended = () => {
+      if (typeof handlers.onState === 'function') handlers.onState('stopped');
+      stopSharedAudioCapture({ preserveStream: false });
+    };
+  });
+
+  sharedAudioRecorder.ondataavailable = (event) => {
+    if (!event.data || event.data.size === 0) return;
+    if (typeof handlers.onChunk === 'function') handlers.onChunk(event.data);
+  };
+
+  sharedAudioRecorder.onerror = (event) => {
+    if (typeof handlers.onError === 'function') handlers.onError(event?.error || event);
+  };
+
+  sharedAudioRecorder.onstart = () => {
+    if (typeof handlers.onState === 'function') {
+      if (sharedAudioMode === 'mic') {
+        handlers.onState('listening-mic');
+      } else if (sharedAudioMode === 'mixed') {
+        handlers.onState('listening-mixed');
+      } else {
+        handlers.onState('listening');
+      }
+    }
+  };
+
+  sharedAudioRecorder.onstop = () => {
+    sharedAudioRecorder = null;
+    if (sharedAudioKeepAliveOnStop) {
+      sharedAudioKeepAliveOnStop = false;
+      return;
+    }
+
+    stopTracks(sharedAudioCaptureStream);
+    sharedAudioCaptureStream = null;
+    cleanupSharedAudioMix();
+    sharedAudioMode = 'shared';
+  };
+
+  // Slightly longer chunks improve phrase-level clarity.
+  sharedAudioRecorder.start(5000);
 }
 
 function getSupportedAudioMimeType() {
@@ -165,6 +225,12 @@ async function startSharedAudioCapture(handlers = {}) {
     return;
   }
 
+  if (streamHasLiveAudioTrack(sharedAudioCaptureStream) && streamHasLiveAudioTrack(sharedAudioRecordSourceStream)) {
+    if (typeof handlers.onState === 'function') handlers.onState('reusing-stream');
+    buildSharedAudioRecorder(sharedAudioRecordSourceStream, handlers);
+    return;
+  }
+
   if (typeof handlers.onState === 'function') handlers.onState('requesting-permission');
 
   let captureStream;
@@ -246,48 +312,8 @@ async function startSharedAudioCapture(handlers = {}) {
   }
 
   sharedAudioCaptureStream = activeStream;
-  const mimeType = getSupportedAudioMimeType();
-  sharedAudioRecorder = mimeType
-    ? new MediaRecorder(recordSourceStream, { mimeType })
-    : new MediaRecorder(recordSourceStream);
-
-  audioTracks.forEach((track) => {
-    track.onended = () => {
-      if (typeof handlers.onState === 'function') handlers.onState('stopped');
-      stopSharedAudioCapture();
-    };
-  });
-
-  sharedAudioRecorder.ondataavailable = (event) => {
-    if (!event.data || event.data.size === 0) return;
-    if (typeof handlers.onChunk === 'function') handlers.onChunk(event.data);
-  };
-
-  sharedAudioRecorder.onerror = (event) => {
-    if (typeof handlers.onError === 'function') handlers.onError(event?.error || event);
-  };
-
-  sharedAudioRecorder.onstart = () => {
-    if (typeof handlers.onState === 'function') {
-      if (sharedAudioMode === 'mic') {
-        handlers.onState('listening-mic');
-      } else if (sharedAudioMode === 'mixed') {
-        handlers.onState('listening-mixed');
-      } else {
-        handlers.onState('listening');
-      }
-    }
-  };
-
-  sharedAudioRecorder.onstop = () => {
-    stopTracks(sharedAudioCaptureStream);
-    sharedAudioCaptureStream = null;
-    sharedAudioRecorder = null;
-    cleanupSharedAudioMix();
-    sharedAudioMode = 'shared';
-  };
-
-  sharedAudioRecorder.start(3000);
+  sharedAudioRecordSourceStream = recordSourceStream;
+  buildSharedAudioRecorder(recordSourceStream, handlers);
 }
 
 function stopLiveQuestionCapture() {
@@ -302,21 +328,28 @@ function stopLiveQuestionCapture() {
   liveRecognition = null;
 }
 
-function stopSharedAudioCapture() {
+function stopSharedAudioCapture(options = {}) {
+  const preserveStream = Boolean(options.preserveStream);
   if (sharedAudioRecorder && sharedAudioRecorder.state !== 'inactive') {
     try {
+      sharedAudioKeepAliveOnStop = preserveStream;
       sharedAudioRecorder.stop();
     } catch {
       // Ignore stop errors.
     }
+    return;
   }
 
-  if (!sharedAudioRecorder) {
+  if (!preserveStream) {
     stopTracks(sharedAudioCaptureStream);
     sharedAudioCaptureStream = null;
     cleanupSharedAudioMix();
     sharedAudioMode = 'shared';
   }
+}
+
+function releaseSharedAudioCapture() {
+  stopSharedAudioCapture({ preserveStream: false });
 }
 
 // Play AI feedback using text-to-speech
@@ -335,5 +368,6 @@ window.AIInterviewAudio = {
   stopLiveQuestionCapture,
   startSharedAudioCapture,
   stopSharedAudioCapture,
+  releaseSharedAudioCapture,
   speakText
 };

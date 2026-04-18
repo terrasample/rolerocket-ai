@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const liveAnswerBtn = document.getElementById('getLiveAnswerBtn');
   const startLiveCaptureBtn = document.getElementById('startLiveCaptureBtn');
   const stopLiveCaptureBtn = document.getElementById('stopLiveCaptureBtn');
+  const clearLiveQuestionBtn = document.getElementById('clearLiveQuestionBtn');
   const liveCaptureStatus = document.getElementById('liveCaptureStatus');
   const roleInput = document.getElementById('interviewRole');
   const scenarioInput = document.getElementById('interviewScenario');
@@ -580,6 +581,8 @@ document.addEventListener('DOMContentLoaded', () => {
           if (!liveListenerEnabled) return;
           if (state === 'requesting-permission') {
             setLiveStatus('Waiting for you to share the interview audio...', '#1d4ed8');
+          } else if (state === 'reusing-stream') {
+            setLiveStatus('Resuming live listening with your existing audio permissions...', '#0f766e');
           } else if (state === 'fallback-mic') {
             setLiveStatus('Shared audio was unavailable. Switched to microphone listening.', '#b45309');
           } else if (state === 'listening') {
@@ -607,7 +610,7 @@ document.addEventListener('DOMContentLoaded', () => {
     pendingTranscript = '';
     lastTranscriptChunk = '';
     if (window.AIInterviewAudio?.stopSharedAudioCapture) {
-      window.AIInterviewAudio.stopSharedAudioCapture();
+      window.AIInterviewAudio.stopSharedAudioCapture({ preserveStream: true });
     }
     if (window.AIInterviewAudio?.stopLiveQuestionCapture) {
       window.AIInterviewAudio.stopLiveQuestionCapture();
@@ -621,6 +624,19 @@ document.addEventListener('DOMContentLoaded', () => {
   liveAnswerBtn?.addEventListener('click', getLiveCopilotAnswer);
   startLiveCaptureBtn?.addEventListener('click', startLiveListening);
   stopLiveCaptureBtn?.addEventListener('click', stopLiveListening);
+  clearLiveQuestionBtn?.addEventListener('click', () => {
+    if (liveQuestionInput) liveQuestionInput.value = '';
+    setLiveStatus('Live question field cleared.', '#475569');
+  });
+
+  window.addEventListener('beforeunload', () => {
+    if (window.AIInterviewAudio?.releaseSharedAudioCapture) {
+      window.AIInterviewAudio.releaseSharedAudioCapture();
+    }
+    if (window.AIInterviewAudio?.stopLiveQuestionCapture) {
+      window.AIInterviewAudio.stopLiveQuestionCapture();
+    }
+  });
 
   loadPracticeAccess();
 });
