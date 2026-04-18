@@ -34,10 +34,10 @@
     </aside>
     <main class="main marketing-main" id="mainContent" tabindex="-1">
       <button onclick="window.history.back()" class="back-arrow-btn" aria-label="Go back" style="margin:12px 0 0 12px;background:none;border:none;cursor:pointer;font-size:1.6em;color:#2563eb;"><span aria-hidden="true">&#8592;</span> Back</button>
-      <section class="marketing-card tier-feature pro" style="max-width:700px;margin:0 auto 32px auto;text-align:center;">
+      <section class="marketing-card tier-feature pro" style="max-width:1120px;width:min(1120px, calc(100vw - 64px));margin:32px auto;text-align:center;">
         <h2 class="feature-title">Job Market Radar</h2>
         <p>See trending roles, in-demand skills, and market insights tailored to your profile.</p>
-        <div style="max-width:600px;margin:18px auto;text-align:left;">
+        <div style="width:100%;max-width:1000px;margin:18px auto;text-align:left;">
           <label for="marketRadarRoleInput" style="display:block;margin-bottom:10px;">Target Role<br /><input id="marketRadarRoleInput" style="width:100%;margin-top:6px;" placeholder="Example: Product Manager" /></label>
           <label for="marketRadarLocationInput" style="display:block;margin-bottom:10px;">Preferred Location<br /><input id="marketRadarLocationInput" style="width:100%;margin-top:6px;" placeholder="Example: Remote or Chicago" /></label>
           <div class="tool-action-bar">
@@ -51,7 +51,7 @@
           </div>
         </div>
         <div id="marketRadarResult" style="display:none;">
-          <textarea id="marketRadarText" style="width:100%;max-width:600px;height:220px;margin:18px 0;"></textarea>
+          <textarea id="marketRadarText" style="width:100%;height:220px;margin:18px 0;"></textarea>
         </div>
         <div id="marketRadarOutput"></div>
       </section>

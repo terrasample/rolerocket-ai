@@ -34,10 +34,10 @@
     </aside>
     <main class="main marketing-main" id="mainContent" tabindex="-1">
       <button onclick="window.history.back()" class="back-arrow-btn" aria-label="Go back" style="margin:12px 0 0 12px;background:none;border:none;cursor:pointer;font-size:1.6em;color:#2563eb;"><span aria-hidden="true">&#8592;</span> Back</button>
-      <section class="marketing-card tier-feature elite" style="max-width:700px;margin:0 auto 32px auto;text-align:center;">
+      <section class="marketing-card tier-feature elite" style="max-width:1120px;width:min(1120px, calc(100vw - 64px));margin:32px auto;text-align:center;">
         <h2 class="feature-title">Offer Negotiation Coach</h2>
         <p>Get expert negotiation strategies and scripts to maximize your job offers.</p>
-        <div style="max-width:600px;margin:18px auto;text-align:left;">
+        <div style="width:100%;max-width:1000px;margin:18px auto;text-align:left;">
           <label for="offerFile" style="display:block;margin-bottom:10px;">Upload Offer Letter (PDF, DOCX, TXT)<br /><input id="offerFile" type="file" accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain" style="width:100%;margin-top:6px;" /></label>
           <label for="offerTextInput" style="display:block;margin-bottom:10px;">Or paste the offer details<br /><textarea id="offerTextInput" style="width:100%;height:120px;margin-top:6px;" placeholder="Paste salary, bonus, equity, location, and any important details from the offer."></textarea></label>
           <label for="targetCompInput" style="display:block;margin-bottom:10px;">Target Compensation<br /><input id="targetCompInput" type="text" style="width:100%;margin-top:6px;" placeholder="Example: 145000" /></label>
@@ -47,7 +47,7 @@
           </div>
         </div>
         <div id="negotiationCoachResult" style="display:none;">
-          <textarea id="negotiationCoachText" style="width:100%;max-width:600px;height:220px;margin:18px 0;"></textarea>
+          <textarea id="negotiationCoachText" style="width:100%;height:220px;margin:18px 0;"></textarea>
           <div id="negotiationCoachDownloads" style="display:none;margin:18px 0;">
           <button id="downloadNegotiationCoachPdfBtn" class="feature-launch-btn" style="margin-right:12px;">Download as PDF</button>
           <button id="downloadNegotiationCoachWordBtn" class="feature-launch-btn">Download as Word</button>

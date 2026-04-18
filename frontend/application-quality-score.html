@@ -33,10 +33,10 @@
     </aside>
     <main class="main marketing-main" id="mainContent" tabindex="-1">
       <button onclick="window.history.back()" class="back-arrow-btn" aria-label="Go back" style="margin:12px 0 0 12px;background:none;border:none;cursor:pointer;font-size:1.6em;color:#2563eb;"><span aria-hidden="true">&#8592;</span> Back</button>
-      <section class="marketing-card tier-feature pro" style="max-width:700px;margin:0 auto 32px auto;text-align:center;">
+      <section class="marketing-card tier-feature pro" style="max-width:1120px;width:min(1120px, calc(100vw - 64px));margin:32px auto;text-align:center;">
         <h2 class="feature-title">Application Quality Score</h2>
         <p>Get a real-time score and actionable tips to improve your application before submitting.</p>
-        <div style="display:grid;gap:12px;text-align:left;max-width:620px;margin:20px auto;">
+        <div style="display:grid;gap:12px;text-align:left;width:100%;max-width:1000px;margin:20px auto;">
           <label for="applicationRoleInput"><strong>Target Role</strong></label>
           <input id="applicationRoleInput" type="text" style="width:100%;" placeholder="e.g. Customer Success Manager" />
           <label for="applicationResumeInput"><strong>Resume or Application Draft</strong></label>
@@ -48,7 +48,7 @@
           <button id="generateAppQualityBtn" class="feature-launch-btn">Score My Application</button>
         </div>
         <div id="appQualityResult" style="display:none;">
-          <textarea id="appQualityText" readonly style="width:100%;max-width:600px;height:220px;margin:18px 0;"></textarea>
+          <textarea id="appQualityText" readonly style="width:100%;height:220px;margin:18px 0;"></textarea>
         </div>
         <div id="appQualityDownloads" style="display:none;margin:18px 0;">
           <button id="downloadAppQualityPdfBtn" class="feature-launch-btn" style="margin-right:12px;">Download as PDF</button>
