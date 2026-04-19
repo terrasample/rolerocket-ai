@@ -251,10 +251,27 @@ function extractNGramsFromText(text, size) {
 
 function extractMustHaveTerms(jobDescription) {
   const mustSignals = /(must|required|mandatory|minimum|need to|license|certification|degree|bachelor|master|clearance|pmp|pe)\b/i;
-  const segments = String(jobDescription || '')
-    .split(/[\n.;]/)
-    .map((s) => s.trim())
-    .filter(Boolean);
+  const text = String(jobDescription || '');
+  const lines = text.split('\n').map((s) => s.trim()).filter(Boolean);
+
+  const segments = [];
+  let section = 'general';
+
+  for (const line of lines.length ? lines : text.split(/[\n]/)) {
+    const normalizedLine = normalizeText(line);
+    if (/^(qualifications\/?requirements|requirements|minim(um)? qualifications)\b/.test(normalizedLine)) {
+      section = 'requirements';
+      continue;
+    }
+    if (/^(desired characteristics|preferred qualifications|nice to have)\b/.test(normalizedLine)) {
+      section = 'desired';
+      continue;
+    }
+
+    String(line).split(/[.;]/).map((s) => s.trim()).filter(Boolean).forEach((part) => {
+      segments.push({ text: part, section });
+    });
+  }
 
   const terms = [];
   const pushIf = (value) => {
@@ -262,8 +279,13 @@ function extractMustHaveTerms(jobDescription) {
     if (normalized) terms.push(normalized);
   };
 
-  for (const segment of segments) {
-    if (!mustSignals.test(segment)) continue;
+  for (const item of segments) {
+    const segment = item.text;
+    const inDesired = item.section === 'desired';
+    const explicitMustLanguage = /(must|required|mandatory|minimum|need to)\b/i.test(segment);
+
+    if (inDesired && !explicitMustLanguage) continue;
+    if (!mustSignals.test(segment) && !explicitMustLanguage && item.section !== 'requirements') continue;
 
     const normalizedSegment = normalizeText(segment);
     if (/\bbachelors?\s+degree\b/.test(normalizedSegment)) pushIf('bachelors degree');
@@ -292,7 +314,7 @@ function extractMustHaveTerms(jobDescription) {
     }
 
     if (/\bpmp\b/.test(normalizedSegment)) pushIf('pmp certification');
-    if (/\bsix\s+sigma\b/.test(normalizedSegment)) pushIf('six sigma certification');
+    if (/\bsix\s+sigma\b/.test(normalizedSegment) && item.section === 'requirements') pushIf('six sigma certification');
 
     const cleaned = segment
       .replace(/\b(must|required|mandatory|minimum|need to|need|needs to)\b/gi, ' ')
