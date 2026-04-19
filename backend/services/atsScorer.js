@@ -65,7 +65,10 @@ function escapeRegex(value) {
 const STOP_WORDS = new Set([
   'and', 'the', 'for', 'with', 'that', 'this', 'from', 'your', 'you', 'are', 'our', 'will', 'into',
   'their', 'have', 'has', 'had', 'can', 'not', 'but', 'all', 'any', 'its', 'such', 'also', 'per',
+  'which', 'might', 'could', 'would',
+  'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten',
   'must', 'need', 'needs', 'able', 'willing', 'valid', 'driver', 'regularly', 'overnight',
+  'drive', 'impact', 'resolve',
   'who', 'what', 'they', 'them', 'well', 'use', 'using', 'used', 'new', 'get', 'set', 'due',
   'each', 'both', 'few', 'more', 'most', 'other', 'some', 'than', 'then', 'when', 'where', 'while',
   'job', 'role', 'work', 'team', 'years', 'year', 'experience', 'required', 'preferred', 'ability',
@@ -190,30 +193,42 @@ function extractMustHaveTerms(jobDescription) {
     .filter(Boolean);
 
   const terms = [];
+  const pushIf = (value) => {
+    const normalized = normalizeText(value);
+    if (normalized) terms.push(normalized);
+  };
+
   for (const segment of segments) {
     if (!mustSignals.test(segment)) continue;
 
     const normalizedSegment = normalizeText(segment);
+    if (/\bbachelors?\s+degree\b/.test(normalizedSegment)) pushIf('bachelors degree');
+    if (/\bassociate\s+degree\b/.test(normalizedSegment)) pushIf('associate degree');
+    if (/\bproject\s+management\s+experience\b/.test(normalizedSegment)) pushIf('project management experience');
+    if (/\bleading\s+cross\s+functional\s+teams\b/.test(normalizedSegment)) pushIf('leading cross functional teams');
+
     if (/\bvalid\s+drivers?\s+license\b/.test(normalizedSegment)) {
-      terms.push('valid drivers license');
-      terms.push('drivers license');
+      pushIf('valid drivers license');
+      pushIf('drivers license');
     } else if (/\bdrivers?\s+license\b/.test(normalizedSegment)) {
-      terms.push('drivers license');
+      pushIf('drivers license');
     }
 
     const travelRequirement = normalizedSegment.match(/\b(willing\s+and\s+able\s+to\s+travel(?:\s+regularly)?(?:\s+including\s+overnight)?)/);
     if (travelRequirement && travelRequirement[1]) {
-      terms.push(travelRequirement[1]);
+      pushIf(travelRequirement[1]);
     } else if (/\btravel\b/.test(normalizedSegment)) {
       if (/\bovernight\b/.test(normalizedSegment)) {
-        terms.push('travel including overnight');
-        terms.push('overnight travel');
+        pushIf('travel including overnight');
       }
       if (/\bregularly\b/.test(normalizedSegment)) {
-        terms.push('travel regularly');
+        pushIf('travel regularly');
       }
-      terms.push('travel');
+      pushIf('travel');
     }
+
+    if (/\bpmp\b/.test(normalizedSegment)) pushIf('pmp certification');
+    if (/\bsix\s+sigma\b/.test(normalizedSegment)) pushIf('six sigma certification');
 
     const cleaned = segment
       .replace(/\b(must|required|mandatory|minimum|need to|need|needs to)\b/gi, ' ')
@@ -226,7 +241,7 @@ function extractMustHaveTerms(jobDescription) {
       const partTokens = tokenize(part).filter((w) => w.length >= 4 && !STOP_WORDS.has(w));
       if (!partTokens.length) continue;
 
-      const phrase = partTokens.slice(0, 3).join(' ');
+      const phrase = partTokens.slice(0, 4).join(' ');
       if (phrase.length >= 5) terms.push(phrase);
 
       for (const token of partTokens) {
@@ -235,18 +250,27 @@ function extractMustHaveTerms(jobDescription) {
     }
   }
 
-  const singleWordAllowlist = new Set([
-    'license', 'travel', 'clearance', 'bachelor', 'master', 'degree', 'pmp', 'cissp', 'security'
-  ]);
+  const singleWordAllowlist = new Set(['clearance', 'pmp', 'cissp']);
 
   const filtered = uniqueOrdered(terms).filter((term) => {
     if (/\blicense\s+travel\b/i.test(term)) return false;
     if (/\bdrivers?\s+license\s+travel\b/i.test(term)) return false;
+    if (/\bwhich\s+might\b/i.test(term)) return false;
+    if (/\bdegree\s+management\b/i.test(term)) return false;
+    if (/\bassociate\s+degree\s+five\b/i.test(term)) return false;
+    if (/\bleading\s+cross\s+functional$/i.test(term)) return false;
     if (term.includes(' ')) return term.length >= 8;
     return singleWordAllowlist.has(term);
   });
 
-  return filtered.slice(0, 15);
+  const sorted = [...filtered].sort((a, b) => b.length - a.length);
+  const compacted = [];
+  for (const term of sorted) {
+    const alreadyCovered = compacted.some((kept) => kept.includes(term) && kept !== term);
+    if (!alreadyCovered) compacted.push(term);
+  }
+
+  return compacted.sort((a, b) => a.localeCompare(b)).slice(0, 15);
 }
 
 function termMatchInText(term, text) {
