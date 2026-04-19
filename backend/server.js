@@ -1212,7 +1212,7 @@ async function searchJobsFast({ title, location, resume }) {
 
   const ranked = rankJobs(dedupeJobs(combined), { title, location });
   const jobs = ranked.slice(0, 60);
-  const finalJobs = jobs.length ? jobs : buildMockJobs(title, location);
+  const finalJobs = jobs;
 
   jobSearchCache.set(cacheKey, {
     createdAt: Date.now(),
@@ -1754,10 +1754,10 @@ function getInstantJobs({ title, location, resume }) {
   warmJobSearchCache({ title, location, resume });
 
   return {
-    jobs: buildMockJobs(title, location),
+    jobs: [],
     meta: {
       fromCache: false,
-      source: 'instant-fallback',
+      source: 'warming-fetch',
       hydrated: false,
       refreshAfterMs: 1200
     }

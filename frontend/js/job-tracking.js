@@ -154,65 +154,6 @@ function createSearchJobCard(job) {
 
   actions.append(viewLink, saveBtn, readyBtn);
   wrapper.append(titleEl, document.createElement('br'), companyEl, document.createElement('br'), locationEl, document.createElement('br'), matchEl, document.createElement('br'), ageEl, document.createElement('br'), actions);
-// Import Resume logic
-document.getElementById('importResumeBtn')?.addEventListener('click', () => {
-  document.getElementById('importResumeFile').click();
-});
-
-document.getElementById('importResumeFile')?.addEventListener('change', async (e) => {
-  const file = e.target.files && e.target.files[0] ? e.target.files[0] : null;
-  if (!file) return;
-  const textarea = document.getElementById('jobResume');
-  textarea.value = 'Parsing resume...';
-  const formData = new FormData();
-  formData.append('resumeFile', file);
-  try {
-    const res = await fetch('/api/resume/upload', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-      body: formData
-    });
-    const data = await res.json();
-    if (res.ok && data.content) {
-      textarea.value = data.content;
-    } else {
-      textarea.value = '';
-      alert(data.error || 'Could not extract text from resume.');
-    }
-  } catch (err) {
-    textarea.value = '';
-    alert('Resume upload failed.');
-  }
-});
-
-// Export Resume logic (PDF)
-document.getElementById('exportResumeBtn')?.addEventListener('click', () => {
-  const text = document.getElementById('jobResume').value;
-  if (!text) {
-    alert('No resume to export.');
-    return;
-  }
-  // Use jsPDF for PDF export
-  if (window.jsPDF) {
-    const doc = new window.jsPDF();
-    doc.text(text, 10, 10);
-    doc.save('resume.pdf');
-  } else {
-    alert('PDF export requires jsPDF.');
-  }
-});
-
-// Show export button after jobs are populated
-const observer = new MutationObserver(() => {
-  const exportBtn = document.getElementById('exportResumeBtn');
-  if (jobsListEl && jobsListEl.children.length > 0) {
-    exportBtn.style.display = '';
-  } else {
-    exportBtn.style.display = 'none';
-  }
-});
-observer.observe(jobsListEl, { childList: true });
-
   return wrapper;
 }
 
@@ -490,17 +431,45 @@ document.getElementById('findJobsBtn')?.addEventListener('click', async () => {
   jobsListEl.innerHTML = '<div class="empty-state">Loading jobs...</div>';
 
   try {
+    const title = document.getElementById('jobTitle').value.trim();
+    const location = document.getElementById('jobLocation').value.trim();
+    const resume = document.getElementById('resumeText').value;
+
     const data = await api('/api/jobs/find', {
       method: 'POST',
       body: JSON.stringify({
-        title: document.getElementById('jobTitle').value.trim(),
-        location: document.getElementById('jobLocation').value.trim(),
-        resume: document.getElementById('resumeText').value
+        title,
+        location,
+        resume
       })
     });
 
     const jobs = data.jobs || [];
     jobsListEl.innerHTML = '';
+
+    if (!jobs.length && data.meta?.hydrated === false) {
+      jobsListEl.innerHTML = '<div class="empty-state">Finding live jobs... refreshing in a moment.</div>';
+      setTimeout(async () => {
+        try {
+          const refreshed = await api('/api/jobs/find', {
+            method: 'POST',
+            body: JSON.stringify({ title, location, resume, forceRefresh: true })
+          });
+          const freshJobs = refreshed.jobs || [];
+          jobsListEl.innerHTML = '';
+          if (!freshJobs.length) {
+            jobsListEl.innerHTML = '<div class="empty-state">No live jobs found for this search right now. Try adjusting title or location.</div>';
+            return;
+          }
+          freshJobs.forEach((job) => {
+            jobsListEl.appendChild(createSearchJobCard(job));
+          });
+        } catch (refreshErr) {
+          jobsListEl.innerHTML = `<div class="empty-state">❌ ${escapeHtml(refreshErr.message)}</div>`;
+        }
+      }, Number(data.meta?.refreshAfterMs || 1200));
+      return;
+    }
 
     if (!jobs.length) {
       jobsListEl.innerHTML = '<div class="empty-state">No jobs found.</div>';
@@ -574,6 +543,45 @@ document.getElementById('googleJobsBtn')?.addEventListener('click', () => {
   const location = document.getElementById('jobLocation').value.trim();
   const googleJobsUrl = `https://www.google.com/search?q=${encodeURIComponent(`${title} ${location} jobs`)}`;
   window.open(googleJobsUrl, '_blank');
+});
+
+function triggerResumeImport() {
+  document.getElementById('importResumeFile')?.click();
+}
+
+document.getElementById('importResumeBtn')?.addEventListener('click', triggerResumeImport);
+document.getElementById('importResumeAltBtn')?.addEventListener('click', triggerResumeImport);
+
+document.getElementById('importResumeFile')?.addEventListener('change', async (e) => {
+  const file = e.target.files && e.target.files[0] ? e.target.files[0] : null;
+  if (!file) return;
+
+  const textarea = document.getElementById('resumeText');
+  if (!textarea) return;
+
+  textarea.value = 'Parsing resume...';
+  const formData = new FormData();
+  formData.append('resumeFile', file);
+
+  try {
+    const res = await fetch(apiUrl('/api/resume/upload'), {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData
+    });
+    const data = await res.json();
+    if (res.ok && data.content) {
+      textarea.value = data.content;
+    } else {
+      textarea.value = '';
+      alert(data.error || 'Could not extract text from resume.');
+    }
+  } catch (err) {
+    textarea.value = '';
+    alert('Resume upload failed.');
+  } finally {
+    e.target.value = '';
+  }
 });
 
 loadTracker();
