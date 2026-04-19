@@ -575,6 +575,83 @@ document.addEventListener('DOMContentLoaded', function () {
     return '';
   }
 
+  function hasDateRangeToken(value) {
+    const text = String(value || '');
+    return /\b\d{1,2}\/\d{3,4}\b/.test(text) || /\b(present|current|in progress)\b/i.test(text);
+  }
+
+  function isLikelyExperienceHeaderLine(value) {
+    const line = normalizeBulletText(value);
+    if (!line) return false;
+    if (/^(experience|education|skills|core skills|certification|certifications|profile|summary|awards|projects)\b/i.test(line)) return false;
+
+    const hasRoleAndCompanyShape = /^[A-Z][A-Za-z.&\-\s]+,\s*[A-Z][A-Za-z0-9.&'\-\s]+,/.test(line);
+    const hasLocationSignal = /,\s*[A-Z]{2}\b/.test(line) || /\b(U\.S\.?\s*Army|Reserves?|Company|Healthcare|Inc|LLC|University)\b/i.test(line);
+    const hasDateSignal = hasDateRangeToken(line);
+
+    return hasRoleAndCompanyShape && (hasLocationSignal || hasDateSignal);
+  }
+
+  function parseExperienceEntries(lines) {
+    const entries = [];
+    let current = null;
+    let pendingDateLine = '';
+
+    for (const rawLine of (lines || [])) {
+      const line = normalizeBulletText(rawLine);
+      if (!line) continue;
+
+      if (isLikelyExperienceHeaderLine(line)) {
+        if (current) entries.push(current);
+        current = { title: line, company: '', bullets: [] };
+        pendingDateLine = '';
+        continue;
+      }
+
+      if (current && !current.company && hasDateRangeToken(line) && line.length <= 40) {
+        current.company = line;
+        pendingDateLine = line;
+        continue;
+      }
+
+      if (!current) {
+        current = { title: line, company: '', bullets: [] };
+        continue;
+      }
+
+      const isSectionBoundary = /^(education|skills|core skills|certification|certifications|profile|summary|awards|projects)\b/i.test(line);
+      if (isSectionBoundary) break;
+
+      if (pendingDateLine && line === pendingDateLine) continue;
+      current.bullets.push(line);
+    }
+
+    if (current) entries.push(current);
+
+    return entries
+      .map((entry) => ({
+        ...entry,
+        title: normalizeBulletText(entry.title),
+        company: normalizeBulletText(entry.company),
+        bullets: (entry.bullets || []).map((b) => normalizeBulletText(b)).filter(Boolean)
+      }))
+      .filter((entry) => entry.title);
+  }
+
+  function mergeExperienceEntries(primaryEntries, fallbackEntries) {
+    const kept = (primaryEntries || []).slice();
+    const seen = new Set(kept.map((item) => normalizeBulletText(item.title).toLowerCase()));
+
+    for (const entry of (fallbackEntries || [])) {
+      const key = normalizeBulletText(entry.title).toLowerCase();
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      kept.push(entry);
+    }
+
+    return kept;
+  }
+
   function extractContactInfo(sourceText) {
     const text = String(sourceText || '');
     const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
@@ -595,7 +672,7 @@ document.addEventListener('DOMContentLoaded', function () {
     };
   }
 
-  function parseResume(rawText, fallbackFromBase) {
+  function parseResume(rawText, fallbackFromBase, sourceResumeText = '') {
     const text = String(rawText || '').replace(/\r/g, '');
     const lines = text.split('\n').map((line) => line.trimRight());
 
@@ -659,28 +736,14 @@ document.addEventListener('DOMContentLoaded', function () {
     structured.profile = between(sectionIndex.PROFILE, nextSectionStart('PROFILE')).join(' ');
 
     const experienceLines = between(sectionIndex.EXPERIENCE, nextSectionStart('EXPERIENCE'));
-    let current = null;
-    let pendingTitle = null;
-    experienceLines.forEach((line) => {
-      const normalized = normalizeBulletText(line);
-      if (!normalized) return;
-      const isCompanyDate = (/\b(20\d{2}|19\d{2})\b/.test(normalized) || normalized.includes('|')) && normalized.length > 8;
+    structured.experiences = parseExperienceEntries(experienceLines);
 
-      if (isCompanyDate) {
-        if (current) structured.experiences.push(current);
-        current = { title: pendingTitle || '', company: normalized, bullets: [] };
-        pendingTitle = null;
-        return;
-      }
-
-      if (current) {
-        current.bullets.push(normalized);
-      } else {
-        pendingTitle = normalized;
-      }
-    });
-    if (pendingTitle && !current) current = { title: pendingTitle, company: '', bullets: [] };
-    if (current) structured.experiences.push(current);
+    const fallbackExperienceMatch = String(sourceResumeText || '').replace(/\r/g, '').match(/\bEXPERIENCE\b([\s\S]*?)(?:\n\s*(?:CORE\s+SKILLS|SKILLS|EDUCATION|CERTIFICATION|CERTIFICATIONS|AWARDS|PROJECTS)\b|$)/i);
+    if (fallbackExperienceMatch && fallbackExperienceMatch[1]) {
+      const fallbackExperienceLines = fallbackExperienceMatch[1].split('\n').map((line) => line.trim()).filter(Boolean);
+      const fallbackExperiences = parseExperienceEntries(fallbackExperienceLines);
+      structured.experiences = mergeExperienceEntries(structured.experiences, fallbackExperiences);
+    }
 
     structured.education = between(sectionIndex.EDUCATION, nextSectionStart('EDUCATION'))
       .map((line) => normalizeBulletText(line))
@@ -1315,7 +1378,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
       const raw = String(data.result || '').trim();
       lastRawResume = raw;
-      const structured = parseResume(raw, extractContactInfo(baseResume));
+      const structured = parseResume(raw, extractContactInfo(baseResume), baseResume);
       lastStructuredResume = buildResumeModel(structured, jobTitle);
       output.innerHTML = renderResumeTemplate(lastStructuredResume);
       statusBanner('Resume generated. You can switch layouts, adjust the photo, or download it as Word or PDF.', true);
