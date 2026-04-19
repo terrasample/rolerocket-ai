@@ -157,6 +157,7 @@ document.addEventListener('DOMContentLoaded', function () {
   let lastTemplateIdx = -1;
   const templateStateKey = `resume-template-queue-v1-${THEMES.map((t) => t.id).join('|')}`;
   const layoutSelectionKey = 'resume-layout-selection-v2';
+  const draftStorageKey = 'resume-generator-draft-v1';
   let templateStateReadyPromise = null;
 
   function getAuthToken() {
@@ -203,6 +204,65 @@ document.addEventListener('DOMContentLoaded', function () {
     } catch (err) {
       // Ignore storage issues.
     }
+  }
+
+  function readDraftState() {
+    try {
+      const raw = localStorage.getItem(draftStorageKey);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === 'object' ? parsed : null;
+    } catch (err) {
+      return null;
+    }
+  }
+
+  function saveDraftState() {
+    try {
+      const payload = {
+        jobTitle: document.getElementById('resumeJobTitleGen')?.value || '',
+        company: document.getElementById('resumeCompanyGen')?.value || '',
+        baseResume: document.getElementById('resumeBaseGen')?.value || '',
+        jobDescription: document.getElementById('resumeJobDescriptionGen')?.value || '',
+        updatedAt: Date.now()
+      };
+      localStorage.setItem(draftStorageKey, JSON.stringify(payload));
+    } catch (err) {
+      // Ignore storage issues.
+    }
+  }
+
+  function clearDraftState() {
+    try {
+      localStorage.removeItem(draftStorageKey);
+    } catch (err) {
+      // Ignore storage issues.
+    }
+  }
+
+  function restoreDraftState() {
+    const draft = readDraftState();
+    if (!draft) return;
+
+    const jobTitleInput = document.getElementById('resumeJobTitleGen');
+    const companyInput = document.getElementById('resumeCompanyGen');
+    const baseResumeInput = document.getElementById('resumeBaseGen');
+    const jobDescriptionInput = document.getElementById('resumeJobDescriptionGen');
+
+    if (jobTitleInput && !jobTitleInput.value && draft.jobTitle) jobTitleInput.value = String(draft.jobTitle);
+    if (companyInput && !companyInput.value && draft.company) companyInput.value = String(draft.company);
+    if (baseResumeInput && !baseResumeInput.value && draft.baseResume) baseResumeInput.value = String(draft.baseResume);
+    if (jobDescriptionInput && !jobDescriptionInput.value && draft.jobDescription) jobDescriptionInput.value = String(draft.jobDescription);
+  }
+
+  function attachDraftPersistence() {
+    const watchedIds = ['resumeJobTitleGen', 'resumeCompanyGen', 'resumeBaseGen', 'resumeJobDescriptionGen'];
+    watchedIds.forEach((id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('input', saveDraftState);
+      el.addEventListener('change', saveDraftState);
+    });
   }
 
   function escapeHtml(value) {
@@ -896,6 +956,7 @@ document.addEventListener('DOMContentLoaded', function () {
     lastRawResume = '';
     lastStructuredResume = null;
     output.innerHTML = '';
+    clearDraftState();
   }
 
   function renderPhotoPreview() {
@@ -958,6 +1019,8 @@ document.addEventListener('DOMContentLoaded', function () {
       if (window.RoleRocketQuickstart) {
         window.RoleRocketQuickstart.completeStep('resume', 'resume_upload');
       }
+
+      saveDraftState();
     } catch (error) {
       if (messageEl) {
         messageEl.textContent = error.message || 'Could not load the uploaded resume.';
@@ -1299,4 +1362,6 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   renderPhotoPreview();
+  restoreDraftState();
+  attachDraftPersistence();
 });
