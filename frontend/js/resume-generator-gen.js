@@ -231,6 +231,25 @@ document.addEventListener('DOMContentLoaded', function () {
     };
   }
 
+  function toTitleCaseName(fullName) {
+    const words = String(fullName || '').replace(/\s+/g, ' ').trim().split(' ').filter(Boolean);
+    if (!words.length) return '';
+
+    const titleToken = (token) => token
+      .split('-')
+      .map((part) => part
+        .split("'")
+        .map((piece) => {
+          if (!piece) return piece;
+          if (/^[A-Z]{2,3}$/.test(piece)) return piece;
+          return piece.charAt(0).toUpperCase() + piece.slice(1).toLowerCase();
+        })
+        .join("'"))
+      .join('-');
+
+    return words.map(titleToken).join(' ');
+  }
+
   function shuffleArray(items) {
     const arr = items.slice();
     for (let i = arr.length - 1; i > 0; i -= 1) {
@@ -687,7 +706,8 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function renderTemplateForest(model, theme) {
-    const name = splitName(model.fullName);
+    const displayName = model.displayName || model.fullName;
+    const name = splitName(displayName);
     const profileBullets = sentenceBullets(model.profile);
     const photoMarkup = buildPhotoMarkup(model, theme, false);
     return `
@@ -695,7 +715,7 @@ document.addEventListener('DOMContentLoaded', function () {
         <div style="background:${theme.primary};padding:24px 28px;color:${theme.headerText};display:flex;gap:18px;align-items:center;">
           ${photoMarkup ? `<div style="flex:0 0 auto;">${photoMarkup}</div>` : ''}
           <div style="flex:1;">
-            <div style="font-size:38px;line-height:1.05;font-weight:800;letter-spacing:0.03em;">${escapeHtml((name.first + ' ' + name.rest).trim().toUpperCase())}</div>
+            <div style="font-size:38px;line-height:1.05;font-weight:800;letter-spacing:0.03em;">${escapeHtml((name.first + ' ' + name.rest).trim())}</div>
             <div style="font-size:18px;font-weight:600;margin-top:8px;opacity:0.92;">${escapeHtml(model.targetRole || 'Professional Candidate')}</div>
           </div>
         </div>
@@ -729,7 +749,8 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function renderTemplateGold(model, theme) {
-    const name = splitName(model.fullName);
+    const displayName = model.displayName || model.fullName;
+    const name = splitName(displayName);
     const profileBullets = sentenceBullets(model.profile);
     const photoMarkup = buildPhotoMarkup(model, theme, true);
     return `
@@ -768,6 +789,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function renderTemplateSlate(model, theme) {
+    const displayName = model.displayName || model.fullName;
     const profileBullets = sentenceBullets(model.profile);
     const photoMarkup = buildPhotoMarkup(model, theme, false);
     return `
@@ -775,7 +797,7 @@ document.addEventListener('DOMContentLoaded', function () {
         <div style="background:linear-gradient(110deg, ${theme.primary}, ${theme.accent});padding:24px 28px;color:${theme.headerText};display:flex;align-items:center;gap:18px;">
           ${photoMarkup || ''}
           <div>
-            <div style="font-size:36px;font-weight:800;line-height:1.05;letter-spacing:0.03em;">${escapeHtml(model.fullName.toUpperCase())}</div>
+            <div style="font-size:36px;font-weight:800;line-height:1.05;letter-spacing:0.03em;">${escapeHtml(displayName)}</div>
             <div style="font-size:18px;font-weight:600;margin-top:8px;">${escapeHtml(model.targetRole || 'Professional Candidate')}</div>
           </div>
         </div>
@@ -945,8 +967,11 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function buildResumeModel(structured, targetRole) {
+    const displayName = toTitleCaseName(structured?.fullName) || 'Professional Candidate';
     return {
       ...structured,
+      fullName: displayName,
+      displayName,
       targetRole,
       photoDataUrl: lastPhotoDataUrl,
       photoPosition: { ...lastPhotoPosition },
@@ -983,7 +1008,7 @@ document.addEventListener('DOMContentLoaded', function () {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(18);
     doc.setTextColor(255, 255, 255);
-    doc.text((model.fullName || '').toUpperCase().slice(0, 40), rightX, 21);
+    doc.text((model.displayName || model.fullName || '').slice(0, 40), rightX, 21);
 
     doc.setFontSize(10);
     doc.text((model.targetRole || 'Professional Candidate').slice(0, 60), rightX, 28);
