@@ -437,10 +437,16 @@ function renderBulletScores(items) {
     return;
   }
 
-  container.innerHTML = items.map((item) => `
+  const rubricNote = `
+    <div style="font-size:0.82em;color:#64748b;padding:6px 8px 10px 8px;line-height:1.4;">
+      Scored on a 100-point rubric: +30 metric, +30 strong action verb, +20 impact verb, +20 detail length, -20 weak phrasing.
+    </div>
+  `;
+
+  container.innerHTML = rubricNote + items.map((item) => `
     <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:8px;border-bottom:1px solid #e2e8f0;font-size:0.9em;gap:12px;">
       <div style="flex:1;color:#666;line-height:1.4;">${item.text.substring(0, 80)}${item.text.length > 80 ? '...' : ''}</div>
-      <div style="font-weight:bold;color:#2563eb;min-width:50px;text-align:right;">${item.score}</div>
+      <div style="font-weight:bold;color:#2563eb;min-width:64px;text-align:right;">${item.score}/100</div>
     </div>
   `).join('');
 }
