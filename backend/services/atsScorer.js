@@ -34,11 +34,14 @@ function extractScorableLines(resume) {
   const contentLines = lines.filter((line) => {
     if (sectionHeaders.test(line)) return false;
     if (contactLine.test(line)) return false;
+    if (isEducationLikeLine(line)) return false;
+    if (isCertificationLikeLine(line)) return false;
+    if (isSkillsLikeLine(line)) return false;
     return line.length >= 18;
   });
 
   if (contentLines.length) return contentLines.slice(0, 14);
-  return lines.slice(0, 14);
+  return [];
 }
 
 function tokenize(text) {
@@ -520,8 +523,8 @@ function scoreBullet(b) {
   let score = 0;
 
   if (/\d+/.test(b)) score += 30;
-  if (/led|managed|improved|delivered|analyzed|executed|owned|drove|planned|coordinated/i.test(b)) score += 30;
-  if (/built|created|launched|designed|developed|implemented|optimized|increased|reduced|streamlined/i.test(b)) score += 20;
+  if (/\b(led|managed|improved|delivered|analyzed|executed|owned|drove|planned|coordinated)\b/i.test(b)) score += 30;
+  if (/\b(built|created|launched|designed|developed|implemented|optimized|increased|reduced|streamlined)\b/i.test(b)) score += 20;
   if (b.length > 80) score += 20;
   if (/responsible|helped/i.test(b)) score -= 20;
 

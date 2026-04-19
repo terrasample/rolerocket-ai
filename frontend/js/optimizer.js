@@ -57,6 +57,7 @@ document.getElementById('analyzeResumeBtn')?.addEventListener('click', async () 
     const analysis = data.analysis;
     latestAtsAnalysis = analysis;
     document.getElementById('atsScore').textContent = analysis.atsScore || 0;
+    renderScoreBreakdown(analysis);
     renderTags('matchedKeywords', analysis.matchedKeywords, 'No matched keywords yet.');
     renderTags('missingKeywords', analysis.missingKeywords, 'No missing keywords found.');
     renderAnalysisWarnings(analysis.redFlags, analysis.formattingWarnings, analysis.quickFixes);
@@ -451,6 +452,41 @@ function renderBulletScores(items) {
   `).join('');
 }
 
+function renderScoreBreakdown(analysis) {
+  const container = document.getElementById('atsScoreBreakdown');
+  if (!container) return;
+
+  const b = analysis?.scoreBreakdown;
+  if (!b) {
+    container.innerHTML = '';
+    return;
+  }
+
+  if (analysis.analysisMode === 'true-like') {
+    container.innerHTML = `
+      <div style="font-weight:700;color:#1e293b;margin-bottom:6px;">How this score is calculated (0-100)</div>
+      <div>Weighted keyword score: <strong>${b.weightedKeywordScore || 0}</strong> (coverage ${b.weightedKeywordCoveragePct || 0}% x 55)</div>
+      <div>Must-have score: <strong>${b.mustHaveScore || 0}</strong> / 20 (${b.mustHaveMatched || 0} matched, ${b.mustHaveMissing || 0} missing)</div>
+      <div>Bullet contribution: <strong>${b.bulletScoreContribution || 0}</strong> (avg ${b.bulletAverage || 0} x 0.15)</div>
+      <div>Section health: <strong>${b.sectionHealth || 0}</strong> / 10</div>
+      <div>Formatting health: <strong>${b.formattingHealth || 0}</strong> / 15</div>
+      <div>Depth bonus: <strong>${b.depthBonus || 0}</strong> / 2</div>
+      <div style="margin-top:6px;color:#64748b;">Final ATS score is rounded to the nearest whole number.</div>
+    `;
+    return;
+  }
+
+  container.innerHTML = `
+    <div style="font-weight:700;color:#1e293b;margin-bottom:6px;">How this score is calculated (0-100)</div>
+    <div>Keyword score: <strong>${b.keywordScore || 0}</strong> (coverage ${b.keywordCoveragePct || 0}% x 45)</div>
+    <div>Bullet contribution: <strong>${b.bulletScoreContribution || 0}</strong> (avg ${b.bulletAverage || 0} x 0.25)</div>
+    <div>Section score: <strong>${b.sectionScore || 0}</strong> / 20</div>
+    <div>Formatting score: <strong>${b.formattingScore || 0}</strong> / 15</div>
+    <div>Depth score: <strong>${b.depthScore || 0}</strong></div>
+    <div style="margin-top:6px;color:#64748b;">Final ATS score is rounded to the nearest whole number.</div>
+  `;
+}
+
 function renderRewrites(items) {
   const container = document.getElementById('rewriteOutput');
   if (!container) return;
@@ -504,6 +540,7 @@ document.getElementById('runATSBtn')?.addEventListener('click', async () => {
     const analysis = data.analysis;
     latestAtsAnalysis = analysis;
     document.getElementById('atsScore').textContent = analysis.atsScore || 0;
+    renderScoreBreakdown(analysis);
     renderTags('matchedKeywords', analysis.matchedKeywords, 'No matched keywords yet.');
     renderTags('missingKeywords', analysis.missingKeywords, 'No missing keywords found.');
     renderAnalysisWarnings(analysis.redFlags, analysis.formattingWarnings, analysis.quickFixes);
@@ -598,11 +635,13 @@ document.getElementById('clearAtsFieldsBtn')?.addEventListener('click', () => {
   const resumeEl = document.getElementById('atsResume');
   const rewriteOutputEl = document.getElementById('rewriteOutput');
   const scoreEl = document.getElementById('atsScore');
+  const breakdownEl = document.getElementById('atsScoreBreakdown');
 
   if (jobDescriptionEl) jobDescriptionEl.value = '';
   if (resumeEl) resumeEl.value = '';
   if (rewriteOutputEl) rewriteOutputEl.textContent = '';
   if (scoreEl) scoreEl.textContent = '0';
+  if (breakdownEl) breakdownEl.innerHTML = '';
   latestAtsAnalysis = null;
   if (atsResumeUploadInput) atsResumeUploadInput.value = '';
   if (atsResumeUploadMessage) {
