@@ -93,8 +93,22 @@ const LOW_SIGNAL_PHRASES = [
   /^scheduled completion$/,
   /^completion dates$/,
   /^leading cross$/,
-  /^which might$/
+  /^which might$/,
+  /^implementation process$/,
+  /^cross functionally$/
 ];
+
+const DISPLAY_CANONICAL_MAP = new Map([
+  ['cross functionally', 'cross functional collaboration'],
+  ['projects simultaneously', 'multi project management']
+]);
+
+function toDisplayTerm(term) {
+  const isMustHave = /\(must-have\)$/i.test(String(term || ''));
+  const raw = String(term || '').replace(/\s*\(must-have\)$/i, '').trim();
+  const canonical = DISPLAY_CANONICAL_MAP.get(raw) || raw;
+  return isMustHave ? `${canonical} (must-have)` : canonical;
+}
 
 function isLowSignalTerm(term) {
   const normalized = normalizeText(term);
@@ -112,6 +126,25 @@ function isLowSignalTerm(term) {
   }
 
   return false;
+}
+
+function isMeaningfulNonMustHaveTerm(term) {
+  const normalized = normalizeText(term);
+  const tokens = normalized.split(' ').filter(Boolean);
+
+  if (!tokens.length) return false;
+
+  const singleWordAllowlist = new Set(['autocad', 'smartsheet', 'magicplan', 'pmp', 'sigma', 'healthcare', 'installation']);
+  if (tokens.length === 1) return singleWordAllowlist.has(tokens[0]);
+
+  // Filter overly generic constructions that do not help resume edits.
+  const genericBigrams = new Set([
+    'implementation process',
+    'operational targets'
+  ]);
+  if (genericBigrams.has(normalized)) return false;
+
+  return true;
 }
 
 function uniqueOrdered(items) {
@@ -408,9 +441,7 @@ function getKeywordsTrueLike(jobDescription, resume) {
     if (isLowSignalTerm(raw)) return false;
 
     const isMustHave = /\(must-have\)$/i.test(term);
-    const tokens = raw.split(/\s+/).filter(Boolean);
-    const singleWordAllowlist = new Set(['autocad', 'smartsheet', 'magicplan', 'pmp', 'sigma', 'healthcare', 'installation']);
-    if (!isMustHave && tokens.length === 1 && !singleWordAllowlist.has(tokens[0])) {
+    if (!isMustHave && !isMeaningfulNonMustHaveTerm(raw)) {
       return false;
     }
 
@@ -422,9 +453,7 @@ function getKeywordsTrueLike(jobDescription, resume) {
     if (isLowSignalTerm(raw)) return false;
 
     const isMustHave = /\(must-have\)$/i.test(term);
-    const tokens = raw.split(/\s+/).filter(Boolean);
-    const singleWordAllowlist = new Set(['autocad', 'smartsheet', 'magicplan', 'pmp', 'sigma', 'healthcare', 'installation']);
-    if (!isMustHave && tokens.length === 1 && !singleWordAllowlist.has(tokens[0])) {
+    if (!isMustHave && !isMeaningfulNonMustHaveTerm(raw)) {
       return false;
     }
 
@@ -452,12 +481,12 @@ function getKeywordsTrueLike(jobDescription, resume) {
     return kept;
   }
 
-  const compactedMissing = compactBySpecificity(cleanedMissing);
-  const compactedMatched = compactBySpecificity(cleanedMatched);
+  const compactedMissing = compactBySpecificity(cleanedMissing).map(toDisplayTerm);
+  const compactedMatched = compactBySpecificity(cleanedMatched).map(toDisplayTerm);
 
   return {
-    matchedKeywords: compactedMatched.slice(0, 25),
-    missingKeywords: compactedMissing.slice(0, 25),
+    matchedKeywords: uniqueOrdered(compactedMatched).slice(0, 15),
+    missingKeywords: uniqueOrdered(compactedMissing).slice(0, 15),
     coverage: totalWeight ? matchedWeight / totalWeight : 0,
     mustHaveMatched: uniqueOrdered(mustHaveMatched),
     mustHaveMissing: uniqueOrdered(mustHaveMissing),
