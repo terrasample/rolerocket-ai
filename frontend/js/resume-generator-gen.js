@@ -129,7 +129,7 @@ document.addEventListener('DOMContentLoaded', function () {
   };
 
   const ELITE_DYNAMIC_LAYOUT_ID = 'elite-dynamic';
-  const RESUME_SECTION_HEADERS = new Set(['NAME', 'CONTACT', 'PROFILE', 'SUMMARY', 'EXPERIENCE', 'EDUCATION', 'SKILLS', 'AWARDS', 'CERTIFICATIONS', 'IMPROVEMENTS', 'PROJECTS']);
+  const RESUME_SECTION_HEADERS = new Set(['NAME', 'CONTACT', 'PROFILE', 'SUMMARY', 'EXPERIENCE', 'EDUCATION', 'SKILLS', 'AWARDS', 'CERTIFICATION', 'CERTIFICATIONS', 'IMPROVEMENTS', 'PROJECTS']);
   const DYNAMIC_THEME_PALETTES = [
     { primary: '#1f2937', accent: '#f97316', sidebarBg: '#f9fafb', headerText: '#ffffff', headingText: '#1f2937' },
     { primary: '#1d4ed8', accent: '#7dd3fc', sidebarBg: '#eff6ff', headerText: '#ffffff', headingText: '#1d4ed8' },
@@ -442,9 +442,38 @@ document.addEventListener('DOMContentLoaded', function () {
     return cleaned;
   }
 
+  function normalizeNameCandidate(value) {
+    let cleaned = String(value || '').replace(/\s+/g, ' ').trim();
+    if (!cleaned) return '';
+
+    cleaned = cleaned.replace(/^name\s*[:\-]?\s*/i, '').trim();
+    cleaned = cleaned.split('|')[0].trim();
+
+    const commaParts = cleaned.split(',').map((part) => part.trim()).filter(Boolean);
+    if (commaParts.length >= 2) {
+      const rightSide = commaParts.slice(1).join(' ');
+      if (/\b(pmp|pgmp|msem|mba|msc|ms|bs|ba|phd|pe|clssbb|smc|cissp|cpa|cfa)\b/i.test(rightSide) || /^[A-Z0-9\s.,®()-]+$/.test(rightSide)) {
+        cleaned = commaParts[0];
+      }
+    }
+
+    cleaned = cleaned
+      .replace(/\b(pmp|pgmp|msem|mba|msc|ms|bs|ba|phd|pe|clssbb|smc|cissp|cpa|cfa)\b\.?\s*®?/gi, ' ')
+      .replace(/[,|]+\s*$/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    return cleanCandidateName(cleaned);
+  }
+
+  function isLikelyRoleTitle(value) {
+    return /^(project|program|product|operations|construction|mechanical|software|systems)?\s*(manager|engineer|director|analyst|consultant|specialist|coordinator|supervisor|lead)\b/i.test(String(value || '').trim());
+  }
+
   function isLikelyNameLine(line) {
-    const value = cleanCandidateName(line);
+    const value = normalizeNameCandidate(line);
     if (!value) return false;
+    if (isLikelyRoleTitle(value)) return false;
     if (/[@\d]/.test(value)) return false;
     if (/https?:\/\/|www\.|linkedin\.com/i.test(value)) return false;
     if (/^(phone|email|location|contact|profile|summary|experience|education|skills|awards|certifications|projects)\b/i.test(value)) return false;
@@ -459,9 +488,9 @@ document.addEventListener('DOMContentLoaded', function () {
       const line = safeLines[idx];
       if (/^name[:\-]?$/i.test(line)) {
         const next = safeLines[idx + 1] || '';
-        if (isLikelyNameLine(next)) return cleanCandidateName(next);
+        if (isLikelyNameLine(next)) return normalizeNameCandidate(next);
       }
-      if (isLikelyNameLine(line)) return cleanCandidateName(line);
+      if (isLikelyNameLine(line)) return normalizeNameCandidate(line);
     }
 
     return '';
@@ -498,6 +527,7 @@ document.addEventListener('DOMContentLoaded', function () {
       experiences: [],
       education: [],
       skills: [],
+      certifications: [],
       awards: []
     };
 
@@ -507,6 +537,8 @@ document.addEventListener('DOMContentLoaded', function () {
       PROFILE: -1,
       EXPERIENCE: -1,
       EDUCATION: -1,
+      CERTIFICATION: -1,
+      CERTIFICATIONS: -1,
       SKILLS: -1,
       AWARDS: -1,
       IMPROVEMENTS: -1
@@ -540,7 +572,8 @@ document.addEventListener('DOMContentLoaded', function () {
       ? between(sectionIndex.NAME, nextSectionStart('NAME'))[0]
       : findNameInLines(lines);
 
-    if (cleanCandidateName(parsedName)) {
+    const fallbackName = cleanCandidateName(fallbackFromBase.fullName);
+    if (!fallbackName && cleanCandidateName(parsedName)) {
       structured.fullName = cleanCandidateName(parsedName);
     }
 
@@ -573,15 +606,28 @@ document.addEventListener('DOMContentLoaded', function () {
     structured.education = between(sectionIndex.EDUCATION, nextSectionStart('EDUCATION'))
       .map((line) => normalizeBulletText(line))
       .filter(Boolean);
+
+    const certSectionStart = sectionIndex.CERTIFICATIONS >= 0 ? sectionIndex.CERTIFICATIONS : sectionIndex.CERTIFICATION;
+    const certificationLines = certSectionStart >= 0
+      ? between(certSectionStart, nextSectionStart(certSectionStart === sectionIndex.CERTIFICATIONS ? 'CERTIFICATIONS' : 'CERTIFICATION'))
+      : [];
+
+    structured.certifications = certificationLines
+      .map((line) => normalizeBulletText(line))
+      .filter(Boolean);
+
     structured.skills = between(sectionIndex.SKILLS, nextSectionStart('SKILLS'))
       .join(', ')
       .split(/[,|]/)
       .map((s) => normalizeBulletText(s))
       .filter(Boolean)
       .slice(0, 20);
-    structured.awards = between(sectionIndex.AWARDS, nextSectionStart('AWARDS'))
+
+    const awardsLines = between(sectionIndex.AWARDS, nextSectionStart('AWARDS'))
       .map((line) => normalizeBulletText(line))
       .filter(Boolean);
+
+    structured.awards = [...new Set([...(structured.certifications || []), ...awardsLines])];
 
     if (!cleanCandidateName(structured.fullName)) {
       structured.fullName = cleanCandidateName(fallbackFromBase.fullName) || cleanCandidateName(accountName) || 'Professional Candidate';
