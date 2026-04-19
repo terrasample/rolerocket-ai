@@ -552,8 +552,57 @@ function isRewriteEligibleLine(text) {
 function sanitizeRewriteKeywords(missingKeywords) {
   return (missingKeywords || [])
     .map((k) => String(k || '').replace(/\s*\(must-have\)$/i, '').trim())
+    .filter((k) => !/(^|\s)(degree|license|overnight|travel)($|\s)/i.test(k))
     .filter((k) => k.length >= 5)
     .slice(0, 20);
+}
+
+function buildRewriteKeywordPool(missingKeywords) {
+  const base = sanitizeRewriteKeywords(missingKeywords);
+  const lowered = base.map((k) => k.toLowerCase());
+  const enriched = [];
+
+  if (lowered.some((k) => k.includes('healthcare diagnostic imaging')) && lowered.some((k) => k.includes('installation'))) {
+    enriched.push('diagnostic imaging installation projects');
+  }
+
+  if (lowered.some((k) => k.includes('project management experience')) && lowered.some((k) => k.includes('cross functional'))) {
+    enriched.push('cross-functional project delivery');
+  }
+
+  return uniqueOrdered([...enriched, ...base]).slice(0, 20);
+}
+
+function keywordFocusClause(keyword, index) {
+  const kw = String(keyword || '').toLowerCase();
+  if (!kw) return '';
+
+  if (kw.includes('diagnostic imaging installation projects')) {
+    const options = [
+      'led diagnostic imaging installation projects from kickoff through go-live',
+      'delivered diagnostic imaging installation projects with end-to-end ownership',
+      'managed diagnostic imaging installation projects across planning and execution'
+    ];
+    return options[index % options.length];
+  }
+
+  if (kw.includes('cross-functional project delivery')) {
+    return 'strengthened cross-functional project delivery across sales and services';
+  }
+
+  if (kw.includes('cross functional teams')) {
+    return 'partnered closely with cross-functional teams to keep delivery on track';
+  }
+
+  const connectors = [
+    `translating ${keyword} requirements into execution`,
+    `aligning delivery plans with ${keyword} expectations`,
+    `embedding ${keyword} into day-to-day operations`,
+    `strengthening ${keyword} consistency across teams`,
+    `expanding impact by focusing on ${keyword}`,
+    `applying ${keyword} to improve delivery quality`
+  ];
+  return connectors[index % connectors.length];
 }
 
 function rewriteBullet(original, index, missingKeywords = []) {
@@ -566,18 +615,8 @@ function rewriteBullet(original, index, missingKeywords = []) {
   const hasAnyActionVerb = /^(led|managed|improved|delivered|built|launched|designed|developed|implemented|optimized|created|drove|owned|analyzed|provided|assessed|supported|maintained|ensured|established|executed|coordinated|oversaw|directed|supervised|architected|engineered|planned|evaluated|reviewed|monitored|facilitated|collaborated|guided|analyze|provide|assess|support|maintain|ensure|establish|execute|manage|coordinate|oversee|direct|supervise|drive|plan|evaluate|review|monitor|facilitate|collaborate|guide)\b/i.test(cleaned);
   const hasMetric = /\d+/.test(cleaned);
 
-  const candidates = sanitizeRewriteKeywords(missingKeywords);
+  const candidates = buildRewriteKeywordPool(missingKeywords);
   const keyword = candidates.length ? candidates[index % candidates.length] : null;
-
-  const connectors = [
-    (kw) => `translating ${kw} requirements into execution`,
-    (kw) => `aligning delivery plans with ${kw} expectations`,
-    (kw) => `embedding ${kw} into day-to-day operations`,
-    (kw) => `strengthening ${kw} consistency across teams`,
-    (kw) => `expanding impact by focusing on ${kw}`,
-    (kw) => `applying ${kw} to improve delivery quality`
-  ];
-  const connector = connectors[index % connectors.length];
 
   const outcomeTails = [
     'improving consistency, speed, and stakeholder confidence.',
@@ -590,7 +629,7 @@ function rewriteBullet(original, index, missingKeywords = []) {
 
   const withKeyword = (base) => {
     if (!keyword) return `${base}, ${tail}`;
-    return `${base}, ${connector(keyword)}, ${tail}`;
+    return `${base}, ${keywordFocusClause(keyword, index)}, ${tail}`;
   };
 
   if (hasAnyActionVerb && hasMetric) {
@@ -623,7 +662,7 @@ function rewriteBulletWithMultipleKeywords(original, index, missingKeywords = []
   const rewritten = rewriteBullet(original, index, missingKeywords);
   if (!rewritten || rewritten === original) return rewritten;
 
-  const candidates = sanitizeRewriteKeywords(missingKeywords)
+  const candidates = buildRewriteKeywordPool(missingKeywords)
     .filter((kw) => !rewritten.toLowerCase().includes(kw.toLowerCase()))
     .slice(0, 2);
 
