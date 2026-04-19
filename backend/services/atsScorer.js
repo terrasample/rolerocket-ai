@@ -574,7 +574,14 @@ function isRewriteEligibleLine(text) {
 function sanitizeRewriteKeywords(missingKeywords) {
   return (missingKeywords || [])
     .map((k) => String(k || '').replace(/\s*\(must-have\)$/i, '').trim())
+    .map((k) => k.replace(/\s+/g, ' ').trim())
     .filter((k) => !/(^|\s)(degree|license|overnight|travel)($|\s)/i.test(k))
+    .filter((k) => !/\b(management professional certification|sigma certification|certification sigma)\b/i.test(k))
+    .filter((k) => !/\b(cross functional|professional certification|project management)\b$/i.test(k))
+    .filter((k) => {
+      const words = k.split(' ').filter(Boolean);
+      return words.length >= 2 && words.length <= 5;
+    })
     .filter((k) => k.length >= 5)
     .slice(0, 20);
 }
@@ -601,28 +608,25 @@ function keywordFocusClause(keyword, index) {
 
   if (kw.includes('diagnostic imaging installation projects')) {
     const options = [
-      'led diagnostic imaging installation projects from kickoff through go-live',
-      'delivered diagnostic imaging installation projects with end-to-end ownership',
-      'managed diagnostic imaging installation projects across planning and execution'
+      'to lead diagnostic imaging installation projects from kickoff through go-live',
+      'to deliver diagnostic imaging installation projects with end-to-end ownership',
+      'to manage diagnostic imaging installation projects across planning and execution'
     ];
     return options[index % options.length];
   }
 
   if (kw.includes('cross-functional project delivery')) {
-    return 'strengthened cross-functional project delivery across sales and services';
+    return 'to strengthen cross-functional project delivery across sales and services';
   }
 
   if (kw.includes('cross functional teams')) {
-    return 'partnered closely with cross-functional teams to keep delivery on track';
+    return 'in partnership with cross-functional teams to keep delivery on track';
   }
 
   const connectors = [
-    `translating ${keyword} requirements into execution`,
-    `aligning delivery plans with ${keyword} expectations`,
-    `embedding ${keyword} into day-to-day operations`,
-    `strengthening ${keyword} consistency across teams`,
-    `expanding impact by focusing on ${keyword}`,
-    `applying ${keyword} to improve delivery quality`
+    `with focus on ${keyword}`,
+    `aligned to ${keyword}`,
+    `using ${keyword} best practices`
   ];
   return connectors[index % connectors.length];
 }
@@ -640,31 +644,13 @@ function rewriteBullet(original, index, missingKeywords = []) {
   const candidates = buildRewriteKeywordPool(missingKeywords);
   const keyword = candidates.length ? candidates[index % candidates.length] : null;
 
-  const outcomeTails = [
-    'improving consistency, speed, and stakeholder confidence.',
-    'raising delivery quality while reducing execution risk.',
-    'increasing on-time performance and operational reliability.',
-    'improving cross-team alignment and measurable business outcomes.',
-    'creating clearer ownership and faster issue resolution.'
-  ];
-  const tail = outcomeTails[index % outcomeTails.length];
-
   const withKeyword = (base) => {
-    if (!keyword) return `${base}, ${tail}`;
-    return `${base}, ${keywordFocusClause(keyword, index)}, ${tail}`;
+    if (!keyword) return `${base}.`;
+    return `${base} ${keywordFocusClause(keyword, index)}.`;
   };
 
   if (hasAnyActionVerb && hasMetric) {
-    if (keyword) {
-      const strongConnectors = [
-        `amplifying results through ${keyword}`,
-        `reinforcing ${keyword} standards across delivery`,
-        `driving stronger outcomes with ${keyword}`,
-        `extending value by prioritizing ${keyword}`
-      ];
-      return `${capitalizeFirst(cleaned)}, ${strongConnectors[index % strongConnectors.length]}.`;
-    }
-    return `${capitalizeFirst(cleaned)}.`;
+    return withKeyword(capitalizeFirst(cleaned));
   }
 
   if (hasAnyActionVerb) {
@@ -673,36 +659,24 @@ function rewriteBullet(original, index, missingKeywords = []) {
 
   const starters = ['Led', 'Managed', 'Delivered', 'Executed', 'Spearheaded'];
   const starter = starters[index % starters.length];
-  const lower = cleaned.charAt(0).toLowerCase() + cleaned.slice(1);
+  const normalizedWeakStart = cleaned
+    .replace(/^responsible for\s+/i, '')
+    .replace(/^tasked with\s+/i, '')
+    .replace(/^worked on\s+/i, '')
+    .replace(/^in charge of\s+/i, '')
+    .trim();
+  const working = normalizedWeakStart || cleaned;
+  const lower = working.charAt(0).toLowerCase() + working.slice(1);
   const firstWord = cleaned.split(' ')[0].toLowerCase();
   const alreadyStartsWithVerb = /^(identified|coordinated|communicated|leveraged|proactively|supported|analyzed|evaluated|monitored)$/i.test(firstWord);
-  const base = alreadyStartsWithVerb ? capitalizeFirst(cleaned) : `${starter} ${lower}`;
+  const base = alreadyStartsWithVerb ? capitalizeFirst(working) : `${starter} ${lower}`;
   return withKeyword(base);
 }
 
 function rewriteBulletWithMultipleKeywords(original, index, missingKeywords = []) {
   const rewritten = rewriteBullet(original, index, missingKeywords);
   if (!rewritten || rewritten === original) return rewritten;
-
-  const candidates = buildRewriteKeywordPool(missingKeywords)
-    .filter((kw) => !rewritten.toLowerCase().includes(kw.toLowerCase()))
-    .slice(0, 2);
-
-  if (!candidates.length) return rewritten;
-
-  const lastPeriod = rewritten.lastIndexOf('.');
-  if (lastPeriod <= 0) return rewritten;
-
-  const beforePeriod = rewritten.substring(0, lastPeriod);
-  const period = rewritten.substring(lastPeriod);
-  const additionalKeywords = candidates.join(' and ');
-  const addOns = [
-    `while reinforcing ${additionalKeywords}`,
-    `with added focus on ${additionalKeywords}`,
-    `while deepening capability in ${additionalKeywords}`,
-    `to further support ${additionalKeywords}`
-  ];
-  return `${beforePeriod}, ${addOns[index % addOns.length]}${period}`;
+  return rewritten;
 }
 
 function getRedFlags(resume) {
