@@ -1,4 +1,5 @@
 (function() {
+const token = typeof getStoredToken === 'function' ? getStoredToken() : localStorage.getItem('token');
 if (!token) {
   window.location.href = 'login.html';
 }
@@ -30,6 +31,33 @@ function safeUrl(url) {
     // ignore invalid url
   }
   return '#';
+}
+
+function isPlaceholderHost(url) {
+  try {
+    const host = new URL(url).hostname.toLowerCase();
+    return host === 'example.com' || host === 'www.example.com' || host === 'example.org' || host === 'www.example.org';
+  } catch {
+    return true;
+  }
+}
+
+function buildFallbackJobSearchUrl(job) {
+  const query = [job.title, job.company, job.location, 'job'].filter(Boolean).join(' ').trim();
+  return `https://www.google.com/search?q=${encodeURIComponent(query || 'project manager jobs')}`;
+}
+
+function resolveJobUrl(job) {
+  const candidate = safeUrl(job.link);
+  if (candidate !== '#' && !isPlaceholderHost(candidate)) {
+    return { href: candidate, label: 'Open Job' };
+  }
+
+  if (job.linkedinSearchUrl && safeUrl(job.linkedinSearchUrl) !== '#') {
+    return { href: safeUrl(job.linkedinSearchUrl), label: 'Find Job Source' };
+  }
+
+  return { href: buildFallbackJobSearchUrl(job), label: 'Find Job Source' };
 }
 
 function compactJobText(value, fallback, maxLen) {
@@ -94,10 +122,11 @@ function createSearchJobCard(job) {
   actions.className = 'job-card-actions';
 
   const viewLink = document.createElement('a');
-  viewLink.href = safeUrl(job.link);
+  const resolved = resolveJobUrl(job);
+  viewLink.href = resolved.href;
   viewLink.target = '_blank';
   viewLink.rel = 'noopener noreferrer';
-  viewLink.textContent = 'Open Job';
+  viewLink.textContent = resolved.label;
 
   const saveBtn = document.createElement('button');
   saveBtn.textContent = 'Save Job';
@@ -218,12 +247,13 @@ function createImportedJobCard(job) {
   // Job Link (if available)
   const linkEl = document.createElement('div');
   linkEl.style.cssText = 'margin-bottom: 12px;';
-  if (job.link && safeUrl(job.link) !== '#') {
+  const resolvedImported = resolveJobUrl(job);
+  if (resolvedImported.href && resolvedImported.href !== '#') {
     const linkAnchor = document.createElement('a');
-    linkAnchor.href = safeUrl(job.link);
+    linkAnchor.href = resolvedImported.href;
     linkAnchor.target = '_blank';
     linkAnchor.rel = 'noopener noreferrer';
-    linkAnchor.textContent = '🔗 Open Original Job Listing';
+    linkAnchor.textContent = resolvedImported.label === 'Open Job' ? '🔗 Open Original Job Listing' : '🔗 Find Original Job Listing';
     linkAnchor.style.cssText = 'color: #2563eb; text-decoration: underline; font-weight: 600; cursor: pointer;';
     linkEl.appendChild(linkAnchor);
   }
@@ -301,12 +331,13 @@ function createTrackerCard(job) {
   const jobLinkEl = document.createElement('small');
   jobLinkEl.style.display = 'block';
   jobLinkEl.style.marginTop = '8px';
-  if (job.link && safeUrl(job.link) !== '#') {
+  const resolvedTracker = resolveJobUrl(job);
+  if (resolvedTracker.href && resolvedTracker.href !== '#') {
     const linkAnchor = document.createElement('a');
-    linkAnchor.href = safeUrl(job.link);
+    linkAnchor.href = resolvedTracker.href;
     linkAnchor.target = '_blank';
     linkAnchor.rel = 'noopener noreferrer';
-    linkAnchor.textContent = '🔗 View Original Job';
+    linkAnchor.textContent = resolvedTracker.label === 'Open Job' ? '🔗 View Original Job' : '🔗 Find Original Job';
     linkAnchor.style.color = '#2563eb';
     linkAnchor.style.textDecoration = 'underline';
     linkAnchor.style.cursor = 'pointer';

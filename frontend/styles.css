@@ -2875,15 +2875,40 @@ pre {
   background: linear-gradient(135deg, #374151, #4b5563);
 }
 
-#importedJobBox,
-#jobsList div,
-#topJobs div,
+#importedJobBox > div,
+#jobsList > div,
+#topJobs > div,
 .mini-job-card {
   border: 1px solid #e6eaf1;
   padding: 12px;
   margin-top: 10px;
   border-radius: 12px;
   background: linear-gradient(180deg, #ffffff 0%, #fafcff 100%);
+  color: #0f172a;
+}
+
+.mini-job-card strong {
+  color: #0f172a;
+  font-size: 1.25rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.mini-job-card span {
+  color: #1e293b;
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.mini-job-card small {
+  color: #334155;
+  font-weight: 600;
+  font-size: 0.98rem;
+}
+
+.mini-job-card a {
+  color: #0369a1;
+  font-weight: 700;
 }
 
 .job-posted-age {
