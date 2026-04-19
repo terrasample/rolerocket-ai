@@ -67,6 +67,8 @@ const STOP_WORDS = new Set([
   'their', 'have', 'has', 'had', 'can', 'not', 'but', 'all', 'any', 'its', 'such', 'also', 'per',
   'which', 'might', 'could', 'would',
   'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten',
+  'desired', 'characteristics', 'meet', 'scheduled', 'completion', 'dates',
+  'independently', 'prioritize', 'priorities', 'mutual', 'goals', 'expectations',
   'must', 'need', 'needs', 'able', 'willing', 'valid', 'driver', 'regularly', 'overnight',
   'drive', 'impact', 'resolve',
   'who', 'what', 'they', 'them', 'well', 'use', 'using', 'used', 'new', 'get', 'set', 'due',
@@ -84,6 +86,33 @@ const STOP_WORDS = new Set([
   'manage', 'managing', 'working', 'making', 'taking', 'doing', 'report', 'reports', 'reporting',
   'meeting', 'meetings', 'tasks', 'task', 'activities'
 ]);
+
+const LOW_SIGNAL_PHRASES = [
+  /^desired characteristics$/,
+  /^meet scheduled$/,
+  /^scheduled completion$/,
+  /^completion dates$/,
+  /^leading cross$/,
+  /^which might$/
+];
+
+function isLowSignalTerm(term) {
+  const normalized = normalizeText(term);
+  if (!normalized) return true;
+
+  if (LOW_SIGNAL_PHRASES.some((re) => re.test(normalized))) {
+    return true;
+  }
+
+  // Filter short generic fragments that often come from sentence scaffolding.
+  if (normalized.split(' ').length <= 2) {
+    if (/^(scheduled|completion|dates|desired|characteristics)$/.test(normalized)) {
+      return true;
+    }
+  }
+
+  return false;
+}
 
 function uniqueOrdered(items) {
   const seen = new Set();
@@ -166,7 +195,9 @@ function extractNGrams(tokens, size) {
     const chunk = tokens.slice(i, i + size);
     if (chunk.some((t) => STOP_WORDS.has(t))) continue;
     if (chunk.some((t) => t.length < 4)) continue;
-    out.push(chunk.join(' '));
+    const phrase = chunk.join(' ');
+    if (isLowSignalTerm(phrase)) continue;
+    out.push(phrase);
   }
   return out;
 }
@@ -253,6 +284,7 @@ function extractMustHaveTerms(jobDescription) {
   const singleWordAllowlist = new Set(['clearance', 'pmp', 'cissp']);
 
   const filtered = uniqueOrdered(terms).filter((term) => {
+    if (isLowSignalTerm(term)) return false;
     if (/\blicense\s+travel\b/i.test(term)) return false;
     if (/\bdrivers?\s+license\s+travel\b/i.test(term)) return false;
     if (/\bwhich\s+might\b/i.test(term)) return false;
@@ -289,8 +321,8 @@ function termMatchInText(term, text) {
 function buildTrueLikeTerms(jobDescription) {
   const jobTokens = tokenize(jobDescription);
   const keywords = uniqueOrdered(jobTokens.filter((w) => w.length >= 5 && !STOP_WORDS.has(w))).slice(0, 35);
-  const bigrams = uniqueOrdered(extractNGramsFromText(jobDescription, 2)).slice(0, 20);
-  const trigrams = uniqueOrdered(extractNGramsFromText(jobDescription, 3)).slice(0, 12);
+  const bigrams = uniqueOrdered(extractNGramsFromText(jobDescription, 2).filter((term) => !isLowSignalTerm(term))).slice(0, 20);
+  const trigrams = uniqueOrdered(extractNGramsFromText(jobDescription, 3).filter((term) => !isLowSignalTerm(term))).slice(0, 12);
   const mustHave = extractMustHaveTerms(jobDescription);
 
   const weightedTerms = [];
@@ -371,9 +403,61 @@ function getKeywordsTrueLike(jobDescription, resume) {
     ...missingKeywords.filter((k) => !k.includes('(must-have)'))
   ];
 
+  const cleanedMissing = uniqueOrdered(prioritizedMissing).filter((term) => {
+    const raw = String(term || '').replace(/\s*\(must-have\)$/i, '').trim();
+    if (isLowSignalTerm(raw)) return false;
+
+    const isMustHave = /\(must-have\)$/i.test(term);
+    const tokens = raw.split(/\s+/).filter(Boolean);
+    const singleWordAllowlist = new Set(['autocad', 'smartsheet', 'magicplan', 'pmp', 'sigma', 'healthcare', 'installation']);
+    if (!isMustHave && tokens.length === 1 && !singleWordAllowlist.has(tokens[0])) {
+      return false;
+    }
+
+    return true;
+  });
+
+  const cleanedMatched = uniqueOrdered(matchedKeywords).filter((term) => {
+    const raw = String(term || '').replace(/\s*\(must-have\)$/i, '').trim();
+    if (isLowSignalTerm(raw)) return false;
+
+    const isMustHave = /\(must-have\)$/i.test(term);
+    const tokens = raw.split(/\s+/).filter(Boolean);
+    const singleWordAllowlist = new Set(['autocad', 'smartsheet', 'magicplan', 'pmp', 'sigma', 'healthcare', 'installation']);
+    if (!isMustHave && tokens.length === 1 && !singleWordAllowlist.has(tokens[0])) {
+      return false;
+    }
+
+    return true;
+  });
+
+  // Remove partial phrase fragments when a more specific phrase exists.
+  function compactBySpecificity(items) {
+    const sorted = [...items].sort((a, b) => {
+      const aMust = /\(must-have\)$/i.test(a) ? 1 : 0;
+      const bMust = /\(must-have\)$/i.test(b) ? 1 : 0;
+      if (aMust !== bMust) return bMust - aMust;
+      return b.length - a.length;
+    });
+
+    const kept = [];
+    for (const item of sorted) {
+      const raw = String(item || '').replace(/\s*\(must-have\)$/i, '').trim();
+      const covered = kept.some((k) => {
+        const kRaw = String(k || '').replace(/\s*\(must-have\)$/i, '').trim();
+        return kRaw !== raw && kRaw.includes(raw);
+      });
+      if (!covered) kept.push(item);
+    }
+    return kept;
+  }
+
+  const compactedMissing = compactBySpecificity(cleanedMissing);
+  const compactedMatched = compactBySpecificity(cleanedMatched);
+
   return {
-    matchedKeywords: uniqueOrdered(matchedKeywords).slice(0, 25),
-    missingKeywords: uniqueOrdered(prioritizedMissing).slice(0, 25),
+    matchedKeywords: compactedMatched.slice(0, 25),
+    missingKeywords: compactedMissing.slice(0, 25),
     coverage: totalWeight ? matchedWeight / totalWeight : 0,
     mustHaveMatched: uniqueOrdered(mustHaveMatched),
     mustHaveMissing: uniqueOrdered(mustHaveMissing),
