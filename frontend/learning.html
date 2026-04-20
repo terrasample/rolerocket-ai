@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RoleRocketAI Learning | RoleRocket AI</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="js/jspdf-loader.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#mainContent">Skip to main content</a>
+  <div class="hero contact-hero">
+    <h1 class="home-brand-title"><span class="home-brand-rocket" aria-hidden="true">🚀</span><span>RoleRocket AI</span></h1>
+    <p class="home-brand-subtitle">RoleRocketAI Learning</p>
+  </div>
+  <div class="layout">
+    <aside class="sidebar" aria-label="Primary navigation">
+      <h2 aria-label="RoleRocket AI"></h2>
+      <nav>
+        <a class="sidebar-link-btn" href="index.html">Home</a>
+        <a class="sidebar-link-btn" href="about-us.html">About Us</a>
+        <a class="sidebar-link-btn active" href="features.html">Features</a>
+        <a class="sidebar-link-btn" href="job-tracking.html">Find, Search & Track</a>
+        <a class="sidebar-link-btn" href="ai-recruiter-assist.html">AI Recruiter Assist</a>
+        <a class="sidebar-link-btn" href="pricing.html">Pricing</a>
+        <a class="sidebar-link-btn" href="contact-us.html">Contact Us</a>
+        <hr />
+        <p id="planBadge">Free Plan</p>
+        <a class="sidebar-link-btn" href="account.html">👤 Account</a>
+        <a class="sidebar-link-btn premium-btn" href="dashboard.html">🧑‍💼 My Dashboard</a>
+        <a class="sidebar-link-btn" href="login.html?relogin=1">Logout</a>
+      </nav>
+    </aside>
+
+    <main class="main marketing-main" id="mainContent" tabindex="-1">
+      <button onclick="window.history.back()" class="back-arrow-btn" aria-label="Go back" style="margin:12px 0 0 12px;background:none;border:none;cursor:pointer;font-size:1.6em;color:#2563eb;"><span aria-hidden="true">&#8592;</span> Back</button>
+
+      <section class="marketing-card tier-feature premium" style="max-width:860px;margin:0 auto 32px auto;text-align:center;">
+        <h2 class="feature-title">RoleRocketAI Learning</h2>
+        <p>Build a role-specific learning roadmap that closes your top skill gaps and feeds directly into stronger resume and interview outcomes.</p>
+
+        <div style="display:grid;gap:12px;text-align:left;max-width:760px;margin:20px auto;">
+          <label for="learningTargetRole"><strong>Target Role</strong></label>
+          <input id="learningTargetRole" type="text" style="width:100%;" placeholder="e.g. Diagnostic Imaging Project Manager" />
+
+          <label for="learningCurrentLevel"><strong>Current Level <span style="font-weight:normal;color:#64748b;">(optional)</span></strong></label>
+          <input id="learningCurrentLevel" type="text" style="width:100%;" placeholder="e.g. Project Coordinator with 3 years in healthcare operations" />
+
+          <label for="learningTimePerWeek"><strong>Weekly Time Budget</strong></label>
+          <select id="learningTimePerWeek" style="width:100%;">
+            <option value="3">3 hours/week</option>
+            <option value="5" selected>5 hours/week</option>
+            <option value="8">8 hours/week</option>
+            <option value="10">10+ hours/week</option>
+          </select>
+
+          <label for="learningJobDescription"><strong>Target Job Description</strong></label>
+          <textarea id="learningJobDescription" style="width:100%;height:180px;" placeholder="Paste the full target job description."></textarea>
+
+          <label for="learningResume"><strong>Your Resume / Skills Snapshot <span style="font-weight:normal;color:#64748b;">(optional)</span></strong></label>
+          <textarea id="learningResume" style="width:100%;height:140px;" placeholder="Paste your resume or key skills to personalize the roadmap."></textarea>
+        </div>
+
+        <div style="margin:18px 0;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+          <button id="generateLearningPlanBtn" class="feature-launch-btn">Generate Learning Roadmap</button>
+          <button id="clearLearningFieldsBtn" class="feature-launch-btn" type="button" style="background:#334155;">Clear</button>
+        </div>
+
+        <div id="learningResultWrap" style="display:none;">
+          <textarea id="learningPlanText" readonly style="width:100%;max-width:760px;height:300px;margin:18px 0;"></textarea>
+        </div>
+
+        <div id="learningDownloads" style="display:none;margin:18px 0;">
+          <button id="downloadLearningPdfBtn" class="feature-launch-btn" style="margin-right:12px;">Download as PDF</button>
+          <button id="downloadLearningWordBtn" class="feature-launch-btn">Download as Word</button>
+        </div>
+
+        <div id="learningOutput"></div>
+      </section>
+    </main>
+  </div>
+
+  <script src="js/nav-plan-sync.js"></script>
+  <script src="js/idle-timeout.js"></script>
+  <script src="js/learning.js"></script>
+  <script src="js/return-navigation.js"></script>
+</body>
+</html>

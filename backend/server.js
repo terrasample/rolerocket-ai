@@ -3428,6 +3428,71 @@ app.post('/api/interview-prep', authenticateToken, async (req, res) => {
   }
 });
 
+app.post('/api/learning/plan', authenticateToken, async (req, res) => {
+  try {
+    const {
+      targetRole,
+      currentLevel,
+      timePerWeek,
+      jobDescription,
+      resumeText
+    } = req.body || {};
+
+    if (!targetRole || !jobDescription) {
+      return res.status(400).json({ error: 'targetRole and jobDescription are required' });
+    }
+
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      max_tokens: 1300,
+      temperature: 0.4,
+      messages: [
+        {
+          role: 'system',
+          content: [
+            'You are a career learning strategist.',
+            'Create a practical, role-specific learning roadmap that helps a candidate close skill gaps for a target role.',
+            'Use concise plain text only and make each recommendation actionable.',
+            'Do not invent certifications or work history not supported by provided context.',
+            'Use this output format exactly:',
+            '1) Skill Gap Snapshot (5 bullets)',
+            '2) 30-Day Learning Roadmap (Week 1 to Week 4)',
+            '3) Practice Projects (3 projects with scope + deliverable)',
+            '4) Interview Readiness Drills (5 drills)',
+            '5) Resume Upgrade Targets (5 bullet changes to make after learning)',
+            '6) Weekly Checkpoint Scorecard (5 metrics)',
+            'Keep writing specific, measurable, and role-aligned.'
+          ].join(' ')
+        },
+        {
+          role: 'user',
+          content: [
+            `Target Role: ${String(targetRole || '').trim()}`,
+            `Current Level: ${String(currentLevel || 'Not provided').trim()}`,
+            `Weekly Time Budget: ${String(timePerWeek || '5').trim()} hours`,
+            '',
+            'Target Job Description:',
+            String(jobDescription || '').trim(),
+            '',
+            'Candidate Resume / Skills Context:',
+            String(resumeText || 'Not provided').trim()
+          ].join('\n')
+        }
+      ]
+    });
+
+    return res.json({ result: completion.choices[0].message.content });
+  } catch (err) {
+    console.error('Learning roadmap error:', err);
+    return res.status(500).json({ error: 'Learning roadmap generation failed' });
+  }
+});
+
 app.post('/api/video-interview-practice/questions', authenticateToken, async (req, res) => {
   try {
     const roleTitle = String(req.body?.roleTitle || '').trim();

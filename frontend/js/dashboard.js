@@ -75,6 +75,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             desc: 'Find jobs, track applications, and organize your job search pipeline.',
             url: 'job-tracking.html',
           },
+          {
+            name: 'RoleRocketAI Learning',
+            desc: 'Generate a personalized roadmap to close skill gaps and become interview-ready for your target role.',
+            url: 'learning.html',
+          },
         ],
       },
       {
