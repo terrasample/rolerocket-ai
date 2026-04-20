@@ -797,6 +797,55 @@ document.addEventListener('DOMContentLoaded', function () {
     return [...new Set(matches)].slice(0, 12);
   }
 
+  function extractJobTitleFromDescription(jobDescription) {
+    const text = String(jobDescription || '');
+    const titleMatch = text.match(/Job Title:\s*([^\n]+)/i);
+    return normalizeBulletText(titleMatch ? titleMatch[1] : '');
+  }
+
+  function isGenericProfile(profile) {
+    const normalized = normalizeBulletText(profile).toLowerCase();
+    if (!normalized) return true;
+
+    if (normalized === 'results-driven professional with relevant experience and a strong record of delivering measurable outcomes.') {
+      return true;
+    }
+
+    return /results-driven professional|relevant experience|measurable outcomes|strong record/i.test(normalized);
+  }
+
+  function buildProfileFromJobDescription(jobDescription) {
+    const text = String(jobDescription || '');
+    if (!text.trim()) return '';
+
+    const roleTitle = extractJobTitleFromDescription(text) || 'Project Management Professional';
+    const skills = extractSkillsFromJobDescription(text);
+    const primaryFocus = skills.slice(0, 3).join(', ').toLowerCase();
+    const supportingFocus = skills.slice(3, 6).join(', ').toLowerCase();
+    const toolsAndCredentials = [
+      /autocad/i.test(text) ? 'AutoCAD' : '',
+      /magic\s*plan/i.test(text) ? 'MagicPlan' : '',
+      /pmp|project management professional/i.test(text) ? 'PMP Certification' : '',
+      /six sigma/i.test(text) ? 'Six Sigma' : ''
+    ].filter(Boolean);
+
+    const sentences = [
+      primaryFocus
+        ? `${roleTitle} with experience leading ${primaryFocus} in complex customer-facing environments.`
+        : `${roleTitle} with experience delivering customer-facing implementation and project management support in complex environments.`
+    ];
+
+    if (supportingFocus) {
+      sentences.push(`Brings strength in ${supportingFocus}, with a focus on schedule execution, issue resolution, and customer satisfaction.`);
+    }
+
+    if (toolsAndCredentials.length) {
+      sentences.push(`Offers added value through ${toolsAndCredentials.join(', ')}, supporting reliable execution across clinical, technical, and operational stakeholders.`);
+    }
+
+    return sentences.join(' ');
+  }
+
   function alignSkillsToJobDescription(structured, jobDescription) {
     const targetSkills = extractSkillsFromJobDescription(jobDescription);
     const existingSkills = (structured.skills || []).map((skill) => normalizeBulletText(skill)).filter(Boolean);
@@ -809,6 +858,30 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     structured.skills = ['Project Management', 'Cross-Functional Coordination', 'Customer-Facing Implementation'];
+    return structured;
+  }
+
+  function alignProfileToJobDescription(structured, jobDescription) {
+    const generatedProfile = buildProfileFromJobDescription(jobDescription);
+    if (!generatedProfile) return structured;
+
+    if (isGenericProfile(structured.profile)) {
+      structured.profile = generatedProfile;
+      return structured;
+    }
+
+    const normalizedProfile = normalizeBulletText(structured.profile);
+    const combined = [normalizedProfile, generatedProfile]
+      .map((item) => normalizeBulletText(item))
+      .filter(Boolean);
+
+    structured.profile = [...new Set(combined)].join(' ');
+    return structured;
+  }
+
+  function alignResumeToJobDescription(structured, jobDescription) {
+    alignSkillsToJobDescription(structured, jobDescription);
+    alignProfileToJobDescription(structured, jobDescription);
     return structured;
   }
 
@@ -1575,7 +1648,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
       const raw = String(data.result || '').trim();
       lastRawResume = raw;
-      const structured = alignSkillsToJobDescription(
+      const structured = alignResumeToJobDescription(
         parseResume(raw, extractContactInfo(baseResume), baseResume),
         jobDescription
       );
@@ -1605,7 +1678,7 @@ document.addEventListener('DOMContentLoaded', function () {
     ].filter(Boolean).join('\n');
     
     // Parse the resume to extract all sections
-    const parsed = alignSkillsToJobDescription(parseResume(resumeText, {
+    const parsed = alignResumeToJobDescription(parseResume(resumeText, {
       fullName: '',
       phone: '',
       email: '',
