@@ -162,6 +162,7 @@ document.addEventListener('DOMContentLoaded', function () {
   let templateQueue = [];
   let lastTemplateIdx = -1;
   let latestLearningRoadmapText = '';
+  let learningRoadmapAppliedFromSession = false;
   const templateStateKey = `resume-template-queue-v1-${THEMES.map((t) => t.id).join('|')}`;
   const layoutSelectionKey = 'resume-layout-selection-v2';
   const draftStorageKey = 'resume-generator-draft-v1';
@@ -497,22 +498,27 @@ document.addEventListener('DOMContentLoaded', function () {
   function loadSelectedLearningRoadmapFromSession() {
     try {
       const raw = sessionStorage.getItem(selectedLearningRoadmapKey);
-      if (!raw) return;
+      if (!raw) return false;
       const parsed = JSON.parse(raw);
       const selectedRoadmap = String(parsed?.roadmapText || '').trim();
       const selectedRole = String(parsed?.targetRole || '').trim();
+      let applied = false;
       if (selectedRoadmap) {
         latestLearningRoadmapText = selectedRoadmap.slice(0, 1500);
+        applied = true;
       }
       if (selectedRole) {
         const roleInput = document.getElementById('resumeJobTitleGen');
         if (roleInput && !roleInput.value.trim()) {
           roleInput.value = selectedRole;
+          applied = true;
         }
       }
       sessionStorage.removeItem(selectedLearningRoadmapKey);
+      return applied;
     } catch (err) {
       // Ignore storage parse errors.
+      return false;
     }
   }
 
@@ -588,7 +594,7 @@ document.addEventListener('DOMContentLoaded', function () {
     await loadTemplateStateFromServer();
     await loadCurrentPlan();
     await loadLatestLearningRoadmap();
-    loadSelectedLearningRoadmapFromSession();
+    learningRoadmapAppliedFromSession = loadSelectedLearningRoadmapFromSession();
     selectedLayoutId = getDefaultLayoutId();
     renderLayoutControls();
     updatePreviewAccess();
@@ -1866,4 +1872,10 @@ document.addEventListener('DOMContentLoaded', function () {
   renderPhotoPreview();
   restoreDraftState();
   attachDraftPersistence();
+
+  templateStateReadyPromise?.then(() => {
+    if (learningRoadmapAppliedFromSession) {
+      statusBanner('Learning roadmap applied. Generate or preview your resume to use this context.', true);
+    }
+  });
 });
