@@ -58,6 +58,31 @@ document.addEventListener('DOMContentLoaded', function () {
     return `${value.slice(0, max - 1).trim()}...`;
   }
 
+  function escapeHtml(value) {
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function openResumeGeneratorWithRoadmap(item) {
+    const payload = {
+      targetRole: String(item?.targetRole || '').trim(),
+      roadmapText: String(item?.roadmapText || '').trim(),
+      createdAt: item?.createdAt || new Date().toISOString()
+    };
+
+    try {
+      sessionStorage.setItem('learning-selected-roadmap-v1', JSON.stringify(payload));
+    } catch (err) {
+      // Ignore session storage issues and continue navigation.
+    }
+
+    window.location.href = 'resume-generator.html?fromLearning=1';
+  }
+
   function renderHistory(items) {
     if (!historyList) return;
 
@@ -72,17 +97,21 @@ document.addEventListener('DOMContentLoaded', function () {
       const summary = truncate(item.roadmapText || '');
       const created = formatDate(item.createdAt);
       return `
-        <button type="button" data-history-idx="${idx}" style="text-align:left;padding:12px;border:1px solid #dbe3ea;border-radius:10px;background:#ffffff;cursor:pointer;">
+        <div style="text-align:left;padding:12px;border:1px solid #dbe3ea;border-radius:10px;background:#ffffff;">
           <div style="font-weight:700;color:#1e293b;">${title}</div>
           <div style="font-size:0.92rem;color:#64748b;margin-top:4px;">${created}</div>
-          <div style="font-size:0.95rem;color:#334155;margin-top:8px;line-height:1.55;">${summary.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
-        </button>
+          <div style="font-size:0.95rem;color:#334155;margin-top:8px;line-height:1.55;">${escapeHtml(summary)}</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+            <button type="button" data-history-load-idx="${idx}" class="feature-launch-btn" style="padding:8px 12px;font-size:0.88rem;">Load Here</button>
+            <button type="button" data-history-apply-idx="${idx}" class="feature-launch-btn" style="padding:8px 12px;font-size:0.88rem;background:#334155;">Apply to Resume Generator</button>
+          </div>
+        </div>
       `;
     }).join('');
 
-    historyList.querySelectorAll('button[data-history-idx]').forEach((button) => {
+    historyList.querySelectorAll('button[data-history-load-idx]').forEach((button) => {
       button.addEventListener('click', () => {
-        const idx = Number(button.getAttribute('data-history-idx'));
+        const idx = Number(button.getAttribute('data-history-load-idx'));
         const selected = list[idx];
         if (!selected) return;
 
@@ -95,6 +124,15 @@ document.addEventListener('DOMContentLoaded', function () {
         if (resultWrap) resultWrap.style.display = 'block';
         if (downloadsWrap) downloadsWrap.style.display = 'block';
         setMessage('Loaded roadmap from history.', '#16a34a');
+      });
+    });
+
+    historyList.querySelectorAll('button[data-history-apply-idx]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const idx = Number(button.getAttribute('data-history-apply-idx'));
+        const selected = list[idx];
+        if (!selected) return;
+        openResumeGeneratorWithRoadmap(selected);
       });
     });
   }

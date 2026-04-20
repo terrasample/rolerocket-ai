@@ -165,6 +165,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const templateStateKey = `resume-template-queue-v1-${THEMES.map((t) => t.id).join('|')}`;
   const layoutSelectionKey = 'resume-layout-selection-v2';
   const draftStorageKey = 'resume-generator-draft-v1';
+  const selectedLearningRoadmapKey = 'learning-selected-roadmap-v1';
   let templateStateReadyPromise = null;
 
   function getAuthToken() {
@@ -493,6 +494,28 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
+  function loadSelectedLearningRoadmapFromSession() {
+    try {
+      const raw = sessionStorage.getItem(selectedLearningRoadmapKey);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      const selectedRoadmap = String(parsed?.roadmapText || '').trim();
+      const selectedRole = String(parsed?.targetRole || '').trim();
+      if (selectedRoadmap) {
+        latestLearningRoadmapText = selectedRoadmap.slice(0, 1500);
+      }
+      if (selectedRole) {
+        const roleInput = document.getElementById('resumeJobTitleGen');
+        if (roleInput && !roleInput.value.trim()) {
+          roleInput.value = selectedRole;
+        }
+      }
+      sessionStorage.removeItem(selectedLearningRoadmapKey);
+    } catch (err) {
+      // Ignore storage parse errors.
+    }
+  }
+
   function withLearningContext(jobDescriptionText) {
     const jd = String(jobDescriptionText || '').trim();
     if (!latestLearningRoadmapText) return jd;
@@ -565,6 +588,7 @@ document.addEventListener('DOMContentLoaded', function () {
     await loadTemplateStateFromServer();
     await loadCurrentPlan();
     await loadLatestLearningRoadmap();
+    loadSelectedLearningRoadmapFromSession();
     selectedLayoutId = getDefaultLayoutId();
     renderLayoutControls();
     updatePreviewAccess();
