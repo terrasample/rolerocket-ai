@@ -148,9 +148,9 @@ router.post('/upload', authenticateToken, upload.single('resumeFile'), async (re
 router.post('/generate', authenticateToken, async (req, res) => {
   const { jobDescription, resume } = req.body;
 
-  // Validate input
-  if (!jobDescription || !resume) {
-    return res.status(400).json({ error: 'jobDescription and resume are required' });
+  // Validate input — resume is optional
+  if (!jobDescription) {
+    return res.status(400).json({ error: 'jobDescription is required' });
   }
 
   try {
@@ -196,8 +196,7 @@ Output requirements:
 Job Description:
 ${jobDescription}
 
-Resume:
-${resume}
+${resume ? `Resume:\n${resume}` : 'No resume provided. Build a strong, ATS-optimised resume tailored to the job description above. Use realistic but clearly placeholder values for contact details (e.g. "Your Name | your.email@example.com | City, State"). Do not invent specific employers or dates — use placeholder entries the user can fill in.'}
           `,
         },
       ],
