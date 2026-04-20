@@ -175,6 +175,10 @@ document.addEventListener('DOMContentLoaded', function () {
     return PLAN_LAYOUT_LIMITS[normalized] ? normalized : 'free';
   }
 
+  function canPreviewResume(plan) {
+    return normalizePlan(plan) !== 'free';
+  }
+
   function getThemeLimitForPlan(plan) {
     return PLAN_LAYOUT_LIMITS[normalizePlan(plan)] || 1;
   }
@@ -520,12 +524,18 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
+  function updatePreviewAccess() {
+    if (!previewBtn) return;
+    previewBtn.style.display = canPreviewResume(userPlan) ? '' : 'none';
+  }
+
   async function initTemplateState() {
     loadTemplateState();
     await loadTemplateStateFromServer();
     await loadCurrentPlan();
     selectedLayoutId = getDefaultLayoutId();
     renderLayoutControls();
+    updatePreviewAccess();
   }
 
   templateStateReadyPromise = initTemplateState();
@@ -833,9 +843,20 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!text.trim()) return '';
 
     const roleTitle = extractJobTitleFromDescription(text) || 'Project Management Professional';
-    const skills = extractSkillsFromJobDescription(text);
-    const primaryFocus = skills.slice(0, 3).join(', ').toLowerCase();
-    const supportingFocus = skills.slice(3, 6).join(', ').toLowerCase();
+    const coreFocus = [
+      /installation/i.test(text) ? 'customer-facing installation projects' : '',
+      /implementation process|implementation/i.test(text) ? 'project implementation and delivery' : '',
+      /diagnostic imaging/i.test(text) ? 'diagnostic imaging environments' : '',
+      /clinical environment/i.test(text) ? 'clinical settings' : ''
+    ].filter(Boolean);
+    const executionStrengths = [
+      /project management/i.test(text) ? 'project execution' : '',
+      /cross[- ]functional/i.test(text) ? 'cross-functional team coordination' : '',
+      /identify, escalate, and resolve issues|escalate,? and resolve issues|issue[s]?/i.test(text) ? 'issue escalation and resolution' : '',
+      /customer satisfaction/i.test(text) ? 'customer satisfaction' : '',
+      /scheduled completion dates|deadlines/i.test(text) ? 'schedule management' : '',
+      /construction|building trades/i.test(text) ? 'construction and site coordination' : ''
+    ].filter(Boolean);
     const toolsAndCredentials = [
       /autocad/i.test(text) ? 'AutoCAD' : '',
       /magic\s*plan/i.test(text) ? 'MagicPlan' : '',
@@ -843,18 +864,21 @@ document.addEventListener('DOMContentLoaded', function () {
       /six sigma/i.test(text) ? 'Six Sigma' : ''
     ].filter(Boolean);
 
-    const sentences = [
-      primaryFocus
-        ? `${roleTitle} with experience leading ${primaryFocus} in complex customer-facing environments.`
-        : `${roleTitle} with experience delivering customer-facing implementation and project management support in complex environments.`
-    ];
+    const sentences = [];
 
-    if (supportingFocus) {
-      sentences.push(`Brings strength in ${supportingFocus}, with a focus on schedule execution, issue resolution, and customer satisfaction.`);
+    if (coreFocus.length) {
+      const focusText = coreFocus.slice(0, 2).join(' and ');
+      sentences.push(`${roleTitle} with experience managing ${focusText} across customer, technical, and operational stakeholders.`);
+    } else {
+      sentences.push(`${roleTitle} with experience delivering customer-facing project execution in complex operational environments.`);
+    }
+
+    if (executionStrengths.length) {
+      sentences.push(`Brings strength in ${executionStrengths.slice(0, 4).join(', ')}, helping keep milestones on track and customer expectations aligned.`);
     }
 
     if (toolsAndCredentials.length) {
-      sentences.push(`Offers added value through ${toolsAndCredentials.join(', ')}, supporting reliable execution across clinical, technical, and operational stakeholders.`);
+      sentences.push(`Supported by ${toolsAndCredentials.join(', ')}, with the structure and technical fluency needed for high-visibility implementations.`);
     }
 
     return sentences.join(' ');
@@ -1681,6 +1705,11 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   function previewResume() {
+    if (!canPreviewResume(userPlan)) {
+      renderError('Resume preview is available on Pro, Premium, Elite, and Lifetime plans.');
+      return;
+    }
+
     const resumeText = document.getElementById('resumeBaseGen').value.trim();
     const jobTitle = document.getElementById('resumeJobTitleGen').value.trim();
     const company = document.getElementById('resumeCompanyGen').value.trim();
