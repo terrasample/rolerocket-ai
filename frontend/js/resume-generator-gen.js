@@ -1449,19 +1449,25 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function previewResume() {
     const resumeText = document.getElementById('resumeBaseGen').value.trim();
-    const lines = resumeText.split('\n').map((line) => line.trim()).filter(Boolean);
     
-    // Use the same name extraction logic as full resume generation
-    let fullName = findNameInLines(lines) || 'Professional Candidate';
+    // Parse the resume to extract all sections
+    const parsed = parseResume(resumeText, {
+      fullName: '',
+      phone: '',
+      email: '',
+      location: '',
+      linkedin: ''
+    }, resumeText);
     
     const model = buildResumeModel(
       {
-        fullName,
-        experiences: [],
-        education: [],
-        awards: [],
-        skills: [],
-        contactLines: []
+        fullName: parsed.fullName,
+        contactLines: parsed.contactLines,
+        profile: parsed.profile,
+        experiences: parsed.experiences,
+        education: parsed.education,
+        awards: parsed.awards,
+        skills: parsed.skills
       },
       document.getElementById('resumeJobTitleGen').value.trim() || 'Target Position'
     );
