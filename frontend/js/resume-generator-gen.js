@@ -763,38 +763,52 @@ document.addEventListener('DOMContentLoaded', function () {
     ].some((pattern) => pattern.test(normalized));
   }
 
+  function getJobSkillSignals() {
+    return [
+      { pattern: /autocad/i, label: 'AutoCAD', priority: 1 },
+      { pattern: /magic\s*plan/i, label: 'MagicPlan', priority: 1 },
+      { pattern: /pmp|project management professional/i, label: 'PMP Certification', priority: 1 },
+      { pattern: /six sigma/i, label: 'Six Sigma', priority: 1 },
+      { pattern: /project management/i, label: 'Project Management', priority: 2 },
+      { pattern: /cross[- ]functional/i, label: 'Cross-Functional Team Leadership', priority: 2 },
+      { pattern: /installation/i, label: 'Customer Installation Coordination', priority: 2 },
+      { pattern: /implementation process|implementation/i, label: 'Project Implementation Management', priority: 2 },
+      { pattern: /manage multiple projects simultaneously|multiple projects simultaneously/i, label: 'Multi-Project Management', priority: 2 },
+      { pattern: /identify, escalate, and resolve issues|escalate,? and resolve issues|issue[s]?/i, label: 'Issue Escalation and Resolution', priority: 2 },
+      { pattern: /customer satisfaction/i, label: 'Customer Satisfaction Management', priority: 2 },
+      { pattern: /process productivity/i, label: 'Process Productivity Improvement', priority: 2 },
+      { pattern: /sales and services teams/i, label: 'Sales and Service Team Coordination', priority: 3 },
+      { pattern: /diagnostic imaging/i, label: 'Diagnostic Imaging Project Support', priority: 3 },
+      { pattern: /clinical environment/i, label: 'Clinical Environment Support', priority: 3 },
+      { pattern: /construction|building trades/i, label: 'Construction and Building Trades Coordination', priority: 3 },
+      { pattern: /scheduled completion dates|deadlines/i, label: 'Schedule and Deadline Management', priority: 3 },
+      { pattern: /customer expectations/i, label: 'Stakeholder Expectation Management', priority: 3 },
+      { pattern: /travel regularly|overnight/i, label: 'Field-Based Project Support', priority: 3 },
+      { pattern: /work independently|home office/i, label: 'Independent Project Execution', priority: 3 }
+    ];
+  }
+
   function extractSkillsFromJobDescription(jobDescription) {
     const text = String(jobDescription || '');
     if (!text.trim()) return [];
 
-    const skillSignals = [
-      { pattern: /installation/i, label: 'Customer Installation Coordination' },
-      { pattern: /customer satisfaction/i, label: 'Customer Satisfaction Management' },
-      { pattern: /process productivity/i, label: 'Process Productivity Improvement' },
-      { pattern: /manage multiple projects simultaneously|multiple projects simultaneously/i, label: 'Multi-Project Management' },
-      { pattern: /identify, escalate, and resolve issues|escalate,? and resolve issues|issue[s]?/i, label: 'Issue Escalation and Resolution' },
-      { pattern: /cross[- ]functional/i, label: 'Cross-Functional Team Leadership' },
-      { pattern: /sales and services teams/i, label: 'Sales and Service Team Coordination' },
-      { pattern: /implementation process|implementation/i, label: 'Project Implementation Management' },
-      { pattern: /diagnostic imaging/i, label: 'Diagnostic Imaging Project Support' },
-      { pattern: /project management/i, label: 'Project Management' },
-      { pattern: /clinical environment/i, label: 'Clinical Environment Support' },
-      { pattern: /construction|building trades/i, label: 'Construction and Building Trades Coordination' },
-      { pattern: /scheduled completion dates|deadlines/i, label: 'Schedule and Deadline Management' },
-      { pattern: /customer expectations/i, label: 'Stakeholder Expectation Management' },
-      { pattern: /autocad/i, label: 'AutoCAD' },
-      { pattern: /magic\s*plan/i, label: 'MagicPlan' },
-      { pattern: /pmp|project management professional/i, label: 'PMP Certification' },
-      { pattern: /six sigma/i, label: 'Six Sigma' },
-      { pattern: /travel regularly|overnight/i, label: 'Field-Based Project Support' },
-      { pattern: /work independently|home office/i, label: 'Independent Project Execution' }
-    ];
-
-    const matches = skillSignals
+    const matches = getJobSkillSignals()
       .filter((item) => item.pattern.test(text))
+      .sort((left, right) => left.priority - right.priority)
       .map((item) => item.label);
 
-    return [...new Set(matches)].slice(0, 12);
+    return [...new Set(matches)];
+  }
+
+  function extractMatchedSkillsFromSource(jobDescription, sourceText) {
+    const jobText = String(jobDescription || '');
+    const resumeText = String(sourceText || '');
+    if (!jobText.trim() || !resumeText.trim()) return [];
+
+    return getJobSkillSignals()
+      .filter((item) => item.pattern.test(jobText) && item.pattern.test(resumeText))
+      .sort((left, right) => left.priority - right.priority)
+      .map((item) => item.label);
   }
 
   function extractJobTitleFromDescription(jobDescription) {
@@ -846,11 +860,12 @@ document.addEventListener('DOMContentLoaded', function () {
     return sentences.join(' ');
   }
 
-  function alignSkillsToJobDescription(structured, jobDescription) {
+  function alignSkillsToJobDescription(structured, jobDescription, sourceResumeText = '') {
     const targetSkills = extractSkillsFromJobDescription(jobDescription);
+    const matchedSkills = extractMatchedSkillsFromSource(jobDescription, sourceResumeText);
     const existingSkills = (structured.skills || []).map((skill) => normalizeBulletText(skill)).filter(Boolean);
     const specificExistingSkills = existingSkills.filter((skill) => !isGenericSkill(skill));
-    const combinedSkills = [...targetSkills, ...specificExistingSkills];
+    const combinedSkills = [...matchedSkills, ...targetSkills, ...specificExistingSkills];
 
     if (combinedSkills.length) {
       structured.skills = [...new Set(combinedSkills)].slice(0, 12);
@@ -879,8 +894,8 @@ document.addEventListener('DOMContentLoaded', function () {
     return structured;
   }
 
-  function alignResumeToJobDescription(structured, jobDescription) {
-    alignSkillsToJobDescription(structured, jobDescription);
+  function alignResumeToJobDescription(structured, jobDescription, sourceResumeText = '') {
+    alignSkillsToJobDescription(structured, jobDescription, sourceResumeText);
     alignProfileToJobDescription(structured, jobDescription);
     return structured;
   }
@@ -1650,7 +1665,8 @@ document.addEventListener('DOMContentLoaded', function () {
       lastRawResume = raw;
       const structured = alignResumeToJobDescription(
         parseResume(raw, extractContactInfo(baseResume), baseResume),
-        jobDescription
+        jobDescription,
+        baseResume
       );
       lastStructuredResume = buildResumeModel(structured, jobTitle);
       output.innerHTML = renderResumeTemplate(lastStructuredResume);
@@ -1684,7 +1700,7 @@ document.addEventListener('DOMContentLoaded', function () {
       email: '',
       location: '',
       linkedin: ''
-    }, resumeText), jobDescription);
+    }, resumeText), jobDescription, resumeText);
     
     const model = buildResumeModel(
       {

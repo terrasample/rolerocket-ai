@@ -3242,6 +3242,7 @@ app.post('/api/resume/generate', authenticateToken, async (req, res) => {
         '- Include a PROFILE or SUMMARY section near the top with 2 to 3 sentences tailored to the target role and employer needs.',
         '- Make the summary reflect the job description using role-specific language such as customer-facing installation leadership, cross-functional coordination, project implementation, customer satisfaction, issue resolution, and clinical or diagnostic imaging support when supported by the posting.',
         '- Add a dedicated SKILLS section with 8 to 12 concise skill phrases aligned to the job description.',
+        '- Explicitly retain and prioritize skills that appear in both the candidate resume and the job description, especially tools, certifications, and technical competencies such as AutoCAD, MagicPlan, PMP, and Six Sigma when applicable.',
         '- Prioritize hard skills, domain knowledge, tools, certifications, and role-specific project management competencies named in the posting.',
         '- Avoid generic filler such as Team Player, Hardworking, Strong Work Ethic, or Collaborator unless those ideas are explicitly required in the job description.',
         '- Use wording that reflects the employer needs, such as customer installation leadership, cross-functional coordination, issue escalation and resolution, clinical environment support, diagnostic imaging implementation, scheduling, AutoCAD, MagicPlan, PMP, or Six Sigma when supported by the posting and candidate background.',
