@@ -18,6 +18,7 @@ const multer = require('multer');
 const { extractTextFromPDF, extractTextFromDocx } = require('./pdfWordUtils');
 const { extractTextFromPDFWithOCR } = require('./ocrUtils');
 const { getDailyGenerationStatus, recordDailyGenerationUsage } = require('./services/aiGenerationLimits');
+const LearningRoadmap = require('./models/LearningRoadmap');
 
 
 
@@ -3234,6 +3235,19 @@ app.post('/api/resume/generate', authenticateToken, async (req, res) => {
     }
 
     const hasResume = resume && String(resume).trim().length > 0;
+    const latestRoadmap = await LearningRoadmap
+      .findOne({ userId: user._id })
+      .sort({ createdAt: -1 })
+      .select('roadmapText targetRole')
+      .lean();
+
+    const learningContext = latestRoadmap && latestRoadmap.roadmapText
+      ? [
+          `Latest Learning Roadmap (${latestRoadmap.targetRole || 'Target Role'}):`,
+          String(latestRoadmap.roadmapText || '').slice(0, 1600),
+          'Use relevant roadmap insights to strengthen PROFILE and SKILLS while staying truthful to provided resume context.'
+        ].join('\n')
+      : '';
     
     let systemMessage, userMessage;
     
@@ -3243,6 +3257,7 @@ app.post('/api/resume/generate', authenticateToken, async (req, res) => {
       userMessage = [
         `Job Description:\n${jobDescription}`,
         `Resume:\n${resume}`,
+        learningContext,
         'Instructions:',
         '- Keep the resume realistic and professionally written.',
         '- Include a PROFILE or SUMMARY section near the top with 2 to 3 sentences tailored to the target role and employer needs.',
@@ -3253,12 +3268,13 @@ app.post('/api/resume/generate', authenticateToken, async (req, res) => {
         '- Avoid generic filler such as Team Player, Hardworking, Strong Work Ethic, or Collaborator unless those ideas are explicitly required in the job description.',
         '- Use wording that reflects the employer needs, such as customer installation leadership, cross-functional coordination, issue escalation and resolution, clinical environment support, diagnostic imaging implementation, scheduling, AutoCAD, MagicPlan, PMP, or Six Sigma when supported by the posting and candidate background.',
         '- Keep the output in clean resume text with clear section headers.'
-      ].join('\n\n');
+      ].filter(Boolean).join('\n\n');
     } else {
       // Generate a new resume from scratch based on job description
       systemMessage = 'Create a professional, ATS-friendly resume tailored to the job description. Include realistic experience, education, and skills sections. Make it strong, measurable, and clear. Analyze the posting first and ensure the SKILLS section closely reflects the employer requirements.';
       userMessage = [
         `Job Description:\n${jobDescription}`,
+        learningContext,
         'Instructions:',
         '- Create a compelling professional resume for someone applying to this role.',
         '- Include a PROFILE or SUMMARY section near the top with 2 to 3 sentences that directly match the responsibilities and qualifications in the job description.',
@@ -3267,7 +3283,7 @@ app.post('/api/resume/generate', authenticateToken, async (req, res) => {
         '- Prioritize hard skills, tools, certifications, customer-facing implementation work, cross-functional leadership, and industry/domain requirements over generic soft skills.',
         '- Avoid weak filler such as Team Player, Strong Work Ethic, Creative Thinking, or Collaborator unless the posting explicitly calls for them.',
         '- Use clean resume text with clear section headers.'
-      ].join('\n\n');
+      ].filter(Boolean).join('\n\n');
     }
     
     const completion = await openai.chat.completions.create({
@@ -3447,6 +3463,11 @@ app.post('/api/learning/plan', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
+    const generationStatus = getDailyGenerationStatus(user, 'learning');
+    if (!generationStatus.allowed) {
+      return res.status(429).json({ error: generationStatus.message });
+    }
+
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       max_tokens: 1300,
@@ -3486,10 +3507,55 @@ app.post('/api/learning/plan', authenticateToken, async (req, res) => {
       ]
     });
 
-    return res.json({ result: completion.choices[0].message.content });
+    const roadmapText = String(completion.choices[0].message.content || '').trim();
+
+    await LearningRoadmap.create({
+      userId: user._id,
+      targetRole: String(targetRole || '').trim(),
+      currentLevel: String(currentLevel || '').trim(),
+      timePerWeek: Number(timePerWeek || 5) || 5,
+      jobDescription: String(jobDescription || '').trim(),
+      resumeText: String(resumeText || '').trim(),
+      roadmapText
+    });
+
+    await recordDailyGenerationUsage(user, 'learning');
+
+    return res.json({ result: roadmapText });
   } catch (err) {
     console.error('Learning roadmap error:', err);
     return res.status(500).json({ error: 'Learning roadmap generation failed' });
+  }
+});
+
+app.get('/api/learning/latest', authenticateToken, async (req, res) => {
+  try {
+    const roadmap = await LearningRoadmap
+      .findOne({ userId: req.user.userId })
+      .sort({ createdAt: -1 })
+      .select('targetRole currentLevel timePerWeek roadmapText createdAt')
+      .lean();
+
+    return res.json({ roadmap: roadmap || null });
+  } catch (err) {
+    console.error('Learning latest error:', err);
+    return res.status(500).json({ error: 'Failed to load latest learning roadmap' });
+  }
+});
+
+app.get('/api/learning/history', authenticateToken, async (req, res) => {
+  try {
+    const items = await LearningRoadmap
+      .find({ userId: req.user.userId })
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .select('targetRole currentLevel timePerWeek roadmapText createdAt')
+      .lean();
+
+    return res.json({ items });
+  } catch (err) {
+    console.error('Learning history error:', err);
+    return res.status(500).json({ error: 'Failed to load learning history' });
   }
 });
 

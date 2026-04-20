@@ -161,6 +161,7 @@ document.addEventListener('DOMContentLoaded', function () {
   let selectedLayoutId = '';
   let templateQueue = [];
   let lastTemplateIdx = -1;
+  let latestLearningRoadmapText = '';
   const templateStateKey = `resume-template-queue-v1-${THEMES.map((t) => t.id).join('|')}`;
   const layoutSelectionKey = 'resume-layout-selection-v2';
   const draftStorageKey = 'resume-generator-draft-v1';
@@ -473,6 +474,36 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
+  async function loadLatestLearningRoadmap() {
+    const token = getAuthToken();
+    if (!token) {
+      latestLearningRoadmapText = '';
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/learning/latest', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      latestLearningRoadmapText = String(data?.roadmap?.roadmapText || '').trim().slice(0, 1500);
+    } catch (err) {
+      latestLearningRoadmapText = '';
+    }
+  }
+
+  function withLearningContext(jobDescriptionText) {
+    const jd = String(jobDescriptionText || '').trim();
+    if (!latestLearningRoadmapText) return jd;
+    return [
+      jd,
+      '',
+      'Learning Roadmap Insights:',
+      latestLearningRoadmapText
+    ].join('\n');
+  }
+
   function getDefaultLayoutId() {
     const availableThemes = getAvailableThemesForPlan(userPlan);
     const storedLayoutId = loadSelectedLayoutId();
@@ -533,6 +564,7 @@ document.addEventListener('DOMContentLoaded', function () {
     loadTemplateState();
     await loadTemplateStateFromServer();
     await loadCurrentPlan();
+    await loadLatestLearningRoadmap();
     selectedLayoutId = getDefaultLayoutId();
     renderLayoutControls();
     updatePreviewAccess();
@@ -1661,6 +1693,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     try {
       if (templateStateReadyPromise) await templateStateReadyPromise;
+      await loadLatestLearningRoadmap();
 
       const jobDescription = [
         `Job Title: ${jobTitle}`,
@@ -1687,9 +1720,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
       const raw = String(data.result || '').trim();
       lastRawResume = raw;
+      const alignmentContext = withLearningContext(jobDescription);
       const structured = alignResumeToJobDescription(
         parseResume(raw, extractContactInfo(baseResume), baseResume),
-        jobDescription,
+        alignmentContext,
         baseResume
       );
       lastStructuredResume = buildResumeModel(structured, jobTitle);
@@ -1721,6 +1755,7 @@ document.addEventListener('DOMContentLoaded', function () {
       fullJobDescription ? 'Full Job Description:' : '',
       fullJobDescription
     ].filter(Boolean).join('\n');
+    const alignmentContext = withLearningContext(jobDescription);
     
     // Parse the resume to extract all sections
     const parsed = alignResumeToJobDescription(parseResume(resumeText, {
@@ -1729,7 +1764,7 @@ document.addEventListener('DOMContentLoaded', function () {
       email: '',
       location: '',
       linkedin: ''
-    }, resumeText), jobDescription, resumeText);
+    }, resumeText), alignmentContext, resumeText);
     
     const model = buildResumeModel(
       {

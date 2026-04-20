@@ -23,6 +23,7 @@ function getTodayKey() {
 }
 
 function getFeatureLabel(feature) {
+  if (feature === 'learning') return 'learning roadmap';
   return feature === 'cover-letter' ? 'cover letter' : 'resume';
 }
 

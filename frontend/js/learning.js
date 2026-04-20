@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const output = document.getElementById('learningOutput');
   const pdfBtn = document.getElementById('downloadLearningPdfBtn');
   const wordBtn = document.getElementById('downloadLearningWordBtn');
+  const historyList = document.getElementById('learningHistoryList');
 
   function setMessage(message, color) {
     output.innerHTML = message ? `<div style="margin-top:12px;color:${color};">${message}</div>` : '';
@@ -43,6 +44,81 @@ document.addEventListener('DOMContentLoaded', function () {
     if (resultWrap) resultWrap.style.display = 'none';
     if (downloadsWrap) downloadsWrap.style.display = 'none';
     setMessage('Fields cleared.', '#16a34a');
+  }
+
+  function formatDate(value) {
+    const date = new Date(value || Date.now());
+    if (Number.isNaN(date.getTime())) return '';
+    return date.toLocaleString();
+  }
+
+  function truncate(text, max = 220) {
+    const value = String(text || '').trim();
+    if (value.length <= max) return value;
+    return `${value.slice(0, max - 1).trim()}...`;
+  }
+
+  function renderHistory(items) {
+    if (!historyList) return;
+
+    const list = Array.isArray(items) ? items : [];
+    if (!list.length) {
+      historyList.innerHTML = '<div style="padding:10px 12px;border:1px solid #e2e8f0;border-radius:8px;color:#64748b;background:#f8fafc;">No saved learning roadmaps yet.</div>';
+      return;
+    }
+
+    historyList.innerHTML = list.map((item, idx) => {
+      const title = String(item.targetRole || 'Target Role').trim();
+      const summary = truncate(item.roadmapText || '');
+      const created = formatDate(item.createdAt);
+      return `
+        <button type="button" data-history-idx="${idx}" style="text-align:left;padding:12px;border:1px solid #dbe3ea;border-radius:10px;background:#ffffff;cursor:pointer;">
+          <div style="font-weight:700;color:#1e293b;">${title}</div>
+          <div style="font-size:0.92rem;color:#64748b;margin-top:4px;">${created}</div>
+          <div style="font-size:0.95rem;color:#334155;margin-top:8px;line-height:1.55;">${summary.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+        </button>
+      `;
+    }).join('');
+
+    historyList.querySelectorAll('button[data-history-idx]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const idx = Number(button.getAttribute('data-history-idx'));
+        const selected = list[idx];
+        if (!selected) return;
+
+        if (targetRoleInput) targetRoleInput.value = String(selected.targetRole || '');
+        if (currentLevelInput) currentLevelInput.value = String(selected.currentLevel || '');
+        if (timePerWeekInput) timePerWeekInput.value = String(selected.timePerWeek || '5');
+        if (jobDescriptionInput) jobDescriptionInput.value = String(selected.jobDescription || '');
+        if (resumeInput) resumeInput.value = String(selected.resumeText || '');
+        if (planText) planText.value = String(selected.roadmapText || '');
+        if (resultWrap) resultWrap.style.display = 'block';
+        if (downloadsWrap) downloadsWrap.style.display = 'block';
+        setMessage('Loaded roadmap from history.', '#16a34a');
+      });
+    });
+  }
+
+  async function loadLearningHistory() {
+    const token = getToken();
+    if (!token) {
+      renderHistory([]);
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/learning/history', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        renderHistory([]);
+        return;
+      }
+      renderHistory(data.items || []);
+    } catch (err) {
+      renderHistory([]);
+    }
   }
 
   function formatPdf(text, doc) {
@@ -126,6 +202,7 @@ document.addEventListener('DOMContentLoaded', function () {
       resultWrap.style.display = 'block';
       downloadsWrap.style.display = 'block';
       setMessage('Learning roadmap generated.', '#16a34a');
+      loadLearningHistory();
     } catch (err) {
       setMessage('Error generating learning roadmap.', '#dc2626');
     }
@@ -160,4 +237,6 @@ document.addEventListener('DOMContentLoaded', function () {
     downloadBlob(new Blob(['\ufeff', html], { type: 'application/msword;charset=utf-8' }), `${getFileBaseName()}.doc`);
     setMessage('Word document downloaded.', '#16a34a');
   });
+
+  loadLearningHistory();
 });

@@ -77,7 +77,7 @@ const UserSchema = new mongoose.Schema(
       type: [
         {
           day: { type: String, default: '' },
-          feature: { type: String, enum: ['resume', 'cover-letter'], default: 'resume' },
+          feature: { type: String, enum: ['resume', 'cover-letter', 'learning'], default: 'resume' },
           count: { type: Number, default: 0 }
         }
       ],
