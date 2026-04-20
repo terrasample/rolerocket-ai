@@ -75,11 +75,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             desc: 'Find jobs, track applications, and organize your job search pipeline.',
             url: 'job-tracking.html',
           },
-          {
-            name: 'RoleRocketAI Learning',
-            desc: 'Generate a personalized roadmap to close skill gaps and become interview-ready for your target role.',
-            url: 'learning.html',
-          },
         ],
       },
       {
@@ -106,6 +101,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         tier: 'elite',
         features: [
           { name: '🎤 Interview Assist (LIVE)', desc: 'Get real-time AI coaching during live interviews. Type any question mid-call and instantly receive a structured, coach-quality answer.', url: 'ai-interview-assist.html' },
+          { name: 'RoleRocketAI Learning', desc: 'Diagnose missing skills for your target role and get structured teaching modules with practice tasks and proof-of-mastery steps.', url: 'learning.html' },
           { name: 'Career Coach', desc: 'Get strategic direction on positioning, next-best moves, and salary trajectory by role path.', url: 'ai-career-coach.html' },
           { name: 'Career Path Simulator', desc: 'Simulate different career paths and see potential outcomes based on your choices.', url: 'career-path-simulator.html' },
           { name: 'Offer Negotiation Coach', desc: 'Get expert negotiation strategies and scripts to maximize your job offers.', url: 'offer-negotiation-coach.html' },

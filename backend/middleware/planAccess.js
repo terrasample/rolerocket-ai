@@ -24,7 +24,10 @@ const featurePlanMap = {
   'video-interview-practice': 'elite',
   'calendar-task-ai': 'elite',
   'ai-application-tracker': 'elite',
-  'ai-job-agent': 'elite'
+  'ai-job-agent': 'elite',
+  'learning': 'elite',
+  'interview-assist': 'elite',
+  'outcome-command-center': 'elite'
 };
 
 function getUserPlan(req) {

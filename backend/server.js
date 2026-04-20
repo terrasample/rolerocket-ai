@@ -3457,6 +3457,10 @@ app.post('/api/learning/plan', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
+    if (!hasRequiredPlan(user, 'elite')) {
+      return res.status(403).json({ error: 'Upgrade to Elite to use RoleRocketAI Learning.' });
+    }
+
     const generationStatus = getDailyGenerationStatus(user, 'learning');
     if (!generationStatus.allowed) {
       return res.status(429).json({ error: generationStatus.message });

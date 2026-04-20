@@ -11,9 +11,9 @@ window.RoleRocketPricingData = {
       features: [
         'Everything in Free',
         'ATS Optimizer',
-        'Job Market Radar',
-        'Application Quality Score',
         'Resume Optimizer',
+        'Application Quality Score',
+        'Job Market Radar',
         'Gamification'
       ]
     },
@@ -30,6 +30,7 @@ window.RoleRocketPricingData = {
     elite: {
       features: [
         'Everything in Premium',
+        'RoleRocketAI Learning',
         '🎤 Interview Assist (LIVE)',
         'Career Coach',
         'Career Path Simulator',
@@ -37,7 +38,8 @@ window.RoleRocketPricingData = {
         'Video Interview Practice',
         'Calendar & Task AI',
         'AI Application Tracker',
-        'AI Job Agent'
+        'AI Job Agent',
+        'Outcome Command Center'
       ]
     }
   },
