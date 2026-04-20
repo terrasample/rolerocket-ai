@@ -3233,12 +3233,31 @@ app.post('/api/resume/generate', authenticateToken, async (req, res) => {
     
     if (hasResume) {
       // Rewrite existing resume for the job
-      systemMessage = 'Rewrite resumes to be ATS-friendly, measurable, strong, clear, and professional.';
-      userMessage = `Job Description:\n${jobDescription}\n\nResume:\n${resume}`;
+      systemMessage = 'Rewrite resumes to be ATS-friendly, measurable, strong, clear, and professional. Analyze the job description first and mirror its most important keywords in the resume naturally.';
+      userMessage = [
+        `Job Description:\n${jobDescription}`,
+        `Resume:\n${resume}`,
+        'Instructions:',
+        '- Keep the resume realistic and professionally written.',
+        '- Add a dedicated SKILLS section with 8 to 12 concise skill phrases aligned to the job description.',
+        '- Prioritize hard skills, domain knowledge, tools, certifications, and role-specific project management competencies named in the posting.',
+        '- Avoid generic filler such as Team Player, Hardworking, Strong Work Ethic, or Collaborator unless those ideas are explicitly required in the job description.',
+        '- Use wording that reflects the employer needs, such as customer installation leadership, cross-functional coordination, issue escalation and resolution, clinical environment support, diagnostic imaging implementation, scheduling, AutoCAD, MagicPlan, PMP, or Six Sigma when supported by the posting and candidate background.',
+        '- Keep the output in clean resume text with clear section headers.'
+      ].join('\n\n');
     } else {
       // Generate a new resume from scratch based on job description
-      systemMessage = 'Create a professional, ATS-friendly resume tailored to the job description. Include realistic experience, education, and skills sections. Make it strong, measurable, and clear.';
-      userMessage = `Job Description:\n${jobDescription}\n\nCreate a compelling professional resume for someone applying to this role. Generate realistic experience with specific achievements, relevant education, and key skills. Format as a clean resume text.`;
+      systemMessage = 'Create a professional, ATS-friendly resume tailored to the job description. Include realistic experience, education, and skills sections. Make it strong, measurable, and clear. Analyze the posting first and ensure the SKILLS section closely reflects the employer requirements.';
+      userMessage = [
+        `Job Description:\n${jobDescription}`,
+        'Instructions:',
+        '- Create a compelling professional resume for someone applying to this role.',
+        '- Generate realistic experience with specific achievements, relevant education, and a strong SKILLS section.',
+        '- In the SKILLS section, include 8 to 12 concise, ATS-friendly skill phrases that directly match the job description.',
+        '- Prioritize hard skills, tools, certifications, customer-facing implementation work, cross-functional leadership, and industry/domain requirements over generic soft skills.',
+        '- Avoid weak filler such as Team Player, Strong Work Ethic, Creative Thinking, or Collaborator unless the posting explicitly calls for them.',
+        '- Use clean resume text with clear section headers.'
+      ].join('\n\n');
     }
     
     const completion = await openai.chat.completions.create({

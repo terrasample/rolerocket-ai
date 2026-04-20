@@ -744,6 +744,74 @@ document.addEventListener('DOMContentLoaded', function () {
     return false;
   }
 
+  function isGenericSkill(skill) {
+    const normalized = normalizeBulletText(skill).toLowerCase();
+    if (!normalized) return true;
+
+    return [
+      /^team player$/,
+      /^collaborator$/,
+      /^communication$/,
+      /^oral and written communication$/,
+      /^excellent oral and written communication$/,
+      /^creative thinking$/,
+      /^leadership$/,
+      /^strong work ethic$/,
+      /^problem solving$/,
+      /^interpersonal$/,
+      /^organizational development$/
+    ].some((pattern) => pattern.test(normalized));
+  }
+
+  function extractSkillsFromJobDescription(jobDescription) {
+    const text = String(jobDescription || '');
+    if (!text.trim()) return [];
+
+    const skillSignals = [
+      { pattern: /installation/i, label: 'Customer Installation Coordination' },
+      { pattern: /customer satisfaction/i, label: 'Customer Satisfaction Management' },
+      { pattern: /process productivity/i, label: 'Process Productivity Improvement' },
+      { pattern: /manage multiple projects simultaneously|multiple projects simultaneously/i, label: 'Multi-Project Management' },
+      { pattern: /identify, escalate, and resolve issues|escalate,? and resolve issues|issue[s]?/i, label: 'Issue Escalation and Resolution' },
+      { pattern: /cross[- ]functional/i, label: 'Cross-Functional Team Leadership' },
+      { pattern: /sales and services teams/i, label: 'Sales and Service Team Coordination' },
+      { pattern: /implementation process|implementation/i, label: 'Project Implementation Management' },
+      { pattern: /diagnostic imaging/i, label: 'Diagnostic Imaging Project Support' },
+      { pattern: /project management/i, label: 'Project Management' },
+      { pattern: /clinical environment/i, label: 'Clinical Environment Support' },
+      { pattern: /construction|building trades/i, label: 'Construction and Building Trades Coordination' },
+      { pattern: /scheduled completion dates|deadlines/i, label: 'Schedule and Deadline Management' },
+      { pattern: /customer expectations/i, label: 'Stakeholder Expectation Management' },
+      { pattern: /autocad/i, label: 'AutoCAD' },
+      { pattern: /magic\s*plan/i, label: 'MagicPlan' },
+      { pattern: /pmp|project management professional/i, label: 'PMP Certification' },
+      { pattern: /six sigma/i, label: 'Six Sigma' },
+      { pattern: /travel regularly|overnight/i, label: 'Field-Based Project Support' },
+      { pattern: /work independently|home office/i, label: 'Independent Project Execution' }
+    ];
+
+    const matches = skillSignals
+      .filter((item) => item.pattern.test(text))
+      .map((item) => item.label);
+
+    return [...new Set(matches)].slice(0, 12);
+  }
+
+  function alignSkillsToJobDescription(structured, jobDescription) {
+    const targetSkills = extractSkillsFromJobDescription(jobDescription);
+    const existingSkills = (structured.skills || []).map((skill) => normalizeBulletText(skill)).filter(Boolean);
+    const specificExistingSkills = existingSkills.filter((skill) => !isGenericSkill(skill));
+    const combinedSkills = [...targetSkills, ...specificExistingSkills];
+
+    if (combinedSkills.length) {
+      structured.skills = [...new Set(combinedSkills)].slice(0, 12);
+      return structured;
+    }
+
+    structured.skills = ['Project Management', 'Cross-Functional Coordination', 'Customer-Facing Implementation'];
+    return structured;
+  }
+
   function parseResume(rawText, fallbackFromBase, sourceResumeText = '') {
     const text = String(rawText || '').replace(/\r/g, '');
     const lines = text.split('\n').map((line) => line.trimRight());
@@ -881,7 +949,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     if (!structured.education.length) structured.education = ['Education details available upon request'];
-    if (!structured.skills.length) structured.skills = ['Communication', 'Collaboration', 'Problem Solving'];
+    if (!structured.skills.length) structured.skills = [];
 
     return structured;
   }
@@ -1507,7 +1575,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
       const raw = String(data.result || '').trim();
       lastRawResume = raw;
-      const structured = parseResume(raw, extractContactInfo(baseResume), baseResume);
+      const structured = alignSkillsToJobDescription(
+        parseResume(raw, extractContactInfo(baseResume), baseResume),
+        jobDescription
+      );
       lastStructuredResume = buildResumeModel(structured, jobTitle);
       output.innerHTML = renderResumeTemplate(lastStructuredResume);
       statusBanner('Resume generated. You can switch layouts, adjust the photo, or download it as Word or PDF.', true);
@@ -1522,15 +1593,25 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function previewResume() {
     const resumeText = document.getElementById('resumeBaseGen').value.trim();
+    const jobTitle = document.getElementById('resumeJobTitleGen').value.trim();
+    const company = document.getElementById('resumeCompanyGen').value.trim();
+    const fullJobDescription = document.getElementById('resumeJobDescriptionGen').value.trim();
+    const jobDescription = [
+      jobTitle ? `Job Title: ${jobTitle}` : '',
+      company ? `Company: ${company}` : '',
+      fullJobDescription ? '' : '',
+      fullJobDescription ? 'Full Job Description:' : '',
+      fullJobDescription
+    ].filter(Boolean).join('\n');
     
     // Parse the resume to extract all sections
-    const parsed = parseResume(resumeText, {
+    const parsed = alignSkillsToJobDescription(parseResume(resumeText, {
       fullName: '',
       phone: '',
       email: '',
       location: '',
       linkedin: ''
-    }, resumeText);
+    }, resumeText), jobDescription);
     
     const model = buildResumeModel(
       {
