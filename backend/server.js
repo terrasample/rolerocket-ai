@@ -3227,7 +3227,19 @@ app.post('/api/resume/generate', authenticateToken, async (req, res) => {
       return res.status(403).json({ error: 'Upgrade to Pro to use resume generation.' });
     }
 
-    const resumeContent = resume || 'Create a professional resume based on the job description provided.';
+    const hasResume = resume && String(resume).trim().length > 0;
+    
+    let systemMessage, userMessage;
+    
+    if (hasResume) {
+      // Rewrite existing resume for the job
+      systemMessage = 'Rewrite resumes to be ATS-friendly, measurable, strong, clear, and professional.';
+      userMessage = `Job Description:\n${jobDescription}\n\nResume:\n${resume}`;
+    } else {
+      // Generate a new resume from scratch based on job description
+      systemMessage = 'Create a professional, ATS-friendly resume tailored to the job description. Include realistic experience, education, and skills sections. Make it strong, measurable, and clear.';
+      userMessage = `Job Description:\n${jobDescription}\n\nCreate a compelling professional resume for someone applying to this role. Generate realistic experience with specific achievements, relevant education, and key skills. Format as a clean resume text.`;
+    }
     
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
@@ -3236,11 +3248,11 @@ app.post('/api/resume/generate', authenticateToken, async (req, res) => {
       messages: [
         {
           role: 'system',
-          content: 'Rewrite resumes to be ATS-friendly, measurable, strong, clear, and professional.'
+          content: systemMessage
         },
         {
           role: 'user',
-          content: `Job Description:\n${jobDescription}\n\nResume:\n${resumeContent}`
+          content: userMessage
         }
       ]
     });
