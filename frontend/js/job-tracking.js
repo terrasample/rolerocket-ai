@@ -549,7 +549,31 @@ function triggerResumeImport() {
   document.getElementById('importResumeFile')?.click();
 }
 
-document.getElementById('importResumeBtn')?.addEventListener('click', triggerResumeImport);
+async function importLatestDashboardResume() {
+  const textarea = document.getElementById('resumeText');
+  if (!textarea) return;
+
+  textarea.value = 'Importing latest dashboard resume...';
+  try {
+    const res = await fetch(apiUrl('/api/resume/latest'), {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const data = await res.json();
+    const content = String(data?.resume?.content || '').trim();
+    if (!res.ok || !content) {
+      textarea.value = '';
+      alert((data && data.error) || 'No dashboard resume found yet. Save one first.');
+      return;
+    }
+    textarea.value = content;
+  } catch (err) {
+    textarea.value = '';
+    alert('Could not import your dashboard resume right now.');
+  }
+}
+
+document.getElementById('importResumeBtn')?.addEventListener('click', importLatestDashboardResume);
 document.getElementById('importResumeAltBtn')?.addEventListener('click', triggerResumeImport);
 
 document.getElementById('importResumeFile')?.addEventListener('change', async (e) => {
