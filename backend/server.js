@@ -3259,29 +3259,23 @@ app.post('/api/resume/generate', authenticateToken, async (req, res) => {
         `Resume:\n${resume}`,
         learningContext,
         'Instructions:',
-        '- Keep the resume realistic and professionally written.',
-        '- Include a PROFILE or SUMMARY section near the top with 2 to 3 sentences tailored to the target role and employer needs.',
-        '- Make the summary reflect the job description using role-specific language such as customer-facing installation leadership, cross-functional coordination, project implementation, customer satisfaction, issue resolution, and clinical or diagnostic imaging support when supported by the posting.',
-        '- Add a dedicated SKILLS section with 8 to 12 concise skill phrases aligned to the job description.',
-        '- Explicitly retain and prioritize skills that appear in both the candidate resume and the job description, especially tools, certifications, and technical competencies such as AutoCAD, MagicPlan, PMP, and Six Sigma when applicable.',
-        '- Prioritize hard skills, domain knowledge, tools, certifications, and role-specific project management competencies named in the posting.',
+        '- Keep the resume realistic and fact-based. Do not add, invent, or infer any employers, job titles, dates, tools, certifications, or skills that are not explicitly present in the candidate resume or the job description.',
+        '- Include a PROFILE or SUMMARY section near the top with 2 to 3 sentences tailored to the target role using language drawn only from the resume and job description.',
+        '- Add a dedicated SKILLS section with 8 to 12 concise skill phrases. Only include skills that appear in the candidate resume OR are explicitly stated in the job description — never infer or add tools, certifications, or credentials not found in either source.',
         '- Avoid generic filler such as Team Player, Hardworking, Strong Work Ethic, or Collaborator unless those ideas are explicitly required in the job description.',
-        '- Use wording that reflects the employer needs, such as customer installation leadership, cross-functional coordination, issue escalation and resolution, clinical environment support, diagnostic imaging implementation, scheduling, AutoCAD, MagicPlan, PMP, or Six Sigma when supported by the posting and candidate background.',
         '- Keep the output in clean resume text with clear section headers.'
       ].filter(Boolean).join('\n\n');
     } else {
-      // Generate a new resume from scratch based on job description
-      systemMessage = 'Create a professional, ATS-friendly resume tailored to the job description. Include realistic experience, education, and skills sections. Make it strong, measurable, and clear. Analyze the posting first and ensure the SKILLS section closely reflects the employer requirements.';
+      // Generate a template from scratch — no real data, placeholders only
+      systemMessage = 'Create a professional ATS-friendly resume TEMPLATE tailored to the job description. Use only placeholder entries for all experience and education — never invent real employers, company names, dates, schools, or certifications.';
       userMessage = [
         `Job Description:\n${jobDescription}`,
         learningContext,
         'Instructions:',
-        '- Create a compelling professional resume for someone applying to this role.',
-        '- Include a PROFILE or SUMMARY section near the top with 2 to 3 sentences that directly match the responsibilities and qualifications in the job description.',
-        '- Generate realistic experience with specific achievements, relevant education, and a strong SKILLS section.',
-        '- In the SKILLS section, include 8 to 12 concise, ATS-friendly skill phrases that directly match the job description.',
-        '- Prioritize hard skills, tools, certifications, customer-facing implementation work, cross-functional leadership, and industry/domain requirements over generic soft skills.',
-        '- Avoid weak filler such as Team Player, Strong Work Ethic, Creative Thinking, or Collaborator unless the posting explicitly calls for them.',
+        '- CRITICAL: Do NOT invent or use any real employer names, company names, job titles held, dates, schools, or certifications. Every experience and education entry MUST be a clearly labelled placeholder such as "[Job Title] | [Company Name] | [City, State] | [Month Year – Month Year]" so the user knows what to replace.',
+        '- Include a PROFILE or SUMMARY section with 2 to 3 sentences drawn strictly from the job description requirements.',
+        '- In the SKILLS section, include 8 to 12 concise, ATS-friendly skill phrases that are explicitly stated in the job description only. Do not add tools, software, or certifications that are not mentioned in the job description.',
+        '- Avoid weak filler such as Team Player, Strong Work Ethic, or Creative Thinking unless the posting explicitly requires them.',
         '- Use clean resume text with clear section headers.'
       ].filter(Boolean).join('\n\n');
     }
