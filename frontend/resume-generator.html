@@ -47,6 +47,7 @@
       <textarea id="resumeJobDescriptionGen" rows="8" style="width:100%;margin-bottom:10px;" placeholder="Paste the full job description here..."></textarea>
       <div class="tool-action-bar">
         <div class="tool-primary-actions">
+          <button id="previewResumeBtnGen" class="auth-submit-btn tool-action-btn tool-action-btn--primary" type="button" style="background-color:#8b5cf6;">Preview Resume</button>
           <button id="generateResumeBtnGen" class="auth-submit-btn tool-action-btn tool-action-btn--primary" type="button">Generate Resume</button>
         </div>
         <div class="tool-secondary-actions">
@@ -58,6 +59,18 @@
       <div id="resumeOutputGen" style="margin-top:18px;"></div>
     </div>
   </main>
+  <div id="previewModalGen" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:10000;overflow-y:auto;">
+    <div style="background:#fff;margin:20px auto;border-radius:12px;max-width:900px;width:calc(100vw - 40px);box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+      <div style="padding:20px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;">
+        <h2 style="margin:0;font-size:1.5rem;color:#1f2937;">Resume Preview</h2>
+        <button id="closePreviewModalGen" type="button" style="background:none;border:none;font-size:1.8em;cursor:pointer;color:#64748b;padding:4px;">&times;</button>
+      </div>
+      <div id="previewContentGen" style="padding:30px;background:#f8fafc;max-height:calc(100vh - 180px);overflow-y:auto;"></div>
+      <div style="padding:20px;border-top:1px solid #e2e8f0;text-align:right;">
+        <button id="closePreviewBtnGen" class="auth-submit-btn tool-action-btn tool-action-btn--secondary" type="button">Close</button>
+      </div>
+    </div>
+  </div>
   <footer class="site-footer">
     &copy; 2026 RoleRocket AI &nbsp;&middot;&nbsp;
     <a href="privacy.html">Privacy Policy</a>

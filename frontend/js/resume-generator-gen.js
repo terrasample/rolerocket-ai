@@ -1,9 +1,14 @@
 document.addEventListener('DOMContentLoaded', function () {
   const generateBtn = document.getElementById('generateResumeBtnGen');
+  const previewBtn = document.getElementById('previewResumeBtnGen');
   const clearFieldsBtn = document.getElementById('clearResumeFieldsBtnGen');
   const savePdfBtn = document.getElementById('saveResumePdfBtnGen');
   const saveWordBtn = document.getElementById('saveResumeWordBtnGen');
   const output = document.getElementById('resumeOutputGen');
+  const previewModal = document.getElementById('previewModalGen');
+  const closePreviewModalBtn = document.getElementById('closePreviewModalGen');
+  const closePreviewBtn = document.getElementById('closePreviewBtnGen');
+  const previewContent = document.getElementById('previewContentGen');
   const resumeUploadInput = document.getElementById('resumeBaseUploadGen');
   const resumeUploadMessage = document.getElementById('resumeBaseUploadMessageGen');
   const photoInput = document.getElementById('resumePhotoUploadGen');
@@ -1439,6 +1444,52 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     } catch (err) {
       renderError('Error generating resume.');
+    }
+  });
+
+  function previewResume() {
+    const fullName = document.getElementById('resumeBaseGen').value
+      .split('\n')
+      .map((line) => line.trim())
+      .find((line) => line && !/^[A-Z]+:|@|http|\.com|[0-9]{1,5}-|[0-9]{3}-|\(/.test(line))
+      || 'Professional Candidate';
+    
+    const model = buildResumeModel(
+      {
+        fullName,
+        experiences: [],
+        education: [],
+        awards: [],
+        skills: [],
+        contactLines: []
+      },
+      document.getElementById('resumeJobTitleGen').value.trim() || 'Target Position'
+    );
+
+    if (previewContent) {
+      previewContent.innerHTML = renderResumeTemplate(model);
+    }
+    if (previewModal) {
+      previewModal.style.display = 'flex';
+      previewModal.style.flexDirection = 'column';
+    }
+  }
+
+  previewBtn?.addEventListener('click', function () {
+    previewResume();
+  });
+
+  closePreviewModalBtn?.addEventListener('click', function () {
+    if (previewModal) previewModal.style.display = 'none';
+  });
+
+  closePreviewBtn?.addEventListener('click', function () {
+    if (previewModal) previewModal.style.display = 'none';
+  });
+
+  previewModal?.addEventListener('click', function (e) {
+    if (e.target === previewModal) {
+      previewModal.style.display = 'none';
     }
   });
 
