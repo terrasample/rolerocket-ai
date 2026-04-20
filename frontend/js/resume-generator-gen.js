@@ -129,6 +129,7 @@ document.addEventListener('DOMContentLoaded', function () {
   };
 
   const ELITE_DYNAMIC_LAYOUT_ID = 'elite-dynamic';
+  const BLANK_LAYOUT_ID = 'blank-template';
   const RESUME_SECTION_HEADERS = new Set(['NAME', 'CONTACT', 'PROFILE', 'SUMMARY', 'EXPERIENCE', 'EDUCATION', 'SKILLS', 'AWARDS', 'CERTIFICATION', 'CERTIFICATIONS', 'IMPROVEMENTS', 'PROJECTS']);
   const DYNAMIC_THEME_PALETTES = [
     { primary: '#1f2937', accent: '#f97316', sidebarBg: '#f9fafb', headerText: '#ffffff', headingText: '#1f2937' },
@@ -179,7 +180,18 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function getAvailableThemesForPlan(plan) {
-    return THEMES.slice(0, getThemeLimitForPlan(plan));
+    const blankTheme = {
+      id: BLANK_LAYOUT_ID,
+      name: 'Blank Template',
+      layoutType: 'blank',
+      primary: '#000000',
+      accent: '#666666',
+      sidebarBg: '#ffffff',
+      headerText: '#000000',
+      headingText: '#000000',
+      font: 'Arial, sans-serif'
+    };
+    return [blankTheme, ...THEMES.slice(0, getThemeLimitForPlan(plan))];
   }
 
   function getLayoutHelpText(plan) {
@@ -952,7 +964,46 @@ document.addEventListener('DOMContentLoaded', function () {
     `;
   }
 
+  function renderTemplateBlank(model) {
+    const escapeHtml = (v) => String(v || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    const renderBulletList = (items) => (items || []).map((item) => `<div style="margin-bottom:6px;">• ${escapeHtml(item)}</div>`).join('');
+    
+    return `
+      <div style="font-family:Arial, sans-serif; max-width:850px; margin:0 auto; padding:40px; background:#fff; color:#000; line-height:1.6;">
+        <div style="text-align:center; margin-bottom:24px; border-bottom:2px solid #000; padding-bottom:16px;">
+          <div style="font-size:28px; font-weight:bold; margin-bottom:4px;">${escapeHtml(model.displayName || 'Professional')}</div>
+          <div style="font-size:14px; color:#333;">${(model.contactLines || []).join(' • ')}</div>
+          ${model.targetRole ? `<div style="font-size:16px; font-weight:600; margin-top:8px;">${escapeHtml(model.targetRole)}</div>` : ''}
+        </div>
+        
+        ${model.profile ? `<div style="margin-bottom:20px;"><div style="font-weight:bold; margin-bottom:8px;">PROFILE</div><div style="font-size:14px;">${escapeHtml(model.profile)}</div></div>` : ''}
+        
+        ${model.experiences && model.experiences.length ? `<div style="margin-bottom:20px;">
+          <div style="font-weight:bold; margin-bottom:8px; border-bottom:1px solid #ccc; padding-bottom:4px;">EXPERIENCE</div>
+          ${model.experiences.map((exp) => `
+            <div style="margin-bottom:12px;">
+              <div style="font-weight:600;">${escapeHtml(exp.title || '')}</div>
+              ${exp.company ? `<div style="font-size:13px; color:#555;">${escapeHtml(exp.company)}</div>` : ''}
+              ${renderBulletList((exp.bullets || []).slice(0, 3))}
+            </div>
+          `).join('')}
+        </div>` : ''}
+        
+        ${model.education && model.education.length ? `<div style="margin-bottom:20px;">
+          <div style="font-weight:bold; margin-bottom:8px; border-bottom:1px solid #ccc; padding-bottom:4px;">EDUCATION</div>
+          ${renderBulletList((model.education || []).slice(0, 5))}
+        </div>` : ''}
+        
+        ${model.skills && model.skills.length ? `<div style="margin-bottom:20px;">
+          <div style="font-weight:bold; margin-bottom:8px; border-bottom:1px solid #ccc; padding-bottom:4px;">SKILLS</div>
+          <div style="font-size:14px;">${escapeHtml((model.skills || []).join(' • '))}</div>
+        </div>` : ''}
+      </div>
+    `;
+  }
+
   function renderResumeTemplate(model) {
+    if (model.theme?.id === BLANK_LAYOUT_ID) return renderTemplateBlank(model);
     const theme = model.theme || THEMES[0];
     if (theme.layoutType === 'gold') return renderTemplateGold(model, theme);
     if (theme.layoutType === 'slate') return renderTemplateSlate(model, theme);
@@ -1343,8 +1394,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const baseResume = document.getElementById('resumeBaseGen').value.trim();
     const fullJobDescription = document.getElementById('resumeJobDescriptionGen').value.trim();
 
-    if (!jobTitle || !baseResume || !fullJobDescription) {
-      renderError('Please add the job title, your resume, and the full job description.');
+    if (!jobTitle || !fullJobDescription) {
+      renderError('Please add the job title and the full job description.');
       return;
     }
 

@@ -3218,8 +3218,8 @@ app.get('/api/recommendations/adaptive', authenticateToken, async (req, res) => 
 app.post('/api/resume/generate', authenticateToken, async (req, res) => {
   try {
     const { jobDescription, resume } = req.body;
-    if (!jobDescription || !resume) {
-      return res.status(400).json({ error: 'jobDescription and resume are required' });
+    if (!jobDescription) {
+      return res.status(400).json({ error: 'jobDescription is required' });
     }
 
     const user = await User.findById(req.user.userId);
@@ -3227,6 +3227,8 @@ app.post('/api/resume/generate', authenticateToken, async (req, res) => {
       return res.status(403).json({ error: 'Upgrade to Pro to use resume generation.' });
     }
 
+    const resumeContent = resume || 'Create a professional resume based on the job description provided.';
+    
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       max_tokens: 1200,
@@ -3238,7 +3240,7 @@ app.post('/api/resume/generate', authenticateToken, async (req, res) => {
         },
         {
           role: 'user',
-          content: `Job Description:\n${jobDescription}\n\nResume:\n${resume}`
+          content: `Job Description:\n${jobDescription}\n\nResume:\n${resumeContent}`
         }
       ]
     });
