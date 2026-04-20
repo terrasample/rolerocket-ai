@@ -609,12 +609,50 @@ document.addEventListener('DOMContentLoaded', function () {
     return hasRoleAndCompanyShape && (hasLocationSignal || hasDateSignal);
   }
 
+  function joinMultilineBullets(lines) {
+    const result = [];
+    let currentBullet = '';
+
+    for (const rawLine of (lines || [])) {
+      const line = String(rawLine || '').trim();
+      if (!line) continue;
+
+      // Check if this line starts a new bullet or is a header/section
+      const startsNewBullet = /^(•|[-*]|\d+[\.\)])\s/.test(line) || isLikelyExperienceHeaderLine(line);
+
+      if (startsNewBullet) {
+        // If we have a current bullet, save it
+        if (currentBullet) {
+          result.push(currentBullet);
+        }
+        // Start a new bullet
+        currentBullet = line;
+      } else if (currentBullet) {
+        // This is a continuation line - append it with a space
+        currentBullet += ' ' + line;
+      } else if (line) {
+        // No current bullet but have text - start one
+        currentBullet = line;
+      }
+    }
+
+    // Don't forget the last bullet
+    if (currentBullet) {
+      result.push(currentBullet);
+    }
+
+    return result;
+  }
+
   function parseExperienceEntries(lines) {
+    // First, join multi-line bullets back together
+    const joinedLines = joinMultilineBullets(lines);
+    
     const entries = [];
     let current = null;
     let pendingDateLine = '';
 
-    for (const rawLine of (lines || [])) {
+    for (const rawLine of (joinedLines || [])) {
       const line = normalizeBulletText(rawLine);
       if (!line) continue;
 
