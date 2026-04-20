@@ -250,10 +250,22 @@ document.addEventListener('DOMContentLoaded', function () {
     window.location.href = 'resume-generator.html?fromLearning=1';
   }
 
+  function showPreviousSessionBanner(count) {
+    const banner = document.getElementById('learningPreviousSessionBanner');
+    if (!banner) return;
+    if (count > 0) {
+      banner.textContent = `\u{1F4A1} You have ${count} saved learning plan${count === 1 ? '' : 's'} from previous sessions \u2014 see history below to reload one.`;
+      banner.style.display = 'block';
+    } else {
+      banner.style.display = 'none';
+    }
+  }
+
   function renderHistory(items) {
     if (!historyList) return;
 
     const list = Array.isArray(items) ? items : [];
+    showPreviousSessionBanner(list.length);
     if (!list.length) {
       historyList.innerHTML = '<div style="padding:10px 12px;border:1px solid #e2e8f0;border-radius:8px;color:#64748b;background:#f8fafc;">No saved learning roadmaps yet.</div>';
       return;
@@ -282,16 +294,12 @@ document.addEventListener('DOMContentLoaded', function () {
         const selected = list[idx];
         if (!selected) return;
 
-        if (targetRoleInput) targetRoleInput.value = String(selected.targetRole || '');
-        if (currentLevelInput) currentLevelInput.value = String(selected.currentLevel || '');
-        if (timePerWeekInput) timePerWeekInput.value = String(selected.timePerWeek || '5');
-        if (jobDescriptionInput) jobDescriptionInput.value = String(selected.jobDescription || '');
-        if (resumeInput) resumeInput.value = String(selected.resumeText || '');
         if (planText) planText.value = String(selected.roadmapText || '');
         renderStructuredRoadmap(String(selected.roadmapText || ''));
         if (resultWrap) resultWrap.style.display = 'block';
         if (downloadsWrap) downloadsWrap.style.display = 'block';
-        setMessage('Loaded roadmap from history.', '#16a34a');
+        const roleLabel = String(selected.targetRole || 'previous session').trim();
+        setMessage(`Showing your saved roadmap for \u201C${roleLabel}\u201D. To regenerate, fill in the fields above and click the button.`, '#2563eb');
       });
     });
 
