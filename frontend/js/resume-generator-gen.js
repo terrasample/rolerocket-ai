@@ -1751,11 +1751,10 @@ document.addEventListener('DOMContentLoaded', function () {
       const raw = String(data.result || '').trim();
       lastRawResume = raw;
       const alignmentContext = withLearningContext(jobDescription);
-      const structured = alignResumeToJobDescription(
-        parseResume(raw, extractContactInfo(baseResume), baseResume),
-        alignmentContext,
-        baseResume
-      );
+        const parsed = parseResume(raw, extractContactInfo(baseResume), baseResume);
+        const structured = baseResume
+          ? alignResumeToJobDescription(parsed, alignmentContext, baseResume)
+          : parsed;
       lastStructuredResume = buildResumeModel(structured, jobTitle);
       output.innerHTML = renderResumeTemplate(lastStructuredResume);
       statusBanner('Resume generated. You can switch layouts, adjust the photo, or download it as Word or PDF.', true);
