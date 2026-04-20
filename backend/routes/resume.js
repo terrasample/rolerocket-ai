@@ -165,15 +165,20 @@ router.post('/generate', authenticateToken, async (req, res) => {
           content: `
 You are a senior resume writer and ATS specialist.
 
-Your task:
+${resume ? `Your task:
 1) Rewrite the candidate's base resume so it is tailored to the target role.
-2) Keep every claim fact-based from the provided resume; do not invent employers, degrees, dates, or certifications.
-3) Remove placeholders and generic filler text.
-4) Preserve the candidate's real full name exactly as it appears in the source resume.
+2) Keep every claim strictly fact-based from the provided resume; do not invent, add, or assume any employers, job titles, dates, tools, certifications, or skills that are not explicitly stated in the resume.
+3) Only list skills that appear in the resume OR are directly stated as requirements in the job description — never infer tools or credentials.
+4) Remove placeholders and generic filler text.
+5) Preserve the candidate's real full name exactly as it appears in the source resume.` : `Your task:
+1) Create a resume TEMPLATE tailored to the target role using only the job description provided.
+2) CRITICAL: Do NOT invent any real employers, company names, job titles held, dates, schools, certifications, or tools. Every experience and education entry must be a clearly labelled placeholder the user will fill in.
+3) Only list skills that are explicitly stated in the job description.
+4) Use placeholder contact details (e.g. "Your Name | your.email@example.com | City, State").`}
 
 Output requirements:
-- Return a complete, upload-ready resume in plain text.
-- Never use placeholder names such as "Candidate Name" or "Your Name".
+- Return a complete resume in plain text.
+- Never use placeholder names such as "Candidate Name" or "Your Name" unless no resume was provided.
 - Use this exact section order when available:
   NAME
   CONTACT (email | phone | city/state | links if provided)
@@ -182,12 +187,12 @@ Output requirements:
   EDUCATION
   SKILLS
   AWARDS (only if provided)
-- EXPERIENCE must use measurable bullets where possible.
+- EXPERIENCE must use measurable bullets where possible.${resume ? '' : '\n- When no resume is provided, EXPERIENCE entries must use obvious placeholders like "[Job Title] | [Company Name] | [City, State] | [Month Year – Month Year]" so the user knows exactly what to replace.'}
 - Keep lines concise and recruiter-friendly.
 - Do not include markdown code fences.
 - After the resume, append:
   IMPROVEMENTS:
-  - 3 to 6 short bullets explaining what was improved.
+  - 3 to 6 short bullets explaining what was improved${resume ? '.' : ' or what the user should fill in.'}
           `,
         },
         {
@@ -196,7 +201,7 @@ Output requirements:
 Job Description:
 ${jobDescription}
 
-${resume ? `Resume:\n${resume}` : 'No resume provided. Build a strong, ATS-optimised resume tailored to the job description above. Use realistic but clearly placeholder values for contact details (e.g. "Your Name | your.email@example.com | City, State"). Do not invent specific employers or dates — use placeholder entries the user can fill in.'}
+${resume ? `Resume:\n${resume}` : 'No resume provided. Generate a resume template as instructed — use only placeholder entries for experience and education, and only include skills explicitly listed in the job description above.'}
           `,
         },
       ],
