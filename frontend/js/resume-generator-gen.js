@@ -689,6 +689,23 @@ document.addEventListener('DOMContentLoaded', function () {
     };
   }
 
+  function isDegreeLine(line) {
+    const text = String(line || '').toLowerCase();
+    // Check for degree patterns like "Master of Science", "Bachelor of Arts", etc.
+    if (/(master|bachelor|doctor|associate|doctorate)\s+(of|in)\s+(science|arts|engineering|business|applied|administration)/i.test(line)) {
+      return true;
+    }
+    // Check for university/college indicators
+    if (/\b(university|college)\b/i.test(line) && !/certified|certificate|professional|exam/i.test(line)) {
+      return true;
+    }
+    // Check for degree abbreviations at the start or standalone
+    if (/\b(phd|ms|ma|bs|ba|mba|msem|bse|pe)\b/i.test(line) && !/professional|certification|exam/i.test(line)) {
+      return true;
+    }
+    return false;
+  }
+
   function parseResume(rawText, fallbackFromBase, sourceResumeText = '') {
     const text = String(rawText || '').replace(/\r/g, '');
     const lines = text.split('\n').map((line) => line.trimRight());
@@ -771,9 +788,25 @@ document.addEventListener('DOMContentLoaded', function () {
       ? between(certSectionStart, nextSectionStart(certSectionStart === sectionIndex.CERTIFICATIONS ? 'CERTIFICATIONS' : 'CERTIFICATION'))
       : [];
 
-    structured.certifications = certificationLines
-      .map((line) => normalizeBulletText(line))
-      .filter(Boolean);
+    // Split certification section into actual degrees (for education) and certifications
+    const degreeLines = [];
+    const actualCertifications = [];
+    
+    certificationLines.forEach((line) => {
+      const normalized = normalizeBulletText(line);
+      if (normalized) {
+        if (isDegreeLine(line)) {
+          degreeLines.push(normalized);
+        } else {
+          actualCertifications.push(normalized);
+        }
+      }
+    });
+
+    // Add degree lines to education
+    structured.education = [...structured.education, ...degreeLines];
+
+    structured.certifications = actualCertifications;
 
     structured.skills = between(sectionIndex.SKILLS, nextSectionStart('SKILLS'))
       .join(', ')
