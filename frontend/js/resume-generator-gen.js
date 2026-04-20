@@ -773,7 +773,9 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     lines.forEach((line, idx) => {
-      const key = line.replace(/[:\-]/g, '').trim().toUpperCase();
+      let key = line.replace(/[:\-]/g, '').trim().toUpperCase();
+      // Strip common prefixes from section headers (e.g., "CORE SKILLS" → "SKILLS")
+      key = key.replace(/^(CORE|PROFESSIONAL|MY|PRIMARY|ADDITIONAL|KEY)\s+/, '');
       if (Object.prototype.hasOwnProperty.call(sectionIndex, key)) sectionIndex[key] = idx;
     });
 
