@@ -1448,11 +1448,11 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   function previewResume() {
-    const fullName = document.getElementById('resumeBaseGen').value
-      .split('\n')
-      .map((line) => line.trim())
-      .find((line) => line && !/^[A-Z]+:|@|http|\.com|[0-9]{1,5}-|[0-9]{3}-|\(/.test(line))
-      || 'Professional Candidate';
+    const resumeText = document.getElementById('resumeBaseGen').value.trim();
+    const lines = resumeText.split('\n').map((line) => line.trim()).filter(Boolean);
+    
+    // Use the same name extraction logic as full resume generation
+    let fullName = findNameInLines(lines) || 'Professional Candidate';
     
     const model = buildResumeModel(
       {
