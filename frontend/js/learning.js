@@ -212,7 +212,7 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
 
-    setMessage('Generating your personalized learning roadmap...', '#2563eb');
+    setMessage('Analyzing missing skills and building your skill-teaching plan...', '#2563eb');
 
     try {
       const res = await fetch('/api/learning/plan', {
@@ -239,7 +239,7 @@ document.addEventListener('DOMContentLoaded', function () {
       planText.value = String(data.result || '').trim();
       resultWrap.style.display = 'block';
       downloadsWrap.style.display = 'block';
-      setMessage('Learning roadmap generated.', '#16a34a');
+      setMessage('Missing skills analysis and learning plan generated.', '#16a34a');
       loadLearningHistory();
     } catch (err) {
       setMessage('Error generating learning roadmap.', '#dc2626');
