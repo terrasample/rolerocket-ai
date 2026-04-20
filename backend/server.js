@@ -17,6 +17,7 @@ const nodemailer = require('nodemailer');
 const multer = require('multer');
 const { extractTextFromPDF, extractTextFromDocx } = require('./pdfWordUtils');
 const { extractTextFromPDFWithOCR } = require('./ocrUtils');
+const { getDailyGenerationStatus, recordDailyGenerationUsage } = require('./services/aiGenerationLimits');
 
 
 
@@ -3223,8 +3224,13 @@ app.post('/api/resume/generate', authenticateToken, async (req, res) => {
     }
 
     const user = await User.findById(req.user.userId);
-    if (!hasRequiredPlan(user, 'pro')) {
-      return res.status(403).json({ error: 'Upgrade to Pro to use resume generation.' });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const generationStatus = getDailyGenerationStatus(user, 'resume');
+    if (!generationStatus.allowed) {
+      return res.status(429).json({ error: generationStatus.message });
     }
 
     const hasResume = resume && String(resume).trim().length > 0;
@@ -3280,6 +3286,8 @@ app.post('/api/resume/generate', authenticateToken, async (req, res) => {
       ]
     });
 
+    await recordDailyGenerationUsage(user, 'resume');
+
     return res.json({ result: completion.choices[0].message.content });
   } catch (err) {
     console.error('Resume generation error:', err);
@@ -3295,8 +3303,13 @@ app.post('/api/generate-cover-letter', authenticateToken, async (req, res) => {
     }
 
     const user = await User.findById(req.user.userId);
-    if (!hasRequiredPlan(user, 'pro')) {
-      return res.status(403).json({ error: 'Upgrade to Pro to use cover letter generation.' });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const generationStatus = getDailyGenerationStatus(user, 'cover-letter');
+    if (!generationStatus.allowed) {
+      return res.status(429).json({ error: generationStatus.message });
     }
 
     const completion = await openai.chat.completions.create({
@@ -3314,6 +3327,8 @@ app.post('/api/generate-cover-letter', authenticateToken, async (req, res) => {
         }
       ]
     });
+
+    await recordDailyGenerationUsage(user, 'cover-letter');
 
     return res.json({ result: completion.choices[0].message.content });
   } catch (err) {

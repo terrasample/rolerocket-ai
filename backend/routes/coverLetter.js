@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const authenticateToken = require('../middleware/auth');
 const OpenAI = require('openai');
+const User = require('../models/User');
+const { getDailyGenerationStatus, recordDailyGenerationUsage } = require('../services/aiGenerationLimits');
 if (!process.env.OPENAI_API_KEY) {
   console.error('❌ OPENAI_API_KEY not set in environment variables');
 }
@@ -12,6 +14,15 @@ router.post('/generate', authenticateToken, async (req, res) => {
   if (!jobDescription || !resume) return res.status(400).json({ error: 'Required fields missing' });
 
   try {
+    const userId = req.user?.userId || req.user?.id || req.user?._id || req.user?.sub;
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const generationStatus = getDailyGenerationStatus(user, 'cover-letter');
+    if (!generationStatus.allowed) {
+      return res.status(429).json({ error: generationStatus.message });
+    }
+
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       max_tokens: 900,
@@ -37,6 +48,8 @@ Rules:
         { role: 'user', content: `Job Description:\n${jobDescription}\nResume:\n${resume}` }
       ]
     });
+
+    await recordDailyGenerationUsage(user, 'cover-letter');
 
     res.json({ result: completion.choices[0].message.content });
   } catch (err) {

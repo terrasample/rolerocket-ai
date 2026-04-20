@@ -71,6 +71,17 @@ const UserSchema = new mongoose.Schema(
         }
       ],
       default: []
+    },
+
+    aiGenerationUsage: {
+      type: [
+        {
+          day: { type: String, default: '' },
+          feature: { type: String, enum: ['resume', 'cover-letter'], default: 'resume' },
+          count: { type: Number, default: 0 }
+        }
+      ],
+      default: []
     }
   },
   { timestamps: true }

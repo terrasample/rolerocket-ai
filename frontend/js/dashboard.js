@@ -2808,11 +2808,6 @@ document.getElementById('oneClickApplyBtn')?.addEventListener('click', async () 
 });
 
 document.getElementById('generateBtn')?.addEventListener('click', async () => {
-  if (!hasPlan('pro')) {
-    showToast('Upgrade to Pro to unlock Resume Generator.', 'warn');
-    return;
-  }
-
   const result = document.getElementById('result');
   setAILoading(result);
 
@@ -2832,11 +2827,6 @@ document.getElementById('generateBtn')?.addEventListener('click', async () => {
 });
 
 document.getElementById('coverBtn')?.addEventListener('click', async () => {
-  if (!hasPlan('pro')) {
-    showToast('Upgrade to Pro to unlock Cover Letter AI.', 'warn');
-    return;
-  }
-
   const result = document.getElementById('coverResult');
   setAILoading(result);
 
