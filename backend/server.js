@@ -3468,7 +3468,7 @@ app.post('/api/learning/plan', authenticateToken, async (req, res) => {
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
-      max_tokens: 1300,
+      max_tokens: 2000,
       temperature: 0.4,
       messages: [
         {
@@ -3487,6 +3487,7 @@ app.post('/api/learning/plan', authenticateToken, async (req, res) => {
             '5) Interview Readiness Drills (5 drills tied to the missing skills)',
             '6) Resume Upgrade Targets (5 bullet changes after learning, tied to completed skills)',
             '7) Weekly Checkpoint Scorecard (5 measurable metrics)',
+            '8) Trending Industry Courses (5 courses popular in the current 2025-2026 job market that are highly relevant to this role; for each use this exact format on its own line: Course Name: <name> | Platform: <platform> | Why it is trending: <reason> | Best for: <audience>)',
             'Keep writing specific, measurable, and role-aligned.'
           ].join(' ')
         },

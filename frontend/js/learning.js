@@ -117,6 +117,33 @@ document.addEventListener('DOMContentLoaded', function () {
     return modules;
   }
 
+  function parseTrendingCourses(sectionLines) {
+    const raw = String((sectionLines || []).join('\n') || '').trim();
+    const courses = [];
+
+    raw.split('\n').forEach((rawLine) => {
+      const line = String(rawLine || '').trim();
+      if (!line) return;
+
+      // Match pipe-delimited format: Course Name: X | Platform: Y | Why it is trending: Z | Best for: W
+      const nameMatch = line.match(/Course Name:\s*([^|]+)/i);
+      const platformMatch = line.match(/Platform:\s*([^|]+)/i);
+      const trendingMatch = line.match(/Why it is trending:\s*([^|]+)/i);
+      const bestForMatch = line.match(/Best for:\s*(.+)/i);
+
+      if (nameMatch) {
+        courses.push({
+          name: String(nameMatch[1] || '').trim(),
+          platform: String((platformMatch && platformMatch[1]) || '').trim(),
+          trending: String((trendingMatch && trendingMatch[1]) || '').trim(),
+          bestFor: String((bestForMatch && bestForMatch[1]) || '').trim()
+        });
+      }
+    });
+
+    return courses;
+  }
+
   function attachModuleTabs() {
     if (!structuredOutput) return;
 
@@ -193,6 +220,34 @@ document.addEventListener('DOMContentLoaded', function () {
           <article style="border:1px solid #dbe3ea;border-radius:12px;background:#ffffff;padding:14px;">
             <h4 style="margin:0 0 10px 0;color:#0f172a;">${safeTitle}</h4>
             <div style="display:grid;gap:10px;">${moduleCards}</div>
+          </article>
+        `;
+      }
+
+      if (/trending industry courses/i.test(section.title || '')) {
+        const courses = parseTrendingCourses(section.lines || []);
+        if (!courses.length) {
+          return `
+            <article style="border:1px solid #dbe3ea;border-radius:12px;background:#ffffff;padding:14px;">
+              <h4 style="margin:0 0 8px 0;color:#0f172a;">${safeTitle}</h4>
+              <div style="white-space:pre-wrap;color:#334155;line-height:1.6;">${escapeHtml((section.lines || []).join('\n').trim())}</div>
+            </article>
+          `;
+        }
+
+        const courseCards = courses.map((course) => `
+          <div style="border:1px solid #bfdbfe;border-radius:10px;padding:14px;background:#eff6ff;display:grid;gap:6px;">
+            <div style="font-weight:700;color:#1e40af;font-size:1rem;">${escapeHtml(course.name)}</div>
+            ${course.platform ? `<div style="font-size:0.88rem;color:#2563eb;font-weight:600;">📚 ${escapeHtml(course.platform)}</div>` : ''}
+            ${course.trending ? `<div style="font-size:0.91rem;color:#334155;"><span style="font-weight:600;">Why it's trending:</span> ${escapeHtml(course.trending)}</div>` : ''}
+            ${course.bestFor ? `<div style="font-size:0.91rem;color:#334155;"><span style="font-weight:600;">Best for:</span> ${escapeHtml(course.bestFor)}</div>` : ''}
+          </div>
+        `).join('');
+
+        return `
+          <article style="border:2px solid #bfdbfe;border-radius:12px;background:#f0f9ff;padding:14px;">
+            <h4 style="margin:0 0 10px 0;color:#1e40af;">🔥 ${safeTitle}</h4>
+            <div style="display:grid;gap:10px;">${courseCards}</div>
           </article>
         `;
       }
