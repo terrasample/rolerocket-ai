@@ -27,9 +27,11 @@ document.addEventListener('DOMContentLoaded', function () {
     completedModules: new Set(),
     learnerName: 'Learner',
     sessionToken: '',
-    moduleNarration: []
+    moduleNarration: [],
+    answerKey: []
   };
   let moduleHandlersBound = false;
+  const PROGRESS_CHECK_TIMEOUT_MS = 8000;
 
   const audioState = {
     activeModuleIndex: null,
@@ -280,6 +282,48 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
+  function applyCompletedModules(completedModules, freshIdx) {
+    const normalized = asArray(completedModules)
+      .map((n) => Number(n))
+      .filter((n) => Number.isInteger(n) && n >= 0 && n < progressState.totalModules);
+
+    progressState.completedModules = new Set(normalized);
+    normalized.forEach((completedIdx) => setPassedModuleUi(completedIdx, completedIdx === freshIdx ? 'fresh' : 'restored'));
+    updateProgressUi();
+  }
+
+  function resolveLocalCorrectOptionIndex(idx) {
+    const candidate = Number(progressState.answerKey[idx]);
+    return Number.isInteger(candidate) && candidate >= 0 ? candidate : null;
+  }
+
+  function applyLocalProgressCheck(idx, selectedOptionIndex, resultWrap) {
+    const correctOptionIndex = resolveLocalCorrectOptionIndex(idx);
+    if (!Number.isInteger(correctOptionIndex)) {
+      resultWrap.textContent = 'Answer validation is unavailable right now. Refresh the course and try again.';
+      resultWrap.style.color = '#fbbf24';
+      return false;
+    }
+
+    if (selectedOptionIndex !== correctOptionIndex) {
+      resultWrap.textContent = 'Not quite. Review the module and try again.';
+      resultWrap.style.color = '#fda4af';
+      return false;
+    }
+
+    const completedModules = Array.from(new Set([
+      ...progressState.completedModules,
+      idx
+    ])).sort((left, right) => left - right);
+
+    applyCompletedModules(completedModules, idx);
+    if (resultWrap) {
+      resultWrap.textContent = 'Correct. Module marked as completed.';
+      resultWrap.style.color = '#86efac';
+    }
+    return true;
+  }
+
   function setCourseLoadingState(isLoading, buttonLabel) {
     if (!refreshCourseBtn) return;
     refreshCourseBtn.disabled = isLoading;
@@ -311,14 +355,20 @@ document.addEventListener('DOMContentLoaded', function () {
     button.disabled = true;
     const originalLabel = button.textContent;
     button.textContent = 'Checking...';
+    let timeoutId = null;
 
     try {
+      const controller = typeof AbortController === 'function' ? new AbortController() : null;
+      timeoutId = controller
+        ? window.setTimeout(() => controller.abort(), PROGRESS_CHECK_TIMEOUT_MS)
+        : null;
       const response = await fetch('/api/learning/course-progress-check', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
+        signal: controller?.signal,
         body: JSON.stringify({
           topic,
           moduleIndex: idx,
@@ -326,16 +376,11 @@ document.addEventListener('DOMContentLoaded', function () {
           sessionToken: progressState.sessionToken
         })
       });
+      if (timeoutId) window.clearTimeout(timeoutId);
 
       const payload = await response.json();
       if (response.ok && payload?.passed) {
-        const completedModules = asArray(payload?.completedModules)
-          .map((n) => Number(n))
-          .filter((n) => Number.isInteger(n) && n >= 0 && n < progressState.totalModules);
-
-        progressState.completedModules = new Set(completedModules);
-        completedModules.forEach((completedIdx) => setPassedModuleUi(completedIdx, completedIdx === idx ? 'fresh' : 'restored'));
-        updateProgressUi();
+        applyCompletedModules(payload?.completedModules, idx);
         return;
       }
 
@@ -350,13 +395,23 @@ document.addEventListener('DOMContentLoaded', function () {
         resultWrap.style.color = '#fda4af';
       }
     } catch (error) {
-      resultWrap.textContent = 'Check failed. Please try again.';
-      resultWrap.style.color = '#fda4af';
+      const usedLocalFallback = applyLocalProgressCheck(idx, selectedOptionIndex, resultWrap);
+      if (usedLocalFallback) {
+        resultWrap.textContent = 'Correct. Module marked as completed.';
+        resultWrap.style.color = '#86efac';
+      } else if (error?.name === 'AbortError') {
+        resultWrap.textContent = 'Validation took too long. Refresh the course and try again.';
+        resultWrap.style.color = '#fbbf24';
+      } else {
+        resultWrap.textContent = 'Check failed. Please try again.';
+        resultWrap.style.color = '#fda4af';
+      }
     } finally {
       if (!progressState.completedModules.has(idx)) {
         button.disabled = false;
         button.textContent = originalLabel;
       }
+      if (timeoutId) window.clearTimeout(timeoutId);
     }
   }
 
@@ -467,6 +522,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     progressState.totalModules = list.length;
     progressState.completedModules = new Set();
+    progressState.answerKey = list.map((moduleItem) => Number(moduleItem?.correctOptionIndex));
     progressState.moduleNarration = list.map((moduleItem, index) => {
       const options = asArray(moduleItem?.progressCheckOptions)
         .map((option, optionIndex) => `Option ${optionIndex + 1}. ${String(option)}`)
