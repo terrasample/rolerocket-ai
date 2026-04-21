@@ -340,6 +340,11 @@ document.addEventListener('DOMContentLoaded', function () {
     applyCompletedModules(pending.completedModules, numericIdx);
   }
 
+  // Expose a direct fallback handler so Continue works even if delegated click listeners fail.
+  window.handleCourseContinue = function handleCourseContinue(idx) {
+    finalizeProgressAdvance(idx);
+  };
+
   function resetModuleAudioButtons() {
     document.querySelectorAll('button[data-module-audio-play-btn]').forEach((button) => {
       button.textContent = 'Play Audio';
@@ -469,9 +474,17 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function applyCompletedModules(completedModules, freshIdx) {
+    const moduleCount = Number(progressState.totalModules || progressState.allModules?.length || 0);
+    const numericFreshIdx = Number(freshIdx);
     const normalized = asArray(completedModules)
       .map((n) => Number(n))
-      .filter((n) => Number.isInteger(n) && n >= 0 && n < progressState.totalModules);
+      .filter((n) => Number.isInteger(n) && n >= 0 && (moduleCount > 0 ? n < moduleCount : true));
+
+    if (Number.isInteger(numericFreshIdx) && numericFreshIdx >= 0 && (moduleCount > 0 ? numericFreshIdx < moduleCount : true)) {
+      if (!normalized.includes(numericFreshIdx)) normalized.push(numericFreshIdx);
+    }
+
+    normalized.sort((a, b) => a - b);
 
     progressState.pendingAdvance = null;
     progressState.completedModules = new Set(normalized);
@@ -650,11 +663,18 @@ document.addEventListener('DOMContentLoaded', function () {
       }
 
       const payload = await response.json();
-      const completed = asArray(payload?.completedModules)
+      const remoteCompleted = asArray(payload?.completedModules)
         .map((n) => Number(n))
         .filter((n) => Number.isInteger(n) && n >= 0 && n < progressState.totalModules);
 
-      progressState.completedModules = new Set(completed);
+      const mergedCompleted = Array.from(new Set([
+        ...Array.from(progressState.completedModules),
+        ...remoteCompleted
+      ]))
+        .filter((n) => Number.isInteger(n) && n >= 0 && n < progressState.totalModules)
+        .sort((a, b) => a - b);
+
+      progressState.completedModules = new Set(mergedCompleted);
 
       document.querySelectorAll('[data-module-status-indicator]').forEach((indicator) => {
         const idx = Number(indicator.getAttribute('data-module-status-indicator'));
@@ -667,7 +687,7 @@ document.addEventListener('DOMContentLoaded', function () {
           : '';
       });
 
-      completed.forEach((idx) => setPassedModuleUi(idx, 'restored'));
+      mergedCompleted.forEach((idx) => setPassedModuleUi(idx, 'restored'));
 
       updateProgressUi();
       renderProgressiveContent();
@@ -927,7 +947,7 @@ document.addEventListener('DOMContentLoaded', function () {
             <div style="display:grid;gap:8px;margin-bottom:10px;">${optionMarkup}</div>
             <div style="display:flex;flex-direction:column;align-items:flex-start;gap:8px;">
               <button type="button" data-progress-check-btn="${index}" ${pendingAdvance ? 'disabled' : ''} style="background:#7c3aed;border:none;color:#fff;border-radius:6px;padding:7px 10px;${pendingAdvance ? 'opacity:0.75;cursor:default;' : 'cursor:pointer;'}font-size:0.82rem;font-weight:700;">${pendingAdvance ? 'Correct!' : 'Submit Answer'}</button>
-              <button type="button" data-progress-continue-btn="${index}" style="display:${pendingAdvance ? 'inline-flex' : 'none'};background:#0f766e;border:1px solid #14b8a6;color:#ecfeff;border-radius:6px;padding:7px 10px;cursor:pointer;font-size:0.82rem;font-weight:700;">Continue to Next Module</button>
+              <button type="button" data-progress-continue-btn="${index}" onclick="window.handleCourseContinue && window.handleCourseContinue(${index})" style="display:${pendingAdvance ? 'inline-flex' : 'none'};background:#0f766e;border:1px solid #14b8a6;color:#ecfeff;border-radius:6px;padding:7px 10px;cursor:pointer;font-size:0.82rem;font-weight:700;">Continue to Next Module</button>
               <div data-progress-check-result="${index}" style="font-size:calc(0.82rem + 2pt);color:#9fb0c7;line-height:1.5;word-break:break-word;overflow-wrap:anywhere;width:100%;">${pendingResultMarkup}</div>
             </div>
           </div>
