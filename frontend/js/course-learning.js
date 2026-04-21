@@ -290,6 +290,12 @@ document.addEventListener('DOMContentLoaded', function () {
     progressState.completedModules = new Set(normalized);
     normalized.forEach((completedIdx) => setPassedModuleUi(completedIdx, completedIdx === freshIdx ? 'fresh' : 'restored'));
     updateProgressUi();
+    renderProgressiveContent();
+    
+    const isAllComplete = progressState.completedModules.size >= progressState.totalModules;
+    if (isAllComplete && assessment) {
+      renderAssessment(progressState.allModules?.map((m) => m?.finalAssessment || []).flat() || []);
+    }
   }
 
   function resolveLocalCorrectOptionIndex(idx) {
@@ -351,6 +357,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     const selectedOptionIndex = Number(selectedOption.value);
+    const correctAnswer = progressState.allModules?.[idx]?.progressCheckOptions?.[Number(progressState.answerKey[idx])] || '';
 
     button.disabled = true;
     const originalLabel = button.textContent;
@@ -381,6 +388,8 @@ document.addEventListener('DOMContentLoaded', function () {
       const payload = await response.json();
       if (response.ok && payload?.passed) {
         applyCompletedModules(payload?.completedModules, idx);
+        resultWrap.textContent = '✓ Correct! The answer is: ' + escapeHtml(correctAnswer).slice(0, 100) + '...';
+        resultWrap.style.color = '#86efac';
         return;
       }
 
@@ -391,13 +400,13 @@ document.addEventListener('DOMContentLoaded', function () {
         resultWrap.textContent = String(payload.error);
         resultWrap.style.color = '#fda4af';
       } else {
-        resultWrap.textContent = 'Not quite. Review the module and try again.';
+        resultWrap.textContent = '✗ Not quite. The correct answer is: ' + escapeHtml(correctAnswer).slice(0, 100) + '...';
         resultWrap.style.color = '#fda4af';
       }
     } catch (error) {
       const usedLocalFallback = applyLocalProgressCheck(idx, selectedOptionIndex, resultWrap);
       if (usedLocalFallback) {
-        resultWrap.textContent = 'Correct. Module marked as completed.';
+        resultWrap.textContent = '✓ Correct! The answer is: ' + escapeHtml(correctAnswer).slice(0, 100) + '...';
         resultWrap.style.color = '#86efac';
       } else if (error?.name === 'AbortError') {
         resultWrap.textContent = 'Validation took too long. Refresh the course and try again.';
@@ -506,14 +515,85 @@ document.addEventListener('DOMContentLoaded', function () {
         }
       });
     }
+
+    if (assessment) {
+      assessment.addEventListener('click', async function (event) {
+        const submitBtn = event.target.closest('#submitAssessmentBtn');
+        if (!submitBtn) return;
+
+        const answers = new Array(progressState.assessmentItems.length).fill('');
+        document.querySelectorAll('[data-assessment-answer]').forEach((textarea) => {
+          const idx = Number(textarea.getAttribute('data-assessment-answer'));
+          answers[idx] = String(textarea.value || '').trim();
+        });
+
+        const allAnswered = answers.every(a => a.length > 0);
+        const resultDiv = document.getElementById('assessmentResult');
+        if (!resultDiv) return;
+
+        if (!allAnswered) {
+          resultDiv.innerHTML = '<span style="color:#fda4af;">Please answer all questions before submitting.</span>';
+          return;
+        }
+
+        progressState.assessmentAnswers = answers;
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Submitting...';
+
+        resultDiv.innerHTML = '<span style="color:#93c5fd;">Processing assessment...</span>';
+
+        setTimeout(() => {
+          resultDiv.innerHTML = `
+            <div style="color:#86efac;line-height:1.8;">
+              <strong>✓ Assessment Complete!</strong>
+              <p style="margin:8px 0 0;">You have successfully completed all course materials. Scroll down to view your interview preparation resources.</p>
+            </div>
+          `;
+          submitBtn.style.display = 'none';
+          renderInterviewPrep(progressState.interviewPrepItems);
+        }, 1200);
+      });
+    }
+  }
+        } catch (error) {
+          // Ignore storage failures in restricted browser contexts.
+        }
+        if (audioState.activeModuleIndex !== null) {
+          playModuleAudio(audioState.activeModuleIndex, true);
+        }
+      });
+    }
   }
 
-  function renderList(target, items) {
-    if (!target) return;
+  function renderInterviewPrep(items) {
+    if (!interviewPrep) return;
+
+    const isAllModuleComplete = progressState.totalModules > 0 && progressState.completedModules.size >= progressState.totalModules;
+    const isAssessmentComplete = progressState.assessmentAnswers && progressState.assessmentAnswers.every(a => a && String(a).trim());
+
+    if (!isAllModuleComplete) {
+      interviewPrep.innerHTML = '<li style="color:#9fb0c7;">Complete the course and final assessment to unlock interview prep.</li>';
+      return;
+    }
+
+    if (!isAssessmentComplete) {
+      interviewPrep.innerHTML = '<li style="color:#9fb0c7;">Submit the final assessment to unlock interview prep.</li>';
+      return;
+    }
+
     const list = asArray(items);
-    target.innerHTML = list.length
-      ? list.map((item) => `<li style="margin-bottom:7px;">${String(item)}</li>`).join('')
-      : '<li style="margin-bottom:7px;">No items provided.</li>';
+    if (!list.length) {
+      interviewPrep.innerHTML = '<li>No interview prep available.</li>';
+      return;
+    }
+
+    interviewPrep.innerHTML = list.map((item) => `<li style="margin-bottom:12px;color:#d0d9e7;line-height:1.6;">${escapeHtml(String(item))}</li>`).join('');
+  }
+
+  function getModuleReasoningFromAssessment(moduleIdx) {
+    if (!progressState.assessmentItems || !progressState.assessmentItems[moduleIdx]) return '';
+    const assessmentItem = progressState.assessmentItems[moduleIdx];
+    return String(assessmentItem?.answer || '').slice(0, 200);
   }
 
   function renderModules(modulesData) {
@@ -538,14 +618,39 @@ document.addEventListener('DOMContentLoaded', function () {
         options
       ].filter(Boolean).join(' ');
     });
+    progressState.allModules = list;
     updateProgressUi();
+    renderProgressiveContent();
+  }
 
+  function renderProgressiveContent() {
+    if (!modules || !progressState.allModules) return;
+    const list = progressState.allModules;
     if (!list.length) {
       modules.innerHTML = '<div class="module-item"><p>Modules are not available right now.</p></div>';
       return;
     }
 
-    modules.innerHTML = list.map((moduleItem, index) => {
+    const completed = progressState.completedModules.size;
+    const currentIdx = Math.min(completed, list.length - 1);
+    const currentModule = list[currentIdx];
+    const isAllComplete = completed >= list.length;
+
+    let html = '';
+
+    if (completed > 0) {
+      html += `<div style="margin-bottom:20px;padding:14px;border-radius:10px;background:#0d2438;border:1px solid #0ea5e9;color:#7dd3fc;">
+        <strong style="font-size:0.9rem;">Progress:</strong> ${completed} of ${list.length} modules completed ✓
+      </div>`;
+    }
+
+    if (isAllComplete) {
+      html += `<div style="margin-bottom:20px;padding:16px;border-radius:10px;background:#065f46;border:1px solid #10b981;color:#a7f3d0;text-align:center;font-weight:700;font-size:1rem;">
+        🎉 All modules complete! Scroll down to take the Final Assessment.
+      </div>`;
+    } else {
+      const index = currentIdx;
+      const moduleItem = currentModule;
       const title = escapeHtml(String(moduleItem?.title || `Module ${index + 1}`));
       const objective = escapeHtml(String(moduleItem?.objective || ''));
       const lesson = escapeHtml(String(moduleItem?.lesson || ''));
@@ -561,13 +666,13 @@ document.addEventListener('DOMContentLoaded', function () {
         </label>
       `).join('');
 
-      return `
+      html += `
         <section class="module-item">
           <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:10px;margin-bottom:8px;">
-            <h4 style="margin:0;min-width:0;">Module ${index + 1}: ${title}</h4>
-            <div style="display:inline-flex;align-items:center;gap:8px;justify-self:end;max-width:100%;color:#86efac;font-size:0.84rem;padding:6px 10px;border-radius:999px;background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.24);">
-              <span data-module-status-indicator="${index}" data-completed="false" aria-hidden="true" style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;flex:0 0 16px;border-radius:5px;background:rgba(148, 163, 184, 0.15);border:1px solid rgba(148, 163, 184, 0.35);"></span>
-              <span style="white-space:normal;word-break:break-word;line-height:1.2;">Completed</span>
+            <h4 style="margin:0;min-width:0;">Module ${index + 1} of ${list.length}: ${title}</h4>
+            <div style="display:inline-flex;align-items:center;gap:8px;justify-self:end;max-width:100%;color:#93c5fd;font-size:0.82rem;padding:6px 10px;border-radius:999px;background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.35);">
+              <span aria-hidden="true" style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;flex:0 0 14px;border-radius:50%;background:#60a5fa;color:#fff;font-size:0.7rem;font-weight:700;">↓</span>
+              <span style="white-space:normal;word-break:break-word;line-height:1.2;">Current</span>
             </div>
           </div>
           <p><strong style="color:#93c5fd;">Objective:</strong> ${objective}</p>
@@ -599,28 +704,50 @@ document.addEventListener('DOMContentLoaded', function () {
           </div>
         </section>
       `;
-    }).join('');
+    }
+
+    modules.innerHTML = html;
   }
 
   function renderAssessment(rows) {
     const items = asArray(rows);
     if (!assessment) return;
 
+    const isAllModuleComplete = progressState.totalModules > 0 && progressState.completedModules.size >= progressState.totalModules;
+
+    if (!isAllModuleComplete) {
+      assessment.innerHTML = '<div class="module-item"><p style="color:#9fb0c7;">Complete all course modules first. The final assessment will unlock when you finish Module ' + progressState.totalModules + '.</p></div>';
+      return;
+    }
+
     if (!items.length) {
       assessment.innerHTML = '<div class="module-item"><p>Assessment questions are not available yet.</p></div>';
       return;
     }
 
-    assessment.innerHTML = items.map((item, i) => {
-      const question = String(item?.question || '');
-      const answer = String(item?.answer || '');
-      return `
-        <div class="module-item" style="margin-bottom:0;">
-          <p style="margin-bottom:8px;"><strong style="color:#c4b5fd;">Question ${i + 1}:</strong> ${question}</p>
-          <p style="margin-bottom:0;"><strong style="color:#a5b4fc;">Answer:</strong> ${answer}</p>
-        </div>
-      `;
-    }).join('');
+    progressState.assessmentItems = items;
+    progressState.assessmentAnswers = new Array(items.length).fill(null);
+
+    assessment.innerHTML = `
+      <div style="padding:14px;border-radius:10px;background:#0d2438;border:1px solid #0ea5e9;color:#7dd3fc;margin-bottom:16px;font-size:0.9rem;">
+        <strong>Final Assessment:</strong> Answer all questions to complete the course and unlock interview prep.
+      </div>
+      ${items.map((item, i) => {
+        const question = String(item?.question || '');
+        return `
+          <div class="module-item" style="margin-bottom:12px;">
+            <p style="margin-bottom:8px;"><strong style="color:#c4b5fd;">Question ${i + 1}:</strong> ${escapeHtml(question)}</p>
+            <textarea 
+              data-assessment-answer="${i}"
+              placeholder="Type your answer here..."
+              style="width:100%;min-height:80px;padding:10px;background:#111c31;border:1px solid #2a3954;border-radius:8px;color:#d0d9e7;font-family:inherit;font-size:0.9rem;resize:vertical;"
+            ></textarea>
+          </div>
+        `;
+      }).join('')}
+      <button type="button" id="submitAssessmentBtn" style="background:#10b981;border:none;color:#fff;border-radius:6px;padding:10px 16px;cursor:pointer;font-size:0.9rem;font-weight:700;margin-top:16px;">Submit Assessment</button>
+      <div id="assessmentResult" style="margin-top:12px;font-size:0.9rem;color:#9fb0c7;line-height:1.6;"></div>
+    `;
   }
 
   function renderCourse(course) {
@@ -635,6 +762,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
     renderList(outcomes, course?.learningOutcomes);
     renderList(resumeSignals, course?.resumeSignals);
+    
+    progressState.assessmentItems = asArray(course?.finalAssessment);
+    progressState.interviewPrepItems = asArray(course?.interviewPrep);
+    
     renderModules(course?.modules);
 
     const project = course?.capstoneProject || {};
@@ -648,8 +779,8 @@ document.addEventListener('DOMContentLoaded', function () {
       <ul style="margin:0;padding-left:18px;">${deliverables || '<li>Project plan</li><li>Execution artifact</li><li>Results summary</li>'}</ul>
     `;
 
-    renderAssessment(course?.finalAssessment);
-    renderList(interviewPrep, course?.interviewPrep);
+    renderAssessment(progressState.assessmentItems);
+    renderInterviewPrep(progressState.interviewPrepItems);
   }
 
   async function loadLearnerIdentity() {
