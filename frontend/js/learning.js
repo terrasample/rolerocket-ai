@@ -83,6 +83,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const lines = Array.isArray(sectionLines) ? sectionLines : [];
     const modules = [];
     let current = null;
+    let currentField = null;
 
     function ensureCurrentModule() {
       if (!current) {
@@ -95,6 +96,13 @@ document.addEventListener('DOMContentLoaded', function () {
           fallback: ''
         };
       }
+    }
+
+    function saveCurrentField() {
+      if (currentField && current) {
+        current[currentField] = String(current[currentField] || '').trim();
+      }
+      currentField = null;
     }
 
     lines.forEach((rawLine) => {
@@ -114,27 +122,44 @@ document.addEventListener('DOMContentLoaded', function () {
           proof: '',
           fallback: ''
         };
+        currentField = null;
         return;
       }
 
-      const keyValueMatch = line.match(/^(Missing Skill|Why this matters|Learn|Practice|Proof(?: of mastery)?)\s*:\s*(.*)$/i);
-      if (keyValueMatch) {
+      const keyMatch = line.match(/^(Why this matters|Learn|Practice|Proof(?: of mastery)?)\s*:\s*(.*)$/i);
+      if (keyMatch) {
         ensureCurrentModule();
-        const key = keyValueMatch[1].toLowerCase();
-        const value = String(keyValueMatch[2] || '').trim();
-        if (key.includes('missing skill')) current.skill = value;
-        else if (key.includes('why this matters')) current.why = value;
-        else if (key === 'learn') current.learn = value;
-        else if (key === 'practice') current.practice = value;
-        else if (key.includes('proof')) current.proof = value;
+        saveCurrentField();
+
+        const keyName = keyMatch[1].toLowerCase();
+        const value = String(keyMatch[2] || '').trim();
+
+        if (keyName.includes('why this matters')) {
+          currentField = 'why';
+          current.why = value;
+        } else if (keyName === 'learn') {
+          currentField = 'learn';
+          current.learn = value;
+        } else if (keyName === 'practice') {
+          currentField = 'practice';
+          current.practice = value;
+        } else if (keyName.includes('proof')) {
+          currentField = 'proof';
+          current.proof = value;
+        }
         return;
       }
 
       ensureCurrentModule();
-      current.fallback += (current.fallback ? '\n' : '') + line;
+      if (currentField && current) {
+        current[currentField] += (current[currentField] ? ' ' : '') + line;
+      } else {
+        current.fallback += (current.fallback ? '\n' : '') + line;
+      }
     });
 
     if (current && (current.skill || current.why || current.learn || current.practice || current.proof || current.fallback)) {
+      saveCurrentField();
       modules.push(current);
     }
 
