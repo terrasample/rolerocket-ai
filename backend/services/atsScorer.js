@@ -252,9 +252,27 @@ function extractNGramsFromText(text, size) {
   return out;
 }
 
+function shouldScoreDriversLicense(jobDescription) {
+  const normalized = normalizeText(jobDescription);
+  if (!normalized) return false;
+
+  // Only score driver's-license requirements when the role explicitly includes driving duties.
+  return /(operate company vehicle|drive company vehicle|driving record|motor vehicle record|mvr|cdl|dot|commercial drivers license|fleet vehicle)/i.test(normalized);
+}
+
+function shouldScoreTravelAsMustHave(jobDescription) {
+  const normalized = normalizeText(jobDescription);
+  if (!normalized) return false;
+
+  // Travel becomes scoring-critical only when explicitly quantified/mandatory.
+  return /(up to\s*\d{1,2}%\s*travel|\d{1,2}%\s*travel|required travel|extensive travel|weekly travel|travel requirement)/i.test(normalized);
+}
+
 function extractMustHaveTerms(jobDescription) {
   const mustSignals = /(must|required|mandatory|minimum|need to|license|certification|degree|bachelor|master|clearance|pmp|pe)\b/i;
   const text = String(jobDescription || '');
+  const scoreDriversLicense = shouldScoreDriversLicense(text);
+  const scoreTravel = shouldScoreTravelAsMustHave(text);
   const lines = text.split('\n').map((s) => s.trim()).filter(Boolean);
 
   const segments = [];
@@ -296,24 +314,28 @@ function extractMustHaveTerms(jobDescription) {
     if (/\bproject\s+management\s+experience\b/.test(normalizedSegment)) pushIf('project management experience');
     if (/\bleading\s+cross\s+functional\s+teams\b/.test(normalizedSegment)) pushIf('leading cross functional teams');
 
-    if (/\bvalid\s+drivers?\s+license\b/.test(normalizedSegment)) {
-      pushIf('valid drivers license');
-      pushIf('drivers license');
-    } else if (/\bdrivers?\s+license\b/.test(normalizedSegment)) {
-      pushIf('drivers license');
+    if (scoreDriversLicense) {
+      if (/\bvalid\s+drivers?\s+license\b/.test(normalizedSegment)) {
+        pushIf('valid drivers license');
+        pushIf('drivers license');
+      } else if (/\bdrivers?\s+license\b/.test(normalizedSegment)) {
+        pushIf('drivers license');
+      }
     }
 
-    const travelRequirement = normalizedSegment.match(/\b(willing\s+and\s+able\s+to\s+travel(?:\s+regularly)?(?:\s+including\s+overnight)?)/);
-    if (travelRequirement && travelRequirement[1]) {
-      pushIf(travelRequirement[1]);
-    } else if (/\btravel\b/.test(normalizedSegment)) {
-      if (/\bovernight\b/.test(normalizedSegment)) {
-        pushIf('travel including overnight');
+    if (scoreTravel) {
+      const travelRequirement = normalizedSegment.match(/\b(willing\s+and\s+able\s+to\s+travel(?:\s+regularly)?(?:\s+including\s+overnight)?)/);
+      if (travelRequirement && travelRequirement[1]) {
+        pushIf(travelRequirement[1]);
+      } else if (/\btravel\b/.test(normalizedSegment)) {
+        if (/\bovernight\b/.test(normalizedSegment)) {
+          pushIf('travel including overnight');
+        }
+        if (/\bregularly\b/.test(normalizedSegment)) {
+          pushIf('travel regularly');
+        }
+        pushIf('travel');
       }
-      if (/\bregularly\b/.test(normalizedSegment)) {
-        pushIf('travel regularly');
-      }
-      pushIf('travel');
     }
 
     if (/\bpmp\b/.test(normalizedSegment)) pushIf('pmp certification');
