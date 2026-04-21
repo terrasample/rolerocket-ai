@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dev Auth | RoleRocket</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; padding: 40px; }
+    .container { max-width: 600px; margin: 0 auto; }
+    h1 { margin: 0 0 20px; color: #fff; }
+    .status { padding: 16px; border-radius: 8px; background: #1e293b; border: 1px solid #334155; margin: 20px 0; }
+    .loading { background: #1e40af; color: #dbeafe; }
+    .success { background: #047857; color: #d1fae5; }
+    .error { background: #7c2d12; color: #fed7aa; }
+    button { background: #2563eb; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 16px; cursor: pointer; }
+    button:hover { background: #1d4ed8; }
+    a { color: #60a5fa; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🚀 RoleRocket Dev Auth</h1>
+    <div id="status" class="status loading">Generating admin token...</div>
+    <button onclick="location.reload()">Try Again</button>
+  </div>
+
+  <script>
+    (async () => {
+      try {
+        const res = await fetch('/api/dev/create-admin-token', { method: 'POST' });
+        const data = await res.json();
+
+        if (!res.ok || !data.token) throw new Error(data.error || 'Failed to create token');
+
+        localStorage.setItem('token', data.token);
+        document.getElementById('status').className = 'status success';
+        document.getElementById('status').innerHTML = `✓ Success! Redirecting to course in 2 seconds...<br><small>Token: ${data.token.slice(0, 30)}...</small>`;
+
+        setTimeout(() => {
+          location.href = '/course-learning.html?topic=AI%20%26%20Machine%20Learning&v=20260421e';
+        }, 2000);
+      } catch (err) {
+        document.getElementById('status').className = 'status error';
+        document.getElementById('status').innerHTML = `✗ Error: ${err.message}`;
+      }
+    })();
+  </script>
+</body>
+</html>

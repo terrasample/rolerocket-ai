@@ -30,6 +30,56 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 console.log('DEBUG: server.js script started');
 
+// --- DEV ENDPOINT: Generate test admin token (DEVELOPMENT ONLY) ---
+app.post('/api/dev/create-admin-token', async (req, res) => {
+  try {
+    if (process.env.NODE_ENV === 'production') {
+      return res.status(404).json({ error: 'Not found' });
+    }
+
+    const email = 'terrasample@yahoo.com';
+    let user = await User.findOne({ email }).lean();
+
+    if (!user) {
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash('DevPassword2026!', salt);
+      const newUser = new User({
+        name: 'Dev Admin',
+        email,
+        password: hashedPassword,
+        isSubscribed: true,
+        plan: 'elite',
+        emailVerified: true
+      });
+      await newUser.save();
+      user = newUser.toObject();
+    } else if (user.plan !== 'elite') {
+      await User.findByIdAndUpdate(user._id, { isSubscribed: true, plan: 'elite' });
+      user.plan = 'elite';
+      user.isSubscribed = true;
+    }
+
+    const token = jwt.sign(
+      { userId: String(user._id) },
+      process.env.JWT_SECRET
+    );
+
+    return res.json({
+      success: true,
+      token,
+      user: {
+        id: user._id,
+        email: user.email,
+        name: user.name,
+        plan: user.plan
+      }
+    });
+  } catch (err) {
+    console.error('Dev token creation error:', err);
+    return res.status(500).json({ error: 'Failed to create dev token' });
+  }
+});
+
 // --- PATCH: Always return isAdmin for admin emails in /api/me ---
 app.get('/api/me', async (req, res) => {
   try {
