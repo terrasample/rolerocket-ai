@@ -45,6 +45,13 @@ document.addEventListener('DOMContentLoaded', function () {
       .slice(0, 5);
   }
 
+  function formatWeeklyOutcome(goal) {
+    const clean = String(goal || '').trim();
+    if (!clean) return 'Advance priority opportunities into interview conversations this week.';
+    if (/[.!?]$/.test(clean)) return clean;
+    return `${clean}.`;
+  }
+
   function formatPdf(text, doc) {
     let y = 24;
     doc.setFont('times', 'bold');
@@ -80,64 +87,51 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function buildWeeklyPlan(goal, hours, constraints) {
-    const targetRole = goal || 'your target leadership role';
+    const weeklyOutcome = formatWeeklyOutcome(goal);
     const normalizedHours = hours || '6-8 hours';
     const weeklyHours = Math.max(4, parseWeeklyHours(normalizedHours));
     const notes = splitConstraintNotes(constraints);
     const weeklyBlocks = Math.max(4, Math.round(weeklyHours / 2));
 
-    const priorityNarrative = notes.length
+    const operatingGuardrails = notes.length
       ? notes.join('; ')
-      : 'Maintain momentum across strategic applications, executive networking, and interview readiness.';
+      : 'Keep momentum across applications, networking, and interview preparation.';
 
     return [
-      `Executive Weekly Plan: ${targetRole}`,
+      'Weekly Operating Plan',
       '',
-      '1) Strategic Objective',
-      `- Primary outcome this week: move ${targetRole} opportunities from interest to interview-ready pipeline with measurable execution quality.`,
-      `- Available capacity: ${normalizedHours} (~${weeklyBlocks} focused work blocks this week).`,
-      `- Operating constraints: ${priorityNarrative}`,
+      'Primary Outcome (This Week)',
+      `- ${weeklyOutcome}`,
+      `- Capacity: ${normalizedHours} (~${weeklyBlocks} focused blocks).`,
+      `- Operating guardrails: ${operatingGuardrails}`,
       '',
-      '2) Executive Focus Areas (Ranked)',
-      '- Pipeline Quality: prioritize fewer, higher-fit roles with stronger tailoring depth.',
-      '- Stakeholder Influence: increase response rate through targeted networking and follow-up sequencing.',
-      '- Interview Readiness: convert role requirements into concise achievement stories and proof points.',
+      'Priority Focus Areas',
+      '- Pipeline quality: fewer applications, higher fit, better tailoring.',
+      '- Decision-maker reach: consistent outreach and timely follow-up.',
+      '- Interview readiness: sharpen measurable leadership stories for priority roles.',
       '',
-      '3) KPI Targets for Week-End Review',
-      '- Applications sent (high-fit only): 2-4',
-      '- Executive outreach touches (new + follow-up): 8-12',
-      '- Interview story bank updates: 3-5 quantified examples',
-      '- Resume/ATS iterations completed: 2+',
+      'Weekly Metrics to Track',
+      '- High-fit applications submitted: 2-4',
+      '- Outreach touches (new + follow-up): 8-12',
+      '- Interview story updates (quantified): 3-5',
+      '- Resume/ATS refinements completed: 2+',
       '',
-      '4) Weekly Operating Cadence (Detailed)',
-      '- Monday | Strategy + Positioning',
-      '  Outcome: finalize target-account list and submit the single highest-conviction application.',
-      '  Time blocks: role triage (45m), resume tailoring (60m), application + recruiter note (45m).',
-      '- Tuesday | Influence + Follow-Through',
-      '  Outcome: run outreach sprint and clear all pending follow-up obligations.',
-      '  Time blocks: contact prioritization (30m), outreach drafting (60m), follow-up sends (45m).',
-      '- Wednesday | Interview Asset Build',
-      '  Outcome: produce polished STAR stories mapped to role-critical competencies.',
-      '  Time blocks: competency mapping (40m), story drafting (60m), response rehearsal (40m).',
-      '- Thursday | Second Conversion Sprint',
-      '  Outcome: complete another tailored application and send decision-maker follow-ups.',
-      '  Time blocks: JD decomposition (30m), resume refinement (60m), application + outreach (45m).',
-      '- Friday | Executive Retrospective + Next Plan',
-      '  Outcome: review KPIs, remove low-yield activities, and publish next-week priorities.',
-      '  Time blocks: KPI review (30m), pipeline hygiene (30m), next-week planning (45m).',
+      'Weekly Cadence',
+      '- Monday: Prioritize top opportunities, tailor one resume, and submit the highest-fit role.',
+      '- Tuesday: Execute outreach block and clear all outstanding follow-ups.',
+      '- Wednesday: Build interview assets (STAR examples, business impact bullets, leadership narratives).',
+      '- Thursday: Run second application sprint and reconnect with hiring stakeholders.',
+      '- Friday: Review results, clean tracker, and lock next week’s top three priorities.',
       '',
-      '5) Risk Controls and Mitigations',
-      '- Risk: high activity but weak conversion.',
-      '  Mitigation: enforce high-fit threshold before each application is submitted.',
-      '- Risk: outreach volume without response quality.',
-      '  Mitigation: personalize each outreach with a role-specific business value statement.',
-      '- Risk: interview prep drift.',
-      '  Mitigation: lock one non-negotiable rehearsal block midweek.',
+      'Execution Standards',
+      '- Every application must be role-specific and evidence-led.',
+      '- Every outreach message should tie your value to a business outcome.',
+      '- Protect one non-negotiable prep block midweek for interview readiness.',
       '',
-      '6) End-of-Week Decision Rules',
+      'End-of-Week Decisions',
       '- Double down on channels producing interview movement.',
-      '- Stop activities that do not improve interview probability.',
-      '- Carry forward only the top 3 priorities into next week.'
+      '- Stop low-yield activity immediately.',
+      '- Carry only the top three priorities into next week.'
     ].join('\n');
   }
 
