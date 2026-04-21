@@ -261,9 +261,18 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function queueProgressAdvance(idx, completedModules, feedbackMessage) {
-    const normalized = asArray(completedModules)
+    const normalizedFromPayload = asArray(completedModules)
       .map((n) => Number(n))
       .filter((n) => Number.isInteger(n) && n >= 0 && n < progressState.totalModules);
+
+    // Always include locally known progress + current module so Continue reliably advances.
+    const normalized = Array.from(new Set([
+      ...Array.from(progressState.completedModules),
+      ...normalizedFromPayload,
+      Number(idx)
+    ]))
+      .filter((n) => Number.isInteger(n) && n >= 0 && n < progressState.totalModules)
+      .sort((a, b) => a - b);
 
     progressState.pendingAdvance = {
       idx,
