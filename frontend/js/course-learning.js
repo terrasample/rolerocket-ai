@@ -43,12 +43,26 @@ document.addEventListener('DOMContentLoaded', function () {
   };
   const AUDIO_VOICE_PREF_KEY = 'courseAudioVoicePreference';
 
+  function apiPath(path) {
+    return typeof apiUrl === 'function' ? apiUrl(path) : path;
+  }
+
   function getToken() {
     return (typeof getStoredToken === 'function' ? getStoredToken() : localStorage.getItem('token')) || '';
   }
 
   function asArray(value) {
     return Array.isArray(value) ? value.filter(Boolean) : [];
+  }
+
+  function renderList(target, items) {
+    if (!target) return;
+    const list = asArray(items);
+    if (!list.length) {
+      target.innerHTML = '<li>No details available yet.</li>';
+      return;
+    }
+    target.innerHTML = list.map((item) => `<li style="margin-bottom:8px;">${escapeHtml(String(item))}</li>`).join('');
   }
 
   function escapeHtml(value) {
@@ -369,7 +383,7 @@ document.addEventListener('DOMContentLoaded', function () {
       timeoutId = controller
         ? window.setTimeout(() => controller.abort(), PROGRESS_CHECK_TIMEOUT_MS)
         : null;
-      const response = await fetch('/api/learning/course-progress-check', {
+      const response = await fetch(apiPath('/api/learning/course-progress-check'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -432,7 +446,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     try {
-      const response = await fetch(`/api/learning/course-progress?topic=${encodeURIComponent(topic)}`, {
+      const response = await fetch(apiPath(`/api/learning/course-progress?topic=${encodeURIComponent(topic)}`), {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${token}`
@@ -552,15 +566,6 @@ document.addEventListener('DOMContentLoaded', function () {
           submitBtn.style.display = 'none';
           renderInterviewPrep(progressState.interviewPrepItems);
         }, 1200);
-      });
-    }
-  }
-        } catch (error) {
-          // Ignore storage failures in restricted browser contexts.
-        }
-        if (audioState.activeModuleIndex !== null) {
-          playModuleAudio(audioState.activeModuleIndex, true);
-        }
       });
     }
   }
@@ -787,7 +792,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const token = getToken();
     if (!token) return;
     try {
-      const response = await fetch('/api/me', {
+      const response = await fetch(apiPath('/api/me'), {
         headers: { Authorization: `Bearer ${token}` }
       });
       const payload = await response.json();
@@ -893,7 +898,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (resumeSignals) resumeSignals.innerHTML = '';
 
     try {
-      const response = await fetch('/api/learning/course-content', {
+      const response = await fetch(apiPath('/api/learning/course-content'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

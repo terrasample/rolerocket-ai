@@ -12,6 +12,10 @@ if (!token) {
 const SESSION_TIMEOUT_MINUTES = 30; // Set timeout duration here
 // ─── RoleRocket Dashboard (Personalized) ─────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
+    function apiPath(path) {
+      return typeof apiUrl === 'function' ? apiUrl(path) : path;
+    }
+
     function enforceDashboardTopCardStretch() {
       const dashboardMain = document.getElementById('dashboardMain');
       const dashboardGrid = document.querySelector('.dashboard-grid');
@@ -197,7 +201,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       let isSubscribed = false;
       let isRecruiter = false;
       try {
-        const res = await fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } });
+        const res = await fetch(apiPath('/api/me'), { headers: { Authorization: `Bearer ${token}` } });
         const data = await res.json();
         userPlan = (data.user && data.user.plan) || 'free';
         isAdmin = isAdminUser(data.user);
@@ -278,7 +282,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (!card || !metaText || !streakEl || !completedCoursesEl || !completedModulesEl || !badgesWrap || !continueBtn) return;
 
       try {
-        const response = await fetch('/api/learning/progress-overview', {
+        const response = await fetch(apiPath('/api/learning/progress-overview'), {
           headers: { Authorization: `Bearer ${token}` }
         });
 
@@ -487,7 +491,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     dashboardIdentityBanner.textContent = 'Verifying signed-in account...';
 
     try {
-      const res = await fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(apiPath('/api/me'), { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
       const user = data?.user || data || {};
       const email = String(user.email || '').trim();
@@ -509,7 +513,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- PATCH: Always show all feature sections for admin/lifetime/subscribed users ---
     try {
-      const res = await fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(apiPath('/api/me'), { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
       const isAdmin = isAdminUser(data.user);
       const isLifetime = data.user && data.user.plan === 'lifetime';
@@ -542,7 +546,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   async function loadDashboardResume() {
     if (!resumeLibraryList) return;
     try {
-      const res = await fetch('/api/resume', { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(apiPath('/api/resume'), { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
       latestResumeEntries = Array.isArray(data.resumes)
         ? data.resumes.filter((resume) => resume && resume.content).slice(0, 3)
@@ -570,7 +574,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       resumeSaveMsg.textContent = 'Saving...';
       resumeSaveMsg.style.color = '#1e293b';
       try {
-        const res = await fetch('/api/resume/save', {
+        const res = await fetch(apiPath('/api/resume/save'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({ content, title: 'Dashboard Resume' })
@@ -595,7 +599,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (!jobTrackerEl) return;
       jobTrackerEl.textContent = 'Loading...';
       try {
-        const res = await fetch('/api/jobs', { headers: { Authorization: `Bearer ${token}` } });
+        const res = await fetch(apiPath('/api/jobs'), { headers: { Authorization: `Bearer ${token}` } });
         const data = await res.json();
         if (data.jobs && Array.isArray(data.jobs) && data.jobs.length > 0) {
           jobTrackerEl.innerHTML = '<ul>' + data.jobs.map(job => `<li>${job.title || 'Untitled'} @ ${job.company || 'Unknown'} (${job.status || 'saved'})</li>`).join('') + '</ul>';
@@ -617,7 +621,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         aiRecruiterAssistMsg.textContent = 'Subscribing...';
         aiRecruiterAssistMsg.style.color = '#1e293b';
         try {
-          const res = await fetch('/api/ai-recruiter-assist/subscribe', {
+          const res = await fetch(apiPath('/api/ai-recruiter-assist/subscribe'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           });
@@ -639,7 +643,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (dashboardJobTracker) {
       dashboardJobTracker.textContent = 'Loading...';
       try {
-        const res = await fetch('/api/jobs/tracker', { headers: { Authorization: `Bearer ${token}` } });
+        const res = await fetch(apiPath('/api/jobs/tracker'), { headers: { Authorization: `Bearer ${token}` } });
         const data = await res.json();
         if (data && typeof data === 'object') {
           const stats = [
@@ -662,7 +666,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const jobsListEl = document.getElementById('dashboardJobsList');
   if (jobsListEl) {
     try {
-      const res = await fetch('/api/jobs/applied', { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(apiPath('/api/jobs/applied'), { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
       if (Array.isArray(data.jobs) && data.jobs.length > 0) {
         jobsListEl.innerHTML = data.jobs.map(job => `<li><strong>${escapeHtml(job.title)}</strong> at ${escapeHtml(job.company)}<br><span style='color:#6b7280;font-size:0.95em;'>${escapeHtml(job.status || 'Applied')}</span></li>`).join('');
@@ -678,7 +682,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const tipsEl = document.getElementById('dashboardTips');
   if (tipsEl) {
     try {
-      const res = await fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(apiPath('/api/me'), { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
       const plan = (data.user && data.user.plan) || 'free';
       let tips = '';

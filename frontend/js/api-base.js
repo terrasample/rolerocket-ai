@@ -1,5 +1,5 @@
 (function initApiBase(global) {
-  const DEFAULT_LOCAL_API = 'http://localhost:5000';
+  const DEFAULT_LOCAL_API = 'http://localhost:5555';
 
   function readOverride() {
     try {
@@ -42,8 +42,8 @@
       hostname === '127.0.0.1' ||
       hostname === '[::1]'
     ) {
-      if (!port || port === '5000') return `${global.location.protocol}//${hostname}${port ? `:${port}` : ''}`;
-      return `${global.location.protocol}//${hostname}:5000`;
+      if (!port || port === '5000' || port === '5555') return `${global.location.protocol}//${hostname}${port ? `:${port}` : ''}`;
+      return `${global.location.protocol}//${hostname}:5555`;
     }
 
     return global.location.origin;

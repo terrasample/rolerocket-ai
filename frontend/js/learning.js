@@ -1,4 +1,8 @@
 document.addEventListener('DOMContentLoaded', function () {
+  function apiPath(path) {
+    return typeof apiUrl === 'function' ? apiUrl(path) : path;
+  }
+
   const grid = document.getElementById('courseGrid');
   const filterWrap = document.getElementById('courseDemandFilters');
   const filterSummary = document.getElementById('courseFilterSummary');
@@ -169,7 +173,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   async function loadCatalogData() {
     try {
-      const response = await fetch('/api/learning/catalog');
+      const response = await fetch(apiPath('/api/learning/catalog'));
       const payload = await response.json();
       if (!response.ok || !Array.isArray(payload?.items)) {
         throw new Error((payload && payload.error) || 'Unable to load catalog.');
@@ -205,7 +209,7 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
     try {
-      const response = await fetch('/api/learning/course-progress-list', {
+      const response = await fetch(apiPath('/api/learning/course-progress-list'), {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${token}`

@@ -82,6 +82,27 @@
     <main class="main marketing-main" id="dashboardMain" tabindex="-1">
       <button onclick="window.history.back()" class="back-arrow-btn" aria-label="Go back" style="margin:12px 0 0 12px;background:none;border:none;cursor:pointer;font-size:1.6em;color:#2563eb;"><span aria-hidden="true">&#8592;</span> Back</button>
       <div class="grid dashboard-grid">
+        <div id="learningProgressDashboardCard" class="marketing-card" style="margin-bottom:18px;grid-column:1 / -1;" hidden>
+          <h3>🎓 Learning Progress</h3>
+          <p id="learningProgressMetaText" style="margin-top:6px;">Track your momentum and continue your latest course.</p>
+          <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:12px 0;">
+            <div style="padding:10px;border:1px solid #dbeafe;background:#eff6ff;border-radius:8px;">
+              <div style="font-size:0.75rem;color:#1d4ed8;text-transform:uppercase;letter-spacing:0.04em;">Streak</div>
+              <div id="learningStreakDays" style="font-size:1.15rem;font-weight:800;color:#1e3a8a;">0 days</div>
+            </div>
+            <div style="padding:10px;border:1px solid #dcfce7;background:#f0fdf4;border-radius:8px;">
+              <div style="font-size:0.75rem;color:#15803d;text-transform:uppercase;letter-spacing:0.04em;">Completed</div>
+              <div id="learningCompletedCourses" style="font-size:1.15rem;font-weight:800;color:#166534;">0 courses</div>
+            </div>
+            <div style="padding:10px;border:1px solid #ede9fe;background:#f5f3ff;border-radius:8px;">
+              <div style="font-size:0.75rem;color:#6d28d9;text-transform:uppercase;letter-spacing:0.04em;">Modules</div>
+              <div id="learningCompletedModules" style="font-size:1.15rem;font-weight:800;color:#5b21b6;">0 done</div>
+            </div>
+          </div>
+          <div id="learningBadgesWrap" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;"></div>
+          <a id="learningContinueCourseBtn" href="learning.html" class="sidebar-link-btn premium-btn" style="display:inline-block;text-decoration:none;">Continue Learning</a>
+        </div>
+
         <!-- Real platform activity (moved from homepage) -->
         <div id="dashboardPlatformStatsCard" class="marketing-card premium-stats-section" aria-label="Live platform statistics" style="margin-bottom:24px;min-width:340px;" hidden>
           <div class="premium-stats-header" style="text-align:center;">
@@ -176,28 +197,6 @@
             <div id="noResumeMsg" style="display:none;font-size:1.05em;font-weight:800;color:#dc2626;background:#fff0f0;padding:16px 12px;margin:12px 0 0 0;border-radius:8px;text-align:center;box-shadow:0 2px 12px #fca5a5a0;">No resume saved yet.</div>
           </div>
         </div>
-
-        <div id="learningProgressDashboardCard" class="marketing-card" style="margin-bottom:18px;" hidden>
-          <h3>🎓 Learning Progress</h3>
-          <p id="learningProgressMetaText" style="margin-top:6px;">Track your momentum and continue your latest course.</p>
-          <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:12px 0;">
-            <div style="padding:10px;border:1px solid #dbeafe;background:#eff6ff;border-radius:8px;">
-              <div style="font-size:0.75rem;color:#1d4ed8;text-transform:uppercase;letter-spacing:0.04em;">Streak</div>
-              <div id="learningStreakDays" style="font-size:1.15rem;font-weight:800;color:#1e3a8a;">0 days</div>
-            </div>
-            <div style="padding:10px;border:1px solid #dcfce7;background:#f0fdf4;border-radius:8px;">
-              <div style="font-size:0.75rem;color:#15803d;text-transform:uppercase;letter-spacing:0.04em;">Completed</div>
-              <div id="learningCompletedCourses" style="font-size:1.15rem;font-weight:800;color:#166534;">0 courses</div>
-            </div>
-            <div style="padding:10px;border:1px solid #ede9fe;background:#f5f3ff;border-radius:8px;">
-              <div style="font-size:0.75rem;color:#6d28d9;text-transform:uppercase;letter-spacing:0.04em;">Modules</div>
-              <div id="learningCompletedModules" style="font-size:1.15rem;font-weight:800;color:#5b21b6;">0 done</div>
-            </div>
-          </div>
-          <div id="learningBadgesWrap" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;"></div>
-          <a id="learningContinueCourseBtn" href="learning.html" class="sidebar-link-btn premium-btn" style="display:inline-block;text-decoration:none;">Continue Learning</a>
-        </div>
-
       </div>
 
       <!-- Features Section: OUTSIDE the .grid, full width -->

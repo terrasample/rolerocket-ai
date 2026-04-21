@@ -3697,18 +3697,22 @@ app.post('/api/learning/course-content', authenticateToken, async (req, res) => 
     if (!forceRefresh && cachedCourse && cachedCourse.expiresAt && new Date(cachedCourse.expiresAt).getTime() > now && cachedCourse.coursePayload && hasStructuredProgressChecks(cachedCourse.coursePayload)) {
       course = cachedCourse.coursePayload;
     } else {
-      const completion = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        max_tokens: 2800,
-        temperature: 0.6,
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a world-class technical instructor creating premium, full-length professional courses similar to enterprise learning platforms. Teach directly and concretely. Never reference external links, books, websites, or courses. Output only valid JSON.'
-          },
-          {
-            role: 'user',
-            content: `Create a full course for: ${topic}
+      course = buildFallbackCourseContent(topic);
+
+      if (process.env.OPENAI_API_KEY) {
+        try {
+          const completion = await withTimeout(openai.chat.completions.create({
+            model: 'gpt-4o-mini',
+            max_tokens: 2800,
+            temperature: 0.6,
+            messages: [
+              {
+                role: 'system',
+                content: 'You are a world-class technical instructor creating premium, full-length professional courses similar to enterprise learning platforms. Teach directly and concretely. Never reference external links, books, websites, or courses. Output only valid JSON.'
+              },
+              {
+                role: 'user',
+                content: `Create a full course for: ${topic}
 
 Return ONLY a JSON object with this exact shape and key names:
 {
@@ -3755,50 +3759,35 @@ Rules:
 - Each module.correctOptionIndex must be an integer from 0 to 3 and point to the single best answer.
 - Avoid fluff and generic advice.
 - No markdown, no code fences, no extra text outside JSON.`
+              }
+            ]
+          }), 12000, 'course generation');
+
+          const rawContent = String(completion.choices?.[0]?.message?.content || '').trim();
+          const cleaned = rawContent
+            .replace(/^```json\s*/i, '')
+            .replace(/^```\s*/i, '')
+            .replace(/\s*```$/i, '')
+            .trim();
+
+          try {
+            const parsed = JSON.parse(cleaned);
+            if (hasStructuredProgressChecks(parsed)) {
+              course = parsed;
+            }
+          } catch (parseError) {
+            console.warn('Course content JSON parse failed, using fallback course.');
           }
-        ]
-      });
-
-      const rawContent = String(completion.choices?.[0]?.message?.content || '').trim();
-      const cleaned = rawContent
-        .replace(/^```json\s*/i, '')
-        .replace(/^```\s*/i, '')
-        .replace(/\s*```$/i, '')
-        .trim();
-
-      try {
-        course = JSON.parse(cleaned);
-      } catch (parseError) {
-        console.warn('Course content JSON parse failed, returning fallback object.');
-        course = {
-          courseTitle: topic,
-          subtitle: `Professional course for ${topic}`,
-          difficulty: 'Intermediate',
-          estimatedDuration: '4-6 weeks',
-          marketDemand: `${topic} is highly demanded across 2025-2026 roles.`,
-          overview: cleaned || `Course generation for ${topic} is temporarily unavailable.`,
-          learningOutcomes: [
-            `Explain core ${topic} concepts`,
-            `Apply ${topic} in realistic job scenarios`,
-            `Avoid common ${topic} mistakes`,
-            `Execute hands-on ${topic} tasks`,
-            `Communicate ${topic} outcomes clearly`
-          ],
-          modules: [],
-          capstoneProject: {
-            title: `${topic} Capstone`,
-            scenario: `Build a practical deliverable using ${topic}.`,
-            deliverables: ['Plan', 'Execution artifact', 'Results summary']
-          },
-          finalAssessment: [],
-          interviewPrep: [],
-          resumeSignals: []
-        };
+        } catch (generationError) {
+          console.warn('Course content generation failed, using fallback course:', generationError.message);
+        }
       }
 
-      if (Array.isArray(course?.modules)) {
-        course.modules = course.modules.map((module, index) => normalizeCourseModule(module, index));
+      if (!hasStructuredProgressChecks(course)) {
+        course = buildFallbackCourseContent(topic);
       }
+
+      course.modules = course.modules.map((module, index) => normalizeCourseModule(module, index));
 
       const generatedFingerprint = createCourseContentFingerprint(course);
       await CourseContentCache.findOneAndUpdate(
@@ -4117,9 +4106,152 @@ function createCourseContentFingerprint(course) {
   return crypto.createHash('sha256').update(JSON.stringify(course || {})).digest('hex');
 }
 
+function buildFallbackCourseContent(topic) {
+  const courseTitle = String(topic || 'Professional Course').trim() || 'Professional Course';
+  const actionName = courseTitle.replace(/\s+/g, ' ').trim();
+
+  return {
+    courseTitle: actionName,
+    subtitle: `Structured, step-by-step training for ${actionName}`,
+    difficulty: 'Intermediate',
+    estimatedDuration: '6 weeks',
+    marketDemand: `${actionName} remains a practical, in-demand skill across modern teams.`,
+    overview: `This course gives you a complete working foundation in ${actionName}. You will learn how to define the goal, scope the work, execute with a clear workflow, manage risk, communicate progress, and turn outcomes into strong resume and interview proof points.`,
+    learningOutcomes: [
+      `Explain the core workflow behind ${actionName}.`,
+      `Scope ${actionName} work into clear phases and deliverables.`,
+      `Execute ${actionName} tasks with visible progress and clear ownership.`,
+      `Reduce risk and improve quality with deliberate checkpoints.`,
+      `Present ${actionName} impact clearly to stakeholders and hiring managers.`
+    ],
+    modules: [
+      {
+        title: `Foundations of ${actionName}`,
+        objective: `Understand what ${actionName} is supposed to achieve and how strong execution is measured.`,
+        lesson: `Start by defining the actual outcome ${actionName} is meant to improve. Identify the users, stakeholders, timeline, and decision criteria before choosing tools or tactics. Strong execution starts with the goal, the constraints, and the measure of success. Write a short problem statement, list the current pain points, and define what a better outcome would look like in concrete terms. Then outline the key inputs, the people involved, and the checkpoints required to move work forward without ambiguity. This foundation prevents wasted effort and makes the rest of the work easier to execute, inspect, and explain.`,
+        workedExample: `A team wants to improve a process that currently takes 10 days. The lead sets a target of 6 days, names the approval bottleneck, identifies the owners, and tracks turnaround time weekly before changing any tools.`,
+        commonMistake: `Starting with tactics before defining the target outcome, success metric, and constraints.`,
+        practiceTask: `Write a one-paragraph problem statement for a ${actionName} initiative, including success metrics and two constraints.`,
+        progressCheckQuestion: `What should be defined before choosing tactics or tools?`,
+        progressCheckOptions: [
+          'The goal, constraints, and success metrics',
+          'The final slide design for stakeholders',
+          'Every tool the team might buy',
+          'A perfect solution with no tradeoffs'
+        ],
+        correctOptionIndex: 0
+      },
+      {
+        title: `Scoping and Planning ${actionName}`,
+        objective: `Turn a broad goal into a realistic plan with clear owners, deliverables, and checkpoints.`,
+        lesson: `Convert the outcome into a scoped plan by separating must-have work from optional improvements. Break the effort into phases, assign owners, define dependencies, and choose a review cadence. Good plans are small enough to execute and specific enough to inspect. Document what will be delivered first, what assumptions are being made, and what evidence would force you to adjust. Align the work to calendar time, available capacity, and stakeholder expectations. A workable plan reduces confusion because each step has a purpose, an owner, and a decision point. When scope changes, update the plan explicitly instead of letting drift accumulate silently.`,
+        workedExample: `A six-week initiative is split into discovery, build, validation, and rollout. One lead owns requirements, one owns implementation, and a weekly checkpoint flags delays if any task slips by more than two days.`,
+        commonMistake: `Treating every request as equally important and building a plan that exceeds available time or capacity.`,
+        practiceTask: `Create a four-step plan for a small initiative and assign an owner plus target date to each step.`,
+        progressCheckQuestion: `What makes a plan executable instead of vague?`,
+        progressCheckOptions: [
+          'It has clear deliverables, owners, and checkpoints',
+          'It lists every idea anyone mentioned',
+          'It avoids deadlines to stay flexible',
+          'It focuses only on the final result and skips the process'
+        ],
+        correctOptionIndex: 0
+      },
+      {
+        title: `Execution Workflow for ${actionName}`,
+        objective: `Run the work consistently while keeping momentum, quality, and visibility high.`,
+        lesson: `Execution depends on a visible workflow. Define what enters the queue, how work is prioritized, what done means, and how blockers are escalated. Track progress with a small number of useful indicators instead of too many vanity metrics. During execution, compare actual outcomes against the plan, note why something moved faster or slower than expected, and adjust resources or sequencing when required. Communicate changes early. Reliable execution is not speed alone. It is the combination of progress, clarity, and controlled decision-making under pressure. Teams trust a process more when updates are concrete and tied to what happens next.`,
+        workedExample: `A workflow board shows tasks in backlog, active, review, and done. A blocker older than 24 hours is escalated to the project owner, which prevents review items from stalling for an entire week.`,
+        commonMistake: `Working reactively without a visible workflow or escalation rule for blockers.`,
+        practiceTask: `Map your current workflow into 4 to 6 stages and define what must be true for an item to move to done.`,
+        progressCheckQuestion: `What is the main benefit of a visible workflow?`,
+        progressCheckOptions: [
+          'It makes priorities, blockers, and next steps clear',
+          'It removes the need for stakeholder communication',
+          'It guarantees there will be no delays',
+          'It replaces the need for planning'
+        ],
+        correctOptionIndex: 0
+      },
+      {
+        title: `Quality Control and Risk Management in ${actionName}`,
+        objective: `Protect outcomes by reviewing assumptions, spotting risk early, and tightening quality checks.`,
+        lesson: `Risk management is not a one-time exercise. Review the plan for assumptions that could fail, identify where the highest-impact errors are likely to occur, and set checkpoints before those errors become expensive. Define what quality means for the work: correctness, usability, completeness, compliance, or stakeholder approval. Then connect that definition to lightweight review steps. Effective operators reduce surprises by surfacing uncertainty early, testing the most fragile parts of the process, and documenting decisions that affect downstream work. When a risk appears, respond with a concrete mitigation by reducing scope, adding review capacity, changing sequencing, or creating a fallback path.`,
+        workedExample: `A team identifies approval delays as the highest risk and adds a pre-review checklist plus a 48-hour response deadline. That change prevents launch-week rework caused by late stakeholder feedback.`,
+        commonMistake: `Assuming quality will happen automatically without explicit checkpoints or review criteria.`,
+        practiceTask: `List three risks for your current process and write one mitigation step for each.`,
+        progressCheckQuestion: `What is the best first response to a meaningful project risk?`,
+        progressCheckOptions: [
+          'Define a concrete mitigation or fallback before the issue grows',
+          'Ignore it until the problem becomes urgent',
+          'Add more tools without changing the process',
+          'Assume the team will figure it out later'
+        ],
+        correctOptionIndex: 0
+      },
+      {
+        title: `Communicating ${actionName} to Stakeholders`,
+        objective: `Deliver updates that build trust and make decisions easier.`,
+        lesson: `Strong communication focuses on what changed, what it means, and what decision is needed next. Tailor updates to the audience. Leaders usually need status, risk, and impact. Working teams need tasks, timing, and blockers. Keep updates concise and tied to evidence. Use before-and-after comparisons, current progress against target, and a short explanation of tradeoffs. Good communication reduces confusion because it translates detailed work into clear direction. It also protects the team from unnecessary churn, since stakeholders can see the actual status instead of filling gaps with assumptions. A useful update always answers three questions: where we are, what is at risk, and what happens next.`,
+        workedExample: `Instead of saying a launch is behind, a lead reports that testing is 70 percent complete, two defects are blocking signoff, and a one-day extension will protect quality without affecting the customer announcement.`,
+        commonMistake: `Giving vague updates that describe activity but not progress, impact, or next decisions.`,
+        practiceTask: `Write a six-sentence stakeholder update that includes progress, a risk, and the next required action.`,
+        progressCheckQuestion: `What should a strong stakeholder update include?`,
+        progressCheckOptions: [
+          'Current status, impact, risks, and next actions',
+          'Only detailed task notes from every contributor',
+          'Optimistic language without metrics or tradeoffs',
+          'A long summary with no clear recommendation'
+        ],
+        correctOptionIndex: 0
+      },
+      {
+        title: `Proving Impact with ${actionName}`,
+        objective: `Close the loop by measuring outcomes and turning the work into career evidence.`,
+        lesson: `After execution, compare the outcome to the original target. Record what changed, why it improved, and what should be repeated next time. Distinguish output from impact. Output is what you delivered. Impact is what improved because of it. Capture baseline metrics, final metrics, and the actions that produced the change. Then translate that into concise resume language and interview stories. This step matters because completed work creates career leverage only when it is measurable and explainable. The strongest proof points show problem, action, and result with enough detail to sound credible and useful.`,
+        workedExample: `A process redesign reduced turnaround time from 10 days to 6 days, decreased rework by 25 percent, and improved stakeholder satisfaction scores. The lead turns that into a resume bullet tied to process design, execution, and measurable outcome.`,
+        commonMistake: `Listing responsibilities without documenting the measurable result or business impact.`,
+        practiceTask: `Write one resume bullet and one interview story outline based on a completed project or simulated example.`,
+        progressCheckQuestion: `What makes project experience persuasive on a resume?`,
+        progressCheckOptions: [
+          'A clear action linked to a measurable result',
+          'A list of tools with no context',
+          'A broad statement that you helped the team',
+          'Detailed jargon without any outcome'
+        ],
+        correctOptionIndex: 0
+      }
+    ],
+    capstoneProject: {
+      title: `${actionName} Capstone`,
+      scenario: `Design and execute a realistic ${actionName} initiative from problem definition through final results review.`,
+      deliverables: [
+        'Problem statement with goals, constraints, and stakeholders',
+        'Execution plan with milestones, owners, and risk mitigations',
+        'Final impact summary with metrics, lessons learned, and resume-ready proof points'
+      ]
+    },
+    finalAssessment: [
+      { question: `How do you define success for a ${actionName} initiative before execution begins?`, answer: 'Define a concrete outcome, success metrics, stakeholders, and operating constraints before choosing tactics.' },
+      { question: `What should you do when a risk threatens delivery or quality?`, answer: 'Surface it early, assess impact, and apply a mitigation or fallback before it becomes costly.' },
+      { question: `How do you translate ${actionName} work into strong interview or resume proof?`, answer: 'Connect your actions to measurable results, tradeoffs, and lessons learned.' }
+    ],
+    interviewPrep: [
+      `Be ready to explain how you scope ${actionName} work before execution starts.`,
+      `Prepare one example where you managed risk, changed the plan, or protected quality under pressure.`,
+      `Practice describing the measurable impact of your ${actionName} work using specific numbers or outcomes.`
+    ],
+    resumeSignals: [
+      `Structured planning and execution for ${actionName} initiatives`,
+      `Risk management and stakeholder communication in ${actionName} work`,
+      `Measured business impact and clear documentation of ${actionName} outcomes`
+    ]
+  };
+}
+
 function hasStructuredProgressChecks(course) {
   const modules = Array.isArray(course?.modules) ? course.modules : [];
-  if (!modules.length) return true;
+  if (modules.length !== 6) return false;
   return modules.every((module) => (
     Array.isArray(module?.progressCheckOptions)
     && module.progressCheckOptions.length >= 4
