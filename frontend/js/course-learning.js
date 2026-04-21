@@ -54,14 +54,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  function getCheckedModuleIndexes() {
-    return Array.from(document.querySelectorAll('input[data-module-checkbox]'))
-      .filter((el) => el.checked)
-      .map((el) => Number(el.getAttribute('data-module-checkbox')))
-      .filter((n) => Number.isInteger(n) && n >= 0)
-      .sort((a, b) => a - b);
-  }
-
   function setPassedModuleUi(idx, source) {
     const moduleCheckbox = document.querySelector(`input[data-module-checkbox="${idx}"]`);
     const answerInput = document.querySelector(`input[data-progress-check-input="${idx}"]`);
@@ -87,32 +79,6 @@ document.addEventListener('DOMContentLoaded', function () {
         ? 'Passed previously. Module remains completed.'
         : 'Correct. Module marked as completed.';
       resultWrap.style.color = '#86efac';
-    }
-  }
-
-  async function saveProgress() {
-    const token = getToken();
-    if (!token || !topic) return;
-
-    const completedModules = getCheckedModuleIndexes();
-    progressState.completedModules = new Set(completedModules);
-    updateProgressUi();
-
-    try {
-      await fetch('/api/learning/course-progress', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          topic,
-          totalModules: progressState.totalModules,
-          completedModules
-        })
-      });
-    } catch (error) {
-      // Keep UI state; user can continue even if autosave misses once.
     }
   }
 
@@ -155,9 +121,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
       const payload = await response.json();
       if (response.ok && payload?.passed) {
-        progressState.completedModules.add(idx);
-        setPassedModuleUi(idx, 'fresh');
-        await saveProgress();
+        const completedModules = asArray(payload?.completedModules)
+          .map((n) => Number(n))
+          .filter((n) => Number.isInteger(n) && n >= 0 && n < progressState.totalModules);
+
+        progressState.completedModules = new Set(completedModules);
+        completedModules.forEach((completedIdx) => setPassedModuleUi(completedIdx, completedIdx === idx ? 'fresh' : 'restored'));
+        updateProgressUi();
         return;
       }
 

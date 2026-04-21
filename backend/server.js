@@ -3760,7 +3760,43 @@ app.post('/api/learning/course-progress-check', authenticateToken, async (req, r
     }
 
     const passed = checkAnswerMatch(userAnswer, expectedAnswer);
-    return res.json({ passed });
+    if (!passed) {
+      return res.json({ passed: false });
+    }
+
+    const totalModules = Array.isArray(cached.answers) ? cached.answers.length : 0;
+    const existing = await CourseProgress.findOne({ userId: req.user.userId, courseKey }).lean();
+    const mergedCompletedModules = Array.from(new Set([
+      ...(Array.isArray(existing?.completedModules) ? existing.completedModules : []),
+      moduleIndex
+    ]))
+      .map((n) => Number(n))
+      .filter((n) => Number.isInteger(n) && n >= 0 && n < totalModules)
+      .sort((a, b) => a - b);
+
+    const completedAt = totalModules > 0 && mergedCompletedModules.length === totalModules
+      ? (existing?.completedAt || new Date())
+      : null;
+
+    const saved = await CourseProgress.findOneAndUpdate(
+      { userId: req.user.userId, courseKey },
+      {
+        $set: {
+          courseTitle: topic,
+          totalModules,
+          completedModules: mergedCompletedModules,
+          completedAt
+        }
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    ).lean();
+
+    return res.json({
+      passed: true,
+      totalModules: Number(saved?.totalModules || totalModules),
+      completedModules: Array.isArray(saved?.completedModules) ? saved.completedModules : [],
+      completedAt: saved?.completedAt || null
+    });
   } catch (err) {
     console.error('Course progress check error:', err);
     return res.status(500).json({ error: 'Failed to validate progress check.' });
@@ -3797,7 +3833,6 @@ app.put('/api/learning/course-progress', authenticateToken, async (req, res) => 
   try {
     const topic = String(req.body?.topic || '').trim();
     const totalModules = Math.max(0, Number(req.body?.totalModules || 0));
-    const completedRaw = Array.isArray(req.body?.completedModules) ? req.body.completedModules : [];
 
     if (!topic) return res.status(400).json({ error: 'Topic is required.' });
 
@@ -3808,12 +3843,11 @@ app.put('/api/learning/course-progress', authenticateToken, async (req, res) => 
 
     const courseKey = normalizeCourseKey(topic);
 
-    const cleanedCompletedModules = Array.from(new Set(completedRaw
-      .map((n) => Number(n))
-      .filter((n) => Number.isInteger(n) && n >= 0 && n < totalModules)))
-      .sort((a, b) => a - b);
-
-    const completedAt = totalModules > 0 && cleanedCompletedModules.length === totalModules ? new Date() : null;
+    const existing = await CourseProgress.findOne({ userId: req.user.userId, courseKey }).lean();
+    const trustedCompletedModules = Array.isArray(existing?.completedModules) ? existing.completedModules : [];
+    const completedAt = totalModules > 0 && trustedCompletedModules.length === totalModules
+      ? (existing?.completedAt || new Date())
+      : null;
 
     const saved = await CourseProgress.findOneAndUpdate(
       { userId: req.user.userId, courseKey },
@@ -3821,7 +3855,7 @@ app.put('/api/learning/course-progress', authenticateToken, async (req, res) => 
         $set: {
           courseTitle: topic,
           totalModules,
-          completedModules: cleanedCompletedModules,
+          completedModules: trustedCompletedModules,
           completedAt
         }
       },
