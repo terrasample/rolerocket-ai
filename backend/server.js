@@ -248,6 +248,7 @@ const Application = require('./models/Application');
 const Telemetry = require('./models/Telemetry');
 const RoleProfile = require('./models/RoleProfile');
 const LifetimeSale = require('./models/LifetimeSale');
+const CourseProgress = require('./models/CourseProgress');
 
 
 // Register email verification route
@@ -3673,6 +3674,86 @@ Rules:
   } catch (err) {
     console.error('Course content error:', err);
     return res.status(500).json({ error: 'Failed to generate course content.' });
+  }
+});
+
+app.get('/api/learning/course-progress', authenticateToken, async (req, res) => {
+  try {
+    const topic = String(req.query?.topic || '').trim();
+    if (!topic) return res.status(400).json({ error: 'Topic is required.' });
+
+    const user = await User.findById(req.user.userId);
+    if (!hasRequiredPlan(user, 'elite')) {
+      return res.status(403).json({ error: 'Upgrade to Elite to access full course content.' });
+    }
+
+    const courseKey = topic
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'course';
+
+    const record = await CourseProgress.findOne({ userId: req.user.userId, courseKey }).lean();
+    return res.json({
+      courseKey,
+      courseTitle: topic,
+      totalModules: Number(record?.totalModules || 0),
+      completedModules: Array.isArray(record?.completedModules) ? record.completedModules : [],
+      completedAt: record?.completedAt || null
+    });
+  } catch (err) {
+    console.error('Course progress load error:', err);
+    return res.status(500).json({ error: 'Failed to load course progress.' });
+  }
+});
+
+app.put('/api/learning/course-progress', authenticateToken, async (req, res) => {
+  try {
+    const topic = String(req.body?.topic || '').trim();
+    const totalModules = Math.max(0, Number(req.body?.totalModules || 0));
+    const completedRaw = Array.isArray(req.body?.completedModules) ? req.body.completedModules : [];
+
+    if (!topic) return res.status(400).json({ error: 'Topic is required.' });
+
+    const user = await User.findById(req.user.userId);
+    if (!hasRequiredPlan(user, 'elite')) {
+      return res.status(403).json({ error: 'Upgrade to Elite to access full course content.' });
+    }
+
+    const courseKey = topic
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'course';
+
+    const cleanedCompletedModules = Array.from(new Set(completedRaw
+      .map((n) => Number(n))
+      .filter((n) => Number.isInteger(n) && n >= 0 && n < totalModules)))
+      .sort((a, b) => a - b);
+
+    const completedAt = totalModules > 0 && cleanedCompletedModules.length === totalModules ? new Date() : null;
+
+    const saved = await CourseProgress.findOneAndUpdate(
+      { userId: req.user.userId, courseKey },
+      {
+        $set: {
+          courseTitle: topic,
+          totalModules,
+          completedModules: cleanedCompletedModules,
+          completedAt
+        }
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    ).lean();
+
+    return res.json({
+      courseKey,
+      courseTitle: topic,
+      totalModules: Number(saved?.totalModules || 0),
+      completedModules: Array.isArray(saved?.completedModules) ? saved.completedModules : [],
+      completedAt: saved?.completedAt || null
+    });
+  } catch (err) {
+    console.error('Course progress save error:', err);
+    return res.status(500).json({ error: 'Failed to save course progress.' });
   }
 });
 
