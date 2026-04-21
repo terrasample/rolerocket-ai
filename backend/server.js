@@ -249,6 +249,7 @@ const Telemetry = require('./models/Telemetry');
 const RoleProfile = require('./models/RoleProfile');
 const LifetimeSale = require('./models/LifetimeSale');
 const CourseProgress = require('./models/CourseProgress');
+const CourseLearningSession = require('./models/CourseLearningSession');
 
 
 // Register email verification route
@@ -318,8 +319,7 @@ const USAJOBS_USER_AGENT = process.env.USAJOBS_USER_AGENT || '';
 
 const JOB_CACHE_MS = 1000 * 60 * 5;
 const jobSearchCache = new Map();
-const COURSE_CHECK_CACHE_TTL_MS = 1000 * 60 * 120;
-const courseProgressCheckCache = new Map();
+const COURSE_CHECK_SESSION_TTL_MS = 1000 * 60 * 120;
 const EXTERNAL_FETCH_TIMEOUT_MS = 1200;
 const jobSearchInFlight = new Map();
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '')
@@ -3679,14 +3679,24 @@ Rules:
     const courseKey = normalizeCourseKey(topic);
     const modules = Array.isArray(course?.modules) ? course.modules : [];
     const answers = modules.map((module) => String(module?.progressCheckAnswer || '').trim());
-    const cacheKey = `${String(req.user.userId || '')}:${courseKey}`;
+    const sessionToken = crypto.randomBytes(24).toString('hex');
+    const expiresAt = new Date(Date.now() + COURSE_CHECK_SESSION_TTL_MS);
 
-    courseProgressCheckCache.set(cacheKey, {
-      answers,
-      expiresAt: Date.now() + COURSE_CHECK_CACHE_TTL_MS
-    });
+    await CourseLearningSession.findOneAndUpdate(
+      { userId: req.user.userId, courseKey },
+      {
+        $set: {
+          courseTitle: topic,
+          sessionToken,
+          answers,
+          expiresAt
+        }
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
 
     return res.json({
+      sessionToken,
       course: {
         ...course,
         modules: modules.map((module) => {
@@ -3734,10 +3744,14 @@ app.post('/api/learning/course-progress-check', authenticateToken, async (req, r
     const topic = String(req.body?.topic || '').trim();
     const moduleIndex = Number(req.body?.moduleIndex);
     const userAnswer = String(req.body?.userAnswer || '').trim();
+    const sessionToken = String(req.body?.sessionToken || '').trim();
 
     if (!topic) return res.status(400).json({ error: 'Topic is required.' });
     if (!Number.isInteger(moduleIndex) || moduleIndex < 0) {
       return res.status(400).json({ error: 'Valid moduleIndex is required.' });
+    }
+    if (!sessionToken) {
+      return res.status(400).json({ error: 'Session token is required.' });
     }
 
     const user = await User.findById(req.user.userId);
@@ -3746,15 +3760,17 @@ app.post('/api/learning/course-progress-check', authenticateToken, async (req, r
     }
 
     const courseKey = normalizeCourseKey(topic);
-    const cacheKey = `${String(req.user.userId || '')}:${courseKey}`;
-    const cached = courseProgressCheckCache.get(cacheKey);
+    const session = await CourseLearningSession.findOne({
+      userId: req.user.userId,
+      courseKey,
+      sessionToken
+    }).lean();
 
-    if (!cached || Number(cached.expiresAt || 0) < Date.now()) {
-      courseProgressCheckCache.delete(cacheKey);
+    if (!session || !session.expiresAt || new Date(session.expiresAt).getTime() < Date.now()) {
       return res.status(409).json({ error: 'Progress check session expired. Reload the course and try again.' });
     }
 
-    const expectedAnswer = String((Array.isArray(cached.answers) ? cached.answers[moduleIndex] : '') || '').trim();
+    const expectedAnswer = String((Array.isArray(session.answers) ? session.answers[moduleIndex] : '') || '').trim();
     if (!expectedAnswer) {
       return res.status(404).json({ error: 'Progress check data not found for this module.' });
     }
@@ -3764,7 +3780,7 @@ app.post('/api/learning/course-progress-check', authenticateToken, async (req, r
       return res.json({ passed: false });
     }
 
-    const totalModules = Array.isArray(cached.answers) ? cached.answers.length : 0;
+    const totalModules = Array.isArray(session.answers) ? session.answers.length : 0;
     const existing = await CourseProgress.findOne({ userId: req.user.userId, courseKey }).lean();
     const mergedCompletedModules = Array.from(new Set([
       ...(Array.isArray(existing?.completedModules) ? existing.completedModules : []),

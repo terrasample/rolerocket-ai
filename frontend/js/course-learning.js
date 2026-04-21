@@ -23,7 +23,8 @@ document.addEventListener('DOMContentLoaded', function () {
   const progressState = {
     totalModules: 0,
     completedModules: new Set(),
-    learnerName: 'Learner'
+    learnerName: 'Learner',
+    sessionToken: ''
   };
 
   function getToken() {
@@ -115,7 +116,8 @@ document.addEventListener('DOMContentLoaded', function () {
         body: JSON.stringify({
           topic,
           moduleIndex: idx,
-          userAnswer
+          userAnswer,
+          sessionToken: progressState.sessionToken
         })
       });
 
@@ -134,6 +136,9 @@ document.addEventListener('DOMContentLoaded', function () {
       if (response.status === 409) {
         resultWrap.textContent = String(payload?.error || 'Session expired. Reload the course.');
         resultWrap.style.color = '#fbbf24';
+      } else if (response.status === 400 && payload?.error) {
+        resultWrap.textContent = String(payload.error);
+        resultWrap.style.color = '#fda4af';
       } else {
         resultWrap.textContent = 'Not quite. Review the module and try again.';
         resultWrap.style.color = '#fda4af';
@@ -417,6 +422,7 @@ document.addEventListener('DOMContentLoaded', function () {
         throw new Error((payload && payload.error) || 'Unable to load course.');
       }
 
+      progressState.sessionToken = String(payload?.sessionToken || '').trim();
       renderCourse(payload.course);
       bindProgressHandlers();
       await loadProgress();
