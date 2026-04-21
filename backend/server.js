@@ -3474,23 +3474,26 @@ app.post('/api/learning/plan', authenticateToken, async (req, res) => {
         {
           role: 'system',
           content: [
-            'You are a career learning strategist.',
-            'Create a practical, role-specific learning plan that TEACHES the candidate the missing skills required for the target role.',
-            'First diagnose missing skills from the job description vs candidate resume context, then teach each gap with clear learning steps.',
-            'Use concise plain text only and make each recommendation actionable and teachable.',
-            'Do not use markdown symbols such as #, *, -, or ** anywhere in the response.',
+            'You are an expert instructor and career skills trainer. Your job is to TEACH skills directly, like a tutor sitting with the candidate.',
+            'First diagnose missing skills from the job description vs candidate resume context, then teach each skill as if you are the instructor.',
+            'Use plain text only. Do not use markdown symbols such as #, *, -, or ** anywhere in the response.',
             'Do not invent certifications or work history not supported by provided context.',
             'Use this output format exactly:',
             '1) Missing Skills Diagnosis (Top 5 gaps, each with evidence from job description)',
-            '2) Skill Teaching Modules (for each skill, output on separate lines: Module X: <skill name>, Why this matters: [explain the business impact and why this skill matters for the role], Learn: [teach the concept directly with 4-6 specific teaching points. Explain what the skill is, why it matters, key principles, best practices, common pitfalls, and real-world application in healthcare. Do NOT reference books, articles, courses, or external resources—provide the actual teaching material inline with examples and explanations], Practice: [give 2-3 concrete hands-on exercises the candidate should do to apply the skill], Proof of mastery: [a specific deliverable, certification, or test that proves they have learned the skill])',
+            '2) Skill Teaching Modules (for each skill, output on separate lines with each key on its own line:',
+            'Module X: <skill name>',
+            'Why this matters: [2-3 sentences on business impact and why this skill is required for the role]',
+            'Learn: [Write this as a direct lesson from instructor to student. Do NOT describe the skill—TEACH it. Include: step-by-step how it actually works, specific techniques the student should know and apply, concrete examples from the relevant industry, what mistakes beginners make and how to avoid them, and what mastery looks like in practice. Write 5-8 sentences of real instructional content as if you are explaining it live. Do not reference any external books, courses, websites, or resources.]',
+            'Practice: [2-3 specific hands-on tasks the student should do right now to apply what they just learned]',
+            'Proof of mastery: [one concrete deliverable or test that proves the student has learned this skill])',
             '3) 30-Day Skill-Building Plan (Week 1 to Week 4 mapped to those modules)',
             '4) Practice Projects (3 projects with scope + deliverable + which skill gaps they close)',
             '5) Interview Readiness Drills (5 drills tied to the missing skills)',
             '6) Resume Upgrade Targets (5 bullet changes after learning, tied to completed skills)',
             '7) Weekly Checkpoint Scorecard (5 measurable metrics)',
             '8) Trending Industry Courses (5 courses popular in the current 2025-2026 job market that are highly relevant to this role; for each use this exact format on its own line: Course Name: <name> | Platform: <platform> | Why it is trending: <reason> | Best for: <audience>)',
-            'CRITICAL: The Learn field MUST contain actual educational content with concepts, explanations, principles, and examples—NOT references to external resources like books, courses, articles, or websites. Teach inline. Do not say "read X" or "take course Y"—instead explain the material directly.',
-            'Keep writing specific, measurable, and role-aligned.'
+            'CRITICAL RULE: The Learn field must read like a lesson from a human expert instructor—not a summary or overview. It must contain specific how-to knowledge, real techniques, concrete examples, and common mistakes. Never say "understand X", "learn X", "study X", "read X", "use X tool", or any variation that defers the teaching. Instead, do the teaching right there in the text.',
+            'Keep all content specific, actionable, and role-aligned.'
           ].join(' ')
         },
         {
