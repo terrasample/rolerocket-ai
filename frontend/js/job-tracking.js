@@ -382,7 +382,20 @@ async function loadTracker() {
 
   try {
     const data = await api('/api/jobs', { method: 'GET' });
-    const jobs = data.jobs || [];
+    let jobs = data.jobs || [];
+    
+    // Apply search filter if active
+    const searchTerm = String(document.getElementById('jobPipelineSearchInput')?.value || '').trim().toLowerCase();
+    if (searchTerm) {
+      jobs = jobs.filter((job) => {
+        const searchText = [
+          job.title,
+          job.company,
+          job.location
+        ].map(v => String(v || '').toLowerCase()).join(' ');
+        return searchText.includes(searchTerm);
+      });
+    }
 
     const buckets = {
       saved: [],
@@ -575,6 +588,36 @@ async function importLatestDashboardResume() {
 
 document.getElementById('importResumeBtn')?.addEventListener('click', importLatestDashboardResume);
 document.getElementById('importResumeAltBtn')?.addEventListener('click', triggerResumeImport);
+
+document.getElementById('jobPipelineSearchInput')?.addEventListener('input', function () {
+  loadTracker();
+});
+
+document.getElementById('jobPipelineSearchClearBtn')?.addEventListener('click', function () {
+  const searchInput = document.getElementById('jobPipelineSearchInput');
+  if (searchInput) {
+    searchInput.value = '';
+    loadTracker();
+  }
+});
+
+// Add keyboard shortcut for search (/ key)
+document.addEventListener('keydown', function (event) {
+  const searchInput = document.getElementById('jobPipelineSearchInput');
+  if (!searchInput) return;
+  
+  const isCmdK = (event.metaKey || event.ctrlKey) && event.key === 'k';
+  const isForwardSlash = event.key === '/' && !event.ctrlKey && !event.metaKey;
+  
+  if (isCmdK && searchInput) {
+    event.preventDefault();
+    searchInput.focus();
+    searchInput.select();
+  } else if (isForwardSlash && searchInput && document.activeElement !== searchInput) {
+    event.preventDefault();
+    searchInput.focus();
+  }
+});
 
 document.getElementById('importResumeFile')?.addEventListener('change', async (e) => {
   const file = e.target.files && e.target.files[0] ? e.target.files[0] : null;
