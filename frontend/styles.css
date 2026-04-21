@@ -278,12 +278,13 @@
 
 html {
   scroll-behavior: smooth;
+  font-size: 18px;
 }
 
 body {
   margin: 0;
   font-family: var(--font-body);
-  font-size: 16.5px;
+  font-size: 18.5px;
   background: linear-gradient(180deg, #f8faff 0%, #f3f6fb 100%);
   color: #111827;
 }
