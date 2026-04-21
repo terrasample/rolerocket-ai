@@ -15,6 +15,9 @@ document.addEventListener('DOMContentLoaded', function () {
   const capstone = document.getElementById('courseCapstone');
   const assessment = document.getElementById('courseAssessment');
   const interviewPrep = document.getElementById('courseInterviewPrep');
+  const capstoneSection = document.getElementById('courseCapstoneSection');
+  const assessmentSection = document.getElementById('courseAssessmentSection');
+  const interviewPrepSection = document.getElementById('courseInterviewPrepSection');
   const progressSummary = document.getElementById('courseProgressSummary');
   const progressPercent = document.getElementById('courseProgressPercent');
   const progressBar = document.getElementById('courseProgressBar');
@@ -28,7 +31,10 @@ document.addEventListener('DOMContentLoaded', function () {
     learnerName: 'Learner',
     sessionToken: '',
     moduleNarration: [],
-    answerKey: []
+    answerKey: [],
+    answerExplanations: [],
+    assessmentCompleted: false,
+    lastProgressFeedback: null
   };
   let moduleHandlersBound = false;
   const PROGRESS_CHECK_TIMEOUT_MS = 8000;
@@ -168,6 +174,36 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
+  function updateProgressiveSections() {
+    const hasModules = progressState.totalModules > 0;
+    const allModulesComplete = hasModules && progressState.completedModules.size >= progressState.totalModules;
+    const assessmentComplete = progressState.assessmentCompleted === true;
+
+    if (capstoneSection) capstoneSection.hidden = !allModulesComplete;
+    if (assessmentSection) assessmentSection.hidden = !allModulesComplete;
+    if (interviewPrepSection) interviewPrepSection.hidden = !(allModulesComplete && assessmentComplete);
+  }
+
+  function getProgressCheckExplanation(idx) {
+    const directExplanation = String(progressState.answerExplanations[idx] || '').trim();
+    if (directExplanation) return directExplanation;
+    const moduleItem = progressState.allModules?.[idx] || null;
+    const objective = String(moduleItem?.objective || '').trim();
+    if (objective) {
+      return `This matches the objective of the module: ${objective}`;
+    }
+    return 'This answer best reflects the core lesson from the module.';
+  }
+
+  function formatProgressCheckFeedback(isCorrect, correctAnswer, explanation) {
+    const heading = isCorrect ? 'Correct.' : 'Not quite.';
+    const answerLine = correctAnswer
+      ? `${isCorrect ? 'The right answer is' : 'The correct answer is'}: ${correctAnswer}`
+      : '';
+    const explanationLine = explanation ? `Explanation: ${explanation}` : '';
+    return [heading, answerLine, explanationLine].filter(Boolean).join(' ');
+  }
+
   function resetModuleAudioButtons() {
     document.querySelectorAll('button[data-module-audio-play-btn]').forEach((button) => {
       button.textContent = 'Play Audio';
@@ -305,10 +341,11 @@ document.addEventListener('DOMContentLoaded', function () {
     normalized.forEach((completedIdx) => setPassedModuleUi(completedIdx, completedIdx === freshIdx ? 'fresh' : 'restored'));
     updateProgressUi();
     renderProgressiveContent();
+    updateProgressiveSections();
     
     const isAllComplete = progressState.completedModules.size >= progressState.totalModules;
     if (isAllComplete && assessment) {
-      renderAssessment(progressState.allModules?.map((m) => m?.finalAssessment || []).flat() || []);
+      renderAssessment(progressState.assessmentItems || []);
     }
   }
 
@@ -325,8 +362,12 @@ document.addEventListener('DOMContentLoaded', function () {
       return false;
     }
 
+    const correctAnswer = String(progressState.allModules?.[idx]?.progressCheckOptions?.[correctOptionIndex] || '').trim();
+    const explanation = getProgressCheckExplanation(idx);
+
     if (selectedOptionIndex !== correctOptionIndex) {
-      resultWrap.textContent = 'Not quite. Review the module and try again.';
+      progressState.lastProgressFeedback = null;
+      resultWrap.textContent = formatProgressCheckFeedback(false, correctAnswer, explanation);
       resultWrap.style.color = '#fda4af';
       return false;
     }
@@ -336,9 +377,13 @@ document.addEventListener('DOMContentLoaded', function () {
       idx
     ])).sort((left, right) => left - right);
 
+    progressState.lastProgressFeedback = {
+      type: 'success',
+      message: formatProgressCheckFeedback(true, correctAnswer, explanation)
+    };
     applyCompletedModules(completedModules, idx);
     if (resultWrap) {
-      resultWrap.textContent = 'Correct. Module marked as completed.';
+      resultWrap.textContent = formatProgressCheckFeedback(true, correctAnswer, explanation);
       resultWrap.style.color = '#86efac';
     }
     return true;
@@ -371,7 +416,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     const selectedOptionIndex = Number(selectedOption.value);
-    const correctAnswer = progressState.allModules?.[idx]?.progressCheckOptions?.[Number(progressState.answerKey[idx])] || '';
+    const fallbackCorrectAnswer = String(progressState.allModules?.[idx]?.progressCheckOptions?.[Number(progressState.answerKey[idx])] || '').trim();
+    const fallbackExplanation = getProgressCheckExplanation(idx);
 
     button.disabled = true;
     const originalLabel = button.textContent;
@@ -401,8 +447,20 @@ document.addEventListener('DOMContentLoaded', function () {
 
       const payload = await response.json();
       if (response.ok && payload?.passed) {
+        progressState.lastProgressFeedback = {
+          type: 'success',
+          message: formatProgressCheckFeedback(
+            true,
+            String(payload?.correctOptionText || fallbackCorrectAnswer).trim(),
+            String(payload?.explanation || fallbackExplanation).trim()
+          )
+        };
         applyCompletedModules(payload?.completedModules, idx);
-        resultWrap.textContent = '✓ Correct! The answer is: ' + escapeHtml(correctAnswer).slice(0, 100) + '...';
+        resultWrap.textContent = formatProgressCheckFeedback(
+          true,
+          String(payload?.correctOptionText || fallbackCorrectAnswer).trim(),
+          String(payload?.explanation || fallbackExplanation).trim()
+        );
         resultWrap.style.color = '#86efac';
         return;
       }
@@ -411,21 +469,29 @@ document.addEventListener('DOMContentLoaded', function () {
         resultWrap.textContent = String(payload?.error || 'Session expired. Reload the course.');
         resultWrap.style.color = '#fbbf24';
       } else if (response.status === 400 && payload?.error) {
+        progressState.lastProgressFeedback = null;
         resultWrap.textContent = String(payload.error);
         resultWrap.style.color = '#fda4af';
       } else {
-        resultWrap.textContent = '✗ Not quite. The correct answer is: ' + escapeHtml(correctAnswer).slice(0, 100) + '...';
+        progressState.lastProgressFeedback = null;
+        resultWrap.textContent = formatProgressCheckFeedback(
+          false,
+          String(payload?.correctOptionText || fallbackCorrectAnswer).trim(),
+          String(payload?.explanation || fallbackExplanation).trim()
+        );
         resultWrap.style.color = '#fda4af';
       }
     } catch (error) {
       const usedLocalFallback = applyLocalProgressCheck(idx, selectedOptionIndex, resultWrap);
       if (usedLocalFallback) {
-        resultWrap.textContent = '✓ Correct! The answer is: ' + escapeHtml(correctAnswer).slice(0, 100) + '...';
+        resultWrap.textContent = formatProgressCheckFeedback(true, fallbackCorrectAnswer, fallbackExplanation);
         resultWrap.style.color = '#86efac';
       } else if (error?.name === 'AbortError') {
+        progressState.lastProgressFeedback = null;
         resultWrap.textContent = 'Validation took too long. Refresh the course and try again.';
         resultWrap.style.color = '#fbbf24';
       } else {
+        progressState.lastProgressFeedback = null;
         resultWrap.textContent = 'Check failed. Please try again.';
         resultWrap.style.color = '#fda4af';
       }
@@ -479,6 +545,11 @@ document.addEventListener('DOMContentLoaded', function () {
       completed.forEach((idx) => setPassedModuleUi(idx, 'restored'));
 
       updateProgressUi();
+      renderProgressiveContent();
+      updateProgressiveSections();
+      if (progressState.completedModules.size >= progressState.totalModules) {
+        renderAssessment(progressState.assessmentItems || []);
+      }
     } catch (error) {
       updateProgressUi();
     }
@@ -557,6 +628,7 @@ document.addEventListener('DOMContentLoaded', function () {
         resultDiv.innerHTML = '<span style="color:#93c5fd;">Processing assessment...</span>';
 
         setTimeout(() => {
+          progressState.assessmentCompleted = true;
           resultDiv.innerHTML = `
             <div style="color:#86efac;line-height:1.8;">
               <strong>✓ Assessment Complete!</strong>
@@ -564,6 +636,7 @@ document.addEventListener('DOMContentLoaded', function () {
             </div>
           `;
           submitBtn.style.display = 'none';
+          updateProgressiveSections();
           renderInterviewPrep(progressState.interviewPrepItems);
         }, 1200);
       });
@@ -608,6 +681,9 @@ document.addEventListener('DOMContentLoaded', function () {
     progressState.totalModules = list.length;
     progressState.completedModules = new Set();
     progressState.answerKey = list.map((moduleItem) => Number(moduleItem?.correctOptionIndex));
+    progressState.answerExplanations = list.map((moduleItem, index) => String(moduleItem?.progressCheckExplanation || getModuleReasoningFromAssessment(index) || '').trim());
+    progressState.assessmentCompleted = false;
+    progressState.lastProgressFeedback = null;
     progressState.moduleNarration = list.map((moduleItem, index) => {
       const options = asArray(moduleItem?.progressCheckOptions)
         .map((option, optionIndex) => `Option ${optionIndex + 1}. ${String(option)}`)
@@ -626,6 +702,7 @@ document.addEventListener('DOMContentLoaded', function () {
     progressState.allModules = list;
     updateProgressUi();
     renderProgressiveContent();
+    updateProgressiveSections();
   }
 
   function renderProgressiveContent() {
@@ -643,6 +720,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
     let html = '';
 
+    if (progressState.lastProgressFeedback?.message) {
+      const isSuccess = progressState.lastProgressFeedback.type === 'success';
+      html += `<div style="margin-bottom:16px;padding:14px;border-radius:10px;border:1px solid ${isSuccess ? '#10b981' : '#f59e0b'};background:${isSuccess ? '#052e25' : '#3b1d12'};color:${isSuccess ? '#a7f3d0' : '#fde68a'};line-height:1.6;">${escapeHtml(progressState.lastProgressFeedback.message)}</div>`;
+    }
+
     if (completed > 0) {
       html += `<div style="margin-bottom:20px;padding:14px;border-radius:10px;background:#0d2438;border:1px solid #0ea5e9;color:#7dd3fc;">
         <strong style="font-size:0.9rem;">Progress:</strong> ${completed} of ${list.length} modules completed ✓
@@ -651,7 +733,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (isAllComplete) {
       html += `<div style="margin-bottom:20px;padding:16px;border-radius:10px;background:#065f46;border:1px solid #10b981;color:#a7f3d0;text-align:center;font-weight:700;font-size:1rem;">
-        🎉 All modules complete! Scroll down to take the Final Assessment.
+        🎉 All modules complete! Your capstone project and final assessment are now unlocked below.
       </div>`;
     } else {
       const index = currentIdx;
@@ -731,7 +813,9 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     progressState.assessmentItems = items;
-    progressState.assessmentAnswers = new Array(items.length).fill(null);
+    if (!progressState.assessmentCompleted) {
+      progressState.assessmentAnswers = new Array(items.length).fill(null);
+    }
 
     assessment.innerHTML = `
       <div style="padding:14px;border-radius:10px;background:#0d2438;border:1px solid #0ea5e9;color:#7dd3fc;margin-bottom:16px;font-size:0.9rem;">
@@ -786,6 +870,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     renderAssessment(progressState.assessmentItems);
     renderInterviewPrep(progressState.interviewPrepItems);
+    updateProgressiveSections();
   }
 
   async function loadLearnerIdentity() {
@@ -872,6 +957,9 @@ document.addEventListener('DOMContentLoaded', function () {
     if (capstone) capstone.innerHTML = '<p>Capstone details will appear after course access is confirmed.</p>';
     if (assessment) assessment.innerHTML = '<div class="module-item"><p>Assessment questions will appear after course access is confirmed.</p></div>';
     if (interviewPrep) interviewPrep.innerHTML = '<li>Interview prep unlocks after course access is confirmed.</li>';
+    if (capstoneSection) capstoneSection.hidden = true;
+    if (assessmentSection) assessmentSection.hidden = true;
+    if (interviewPrepSection) interviewPrepSection.hidden = true;
   }
 
   async function loadCourse(forceRefresh = false) {
@@ -894,6 +982,9 @@ document.addEventListener('DOMContentLoaded', function () {
     if (assessment) assessment.innerHTML = '';
     if (capstone) capstone.innerHTML = '';
     if (interviewPrep) interviewPrep.innerHTML = '';
+    if (capstoneSection) capstoneSection.hidden = true;
+    if (assessmentSection) assessmentSection.hidden = true;
+    if (interviewPrepSection) interviewPrepSection.hidden = true;
     if (outcomes) outcomes.innerHTML = '';
     if (resumeSignals) resumeSignals.innerHTML = '';
 

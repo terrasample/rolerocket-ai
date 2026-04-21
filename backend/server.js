@@ -3787,8 +3787,6 @@ Rules:
         course = buildFallbackCourseContent(topic);
       }
 
-      course.modules = course.modules.map((module, index) => normalizeCourseModule(module, index));
-
       const generatedFingerprint = createCourseContentFingerprint(course);
       await CourseContentCache.findOneAndUpdate(
         { courseKey },
@@ -3804,11 +3802,22 @@ Rules:
       );
     }
 
+    const normalizedModules = Array.isArray(course?.modules)
+      ? course.modules.map((module, index) => normalizeCourseModule(module, index))
+      : [];
+    course = { ...course, modules: normalizedModules };
+
     const contentFingerprint = createCourseContentFingerprint(course);
-    const modules = Array.isArray(course?.modules) ? course.modules : [];
-    const answers = modules.map((module) => ({
-      correctOptionIndex: Number(module?.correctOptionIndex)
-    }));
+    const modules = normalizedModules;
+    const answers = modules.map((module) => {
+      const correctOptionIndex = Number(module?.correctOptionIndex);
+      const progressCheckOptions = Array.isArray(module?.progressCheckOptions) ? module.progressCheckOptions : [];
+      return {
+        correctOptionIndex,
+        correctOptionText: String(progressCheckOptions[correctOptionIndex] || '').trim(),
+        explanation: String(module?.progressCheckExplanation || '').trim()
+      };
+    });
     const sessionToken = crypto.randomBytes(24).toString('hex');
     const expiresAt = new Date(Date.now() + COURSE_CHECK_SESSION_TTL_MS);
 
@@ -3860,13 +3869,7 @@ Rules:
     return res.json({
       sessionToken,
       contentFingerprint,
-      course: {
-        ...course,
-        modules: modules.map((module) => {
-          const { correctOptionIndex, ...safeModule } = module || {};
-          return safeModule;
-        })
-      }
+      course
     });
   } catch (err) {
     console.error('Course content error:', err);
@@ -4278,13 +4281,19 @@ function normalizeCourseModule(module, index) {
     && numericCorrectOptionIndex < progressCheckOptions.length
       ? numericCorrectOptionIndex
       : 0;
+  const correctOptionText = String(progressCheckOptions[correctOptionIndex] || '').trim();
+  const objective = String(module?.objective || '').trim();
+  const fallbackExplanation = correctOptionText
+    ? `The best answer is "${correctOptionText}" because it matches the core objective of this module${objective ? `: ${objective}` : '.'}`
+    : `This answer best reflects the core lesson from module ${index + 1}.`;
 
   return {
     ...module,
     title: String(module?.title || `Module ${index + 1}`).trim(),
     progressCheckQuestion: String(module?.progressCheckQuestion || `Which answer best reflects the core lesson from module ${index + 1}?`).trim(),
     progressCheckOptions,
-    correctOptionIndex
+    correctOptionIndex,
+    progressCheckExplanation: String(module?.progressCheckExplanation || fallbackExplanation).trim()
   };
 }
 
@@ -4330,9 +4339,41 @@ app.post('/api/learning/course-progress-check', authenticateToken, async (req, r
       return res.status(404).json({ error: 'Progress check data not found for this module.' });
     }
 
+    // Prefer session-stored text/explanation; fall back to live course cache for rich feedback
+    let correctOptionText = typeof answerEntry === 'object' && answerEntry !== null
+      ? String(answerEntry.correctOptionText || '').trim()
+      : '';
+    let explanation = typeof answerEntry === 'object' && answerEntry !== null
+      ? String(answerEntry.explanation || '').trim()
+      : '';
+
+    if (!correctOptionText || !explanation) {
+      const cachedCourse = await CourseContentCache.findOne({ courseKey }).lean();
+      if (cachedCourse?.coursePayload) {
+        const rawModules = Array.isArray(cachedCourse.coursePayload.modules)
+          ? cachedCourse.coursePayload.modules
+          : [];
+        const rawModule = rawModules[moduleIndex];
+        if (rawModule) {
+          const normalized = normalizeCourseModule(rawModule, moduleIndex);
+          if (!correctOptionText) {
+            correctOptionText = String(normalized.progressCheckOptions?.[expectedIndex] || '').trim();
+          }
+          if (!explanation) {
+            explanation = String(normalized.progressCheckExplanation || '').trim();
+          }
+        }
+      }
+    }
+
     const passed = selectedOptionIndex === expectedIndex;
     if (!passed) {
-      return res.json({ passed: false });
+      return res.json({
+        passed: false,
+        correctOptionIndex: expectedIndex,
+        correctOptionText,
+        explanation
+      });
     }
 
     const totalModules = Array.isArray(session.answers) ? session.answers.length : 0;
@@ -4367,6 +4408,9 @@ app.post('/api/learning/course-progress-check', authenticateToken, async (req, r
 
     return res.json({
       passed: true,
+      correctOptionIndex: expectedIndex,
+      correctOptionText,
+      explanation,
       totalModules: Number(saved?.totalModules || totalModules),
       completedModules: Array.isArray(saved?.completedModules) ? saved.completedModules : [],
       completedAt: saved?.completedAt || null
