@@ -243,6 +243,16 @@ document.addEventListener('DOMContentLoaded', function () {
       continueButton.disabled = false;
       continueButton.style.opacity = '1';
       continueButton.style.cursor = 'pointer';
+
+      const isSmallViewport = typeof window.matchMedia === 'function'
+        ? window.matchMedia('(max-width: 900px)').matches
+        : (window.innerWidth <= 900);
+      if (isSmallViewport) {
+        window.requestAnimationFrame(() => {
+          continueButton.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          continueButton.focus({ preventScroll: true });
+        });
+      }
     }
 
     if (resultWrap) {
