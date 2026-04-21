@@ -93,6 +93,34 @@ document.addEventListener('DOMContentLoaded', function () {
       .sort((a, b) => a - b);
   }
 
+  function setPassedModuleUi(idx, source) {
+    const moduleCheckbox = document.querySelector(`input[data-module-checkbox="${idx}"]`);
+    const answerInput = document.querySelector(`input[data-progress-check-input="${idx}"]`);
+    const button = document.querySelector(`button[data-progress-check-btn="${idx}"]`);
+    const resultWrap = document.querySelector(`div[data-progress-check-result="${idx}"]`);
+
+    if (moduleCheckbox) {
+      moduleCheckbox.checked = true;
+    }
+    if (answerInput) {
+      answerInput.disabled = true;
+      answerInput.value = answerInput.value || 'Passed';
+      answerInput.style.opacity = '0.8';
+    }
+    if (button) {
+      button.disabled = true;
+      button.textContent = 'Passed';
+      button.style.opacity = '0.75';
+      button.style.cursor = 'default';
+    }
+    if (resultWrap) {
+      resultWrap.textContent = source === 'restored'
+        ? 'Passed previously. Module remains completed.'
+        : 'Correct. Module marked as completed.';
+      resultWrap.style.color = '#86efac';
+    }
+  }
+
   async function saveProgress() {
     const token = getToken();
     if (!token || !topic) return;
@@ -151,6 +179,8 @@ document.addEventListener('DOMContentLoaded', function () {
         checkbox.checked = progressState.completedModules.has(idx);
       });
 
+      completed.forEach((idx) => setPassedModuleUi(idx, 'restored'));
+
       updateProgressUi();
     } catch (error) {
       updateProgressUi();
@@ -158,33 +188,40 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function bindProgressHandlers() {
-    document.querySelectorAll('input[data-module-checkbox]').forEach((checkbox) => {
-      checkbox.addEventListener('change', saveProgress);
-    });
-
     document.querySelectorAll('button[data-progress-check-btn]').forEach((button) => {
       button.addEventListener('click', function () {
         const idx = Number(button.getAttribute('data-progress-check-btn'));
+        if (progressState.completedModules.has(idx)) {
+          setPassedModuleUi(idx, 'restored');
+          return;
+        }
+
         const answerInput = document.querySelector(`input[data-progress-check-input="${idx}"]`);
         const expectedInput = document.querySelector(`input[data-progress-check-answer="${idx}"]`);
         const resultWrap = document.querySelector(`div[data-progress-check-result="${idx}"]`);
-        const moduleCheckbox = document.querySelector(`input[data-module-checkbox="${idx}"]`);
 
         if (!answerInput || !expectedInput || !resultWrap) return;
 
         const userAnswer = answerInput.value;
         const expected = expectedInput.value;
         if (answerMatches(userAnswer, expected)) {
-          resultWrap.textContent = 'Correct. Module marked as completed.';
-          resultWrap.style.color = '#86efac';
-          if (moduleCheckbox) {
-            moduleCheckbox.checked = true;
-          }
+          progressState.completedModules.add(idx);
+          setPassedModuleUi(idx, 'fresh');
           saveProgress();
         } else {
           resultWrap.textContent = 'Not quite. Review the module and try again.';
           resultWrap.style.color = '#fda4af';
         }
+      });
+    });
+
+    document.querySelectorAll('input[data-progress-check-input]').forEach((input) => {
+      input.addEventListener('keydown', function (event) {
+        if (event.key !== 'Enter') return;
+        event.preventDefault();
+        const idx = input.getAttribute('data-progress-check-input');
+        const button = document.querySelector(`button[data-progress-check-btn="${idx}"]`);
+        if (button && !button.disabled) button.click();
       });
     });
   }
@@ -225,7 +262,7 @@ document.addEventListener('DOMContentLoaded', function () {
           <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;">
             <h4 style="margin:0;">Module ${index + 1}: ${title}</h4>
             <label style="display:flex;align-items:center;gap:6px;color:#86efac;font-size:0.84rem;white-space:nowrap;">
-              <input type="checkbox" data-module-checkbox="${index}" style="accent-color:#22c55e;" />
+              <input type="checkbox" data-module-checkbox="${index}" disabled style="accent-color:#22c55e;cursor:not-allowed;" />
               Completed
             </label>
           </div>
