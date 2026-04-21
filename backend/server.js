@@ -252,6 +252,36 @@ const CourseProgress = require('./models/CourseProgress');
 const CourseLearningSession = require('./models/CourseLearningSession');
 const CourseContentCache = require('./models/CourseContentCache');
 
+const LEARNING_CATALOG_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+const LEARNING_CATALOG_HOT_COUNT = 12;
+const LEARNING_CATALOG_TOPICS = [
+  { id: 'ai-machine-learning', name: 'AI & Machine Learning', summary: 'Understand how AI models work and apply ML to real problems.', laborQuery: 'machine learning engineer OR AI engineer' },
+  { id: 'prompt-engineering-ai-ops', name: 'Prompt Engineering & AI Ops', summary: 'Create reliable AI workflows, guardrails, and production-ready prompts.', laborQuery: 'prompt engineer OR AI operations' },
+  { id: 'data-engineering', name: 'Data Engineering', summary: 'Design pipelines, data models, and warehouse-ready datasets.', laborQuery: 'data engineer' },
+  { id: 'cloud-computing', name: 'Cloud Computing', summary: 'Learn cloud services, deployment models, and infrastructure.', laborQuery: 'cloud engineer OR cloud architect' },
+  { id: 'cybersecurity-fundamentals', name: 'Cybersecurity Fundamentals', summary: 'Identify threats and apply security best practices.', laborQuery: 'cybersecurity analyst OR security engineer' },
+  { id: 'software-engineering-fundamentals', name: 'Software Engineering Fundamentals', summary: 'Build reliable applications with core programming, testing, and architecture habits.', laborQuery: 'software engineer' },
+  { id: 'python-programming', name: 'Python Programming', summary: 'Learn variables, functions, loops, and automation scripts.', laborQuery: 'python developer' },
+  { id: 'sql-data-analysis', name: 'SQL & Data Analysis', summary: 'Query databases, join tables, and extract business insights.', laborQuery: 'sql analyst OR data analyst' },
+  { id: 'devops-kubernetes', name: 'DevOps & Kubernetes', summary: 'Ship faster with CI/CD, containers, orchestration, and observability.', laborQuery: 'devops engineer OR kubernetes' },
+  { id: 'project-management', name: 'Project Management', summary: 'Manage scope, timelines, budgets, and stakeholders.', laborQuery: 'project manager' },
+  { id: 'product-management', name: 'Product Management', summary: 'Define roadmaps, lead teams, and ship products users love.', laborQuery: 'product manager' },
+  { id: 'salesforce-administration', name: 'Salesforce Administration', summary: 'Configure objects, reports, automations, and user operations in Salesforce.', laborQuery: 'salesforce administrator' },
+  { id: 'power-bi-data-viz', name: 'Power BI & Data Viz', summary: 'Build dashboards that turn raw data into business decisions.', laborQuery: 'power bi developer OR business intelligence analyst' },
+  { id: 'advanced-excel', name: 'Advanced Excel', summary: 'Master PivotTables, VLOOKUP, Power Query, and macros.', laborQuery: 'excel analyst OR operations analyst' },
+  { id: 'scrum-agile', name: 'Scrum & Agile', summary: 'Master sprint planning, standups, and retrospectives.', laborQuery: 'scrum master OR agile coach' },
+  { id: 'business-analysis', name: 'Business Analysis', summary: 'Translate business needs into requirements, workflows, and delivery plans.', laborQuery: 'business analyst' },
+  { id: 'financial-analysis-fpa', name: 'Financial Analysis & FP&A', summary: 'Model revenue, forecast performance, and support strategic decisions.', laborQuery: 'financial analyst OR fp&a' },
+  { id: 'digital-marketing-growth', name: 'Digital Marketing & Growth', summary: 'Run campaigns, measure funnels, and optimize customer acquisition.', laborQuery: 'digital marketing manager OR growth marketing' },
+  { id: 'ux-design-principles', name: 'UX Design Principles', summary: 'Design user-centered interfaces with research and testing.', laborQuery: 'ux designer OR product designer' },
+  { id: 'leadership-management', name: 'Leadership & Management', summary: 'Lead teams, give effective feedback, and manage performance.', laborQuery: 'operations manager OR team lead' }
+];
+
+let learningCatalogCache = {
+  expiresAt: 0,
+  payload: null
+};
+
 
 // Register email verification route
 
@@ -3570,6 +3600,16 @@ app.get('/api/learning/history', authenticateToken, async (req, res) => {
   }
 });
 
+app.get('/api/learning/catalog', async (req, res) => {
+  try {
+    const payload = await getLearningCatalogPayload();
+    return res.json(payload);
+  } catch (err) {
+    console.error('Learning catalog error:', err);
+    return res.status(500).json({ error: 'Failed to load learning catalog.' });
+  }
+});
+
 app.post('/api/learning/course-content', authenticateToken, async (req, res) => {
   try {
     const topic = String(req.body?.topic || '').trim();
@@ -3783,6 +3823,104 @@ function normalizeCourseKey(topic) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '') || 'course';
+}
+
+function buildCatalogItems(topics, source) {
+  return topics.map((topic, index) => ({
+    rank: index + 1,
+    id: String(topic.id || normalizeCourseKey(topic.name)),
+    name: String(topic.name || '').trim(),
+    summary: String(topic.summary || '').trim(),
+    demand: index < LEARNING_CATALOG_HOT_COUNT ? 'HOT' : 'RISING',
+    laborScore: Number(topic.laborScore || 0),
+    source
+  }));
+}
+
+function getFallbackLearningCatalogPayload() {
+  const items = buildCatalogItems(LEARNING_CATALOG_TOPICS, 'backend-curated');
+  return {
+    items,
+    source: 'backend-curated',
+    sourceLabel: 'Source: backend-ranked catalog fallback',
+    generatedAt: new Date().toISOString(),
+    hotCount: items.filter((item) => item.demand === 'HOT').length,
+    risingCount: items.filter((item) => item.demand === 'RISING').length
+  };
+}
+
+function hasLaborMarketApiConfig() {
+  return Boolean(process.env.ADZUNA_APP_ID && process.env.ADZUNA_APP_KEY);
+}
+
+async function fetchLaborMarketScore(topic) {
+  const country = String(process.env.ADZUNA_COUNTRY || 'us').trim().toLowerCase();
+  const params = new URLSearchParams({
+    app_id: process.env.ADZUNA_APP_ID,
+    app_key: process.env.ADZUNA_APP_KEY,
+    what: String(topic?.laborQuery || topic?.name || '').trim(),
+    results_per_page: '1',
+    'content-type': 'application/json'
+  });
+  const url = `https://api.adzuna.com/v1/api/jobs/${country}/search/1?${params.toString()}`;
+  const response = await withTimeout(fetch(url), 8000, `labor-market request for ${topic?.name || 'topic'}`);
+  if (!response.ok) {
+    throw new Error(`Labor market API returned ${response.status}`);
+  }
+  const payload = await response.json();
+  return Number(payload?.count || 0);
+}
+
+async function getExternalLearningCatalogPayload() {
+  const scoredTopics = await Promise.all(LEARNING_CATALOG_TOPICS.map(async (topic, index) => ({
+    ...topic,
+    baselineRank: index,
+    laborScore: await fetchLaborMarketScore(topic)
+  })));
+
+  const rankedTopics = scoredTopics
+    .sort((left, right) => {
+      if (right.laborScore !== left.laborScore) return right.laborScore - left.laborScore;
+      return left.baselineRank - right.baselineRank;
+    })
+    .map(({ baselineRank, ...topic }) => topic);
+
+  const items = buildCatalogItems(rankedTopics, 'adzuna');
+  return {
+    items,
+    source: 'adzuna',
+    sourceLabel: 'Source: live labor-market demand via Adzuna job volume',
+    generatedAt: new Date().toISOString(),
+    hotCount: items.filter((item) => item.demand === 'HOT').length,
+    risingCount: items.filter((item) => item.demand === 'RISING').length
+  };
+}
+
+async function getLearningCatalogPayload() {
+  if (learningCatalogCache.payload && learningCatalogCache.expiresAt > Date.now()) {
+    return learningCatalogCache.payload;
+  }
+
+  let payload = null;
+
+  if (hasLaborMarketApiConfig()) {
+    try {
+      payload = await getExternalLearningCatalogPayload();
+    } catch (error) {
+      console.warn('Learning catalog external ranking failed, using fallback catalog:', error.message);
+    }
+  }
+
+  if (!payload) {
+    payload = getFallbackLearningCatalogPayload();
+  }
+
+  learningCatalogCache = {
+    expiresAt: Date.now() + LEARNING_CATALOG_CACHE_TTL_MS,
+    payload
+  };
+
+  return payload;
 }
 
 function createCourseContentFingerprint(course) {

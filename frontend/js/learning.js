@@ -2,6 +2,9 @@ document.addEventListener('DOMContentLoaded', function () {
   const grid = document.getElementById('courseGrid');
   const filterWrap = document.getElementById('courseDemandFilters');
   const filterSummary = document.getElementById('courseFilterSummary');
+  const catalogSource = document.getElementById('courseCatalogSource');
+  const hotCountBadge = document.getElementById('courseHotCountBadge');
+  const risingCountBadge = document.getElementById('courseRisingCountBadge');
   const searchInput = document.getElementById('courseSearchInput');
   const clearSearchBtn = document.getElementById('courseSearchClearBtn');
   const preferenceStatus = document.getElementById('coursePreferenceStatus');
@@ -11,29 +14,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const progressByKey = new Map();
   let activeFilter = 'ALL';
   let searchTerm = '';
-
-  const courses = [
-    { rank: 1, id: 'ai-machine-learning', name: 'AI & Machine Learning', summary: 'Understand how AI models work and apply ML to real problems.', demand: 'HOT' },
-    { rank: 2, id: 'prompt-engineering-ai-ops', name: 'Prompt Engineering & AI Ops', summary: 'Create reliable AI workflows, guardrails, and production-ready prompts.', demand: 'HOT' },
-    { rank: 3, id: 'data-engineering', name: 'Data Engineering', summary: 'Design pipelines, data models, and warehouse-ready datasets.', demand: 'HOT' },
-    { rank: 4, id: 'cloud-computing', name: 'Cloud Computing', summary: 'Learn cloud services, deployment models, and infrastructure.', demand: 'HOT' },
-    { rank: 5, id: 'cybersecurity-fundamentals', name: 'Cybersecurity Fundamentals', summary: 'Identify threats and apply security best practices.', demand: 'HOT' },
-    { rank: 6, id: 'software-engineering-fundamentals', name: 'Software Engineering Fundamentals', summary: 'Build reliable applications with core programming, testing, and architecture habits.', demand: 'HOT' },
-    { rank: 7, id: 'python-programming', name: 'Python Programming', summary: 'Learn variables, functions, loops, and automation scripts.', demand: 'HOT' },
-    { rank: 8, id: 'sql-data-analysis', name: 'SQL & Data Analysis', summary: 'Query databases, join tables, and extract business insights.', demand: 'HOT' },
-    { rank: 9, id: 'devops-kubernetes', name: 'DevOps & Kubernetes', summary: 'Ship faster with CI/CD, containers, orchestration, and observability.', demand: 'HOT' },
-    { rank: 10, id: 'project-management', name: 'Project Management', summary: 'Manage scope, timelines, budgets, and stakeholders.', demand: 'HOT' },
-    { rank: 11, id: 'product-management', name: 'Product Management', summary: 'Define roadmaps, lead teams, and ship products users love.', demand: 'HOT' },
-    { rank: 12, id: 'salesforce-administration', name: 'Salesforce Administration', summary: 'Configure objects, reports, automations, and user operations in Salesforce.', demand: 'HOT' },
-    { rank: 13, id: 'power-bi-data-viz', name: 'Power BI & Data Viz', summary: 'Build dashboards that turn raw data into business decisions.', demand: 'RISING' },
-    { rank: 14, id: 'advanced-excel', name: 'Advanced Excel', summary: 'Master PivotTables, VLOOKUP, Power Query, and macros.', demand: 'RISING' },
-    { rank: 15, id: 'scrum-agile', name: 'Scrum & Agile', summary: 'Master sprint planning, standups, and retrospectives.', demand: 'RISING' },
-    { rank: 16, id: 'business-analysis', name: 'Business Analysis', summary: 'Translate business needs into requirements, workflows, and delivery plans.', demand: 'RISING' },
-    { rank: 17, id: 'financial-analysis-fpa', name: 'Financial Analysis & FP&A', summary: 'Model revenue, forecast performance, and support strategic decisions.', demand: 'RISING' },
-    { rank: 18, id: 'digital-marketing-growth', name: 'Digital Marketing & Growth', summary: 'Run campaigns, measure funnels, and optimize customer acquisition.', demand: 'RISING' },
-    { rank: 19, id: 'ux-design-principles', name: 'UX Design Principles', summary: 'Design user-centered interfaces with research and testing.', demand: 'RISING' },
-    { rank: 20, id: 'leadership-management', name: 'Leadership & Management', summary: 'Lead teams, give effective feedback, and manage performance.', demand: 'RISING' }
-  ].sort((left, right) => left.rank - right.rank);
+  let courses = [];
 
   function getToken() {
     return (typeof getStoredToken === 'function' ? getStoredToken() : localStorage.getItem('token')) || '';
@@ -158,6 +139,51 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  function updateCatalogMeta(payload) {
+    if (catalogSource) {
+      const generatedAt = payload?.generatedAt ? new Date(payload.generatedAt).toLocaleString() : '';
+      const sourceLabel = String(payload?.sourceLabel || 'Source: backend-generated catalog').trim();
+      catalogSource.textContent = generatedAt ? `${sourceLabel} · Updated ${generatedAt}` : sourceLabel;
+    }
+    if (hotCountBadge) {
+      hotCountBadge.textContent = `${Number(payload?.hotCount || 0)} HOT`;
+    }
+    if (risingCountBadge) {
+      risingCountBadge.textContent = `${Number(payload?.risingCount || 0)} RISING`;
+    }
+  }
+
+  async function loadCatalogData() {
+    try {
+      const response = await fetch('/api/learning/catalog');
+      const payload = await response.json();
+      if (!response.ok || !Array.isArray(payload?.items)) {
+        throw new Error((payload && payload.error) || 'Unable to load catalog.');
+      }
+      courses = payload.items
+        .map((item) => ({
+          rank: Number(item.rank || 0),
+          id: String(item.id || ''),
+          name: String(item.name || ''),
+          summary: String(item.summary || ''),
+          demand: String(item.demand || 'RISING').toUpperCase()
+        }))
+        .filter((item) => item.id && item.name)
+        .sort((left, right) => left.rank - right.rank);
+      updateCatalogMeta(payload);
+      renderGrid();
+    } catch (error) {
+      if (catalogSource) {
+        catalogSource.textContent = 'Source: catalog endpoint unavailable';
+      }
+      if (preferenceStatus) {
+        preferenceStatus.textContent = 'Catalog feed is unavailable right now. Please try again.';
+      }
+      courses = [];
+      renderGrid();
+    }
+  }
+
   async function loadCatalogProgress() {
     const token = getToken();
     if (!token) {
@@ -236,5 +262,5 @@ document.addEventListener('DOMContentLoaded', function () {
 
   loadPreferences();
   updateFilterButtons();
-  loadCatalogProgress();
+  loadCatalogData().then(loadCatalogProgress);
 });
