@@ -2,6 +2,8 @@ document.addEventListener('DOMContentLoaded', function () {
   const grid = document.getElementById('courseGrid');
   if (!grid) return;
 
+  const progressByKey = new Map();
+
   const courses = [
     { id: 'python-programming', name: 'Python Programming', summary: 'Learn variables, functions, loops, and automation scripts.', demand: 'HOT' },
     { id: 'project-management', name: 'Project Management', summary: 'Manage scope, timelines, budgets, and stakeholders.', demand: 'HOT' },
@@ -17,10 +19,27 @@ document.addEventListener('DOMContentLoaded', function () {
     { id: 'leadership-management', name: 'Leadership & Management', summary: 'Lead teams, give effective feedback, and manage performance.', demand: 'RISING' }
   ];
 
+  function getToken() {
+    return (typeof getStoredToken === 'function' ? getStoredToken() : localStorage.getItem('token')) || '';
+  }
+
+  function courseKey(value) {
+    return String(value || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'course';
+  }
+
   function cardHtml(course) {
     const isHot = course.demand === 'HOT';
     const badgeBg = isHot ? 'rgba(239,68,68,0.12)' : 'rgba(245,158,11,0.16)';
     const badgeColor = isHot ? '#ef4444' : '#f59e0b';
+    const key = courseKey(course.name);
+    const progress = progressByKey.get(key) || null;
+    const percent = Number(progress?.progressPercent || 0);
+    const done = Number(progress?.completedCount || 0);
+    const total = Number(progress?.totalModules || 0);
+    const actionLabel = percent > 0 && percent < 100 ? 'Continue Course ->' : (percent >= 100 ? 'Review Course ->' : 'Start Lesson ->');
 
     return `
       <article class="course-card" data-course-id="${course.id}" style="background:#142138;border:1px solid #24334e;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px;cursor:pointer;min-height:210px;transition:transform .15s ease,border-color .15s ease;">
@@ -29,13 +48,47 @@ document.addEventListener('DOMContentLoaded', function () {
         </div>
         <h3 style="margin:0;color:#f8fafc;font-size:1.15rem;line-height:1.25;">${course.name}</h3>
         <p style="margin:0;color:#9fb0c7;font-size:0.92rem;line-height:1.4;flex:1;">${course.summary}</p>
-        <button type="button" data-course-id="${course.id}" style="margin-top:auto;background:#2563eb;border:none;color:#fff;font-weight:700;border-radius:8px;padding:10px 12px;cursor:pointer;width:100%;font-size:0.95rem;">Start Lesson -></button>
+        <div style="margin-top:auto;">
+          <div style="display:flex;justify-content:space-between;align-items:center;color:#9fb0c7;font-size:0.78rem;margin-bottom:5px;">
+            <span>${total > 0 ? `${done}/${total} modules` : 'No progress yet'}</span>
+            <span>${percent}%</span>
+          </div>
+          <div style="height:6px;background:#0b1220;border-radius:999px;overflow:hidden;margin-bottom:10px;">
+            <div style="height:100%;width:${Math.max(0, Math.min(100, percent))}%;background:linear-gradient(90deg,#22c55e,#38bdf8);"></div>
+          </div>
+          <button type="button" data-course-id="${course.id}" style="background:#2563eb;border:none;color:#fff;font-weight:700;border-radius:8px;padding:10px 12px;cursor:pointer;width:100%;font-size:0.95rem;">${actionLabel}</button>
+        </div>
       </article>
     `;
   }
 
   function renderGrid() {
     grid.innerHTML = courses.map(cardHtml).join('');
+  }
+
+  async function loadCatalogProgress() {
+    const token = getToken();
+    if (!token) {
+      renderGrid();
+      return;
+    }
+    try {
+      const response = await fetch('/api/learning/course-progress-list', {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      const payload = await response.json();
+      if (response.ok && Array.isArray(payload?.items)) {
+        payload.items.forEach((item) => {
+          progressByKey.set(String(item.courseKey || ''), item);
+        });
+      }
+    } catch (error) {
+      // Render cards even if progress endpoint is unavailable.
+    }
+    renderGrid();
   }
 
   function openCourse(courseId) {
@@ -65,5 +118,5 @@ document.addEventListener('DOMContentLoaded', function () {
     card.style.borderColor = '#24334e';
   });
 
-  renderGrid();
+  loadCatalogProgress();
 });

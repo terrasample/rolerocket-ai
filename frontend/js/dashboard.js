@@ -259,8 +259,70 @@ document.addEventListener('DOMContentLoaded', async () => {
       return card;
     }
 
+    function titleFromCourseKey(key) {
+      return String(key || '')
+        .split('-')
+        .filter(Boolean)
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(' ');
+    }
+
+    async function loadLearningProgressDashboardCard() {
+      const card = document.getElementById('learningProgressDashboardCard');
+      const metaText = document.getElementById('learningProgressMetaText');
+      const streakEl = document.getElementById('learningStreakDays');
+      const completedCoursesEl = document.getElementById('learningCompletedCourses');
+      const completedModulesEl = document.getElementById('learningCompletedModules');
+      const badgesWrap = document.getElementById('learningBadgesWrap');
+      const continueBtn = document.getElementById('learningContinueCourseBtn');
+      if (!card || !metaText || !streakEl || !completedCoursesEl || !completedModulesEl || !badgesWrap || !continueBtn) return;
+
+      try {
+        const response = await fetch('/api/learning/progress-overview', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const data = await response.json();
+        card.hidden = false;
+
+        const streakDays = Number(data?.streakDays || 0);
+        const completedCourses = Number(data?.completedCourses || 0);
+        const completedModules = Number(data?.totalCompletedModules || 0);
+
+        streakEl.textContent = `${streakDays} day${streakDays === 1 ? '' : 's'}`;
+        completedCoursesEl.textContent = `${completedCourses} course${completedCourses === 1 ? '' : 's'}`;
+        completedModulesEl.textContent = `${completedModules} done`;
+
+        const badges = Array.isArray(data?.badges) ? data.badges : [];
+        badgesWrap.innerHTML = badges.length
+          ? badges.map((badge) => `<span style="font-size:0.78rem;padding:5px 9px;border-radius:999px;background:#0f172a;color:#e2e8f0;border:1px solid #334155;">${String(badge.label || 'Badge')}</span>`).join('')
+          : '<span style="font-size:0.82rem;color:#64748b;">No badges yet. Complete modules to unlock badges.</span>';
+
+        const continueCourse = data?.continueCourse || null;
+        if (continueCourse && continueCourse.courseTitle) {
+          const title = String(continueCourse.courseTitle || titleFromCourseKey(continueCourse.courseKey));
+          const done = Number(continueCourse.completedCount || 0);
+          const total = Number(continueCourse.totalModules || 0);
+          metaText.textContent = `Continue: ${title} (${done}/${total} modules)`;
+          continueBtn.href = `course-learning.html?topic=${encodeURIComponent(title)}`;
+          continueBtn.textContent = 'Continue Latest Course';
+        } else {
+          metaText.textContent = 'No active in-progress course yet. Start one from the Learning catalog.';
+          continueBtn.href = 'learning.html';
+          continueBtn.textContent = 'Browse Courses';
+        }
+      } catch (error) {
+        // Keep the card hidden if loading fails.
+      }
+    }
+
     // Render features on load
     renderDashboardFeatures();
+    loadLearningProgressDashboardCard();
   // Scroll to resume section if hash is present
   if (window.location.hash === '#resume' || window.location.hash === '#resumeText') {
     setTimeout(() => {

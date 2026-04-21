@@ -3605,7 +3605,9 @@ Return ONLY a JSON object with this exact shape and key names:
       "lesson": "string",
       "workedExample": "string",
       "commonMistake": "string",
-      "practiceTask": "string"
+      "practiceTask": "string",
+      "progressCheckQuestion": "string",
+      "progressCheckAnswer": "string"
     }
   ],
   "capstoneProject": {
@@ -3626,6 +3628,8 @@ Rules:
 - Create exactly 6 modules.
 - Each module.lesson must be 120-180 words and must teach concrete how-to steps.
 - Each module.workedExample must include a realistic scenario with numbers, constraints, or decisions.
+- Each module.progressCheckQuestion must test practical understanding of that specific module.
+- Each module.progressCheckAnswer must be concise (one sentence) and directly answer the question.
 - Avoid fluff and generic advice.
 - No markdown, no code fences, no extra text outside JSON.`
         }
@@ -3677,6 +3681,13 @@ Rules:
   }
 });
 
+function normalizeCourseKey(topic) {
+  return String(topic || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'course';
+}
+
 app.get('/api/learning/course-progress', authenticateToken, async (req, res) => {
   try {
     const topic = String(req.query?.topic || '').trim();
@@ -3687,10 +3698,7 @@ app.get('/api/learning/course-progress', authenticateToken, async (req, res) => 
       return res.status(403).json({ error: 'Upgrade to Elite to access full course content.' });
     }
 
-    const courseKey = topic
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '') || 'course';
+    const courseKey = normalizeCourseKey(topic);
 
     const record = await CourseProgress.findOne({ userId: req.user.userId, courseKey }).lean();
     return res.json({
@@ -3719,10 +3727,7 @@ app.put('/api/learning/course-progress', authenticateToken, async (req, res) => 
       return res.status(403).json({ error: 'Upgrade to Elite to access full course content.' });
     }
 
-    const courseKey = topic
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '') || 'course';
+    const courseKey = normalizeCourseKey(topic);
 
     const cleanedCompletedModules = Array.from(new Set(completedRaw
       .map((n) => Number(n))
@@ -3754,6 +3759,113 @@ app.put('/api/learning/course-progress', authenticateToken, async (req, res) => 
   } catch (err) {
     console.error('Course progress save error:', err);
     return res.status(500).json({ error: 'Failed to save course progress.' });
+  }
+});
+
+app.get('/api/learning/course-progress-list', authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId);
+    if (!hasRequiredPlan(user, 'elite')) {
+      return res.status(403).json({ error: 'Upgrade to Elite to access course progress.' });
+    }
+
+    const items = await CourseProgress.find({ userId: req.user.userId })
+      .sort({ updatedAt: -1 })
+      .lean();
+
+    const mapped = items.map((item) => {
+      const totalModules = Number(item?.totalModules || 0);
+      const completedModules = Array.isArray(item?.completedModules) ? item.completedModules : [];
+      const completedCount = completedModules.length;
+      const progressPercent = totalModules > 0 ? Math.round((completedCount / totalModules) * 100) : 0;
+      return {
+        courseKey: String(item?.courseKey || ''),
+        courseTitle: String(item?.courseTitle || ''),
+        totalModules,
+        completedModules,
+        completedCount,
+        progressPercent,
+        completedAt: item?.completedAt || null,
+        updatedAt: item?.updatedAt || null
+      };
+    });
+
+    return res.json({ items: mapped });
+  } catch (err) {
+    console.error('Course progress list error:', err);
+    return res.status(500).json({ error: 'Failed to load course progress list.' });
+  }
+});
+
+app.get('/api/learning/progress-overview', authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId);
+    if (!hasRequiredPlan(user, 'elite')) {
+      return res.status(403).json({ error: 'Upgrade to Elite to view learning progress.' });
+    }
+
+    const rows = await CourseProgress.find({ userId: req.user.userId })
+      .sort({ updatedAt: -1 })
+      .lean();
+
+    const totalCourses = rows.length;
+    const completedCourses = rows.filter((r) => Number(r?.totalModules || 0) > 0 && Array.isArray(r?.completedModules) && r.completedModules.length === Number(r.totalModules || 0)).length;
+    const inProgressCourses = rows.filter((r) => Array.isArray(r?.completedModules) && r.completedModules.length > 0 && r.completedModules.length < Number(r?.totalModules || 0)).length;
+    const totalCompletedModules = rows.reduce((sum, r) => sum + (Array.isArray(r?.completedModules) ? r.completedModules.length : 0), 0);
+
+    const uniqueDays = Array.from(new Set(rows
+      .map((r) => (r?.updatedAt ? new Date(r.updatedAt) : null))
+      .filter((d) => d && !Number.isNaN(d.getTime()))
+      .map((d) => d.toISOString().slice(0, 10))
+    )).sort((a, b) => b.localeCompare(a));
+
+    let streakDays = 0;
+    if (uniqueDays.length) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      for (let i = 0; i < 365; i += 1) {
+        const expected = new Date(today);
+        expected.setDate(today.getDate() - i);
+        const key = expected.toISOString().slice(0, 10);
+        if (uniqueDays.includes(key)) {
+          streakDays += 1;
+        } else {
+          break;
+        }
+      }
+    }
+
+    const badges = [];
+    if (totalCompletedModules >= 1) badges.push({ key: 'first-module', label: 'First Module Done' });
+    if (completedCourses >= 1) badges.push({ key: 'course-finisher', label: 'Course Finisher' });
+    if (streakDays >= 3) badges.push({ key: 'consistency-3', label: '3-Day Learning Streak' });
+    if (totalCompletedModules >= 10) badges.push({ key: 'sprinter', label: 'Learning Sprinter' });
+
+    const continueCourse = rows.find((r) => {
+      const total = Number(r?.totalModules || 0);
+      const done = Array.isArray(r?.completedModules) ? r.completedModules.length : 0;
+      return total > 0 && done > 0 && done < total;
+    });
+
+    return res.json({
+      totalCourses,
+      completedCourses,
+      inProgressCourses,
+      totalCompletedModules,
+      streakDays,
+      badges,
+      continueCourse: continueCourse
+        ? {
+          courseKey: String(continueCourse.courseKey || ''),
+          courseTitle: String(continueCourse.courseTitle || ''),
+          totalModules: Number(continueCourse.totalModules || 0),
+          completedCount: Array.isArray(continueCourse.completedModules) ? continueCourse.completedModules.length : 0
+        }
+        : null
+    });
+  } catch (err) {
+    console.error('Learning progress overview error:', err);
+    return res.status(500).json({ error: 'Failed to load learning progress overview.' });
   }
 });
 

@@ -18,10 +18,12 @@ document.addEventListener('DOMContentLoaded', function () {
   const progressSummary = document.getElementById('courseProgressSummary');
   const progressPercent = document.getElementById('courseProgressPercent');
   const progressBar = document.getElementById('courseProgressBar');
+  const certificateBtn = document.getElementById('downloadCourseCertificateBtn');
 
   const progressState = {
     totalModules: 0,
-    completedModules: new Set()
+    completedModules: new Set(),
+    learnerName: 'Learner'
   };
 
   function getToken() {
@@ -30,6 +32,37 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function asArray(value) {
     return Array.isArray(value) ? value.filter(Boolean) : [];
+  }
+
+  function normalizeText(value) {
+    return String(value || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function escapeAttr(value) {
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function answerMatches(userAnswer, expectedAnswer) {
+    const user = normalizeText(userAnswer);
+    const expected = normalizeText(expectedAnswer);
+    if (!user || !expected) return false;
+
+    if (user === expected) return true;
+    if (user.includes(expected) || expected.includes(user)) return true;
+
+    const expectedTokens = expected.split(' ').filter((t) => t.length > 2);
+    if (!expectedTokens.length) return false;
+    const hitCount = expectedTokens.filter((token) => user.includes(token)).length;
+    return hitCount >= Math.max(2, Math.ceil(expectedTokens.length * 0.6));
   }
 
   function updateProgressUi() {
@@ -45,6 +78,10 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     if (progressBar) {
       progressBar.style.width = `${percent}%`;
+    }
+
+    if (certificateBtn) {
+      certificateBtn.style.display = total > 0 && completed === total ? 'inline-block' : 'none';
     }
   }
 
@@ -124,6 +161,32 @@ document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('input[data-module-checkbox]').forEach((checkbox) => {
       checkbox.addEventListener('change', saveProgress);
     });
+
+    document.querySelectorAll('button[data-progress-check-btn]').forEach((button) => {
+      button.addEventListener('click', function () {
+        const idx = Number(button.getAttribute('data-progress-check-btn'));
+        const answerInput = document.querySelector(`input[data-progress-check-input="${idx}"]`);
+        const expectedInput = document.querySelector(`input[data-progress-check-answer="${idx}"]`);
+        const resultWrap = document.querySelector(`div[data-progress-check-result="${idx}"]`);
+        const moduleCheckbox = document.querySelector(`input[data-module-checkbox="${idx}"]`);
+
+        if (!answerInput || !expectedInput || !resultWrap) return;
+
+        const userAnswer = answerInput.value;
+        const expected = expectedInput.value;
+        if (answerMatches(userAnswer, expected)) {
+          resultWrap.textContent = 'Correct. Module marked as completed.';
+          resultWrap.style.color = '#86efac';
+          if (moduleCheckbox) {
+            moduleCheckbox.checked = true;
+          }
+          saveProgress();
+        } else {
+          resultWrap.textContent = 'Not quite. Review the module and try again.';
+          resultWrap.style.color = '#fda4af';
+        }
+      });
+    });
   }
 
   function renderList(target, items) {
@@ -154,6 +217,8 @@ document.addEventListener('DOMContentLoaded', function () {
       const workedExample = String(moduleItem?.workedExample || '');
       const commonMistake = String(moduleItem?.commonMistake || '');
       const practiceTask = String(moduleItem?.practiceTask || '');
+      const progressCheckQuestion = String(moduleItem?.progressCheckQuestion || `In one sentence, what is the key takeaway of module ${index + 1}?`);
+      const progressCheckAnswer = String(moduleItem?.progressCheckAnswer || title);
 
       return `
         <section class="module-item">
@@ -169,6 +234,16 @@ document.addEventListener('DOMContentLoaded', function () {
           <p><strong style="color:#93c5fd;">Worked Example:</strong> ${workedExample}</p>
           <p><strong style="color:#fda4af;">Common Mistake:</strong> ${commonMistake}</p>
           <p><strong style="color:#86efac;">Practice Task:</strong> ${practiceTask}</p>
+          <div style="margin-top:12px;padding:10px;border-radius:8px;background:#0b1220;border:1px solid #273449;">
+            <div style="font-size:0.82rem;color:#c4b5fd;font-weight:700;margin-bottom:6px;">Progress Check</div>
+            <div style="color:#d0d9e7;font-size:0.9rem;line-height:1.55;margin-bottom:8px;">${progressCheckQuestion}</div>
+            <input data-progress-check-input="${index}" type="text" placeholder="Type your answer" style="width:100%;margin-bottom:8px;background:#111c31;border:1px solid #2a3954;color:#f1f5f9;border-radius:6px;padding:8px;" />
+            <input data-progress-check-answer="${index}" type="hidden" value="${escapeAttr(progressCheckAnswer)}" />
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+              <button type="button" data-progress-check-btn="${index}" style="background:#7c3aed;border:none;color:#fff;border-radius:6px;padding:7px 10px;cursor:pointer;font-size:0.82rem;font-weight:700;">Check Answer</button>
+              <div data-progress-check-result="${index}" style="font-size:0.82rem;color:#9fb0c7;"></div>
+            </div>
+          </div>
         </section>
       `;
     }).join('');
@@ -224,6 +299,79 @@ document.addEventListener('DOMContentLoaded', function () {
     renderList(interviewPrep, course?.interviewPrep);
   }
 
+  async function loadLearnerIdentity() {
+    const token = getToken();
+    if (!token) return;
+    try {
+      const response = await fetch('/api/me', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const payload = await response.json();
+      const name = String(payload?.user?.name || '').trim();
+      if (name) progressState.learnerName = name;
+    } catch (error) {
+      // Use default learner name.
+    }
+  }
+
+  function downloadCertificate() {
+    if (!certificateBtn) return;
+    const total = Number(progressState.totalModules || 0);
+    const completed = progressState.completedModules.size;
+    if (!total || completed !== total) return;
+
+    if (!window.jspdf || !window.jspdf.jsPDF) {
+      alert('Certificate generation is unavailable right now.');
+      return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+    const width = doc.internal.pageSize.getWidth();
+    const height = doc.internal.pageSize.getHeight();
+
+    doc.setFillColor(247, 250, 252);
+    doc.rect(24, 24, width - 48, height - 48, 'F');
+    doc.setDrawColor(37, 99, 235);
+    doc.setLineWidth(2);
+    doc.rect(24, 24, width - 48, height - 48);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(34);
+    doc.setTextColor(15, 23, 42);
+    doc.text('Certificate of Completion', width / 2, 120, { align: 'center' });
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(16);
+    doc.setTextColor(51, 65, 85);
+    doc.text('This certifies that', width / 2, 168, { align: 'center' });
+
+    doc.setFont('times', 'bold');
+    doc.setFontSize(30);
+    doc.setTextColor(30, 64, 175);
+    doc.text(progressState.learnerName || 'Learner', width / 2, 220, { align: 'center' });
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(16);
+    doc.setTextColor(51, 65, 85);
+    doc.text('has successfully completed the course', width / 2, 260, { align: 'center' });
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(26);
+    doc.setTextColor(15, 23, 42);
+    doc.text(String(topic || 'Professional Course'), width / 2, 302, { align: 'center' });
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(13);
+    doc.setTextColor(71, 85, 105);
+    doc.text(`Completed modules: ${completed}/${total}`, width / 2, 338, { align: 'center' });
+    doc.text(`Date: ${new Date().toLocaleDateString()}`, width / 2, 360, { align: 'center' });
+    doc.text('Issued by RoleRocket AI Learning', width / 2, 402, { align: 'center' });
+
+    const filename = `${String(topic || 'course').toLowerCase().replace(/[^a-z0-9]+/g, '-')}-certificate.pdf`;
+    doc.save(filename);
+  }
+
   async function loadCourse() {
     if (!topic) {
       titleMain.textContent = 'No course selected';
@@ -263,5 +411,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
+  certificateBtn?.addEventListener('click', downloadCertificate);
+  loadLearnerIdentity();
   loadCourse();
 });
