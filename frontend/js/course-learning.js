@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const progressSummary = document.getElementById('courseProgressSummary');
   const progressPercent = document.getElementById('courseProgressPercent');
   const progressBar = document.getElementById('courseProgressBar');
+  const refreshCourseBtn = document.getElementById('refreshCourseBtn');
   const certificateBtn = document.getElementById('downloadCourseCertificateBtn');
 
   const progressState = {
@@ -81,6 +82,14 @@ document.addEventListener('DOMContentLoaded', function () {
         : 'Correct. Module marked as completed.';
       resultWrap.style.color = '#86efac';
     }
+  }
+
+  function setCourseLoadingState(isLoading, buttonLabel) {
+    if (!refreshCourseBtn) return;
+    refreshCourseBtn.disabled = isLoading;
+    refreshCourseBtn.textContent = isLoading ? (buttonLabel || 'Refreshing...') : 'Refresh Course';
+    refreshCourseBtn.style.opacity = isLoading ? '0.75' : '1';
+    refreshCourseBtn.style.cursor = isLoading ? 'default' : 'pointer';
   }
 
   async function runProgressCheck(idx) {
@@ -394,7 +403,7 @@ document.addEventListener('DOMContentLoaded', function () {
     doc.save(filename);
   }
 
-  async function loadCourse() {
+  async function loadCourse(forceRefresh = false) {
     if (!topic) {
       titleMain.textContent = 'No course selected';
       titleSide.textContent = 'No course selected';
@@ -402,10 +411,18 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
 
+    setCourseLoadingState(true, forceRefresh ? 'Refreshing...' : 'Loading...');
+    progressState.sessionToken = '';
     titleMain.textContent = `Loading ${topic}...`;
     titleSide.textContent = `Loading ${topic}...`;
-    subtitleSide.textContent = 'Generating complete curriculum...';
-    overview.textContent = 'Please wait while we build your full course.';
+    subtitleSide.textContent = forceRefresh ? 'Refreshing course version...' : 'Generating complete curriculum...';
+    overview.textContent = forceRefresh ? 'Please wait while we create a fresh version of this course.' : 'Please wait while we build your full course.';
+    if (modules) modules.innerHTML = '';
+    if (assessment) assessment.innerHTML = '';
+    if (capstone) capstone.innerHTML = '';
+    if (interviewPrep) interviewPrep.innerHTML = '';
+    if (outcomes) outcomes.innerHTML = '';
+    if (resumeSignals) resumeSignals.innerHTML = '';
 
     try {
       const response = await fetch('/api/learning/course-content', {
@@ -414,7 +431,7 @@ document.addEventListener('DOMContentLoaded', function () {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${getToken()}`
         },
-        body: JSON.stringify({ topic })
+        body: JSON.stringify({ topic, forceRefresh })
       });
 
       const payload = await response.json();
@@ -431,10 +448,17 @@ document.addEventListener('DOMContentLoaded', function () {
       titleSide.textContent = topic;
       subtitleSide.textContent = 'Course generation failed';
       overview.textContent = String(error?.message || 'Unable to load course. Please try again.');
+    } finally {
+      setCourseLoadingState(false);
     }
   }
 
   certificateBtn?.addEventListener('click', downloadCertificate);
+  refreshCourseBtn?.addEventListener('click', function () {
+    const proceed = window.confirm('Refreshing will generate a new version of this course and reset progress if the content changes. Continue?');
+    if (!proceed) return;
+    loadCourse(true);
+  });
   loadLearnerIdentity();
   loadCourse();
 });

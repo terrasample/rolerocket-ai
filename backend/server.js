@@ -3573,6 +3573,7 @@ app.get('/api/learning/history', authenticateToken, async (req, res) => {
 app.post('/api/learning/course-content', authenticateToken, async (req, res) => {
   try {
     const topic = String(req.body?.topic || '').trim();
+    const forceRefresh = req.body?.forceRefresh === true;
     if (!topic) return res.status(400).json({ error: 'Topic is required.' });
 
     const user = await User.findById(req.user.userId);
@@ -3586,7 +3587,7 @@ app.post('/api/learning/course-content', authenticateToken, async (req, res) => 
 
     let course = null;
 
-    if (cachedCourse && cachedCourse.expiresAt && new Date(cachedCourse.expiresAt).getTime() > now && cachedCourse.coursePayload) {
+    if (!forceRefresh && cachedCourse && cachedCourse.expiresAt && new Date(cachedCourse.expiresAt).getTime() > now && cachedCourse.coursePayload) {
       course = cachedCourse.coursePayload;
     } else {
       const completion = await openai.chat.completions.create({
