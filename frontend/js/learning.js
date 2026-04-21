@@ -1,8 +1,11 @@
 document.addEventListener('DOMContentLoaded', function () {
   const grid = document.getElementById('courseGrid');
+  const filterWrap = document.getElementById('courseDemandFilters');
+  const filterSummary = document.getElementById('courseFilterSummary');
   if (!grid) return;
 
   const progressByKey = new Map();
+  let activeFilter = 'ALL';
 
   const courses = [
     { rank: 1, id: 'ai-machine-learning', name: 'AI & Machine Learning', summary: 'Understand how AI models work and apply ML to real problems.', demand: 'HOT' },
@@ -74,7 +77,25 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function renderGrid() {
-    grid.innerHTML = courses.map(cardHtml).join('');
+    const visibleCourses = courses.filter((course) => activeFilter === 'ALL' || course.demand === activeFilter);
+    if (filterSummary) {
+      if (activeFilter === 'ALL') {
+        filterSummary.textContent = `Showing all ${visibleCourses.length} courses`;
+      } else {
+        filterSummary.textContent = `Showing ${visibleCourses.length} ${activeFilter.toLowerCase()} courses`;
+      }
+    }
+    grid.innerHTML = visibleCourses.map(cardHtml).join('');
+  }
+
+  function updateFilterButtons() {
+    if (!filterWrap) return;
+    filterWrap.querySelectorAll('[data-course-filter]').forEach((button) => {
+      const isActive = button.getAttribute('data-course-filter') === activeFilter;
+      button.style.background = isActive ? '#2563eb' : 'transparent';
+      button.style.borderColor = isActive ? '#3b82f6' : '#334155';
+      button.style.color = isActive ? '#ffffff' : '#cbd5e1';
+    });
   }
 
   async function loadCatalogProgress() {
@@ -129,5 +150,16 @@ document.addEventListener('DOMContentLoaded', function () {
     card.style.borderColor = '#24334e';
   });
 
+  if (filterWrap) {
+    filterWrap.addEventListener('click', function (event) {
+      const button = event.target.closest('[data-course-filter]');
+      if (!button) return;
+      activeFilter = String(button.getAttribute('data-course-filter') || 'ALL');
+      updateFilterButtons();
+      renderGrid();
+    });
+  }
+
+  updateFilterButtons();
   loadCatalogProgress();
 });

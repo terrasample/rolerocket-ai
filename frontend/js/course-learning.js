@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const progressBar = document.getElementById('courseProgressBar');
   const refreshCourseBtn = document.getElementById('refreshCourseBtn');
   const certificateBtn = document.getElementById('downloadCourseCertificateBtn');
+  const audioVoiceSelect = document.getElementById('courseAudioVoiceSelect');
 
   const progressState = {
     totalModules: 0,
@@ -33,7 +34,9 @@ document.addEventListener('DOMContentLoaded', function () {
     activeModuleIndex: null,
     utterance: null,
     isPaused: false,
-    rate: 1
+    rate: 1,
+    voices: [],
+    selectedVoice: ''
   };
 
   function getToken() {
@@ -42,6 +45,29 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function asArray(value) {
     return Array.isArray(value) ? value.filter(Boolean) : [];
+  }
+
+  function populateVoiceOptions() {
+    if (!audioVoiceSelect || !window.speechSynthesis) return;
+    const voices = window.speechSynthesis.getVoices()
+      .filter((voice) => voice && voice.name)
+      .sort((left, right) => String(left.name).localeCompare(String(right.name)));
+
+    audioState.voices = voices;
+    const previousSelection = audioState.selectedVoice || audioVoiceSelect.value || '';
+    const options = ['<option value="">System Default</option>']
+      .concat(voices.map((voice) => `<option value="${String(voice.voiceURI || voice.name)}">${String(voice.name)}${voice.lang ? ` (${voice.lang})` : ''}</option>`));
+
+    audioVoiceSelect.innerHTML = options.join('');
+    const hasPrevious = voices.some((voice) => String(voice.voiceURI || voice.name) === previousSelection);
+    audioVoiceSelect.value = hasPrevious ? previousSelection : '';
+    audioState.selectedVoice = audioVoiceSelect.value;
+  }
+
+  function getSelectedVoice() {
+    const voiceKey = String(audioState.selectedVoice || '').trim();
+    if (!voiceKey) return null;
+    return audioState.voices.find((voice) => String(voice.voiceURI || voice.name) === voiceKey) || null;
   }
 
   function updateProgressUi() {
@@ -116,6 +142,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const utterance = new SpeechSynthesisUtterance(narration);
     utterance.rate = audioState.rate;
     utterance.pitch = 1;
+    utterance.voice = getSelectedVoice();
     utterance.onend = stopModuleAudio;
     utterance.onerror = stopModuleAudio;
 
@@ -335,6 +362,15 @@ document.addEventListener('DOMContentLoaded', function () {
         updateAudioRate(select.value);
       });
     });
+
+    if (audioVoiceSelect) {
+      audioVoiceSelect.addEventListener('change', function () {
+        audioState.selectedVoice = audioVoiceSelect.value;
+        if (audioState.activeModuleIndex !== null) {
+          playModuleAudio(audioState.activeModuleIndex, true);
+        }
+      });
+    }
   }
 
   function renderList(target, items) {
@@ -553,6 +589,19 @@ document.addEventListener('DOMContentLoaded', function () {
     doc.save(filename);
   }
 
+  function renderAccessMessage(message, subtitle) {
+    titleMain.textContent = topic || 'Course';
+    titleSide.textContent = topic || 'Course';
+    subtitleSide.textContent = subtitle || 'Course access required';
+    overview.textContent = message;
+    if (modules) {
+      modules.innerHTML = '<div class="module-item"><p>Sign in with an Elite account to load modules, audio playback, and progress checks.</p></div>';
+    }
+    if (capstone) capstone.innerHTML = '<p>Capstone details will appear after course access is confirmed.</p>';
+    if (assessment) assessment.innerHTML = '<div class="module-item"><p>Assessment questions will appear after course access is confirmed.</p></div>';
+    if (interviewPrep) interviewPrep.innerHTML = '<li>Interview prep unlocks after course access is confirmed.</li>';
+  }
+
   async function loadCourse(forceRefresh = false) {
     if (!topic) {
       titleMain.textContent = 'No course selected';
@@ -596,13 +645,23 @@ document.addEventListener('DOMContentLoaded', function () {
       bindProgressHandlers();
       await loadProgress();
     } catch (error) {
-      titleMain.textContent = topic;
-      titleSide.textContent = topic;
-      subtitleSide.textContent = 'Course generation failed';
-      overview.textContent = String(error?.message || 'Unable to load course. Please try again.');
+      const message = String(error?.message || 'Unable to load course. Please try again.');
+      if (/token|unauthorized|403|401/i.test(message)) {
+        renderAccessMessage('Sign in and upgrade to Elite to open the full course experience for this topic.', 'Sign in required');
+      } else {
+        titleMain.textContent = topic;
+        titleSide.textContent = topic;
+        subtitleSide.textContent = 'Course generation failed';
+        overview.textContent = message;
+      }
     } finally {
       setCourseLoadingState(false);
     }
+  }
+
+  if (window.speechSynthesis) {
+    populateVoiceOptions();
+    window.speechSynthesis.onvoiceschanged = populateVoiceOptions;
   }
 
   certificateBtn?.addEventListener('click', downloadCertificate);
