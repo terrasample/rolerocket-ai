@@ -196,12 +196,46 @@ document.addEventListener('DOMContentLoaded', function () {
     return 'This answer best reflects the core lesson from the module.';
   }
 
+  function getConceptDefinition(answerText) {
+    const normalized = String(answerText || '').toLowerCase();
+    if (normalized.includes('supervised learning')) {
+      return 'Supervised learning is a machine-learning approach where a model is trained on labeled data (input-output pairs) so it can learn patterns and predict outcomes for new, unseen data.';
+    }
+    if (normalized.includes('unsupervised learning')) {
+      return 'Unsupervised learning trains on unlabeled data to discover hidden structure, such as clusters, relationships, or lower-dimensional representations, without known target outputs.';
+    }
+    if (normalized.includes('reinforcement learning')) {
+      return 'Reinforcement learning trains an agent through trial and error using rewards and penalties, so it can optimize long-term decision making in an environment.';
+    }
+    return '';
+  }
+
+  function isGenericProgressExplanation(text) {
+    const normalized = String(text || '').toLowerCase();
+    if (!normalized.trim()) return true;
+    return normalized.includes('matches the core objective of this module')
+      || normalized.includes('best reflects the core lesson')
+      || normalized.startsWith('the best answer is');
+  }
+
+  function buildDetailedProgressExplanation(correctAnswer, explanation) {
+    const base = String(explanation || '').trim();
+    const definition = getConceptDefinition(correctAnswer);
+    if (!definition) return base;
+    if (!base) return definition;
+    if (isGenericProgressExplanation(base) || base.length < 120) {
+      return `${base} ${definition}`;
+    }
+    return base;
+  }
+
   function formatProgressCheckFeedback(isCorrect, correctAnswer, explanation) {
+    const detailedExplanation = buildDetailedProgressExplanation(correctAnswer, explanation);
     if (isCorrect) {
-      return explanation || (correctAnswer ? `The correct answer is "${correctAnswer}".` : 'Well done.');
+      return detailedExplanation || (correctAnswer ? `The correct answer is "${correctAnswer}".` : 'Well done.');
     }
     const answerLine = correctAnswer ? `The correct answer is "${correctAnswer}".` : '';
-    return [answerLine, explanation].filter(Boolean).join(' ');
+    return [answerLine, detailedExplanation].filter(Boolean).join(' ');
   }
 
   function setResultHtml(resultWrap, isCorrect, message) {
@@ -850,12 +884,12 @@ document.addEventListener('DOMContentLoaded', function () {
           </div>
           <div style="margin-top:12px;padding:10px;border-radius:8px;background:#0b1220;border:1px solid #273449;">
             <div style="font-size:0.82rem;color:#c4b5fd;font-weight:700;margin-bottom:6px;">Progress Check</div>
-            <div style="color:#d0d9e7;font-size:0.9rem;line-height:1.55;margin-bottom:8px;">${progressCheckQuestion}</div>
+            <div style="color:#d0d9e7;font-size:calc(0.9rem + 2pt);line-height:1.55;margin-bottom:8px;">${progressCheckQuestion}</div>
             <div style="display:grid;gap:8px;margin-bottom:10px;">${optionMarkup}</div>
             <div style="display:flex;flex-direction:column;align-items:flex-start;gap:8px;">
               <button type="button" data-progress-check-btn="${index}" ${pendingAdvance ? 'disabled' : ''} style="background:#7c3aed;border:none;color:#fff;border-radius:6px;padding:7px 10px;${pendingAdvance ? 'opacity:0.75;cursor:default;' : 'cursor:pointer;'}font-size:0.82rem;font-weight:700;">${pendingAdvance ? 'Correct!' : 'Submit Answer'}</button>
               <button type="button" data-progress-continue-btn="${index}" style="display:${pendingAdvance ? 'inline-flex' : 'none'};background:#0f766e;border:1px solid #14b8a6;color:#ecfeff;border-radius:6px;padding:7px 10px;cursor:pointer;font-size:0.82rem;font-weight:700;">Continue to Next Module</button>
-              <div data-progress-check-result="${index}" style="font-size:0.82rem;color:#9fb0c7;line-height:1.5;word-break:break-word;overflow-wrap:anywhere;width:100%;">${pendingResultMarkup}</div>
+              <div data-progress-check-result="${index}" style="font-size:calc(0.82rem + 2pt);color:#9fb0c7;line-height:1.5;word-break:break-word;overflow-wrap:anywhere;width:100%;">${pendingResultMarkup}</div>
             </div>
           </div>
         </section>
