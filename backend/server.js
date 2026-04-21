@@ -251,8 +251,11 @@ const LifetimeSale = require('./models/LifetimeSale');
 const CourseProgress = require('./models/CourseProgress');
 const CourseLearningSession = require('./models/CourseLearningSession');
 const CourseContentCache = require('./models/CourseContentCache');
+const LearningCatalogSnapshot = require('./models/LearningCatalogSnapshot');
 
-const LEARNING_CATALOG_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+const LEARNING_CATALOG_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const LEARNING_CATALOG_FAILURE_COOLDOWN_MS = 12 * 60 * 60 * 1000;
+const LEARNING_CATALOG_CACHE_KEY = 'default';
 const LEARNING_CATALOG_HOT_COUNT = 12;
 const LEARNING_CATALOG_TOPICS = [
   { id: 'ai-machine-learning', name: 'AI & Machine Learning', summary: 'Understand how AI models work and apply ML to real problems.', laborQuery: 'machine learning engineer OR AI engineer' },
@@ -3837,16 +3840,37 @@ function buildCatalogItems(topics, source) {
   }));
 }
 
-function getFallbackLearningCatalogPayload() {
+function getFallbackLearningCatalogPayload(reason) {
   const items = buildCatalogItems(LEARNING_CATALOG_TOPICS, 'backend-curated');
+  const reasonSuffix = reason ? ` · ${reason}` : '';
   return {
     items,
     source: 'backend-curated',
-    sourceLabel: 'Source: backend-ranked catalog fallback',
+    sourceLabel: `Source: backend-ranked catalog fallback${reasonSuffix}`,
     generatedAt: new Date().toISOString(),
     hotCount: items.filter((item) => item.demand === 'HOT').length,
     risingCount: items.filter((item) => item.demand === 'RISING').length
   };
+}
+
+function createCatalogMeta(payload, overrides = {}) {
+  const items = Array.isArray(payload?.items) ? payload.items : [];
+  return {
+    ...payload,
+    ...overrides,
+    hotCount: Number(overrides.hotCount ?? payload?.hotCount ?? items.filter((item) => item.demand === 'HOT').length),
+    risingCount: Number(overrides.risingCount ?? payload?.risingCount ?? items.filter((item) => item.demand === 'RISING').length)
+  };
+}
+
+function buildStaleCatalogPayload(snapshot, note) {
+  const payload = snapshot?.payload || getFallbackLearningCatalogPayload(note);
+  const baseLabel = String(snapshot?.sourceLabel || payload?.sourceLabel || 'Source: cached catalog').trim();
+  return createCatalogMeta(payload, {
+    source: String(snapshot?.source || payload?.source || 'backend-curated').trim(),
+    sourceLabel: `${baseLabel} · ${note}`,
+    generatedAt: payload?.generatedAt || snapshot?.refreshedAt || new Date().toISOString()
+  });
 }
 
 function hasLaborMarketApiConfig() {
@@ -3897,26 +3921,92 @@ async function getExternalLearningCatalogPayload() {
 }
 
 async function getLearningCatalogPayload() {
-  if (learningCatalogCache.payload && learningCatalogCache.expiresAt > Date.now()) {
+  const now = Date.now();
+  if (learningCatalogCache.payload && learningCatalogCache.expiresAt > now) {
     return learningCatalogCache.payload;
   }
 
-  let payload = null;
+  const snapshot = await LearningCatalogSnapshot.findOne({ cacheKey: LEARNING_CATALOG_CACHE_KEY }).lean();
 
-  if (hasLaborMarketApiConfig()) {
+  if (snapshot?.payload && snapshot.expiresAt && new Date(snapshot.expiresAt).getTime() > now) {
+    learningCatalogCache = {
+      expiresAt: new Date(snapshot.expiresAt).getTime(),
+      payload: snapshot.payload
+    };
+    return snapshot.payload;
+  }
+
+  let payload = null;
+  let usedStaleSnapshot = false;
+
+  const failureCooldownActive = Boolean(
+    snapshot?.lastFailureAt
+    && (now - new Date(snapshot.lastFailureAt).getTime()) < LEARNING_CATALOG_FAILURE_COOLDOWN_MS
+  );
+
+  if (hasLaborMarketApiConfig() && !failureCooldownActive) {
     try {
       payload = await getExternalLearningCatalogPayload();
+      await LearningCatalogSnapshot.findOneAndUpdate(
+        { cacheKey: LEARNING_CATALOG_CACHE_KEY },
+        {
+          $set: {
+            payload,
+            source: payload.source,
+            sourceLabel: payload.sourceLabel,
+            refreshedAt: new Date(),
+            expiresAt: new Date(now + LEARNING_CATALOG_CACHE_TTL_MS),
+            lastAttemptedAt: new Date(),
+            lastFailureAt: null,
+            lastFailureReason: ''
+          }
+        },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
     } catch (error) {
       console.warn('Learning catalog external ranking failed, using fallback catalog:', error.message);
+      await LearningCatalogSnapshot.findOneAndUpdate(
+        { cacheKey: LEARNING_CATALOG_CACHE_KEY },
+        {
+          $set: {
+            lastAttemptedAt: new Date(),
+            lastFailureAt: new Date(),
+            lastFailureReason: String(error.message || 'External ranking failed')
+          },
+          $setOnInsert: {
+            payload: getFallbackLearningCatalogPayload('No live snapshot available'),
+            source: 'backend-curated',
+            sourceLabel: 'Source: backend-ranked catalog fallback',
+            refreshedAt: new Date(0),
+            expiresAt: new Date(0)
+          }
+        },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
+      if (snapshot?.payload) {
+        payload = buildStaleCatalogPayload(snapshot, `Using cached snapshot while live refresh is unavailable (${String(error.message || 'request failed').toLowerCase()})`);
+        usedStaleSnapshot = true;
+      }
     }
   }
 
+  if (!payload && failureCooldownActive && snapshot?.payload) {
+    const reason = String(snapshot.lastFailureReason || 'recent live refresh failure').toLowerCase();
+    payload = buildStaleCatalogPayload(snapshot, `Using cached snapshot while live refresh is paused (${reason})`);
+    usedStaleSnapshot = true;
+  }
+
   if (!payload) {
-    payload = getFallbackLearningCatalogPayload();
+    const reason = failureCooldownActive
+      ? 'Live labor-market refresh temporarily paused after repeated failures'
+      : 'Live labor-market data unavailable';
+    payload = getFallbackLearningCatalogPayload(reason);
   }
 
   learningCatalogCache = {
-    expiresAt: Date.now() + LEARNING_CATALOG_CACHE_TTL_MS,
+    expiresAt: usedStaleSnapshot && snapshot?.expiresAt
+      ? Math.max(now + (60 * 60 * 1000), new Date(snapshot.expiresAt).getTime())
+      : now + LEARNING_CATALOG_CACHE_TTL_MS,
     payload
   };
 
