@@ -256,7 +256,7 @@ const LearningCatalogSnapshot = require('./models/LearningCatalogSnapshot');
 const LEARNING_CATALOG_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const LEARNING_CATALOG_FAILURE_COOLDOWN_MS = 12 * 60 * 60 * 1000;
 const LEARNING_CATALOG_CACHE_KEY = 'default';
-const LEARNING_CATALOG_HOT_COUNT = 12;
+const LEARNING_CATALOG_HOT_COUNT = 22;
 const LEARNING_CATALOG_TOPICS = [
   { id: 'ai-machine-learning', name: 'AI & Machine Learning', summary: 'Understand how AI models work and apply ML to real problems.', laborQuery: 'machine learning engineer OR AI engineer' },
   { id: 'prompt-engineering-ai-ops', name: 'Prompt Engineering & AI Ops', summary: 'Create reliable AI workflows, guardrails, and production-ready prompts.', laborQuery: 'prompt engineer OR AI operations' },
@@ -270,6 +270,16 @@ const LEARNING_CATALOG_TOPICS = [
   { id: 'project-management', name: 'Project Management', summary: 'Manage scope, timelines, budgets, and stakeholders.', laborQuery: 'project manager' },
   { id: 'product-management', name: 'Product Management', summary: 'Define roadmaps, lead teams, and ship products users love.', laborQuery: 'product manager' },
   { id: 'salesforce-administration', name: 'Salesforce Administration', summary: 'Configure objects, reports, automations, and user operations in Salesforce.', laborQuery: 'salesforce administrator' },
+  { id: 'data-science-applied', name: 'Applied Data Science', summary: 'Build and validate predictive models for business and product outcomes.', laborQuery: 'data scientist OR applied scientist' },
+  { id: 'aws-cloud-architecture', name: 'AWS Cloud Architecture', summary: 'Design scalable, resilient cloud systems with cost-aware architecture patterns.', laborQuery: 'aws solutions architect OR cloud architect' },
+  { id: 'cloud-security-engineering', name: 'Cloud Security Engineering', summary: 'Secure identities, workloads, and cloud networks with defense-in-depth controls.', laborQuery: 'cloud security engineer' },
+  { id: 'site-reliability-engineering', name: 'Site Reliability Engineering', summary: 'Run reliable production systems using SLOs, incident response, and automation.', laborQuery: 'site reliability engineer OR sre' },
+  { id: 'platform-engineering', name: 'Platform Engineering', summary: 'Create internal developer platforms that speed delivery and reduce operational toil.', laborQuery: 'platform engineer OR developer platform' },
+  { id: 'full-stack-web-development', name: 'Full-Stack Web Development', summary: 'Build modern web apps end-to-end across frontend, backend, and data layers.', laborQuery: 'full stack developer' },
+  { id: 'test-automation-qa-engineering', name: 'Test Automation & QA Engineering', summary: 'Design quality strategies with automated testing, CI checks, and release gates.', laborQuery: 'qa automation engineer OR test automation engineer' },
+  { id: 'api-integration-automation', name: 'API Integration & Automation', summary: 'Connect systems through APIs and workflow automation for faster operations.', laborQuery: 'api integration engineer OR automation engineer' },
+  { id: 'ai-data-governance', name: 'AI Data Governance', summary: 'Manage model risk, data quality, and policy controls for trustworthy AI systems.', laborQuery: 'ai governance OR data governance analyst' },
+  { id: 'sales-operations-revops', name: 'Sales Operations & RevOps', summary: 'Optimize revenue processes, forecasting, and CRM operations for growth teams.', laborQuery: 'revenue operations OR sales operations analyst' },
   { id: 'power-bi-data-viz', name: 'Power BI & Data Viz', summary: 'Build dashboards that turn raw data into business decisions.', laborQuery: 'power bi developer OR business intelligence analyst' },
   { id: 'advanced-excel', name: 'Advanced Excel', summary: 'Master PivotTables, VLOOKUP, Power Query, and macros.', laborQuery: 'excel analyst OR operations analyst' },
   { id: 'scrum-agile', name: 'Scrum & Agile', summary: 'Master sprint planning, standups, and retrospectives.', laborQuery: 'scrum master OR agile coach' },
@@ -3872,6 +3882,11 @@ function createCatalogMeta(payload, overrides = {}) {
   };
 }
 
+function isCurrentCatalogPayload(payload) {
+  const items = Array.isArray(payload?.items) ? payload.items : [];
+  return items.length === LEARNING_CATALOG_TOPICS.length;
+}
+
 function buildStaleCatalogPayload(snapshot, note) {
   const payload = snapshot?.payload || getFallbackLearningCatalogPayload(note);
   const baseLabel = String(snapshot?.sourceLabel || payload?.sourceLabel || 'Source: cached catalog').trim();
@@ -3944,13 +3959,13 @@ async function getExternalLearningCatalogPayload() {
 
 async function getLearningCatalogPayload() {
   const now = Date.now();
-  if (learningCatalogCache.payload && learningCatalogCache.expiresAt > now) {
+  if (learningCatalogCache.payload && learningCatalogCache.expiresAt > now && isCurrentCatalogPayload(learningCatalogCache.payload)) {
     return learningCatalogCache.payload;
   }
 
   const snapshot = await LearningCatalogSnapshot.findOne({ cacheKey: LEARNING_CATALOG_CACHE_KEY }).lean();
 
-  if (snapshot?.payload && snapshot.expiresAt && new Date(snapshot.expiresAt).getTime() > now) {
+  if (snapshot?.payload && snapshot.expiresAt && new Date(snapshot.expiresAt).getTime() > now && isCurrentCatalogPayload(snapshot.payload)) {
     learningCatalogCache = {
       expiresAt: new Date(snapshot.expiresAt).getTime(),
       payload: snapshot.payload
@@ -4008,7 +4023,7 @@ async function getLearningCatalogPayload() {
         },
         { upsert: true, new: true, setDefaultsOnInsert: true }
       );
-      if (snapshot?.payload) {
+      if (snapshot?.payload && isCurrentCatalogPayload(snapshot.payload)) {
         payload = buildStaleCatalogPayload(snapshot, `Using cached snapshot while live refresh is unavailable (${String(error.message || 'request failed').toLowerCase()})`);
         payload = createCatalogMeta(payload, { nextRetryAt });
         usedStaleSnapshot = true;
@@ -4016,7 +4031,7 @@ async function getLearningCatalogPayload() {
     }
   }
 
-  if (!payload && failureCooldownActive && snapshot?.payload) {
+  if (!payload && failureCooldownActive && snapshot?.payload && isCurrentCatalogPayload(snapshot.payload)) {
     const reason = String(snapshot.lastFailureReason || 'recent live refresh failure').toLowerCase();
     payload = buildStaleCatalogPayload(snapshot, `Using cached snapshot while live refresh is paused (${reason})`);
     payload = createCatalogMeta(payload, { nextRetryAt });
