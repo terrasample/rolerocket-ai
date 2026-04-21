@@ -52,6 +52,52 @@ document.addEventListener('DOMContentLoaded', function () {
     return `${clean}.`;
   }
 
+  function inferRoleFocus(goal) {
+    const clean = String(goal || '').trim();
+    const normalized = clean.toLowerCase();
+
+    if (!clean) {
+      return {
+        roleLabel: 'priority roles',
+        proofLabel: 'leadership proof points',
+        stakeholderLabel: 'hiring stakeholders'
+      };
+    }
+
+    if (normalized.includes('project manager')) {
+      return {
+        roleLabel: 'project manager roles',
+        proofLabel: 'delivery, stakeholder, and execution proof points',
+        stakeholderLabel: 'project leaders, hiring managers, and operational decision-makers'
+      };
+    }
+
+    if (normalized.includes('product manager')) {
+      return {
+        roleLabel: 'product manager roles',
+        proofLabel: 'roadmap, launch, and cross-functional leadership proof points',
+        stakeholderLabel: 'product leaders, hiring managers, and cross-functional partners'
+      };
+    }
+
+    return {
+      roleLabel: clean,
+      proofLabel: 'business-impact proof points',
+      stakeholderLabel: 'relevant hiring stakeholders'
+    };
+  }
+
+  function buildPriorityBullets(notes) {
+    if (!notes.length) {
+      return [
+        '- Keep applications selective and role-specific.',
+        '- Maintain consistent outreach and follow-up cadence.',
+        '- Protect dedicated time for interview preparation.'
+      ];
+    }
+    return notes.slice(0, 3).map((note) => `- ${note}`);
+  }
+
   function formatPdf(text, doc) {
     let y = 24;
     doc.setFont('times', 'bold');
@@ -92,6 +138,10 @@ document.addEventListener('DOMContentLoaded', function () {
     const weeklyHours = Math.max(4, parseWeeklyHours(normalizedHours));
     const notes = splitConstraintNotes(constraints);
     const weeklyBlocks = Math.max(4, Math.round(weeklyHours / 2));
+    const roleFocus = inferRoleFocus(goal);
+    const applicationTarget = weeklyHours >= 10 ? '3-5' : '2-4';
+    const outreachTarget = weeklyHours >= 10 ? '10-14' : '6-10';
+    const storyTarget = weeklyHours >= 10 ? '4-6' : '3-4';
 
     const operatingGuardrails = notes.length
       ? notes.join('; ')
@@ -100,33 +150,53 @@ document.addEventListener('DOMContentLoaded', function () {
     return [
       'Weekly Operating Plan',
       '',
-      'Primary Outcome (This Week)',
+      'This Week’s Objective',
       `- ${weeklyOutcome}`,
       `- Capacity: ${normalizedHours} (~${weeklyBlocks} focused blocks).`,
       `- Operating guardrails: ${operatingGuardrails}`,
+      `- Focus roles: ${roleFocus.roleLabel}.`,
       '',
-      'Priority Focus Areas',
-      '- Pipeline quality: fewer applications, higher fit, better tailoring.',
-      '- Decision-maker reach: consistent outreach and timely follow-up.',
-      '- Interview readiness: sharpen measurable leadership stories for priority roles.',
+      'Priority Areas',
+      ...buildPriorityBullets(notes),
+      `- Strengthen ${roleFocus.proofLabel} before the next interview conversation.`,
       '',
-      'Weekly Metrics to Track',
-      '- High-fit applications submitted: 2-4',
-      '- Outreach touches (new + follow-up): 8-12',
-      '- Interview story updates (quantified): 3-5',
+      'Weekly Scorecard',
+      `- High-fit applications submitted: ${applicationTarget}`,
+      `- Outreach touches (new + follow-up): ${outreachTarget}`,
+      `- Interview stories updated with quantified impact: ${storyTarget}`,
       '- Resume/ATS refinements completed: 2+',
       '',
       'Weekly Cadence',
-      '- Monday: Prioritize top opportunities, tailor one resume, and submit the highest-fit role.',
-      '- Tuesday: Execute outreach block and clear all outstanding follow-ups.',
-      '- Wednesday: Build interview assets (STAR examples, business impact bullets, leadership narratives).',
-      '- Thursday: Run second application sprint and reconnect with hiring stakeholders.',
-      '- Friday: Review results, clean tracker, and lock next week’s top three priorities.',
+      '- Monday: Review the market, narrow to the top opportunities, and submit the strongest role of the week.',
+      '  Deliverable: one fully tailored application package and a clear shortlist for the remaining week.',
+      '- Tuesday: Run your outreach block and clear follow-up obligations already in motion.',
+      `  Deliverable: direct contact with ${roleFocus.stakeholderLabel} and a clean follow-up queue.`,
+      '- Wednesday: Build interview assets and tighten your executive narrative.',
+      `  Deliverable: refreshed ${roleFocus.proofLabel} plus three interview-ready stories.`,
+      '- Thursday: Run the second conversion sprint on the next-best role.',
+      '  Deliverable: second tailored submission plus any targeted follow-up tied to that opportunity.',
+      '- Friday: Review results, clean the pipeline, and set the next week’s top three priorities.',
+      '  Deliverable: updated tracker, clear decisions, and no loose ends carrying into Monday.',
+      '',
+      'Daily Non-Negotiables',
+      '- Start each work block with a defined outcome before opening email or job boards.',
+      '- Keep every application evidence-led and role-specific.',
+      '- Tie every outreach message to a business outcome, not a generic introduction.',
+      '',
+      'Interview Preparation Focus',
+      '- Prepare one story for leadership, one for execution, one for cross-functional alignment, and one for measurable impact.',
+      '- Convert resume bullets into concise executive-level talking points.',
+      '- Rehearse answers out loud at least once before the end of the week.',
       '',
       'Execution Standards',
-      '- Every application must be role-specific and evidence-led.',
-      '- Every outreach message should tie your value to a business outcome.',
-      '- Protect one non-negotiable prep block midweek for interview readiness.',
+      '- No low-fit applications submitted just to maintain volume.',
+      '- No outreach sent without a clear reason for contact.',
+      '- One protected preparation block must remain on the calendar midweek.',
+      '',
+      'Friday Review',
+      '- Which actions created actual movement this week?',
+      '- Which roles now deserve more time and which should be dropped?',
+      '- What needs to be tightened before next week begins?',
       '',
       'End-of-Week Decisions',
       '- Double down on channels producing interview movement.',
