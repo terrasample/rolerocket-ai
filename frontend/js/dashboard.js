@@ -138,27 +138,50 @@ document.addEventListener('DOMContentLoaded', async () => {
       recruiter: 'Upgrade to Recruiter',
     };
 
+    const tierAccents = {
+      free:      { bg: '#1e3a5f', border: '#3b82f6', text: '#93c5fd', dot: '#3b82f6' },
+      pro:       { bg: '#1a3a2a', border: '#22c55e', text: '#86efac', dot: '#22c55e' },
+      premium:   { bg: '#3b1f5e', border: '#a855f7', text: '#d8b4fe', dot: '#a855f7' },
+      elite:     { bg: '#451a1a', border: '#f59e0b', text: '#fcd34d', dot: '#f59e0b' },
+      recruiter: { bg: '#1a2e3b', border: '#06b6d4', text: '#67e8f9', dot: '#06b6d4' },
+    };
+
     function createTierSectionHeader(tier, locked) {
+      const accent = tierAccents[tier] || { bg: '#1e293b', border: '#475569', text: '#94a3b8', dot: '#475569' };
       const wrapper = document.createElement('div');
-      wrapper.style.cssText = 'grid-column:1/-1;display:flex;align-items:center;gap:14px;margin:28px 0 6px 0;';
+      wrapper.style.cssText = 'grid-column:1/-1;margin:36px 0 4px 0;';
 
-      const label = document.createElement('h3');
+      const inner = document.createElement('div');
+      inner.style.cssText = [
+        'display:flex;align-items:center;justify-content:space-between;',
+        `background:${locked ? '#0f172a' : accent.bg};`,
+        `border:1.5px solid ${locked ? '#1e293b' : accent.border};`,
+        'border-radius:12px;padding:12px 20px;gap:14px;',
+        locked ? 'opacity:0.6;' : '',
+      ].join('');
+
+      const left = document.createElement('div');
+      left.style.cssText = 'display:flex;align-items:center;gap:10px;';
+
+      const dot = document.createElement('span');
+      dot.style.cssText = `width:10px;height:10px;border-radius:50%;background:${locked ? '#334155' : accent.dot};flex-shrink:0;display:inline-block;`;
+
+      const label = document.createElement('span');
       label.textContent = tierLabels[tier] || tier;
-      label.style.cssText = 'margin:0;font-size:1.15rem;font-weight:700;white-space:nowrap;color:' + (locked ? '#94a3b8' : '#1e293b') + ';';
+      label.style.cssText = `font-size:1rem;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;color:${locked ? '#475569' : accent.text};`;
 
-      const rule = document.createElement('hr');
-      rule.style.cssText = 'flex:1;border:none;border-top:2px solid ' + (locked ? '#e2e8f0' : '#cbd5e1') + ';margin:0;';
+      left.append(dot, label);
+      inner.append(left);
 
       if (locked) {
-        const badge = document.createElement('span');
-        badge.textContent = tierUpgradeLabels[tier] || 'Upgrade';
-        badge.style.cssText = 'font-size:0.78rem;font-weight:700;padding:3px 10px;border-radius:999px;background:#f1f5f9;color:#64748b;border:1px solid #cbd5e1;white-space:nowrap;cursor:pointer;';
+        const badge = document.createElement('button');
+        badge.textContent = (tierUpgradeLabels[tier] || 'Upgrade') + ' →';
+        badge.style.cssText = 'font-size:0.78rem;font-weight:700;padding:5px 14px;border-radius:999px;background:#1e293b;color:#94a3b8;border:1px solid #334155;cursor:pointer;white-space:nowrap;';
         badge.onclick = () => { window.location.href = 'pricing.html'; };
-        wrapper.append(label, rule, badge);
-      } else {
-        wrapper.append(label, rule);
+        inner.append(badge);
       }
 
+      wrapper.append(inner);
       return wrapper;
     }
 
