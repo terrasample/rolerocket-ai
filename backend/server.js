@@ -3677,6 +3677,7 @@ Rules:
     }
 
     const courseKey = normalizeCourseKey(topic);
+    const contentFingerprint = createCourseContentFingerprint(course);
     const modules = Array.isArray(course?.modules) ? course.modules : [];
     const answers = modules.map((module) => String(module?.progressCheckAnswer || '').trim());
     const sessionToken = crypto.randomBytes(24).toString('hex');
@@ -3687,6 +3688,7 @@ Rules:
       {
         $set: {
           courseTitle: topic,
+          contentFingerprint,
           sessionToken,
           answers,
           expiresAt
@@ -3695,8 +3697,40 @@ Rules:
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
+    const existingProgress = await CourseProgress.findOne({ userId: req.user.userId, courseKey }).lean();
+    const totalModules = modules.length;
+
+    if (!existingProgress || String(existingProgress.contentFingerprint || '') !== contentFingerprint) {
+      await CourseProgress.findOneAndUpdate(
+        { userId: req.user.userId, courseKey },
+        {
+          $set: {
+            courseTitle: topic,
+            contentFingerprint,
+            totalModules,
+            completedModules: [],
+            completedAt: null
+          }
+        },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
+    } else if (Number(existingProgress.totalModules || 0) !== totalModules) {
+      await CourseProgress.findOneAndUpdate(
+        { userId: req.user.userId, courseKey },
+        {
+          $set: {
+            courseTitle: topic,
+            contentFingerprint,
+            totalModules
+          }
+        },
+        { new: true }
+      );
+    }
+
     return res.json({
       sessionToken,
+      contentFingerprint,
       course: {
         ...course,
         modules: modules.map((module) => {
@@ -3716,6 +3750,10 @@ function normalizeCourseKey(topic) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '') || 'course';
+}
+
+function createCourseContentFingerprint(course) {
+  return crypto.createHash('sha256').update(JSON.stringify(course || {})).digest('hex');
 }
 
 function normalizeCheckText(value) {
@@ -3781,9 +3819,11 @@ app.post('/api/learning/course-progress-check', authenticateToken, async (req, r
     }
 
     const totalModules = Array.isArray(session.answers) ? session.answers.length : 0;
+    const sessionFingerprint = String(session.contentFingerprint || '').trim();
     const existing = await CourseProgress.findOne({ userId: req.user.userId, courseKey }).lean();
+    const existingFingerprint = String(existing?.contentFingerprint || '').trim();
     const mergedCompletedModules = Array.from(new Set([
-      ...(Array.isArray(existing?.completedModules) ? existing.completedModules : []),
+      ...((existingFingerprint === sessionFingerprint && Array.isArray(existing?.completedModules)) ? existing.completedModules : []),
       moduleIndex
     ]))
       .map((n) => Number(n))
@@ -3799,6 +3839,7 @@ app.post('/api/learning/course-progress-check', authenticateToken, async (req, r
       {
         $set: {
           courseTitle: topic,
+          contentFingerprint: sessionFingerprint,
           totalModules,
           completedModules: mergedCompletedModules,
           completedAt
@@ -3835,6 +3876,7 @@ app.get('/api/learning/course-progress', authenticateToken, async (req, res) => 
     return res.json({
       courseKey,
       courseTitle: topic,
+      contentFingerprint: String(record?.contentFingerprint || '').trim(),
       totalModules: Number(record?.totalModules || 0),
       completedModules: Array.isArray(record?.completedModules) ? record.completedModules : [],
       completedAt: record?.completedAt || null
@@ -3860,6 +3902,7 @@ app.put('/api/learning/course-progress', authenticateToken, async (req, res) => 
     const courseKey = normalizeCourseKey(topic);
 
     const existing = await CourseProgress.findOne({ userId: req.user.userId, courseKey }).lean();
+    const contentFingerprint = String(existing?.contentFingerprint || '').trim();
     const trustedCompletedModules = Array.isArray(existing?.completedModules) ? existing.completedModules : [];
     const completedAt = totalModules > 0 && trustedCompletedModules.length === totalModules
       ? (existing?.completedAt || new Date())
@@ -3870,6 +3913,7 @@ app.put('/api/learning/course-progress', authenticateToken, async (req, res) => 
       {
         $set: {
           courseTitle: topic,
+          contentFingerprint,
           totalModules,
           completedModules: trustedCompletedModules,
           completedAt
