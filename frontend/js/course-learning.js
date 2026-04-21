@@ -218,14 +218,26 @@ document.addEventListener('DOMContentLoaded', function () {
       || normalized.startsWith('the best answer is');
   }
 
+  function stripObjectiveClause(text) {
+    return String(text || '')
+      .replace(/because it matches the core objective of this module:\s*[^.]+\.?\s*/ig, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
   function buildDetailedProgressExplanation(correctAnswer, explanation) {
-    const base = String(explanation || '').trim();
-    const definition = getConceptDefinition(correctAnswer);
-    if (!definition) return base;
-    if (!base) return definition;
-    if (isGenericProgressExplanation(base) || base.length < 120) {
-      return `${base} ${definition}`;
+    const answer = String(correctAnswer || '').trim();
+    const base = stripObjectiveClause(String(explanation || '').trim());
+    const definition = getConceptDefinition(answer);
+
+    if (definition && answer) {
+      return `The best answer is "${answer}." ${definition}`;
     }
+
+    if (answer && (isGenericProgressExplanation(base) || !base)) {
+      return `The best answer is "${answer}."`;
+    }
+
     return base;
   }
 
@@ -233,6 +245,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const detailedExplanation = buildDetailedProgressExplanation(correctAnswer, explanation);
     if (isCorrect) {
       return detailedExplanation || (correctAnswer ? `The correct answer is "${correctAnswer}".` : 'Well done.');
+    }
+    if (detailedExplanation && detailedExplanation.toLowerCase().startsWith('the best answer is')) {
+      return detailedExplanation;
     }
     const answerLine = correctAnswer ? `The correct answer is "${correctAnswer}".` : '';
     return [answerLine, detailedExplanation].filter(Boolean).join(' ');

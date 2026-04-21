@@ -608,7 +608,7 @@ h3,
   color: #ffffff;
   border-radius: 10px;
   text-decoration: none;
-  font-size: 15px;
+  font-size: calc(15px + 2pt);
   transition:
     transform 0.18s ease,
     background 0.18s ease,
