@@ -250,6 +250,7 @@ const RoleProfile = require('./models/RoleProfile');
 const LifetimeSale = require('./models/LifetimeSale');
 const CourseProgress = require('./models/CourseProgress');
 const CourseLearningSession = require('./models/CourseLearningSession');
+const CourseContentCache = require('./models/CourseContentCache');
 
 
 // Register email verification route
@@ -319,6 +320,7 @@ const USAJOBS_USER_AGENT = process.env.USAJOBS_USER_AGENT || '';
 
 const JOB_CACHE_MS = 1000 * 60 * 5;
 const jobSearchCache = new Map();
+const COURSE_CONTENT_CACHE_TTL_MS = 1000 * 60 * 60 * 24;
 const COURSE_CHECK_SESSION_TTL_MS = 1000 * 60 * 120;
 const EXTERNAL_FETCH_TIMEOUT_MS = 1200;
 const jobSearchInFlight = new Map();
@@ -3578,18 +3580,27 @@ app.post('/api/learning/course-content', authenticateToken, async (req, res) => 
       return res.status(403).json({ error: 'Upgrade to Elite to access full course content.' });
     }
 
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      max_tokens: 2800,
-      temperature: 0.6,
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a world-class technical instructor creating premium, full-length professional courses similar to enterprise learning platforms. Teach directly and concretely. Never reference external links, books, websites, or courses. Output only valid JSON.'
-        },
-        {
-          role: 'user',
-          content: `Create a full course for: ${topic}
+    const courseKey = normalizeCourseKey(topic);
+    const now = Date.now();
+    const cachedCourse = await CourseContentCache.findOne({ courseKey }).lean();
+
+    let course = null;
+
+    if (cachedCourse && cachedCourse.expiresAt && new Date(cachedCourse.expiresAt).getTime() > now && cachedCourse.coursePayload) {
+      course = cachedCourse.coursePayload;
+    } else {
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        max_tokens: 2800,
+        temperature: 0.6,
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a world-class technical instructor creating premium, full-length professional courses similar to enterprise learning platforms. Teach directly and concretely. Never reference external links, books, websites, or courses. Output only valid JSON.'
+          },
+          {
+            role: 'user',
+            content: `Create a full course for: ${topic}
 
 Return ONLY a JSON object with this exact shape and key names:
 {
@@ -3634,49 +3645,62 @@ Rules:
 - Each module.progressCheckAnswer must be concise (one sentence) and directly answer the question.
 - Avoid fluff and generic advice.
 - No markdown, no code fences, no extra text outside JSON.`
-        }
-      ]
-    });
+          }
+        ]
+      });
 
-    const rawContent = String(completion.choices?.[0]?.message?.content || '').trim();
-    const cleaned = rawContent
-      .replace(/^```json\s*/i, '')
-      .replace(/^```\s*/i, '')
-      .replace(/\s*```$/i, '')
-      .trim();
+      const rawContent = String(completion.choices?.[0]?.message?.content || '').trim();
+      const cleaned = rawContent
+        .replace(/^```json\s*/i, '')
+        .replace(/^```\s*/i, '')
+        .replace(/\s*```$/i, '')
+        .trim();
 
-    let course = null;
-    try {
-      course = JSON.parse(cleaned);
-    } catch (parseError) {
-      console.warn('Course content JSON parse failed, returning fallback object.');
-      course = {
-        courseTitle: topic,
-        subtitle: `Professional course for ${topic}`,
-        difficulty: 'Intermediate',
-        estimatedDuration: '4-6 weeks',
-        marketDemand: `${topic} is highly demanded across 2025-2026 roles.`,
-        overview: cleaned || `Course generation for ${topic} is temporarily unavailable.`,
-        learningOutcomes: [
-          `Explain core ${topic} concepts`,
-          `Apply ${topic} in realistic job scenarios`,
-          `Avoid common ${topic} mistakes`,
-          `Execute hands-on ${topic} tasks`,
-          `Communicate ${topic} outcomes clearly`
-        ],
-        modules: [],
-        capstoneProject: {
-          title: `${topic} Capstone`,
-          scenario: `Build a practical deliverable using ${topic}.`,
-          deliverables: ['Plan', 'Execution artifact', 'Results summary']
+      try {
+        course = JSON.parse(cleaned);
+      } catch (parseError) {
+        console.warn('Course content JSON parse failed, returning fallback object.');
+        course = {
+          courseTitle: topic,
+          subtitle: `Professional course for ${topic}`,
+          difficulty: 'Intermediate',
+          estimatedDuration: '4-6 weeks',
+          marketDemand: `${topic} is highly demanded across 2025-2026 roles.`,
+          overview: cleaned || `Course generation for ${topic} is temporarily unavailable.`,
+          learningOutcomes: [
+            `Explain core ${topic} concepts`,
+            `Apply ${topic} in realistic job scenarios`,
+            `Avoid common ${topic} mistakes`,
+            `Execute hands-on ${topic} tasks`,
+            `Communicate ${topic} outcomes clearly`
+          ],
+          modules: [],
+          capstoneProject: {
+            title: `${topic} Capstone`,
+            scenario: `Build a practical deliverable using ${topic}.`,
+            deliverables: ['Plan', 'Execution artifact', 'Results summary']
+          },
+          finalAssessment: [],
+          interviewPrep: [],
+          resumeSignals: []
+        };
+      }
+
+      const generatedFingerprint = createCourseContentFingerprint(course);
+      await CourseContentCache.findOneAndUpdate(
+        { courseKey },
+        {
+          $set: {
+            courseTitle: topic,
+            contentFingerprint: generatedFingerprint,
+            coursePayload: course,
+            expiresAt: new Date(now + COURSE_CONTENT_CACHE_TTL_MS)
+          }
         },
-        finalAssessment: [],
-        interviewPrep: [],
-        resumeSignals: []
-      };
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
     }
 
-    const courseKey = normalizeCourseKey(topic);
     const contentFingerprint = createCourseContentFingerprint(course);
     const modules = Array.isArray(course?.modules) ? course.modules : [];
     const answers = modules.map((module) => String(module?.progressCheckAnswer || '').trim());
