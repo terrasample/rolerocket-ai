@@ -196,12 +196,18 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function formatProgressCheckFeedback(isCorrect, correctAnswer, explanation) {
-    const heading = isCorrect ? 'Correct.' : 'Not quite.';
-    const answerLine = correctAnswer
-      ? `${isCorrect ? 'The right answer is' : 'The correct answer is'}: ${correctAnswer}`
-      : '';
-    const explanationLine = explanation ? `Explanation: ${explanation}` : '';
-    return [heading, answerLine, explanationLine].filter(Boolean).join(' ');
+    if (isCorrect) {
+      return explanation || (correctAnswer ? `The correct answer is "${correctAnswer}".` : 'Well done.');
+    }
+    const answerLine = correctAnswer ? `The correct answer is "${correctAnswer}".` : '';
+    return [answerLine, explanation].filter(Boolean).join(' ');
+  }
+
+  function setResultHtml(resultWrap, isCorrect, message) {
+    const color = isCorrect ? '#86efac' : '#fda4af';
+    const icon = isCorrect ? '✓' : '✗';
+    const label = isCorrect ? 'Correct' : 'Not quite';
+    resultWrap.innerHTML = `<span style="font-weight:700;color:${color};">${icon} ${escapeHtml(label)}.</span> <span style="color:#d0d9e7;">${escapeHtml(message)}</span>`;
   }
 
   function resetModuleAudioButtons() {
@@ -367,8 +373,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (selectedOptionIndex !== correctOptionIndex) {
       progressState.lastProgressFeedback = null;
-      resultWrap.textContent = formatProgressCheckFeedback(false, correctAnswer, explanation);
-      resultWrap.style.color = '#fda4af';
+      setResultHtml(resultWrap, false, formatProgressCheckFeedback(false, correctAnswer, explanation));
       return false;
     }
 
@@ -377,15 +382,9 @@ document.addEventListener('DOMContentLoaded', function () {
       idx
     ])).sort((left, right) => left - right);
 
-    progressState.lastProgressFeedback = {
-      type: 'success',
-      message: formatProgressCheckFeedback(true, correctAnswer, explanation)
-    };
+    progressState.lastProgressFeedback = null;
+    setResultHtml(resultWrap, true, formatProgressCheckFeedback(true, correctAnswer, explanation));
     applyCompletedModules(completedModules, idx);
-    if (resultWrap) {
-      resultWrap.textContent = formatProgressCheckFeedback(true, correctAnswer, explanation);
-      resultWrap.style.color = '#86efac';
-    }
     return true;
   }
 
@@ -447,21 +446,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
       const payload = await response.json();
       if (response.ok && payload?.passed) {
-        progressState.lastProgressFeedback = {
-          type: 'success',
-          message: formatProgressCheckFeedback(
-            true,
-            String(payload?.correctOptionText || fallbackCorrectAnswer).trim(),
-            String(payload?.explanation || fallbackExplanation).trim()
-          )
-        };
-        applyCompletedModules(payload?.completedModules, idx);
-        resultWrap.textContent = formatProgressCheckFeedback(
+        const feedbackMsg = formatProgressCheckFeedback(
           true,
           String(payload?.correctOptionText || fallbackCorrectAnswer).trim(),
           String(payload?.explanation || fallbackExplanation).trim()
         );
-        resultWrap.style.color = '#86efac';
+        setResultHtml(resultWrap, true, feedbackMsg);
+        button.disabled = true;
+        button.textContent = 'Correct!';
+        await new Promise((resolve) => { window.setTimeout(resolve, 1800); });
+        progressState.lastProgressFeedback = null;
+        applyCompletedModules(payload?.completedModules, idx);
         return;
       }
 
@@ -474,18 +469,17 @@ document.addEventListener('DOMContentLoaded', function () {
         resultWrap.style.color = '#fda4af';
       } else {
         progressState.lastProgressFeedback = null;
-        resultWrap.textContent = formatProgressCheckFeedback(
+        const wrongMsg = formatProgressCheckFeedback(
           false,
           String(payload?.correctOptionText || fallbackCorrectAnswer).trim(),
           String(payload?.explanation || fallbackExplanation).trim()
         );
-        resultWrap.style.color = '#fda4af';
+        setResultHtml(resultWrap, false, wrongMsg);
       }
     } catch (error) {
       const usedLocalFallback = applyLocalProgressCheck(idx, selectedOptionIndex, resultWrap);
       if (usedLocalFallback) {
-        resultWrap.textContent = formatProgressCheckFeedback(true, fallbackCorrectAnswer, fallbackExplanation);
-        resultWrap.style.color = '#86efac';
+        setResultHtml(resultWrap, true, formatProgressCheckFeedback(true, fallbackCorrectAnswer, fallbackExplanation));
       } else if (error?.name === 'AbortError') {
         progressState.lastProgressFeedback = null;
         resultWrap.textContent = 'Validation took too long. Refresh the course and try again.';
@@ -722,7 +716,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (progressState.lastProgressFeedback?.message) {
       const isSuccess = progressState.lastProgressFeedback.type === 'success';
-      html += `<div style="margin-bottom:16px;padding:14px;border-radius:10px;border:1px solid ${isSuccess ? '#10b981' : '#f59e0b'};background:${isSuccess ? '#052e25' : '#3b1d12'};color:${isSuccess ? '#a7f3d0' : '#fde68a'};line-height:1.6;">${escapeHtml(progressState.lastProgressFeedback.message)}</div>`;
+      const fbIcon = isSuccess ? '✓' : '✗';
+      const fbLabel = isSuccess ? 'Correct' : 'Not quite';
+      const fbMsg = escapeHtml(progressState.lastProgressFeedback.message);
+      html += `<div style="margin-bottom:16px;padding:14px;border-radius:10px;border:1px solid ${isSuccess ? '#10b981' : '#f59e0b'};background:${isSuccess ? '#052e25' : '#3b1d12'};line-height:1.6;"><span style="font-weight:700;color:${isSuccess ? '#86efac' : '#fda4af'}">${fbIcon} ${fbLabel}.</span> <span style="color:${isSuccess ? '#a7f3d0' : '#fde68a'}">${fbMsg}</span></div>`;
     }
 
     if (completed > 0) {
