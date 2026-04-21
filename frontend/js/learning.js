@@ -274,6 +274,33 @@ document.addEventListener('DOMContentLoaded', function () {
     renderGrid();
   });
 
+  document.addEventListener('keydown', function (event) {
+    const isCmdK = (event.metaKey || event.ctrlKey) && event.key === 'k';
+    const isForwardSlash = event.key === '/' && !event.ctrlKey && !event.metaKey;
+    if (isCmdK && searchInput) {
+      event.preventDefault();
+      searchInput.focus();
+      searchInput.select();
+    } else if (isForwardSlash && searchInput && document.activeElement !== searchInput) {
+      event.preventDefault();
+      searchInput.focus();
+    }
+  });
+
+  if (searchInput) {
+    const tooltip = document.createElement('div');
+    tooltip.style.cssText = 'position:absolute;top:-28px;left:0;background:#0f172a;border:1px solid #334155;color:#cbd5e1;font-size:0.75rem;padding:6px 10px;border-radius:6px;white-space:nowrap;pointer-events:none;';
+    tooltip.textContent = 'Focus with Cmd+K or /';
+    const wrapper = searchInput.parentElement;
+    if (wrapper) {
+      wrapper.style.position = 'relative';
+      wrapper.appendChild(tooltip);
+      tooltip.style.display = 'none';
+      searchInput.addEventListener('focus', () => { tooltip.style.display = 'block'; });
+      searchInput.addEventListener('blur', () => { tooltip.style.display = 'none'; });
+    }
+  }
+
   loadPreferences();
   updateFilterButtons();
   loadCatalogData().then(loadCatalogProgress);
