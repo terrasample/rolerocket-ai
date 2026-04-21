@@ -57,7 +57,8 @@ document.addEventListener('DOMContentLoaded', function () {
     let current = null;
 
     lines.forEach((line) => {
-      const headingMatch = line.match(/^\s*(\d+)\)\s+(.+)$/);
+      const normalized = String(line || '').trim().replace(/\*\*/g, '');
+      const headingMatch = normalized.match(/^(?:#{1,6}\s*)?(\d+)\)\s+(.+)$/);
       if (headingMatch) {
         if (current) sections.push(current);
         current = {
@@ -79,40 +80,63 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function parseTeachingModules(sectionLines) {
-    const chunks = String(sectionLines.join('\n') || '')
-      .split(/\n\s*\n/)
-      .map((chunk) => chunk.trim())
-      .filter(Boolean);
+    const lines = Array.isArray(sectionLines) ? sectionLines : [];
+    const modules = [];
+    let current = null;
 
-    const modules = chunks.map((chunk) => {
-      const module = {
-        skill: '',
-        why: '',
-        learn: '',
-        practice: '',
-        proof: '',
-        fallback: ''
-      };
+    function ensureCurrentModule() {
+      if (!current) {
+        current = {
+          skill: '',
+          why: '',
+          learn: '',
+          practice: '',
+          proof: '',
+          fallback: ''
+        };
+      }
+    }
 
-      chunk.split('\n').forEach((rawLine) => {
-        const line = String(rawLine || '').trim();
-        const match = line.match(/^(?:[-*]\s*)?(Missing Skill|Why this matters|Learn|Practice|Proof(?: of mastery)?):\s*(.*)$/i);
-        if (!match) {
-          if (line) module.fallback += (module.fallback ? '\n' : '') + line;
-          return;
+    lines.forEach((rawLine) => {
+      const line = normalizeParsingLine(rawLine);
+      if (!line) return;
+
+      const moduleMatch = line.match(/^Module\s*\d+\s*:\s*(.+)$/i);
+      if (moduleMatch) {
+        if (current && (current.skill || current.why || current.learn || current.practice || current.proof || current.fallback)) {
+          modules.push(current);
         }
+        current = {
+          skill: String(moduleMatch[1] || '').trim(),
+          why: '',
+          learn: '',
+          practice: '',
+          proof: '',
+          fallback: ''
+        };
+        return;
+      }
 
-        const key = match[1].toLowerCase();
-        const value = String(match[2] || '').trim();
-        if (key.includes('missing skill')) module.skill = value;
-        else if (key.includes('why this matters')) module.why = value;
-        else if (key === 'learn') module.learn = value;
-        else if (key === 'practice') module.practice = value;
-        else if (key.includes('proof')) module.proof = value;
-      });
+      const keyValueMatch = line.match(/^(Missing Skill|Why this matters|Learn|Practice|Proof(?: of mastery)?)\s*:\s*(.*)$/i);
+      if (keyValueMatch) {
+        ensureCurrentModule();
+        const key = keyValueMatch[1].toLowerCase();
+        const value = String(keyValueMatch[2] || '').trim();
+        if (key.includes('missing skill')) current.skill = value;
+        else if (key.includes('why this matters')) current.why = value;
+        else if (key === 'learn') current.learn = value;
+        else if (key === 'practice') current.practice = value;
+        else if (key.includes('proof')) current.proof = value;
+        return;
+      }
 
-      return module;
-    }).filter((module) => module.skill || module.why || module.learn || module.practice || module.proof || module.fallback);
+      ensureCurrentModule();
+      current.fallback += (current.fallback ? '\n' : '') + line;
+    });
+
+    if (current && (current.skill || current.why || current.learn || current.practice || current.proof || current.fallback)) {
+      modules.push(current);
+    }
 
     return modules;
   }
@@ -122,7 +146,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const courses = [];
 
     raw.split('\n').forEach((rawLine) => {
-      const line = String(rawLine || '').trim();
+      const line = normalizeParsingLine(rawLine);
       if (!line) return;
 
       // Match pipe-delimited format: Course Name: X | Platform: Y | Why it is trending: Z | Best for: W
@@ -194,24 +218,25 @@ document.addEventListener('DOMContentLoaded', function () {
         const moduleCards = modules.map((module, moduleIdx) => {
           const tabPrefix = `module-${sectionIdx}-${moduleIdx}`;
           const title = escapeHtml(module.skill || `Skill Module ${moduleIdx + 1}`);
-          const why = escapeHtml(module.why || module.fallback || 'No details provided.');
-          const learn = escapeHtml(module.learn || module.fallback || 'No details provided.');
-          const practice = escapeHtml(module.practice || module.fallback || 'No details provided.');
-          const proof = escapeHtml(module.proof || module.fallback || 'No details provided.');
+          const why = renderInlineMarkdown(module.why || module.fallback || 'No details provided.');
+          const learn = renderInlineMarkdown(module.learn || module.fallback || 'No details provided.');
+          const practice = renderInlineMarkdown(module.practice || module.fallback || 'No details provided.');
+          const proof = renderInlineMarkdown(module.proof || module.fallback || 'No details provided.');
 
           return `
             <div data-module-card style="border:1px solid #dbe3ea;border-radius:10px;padding:12px;background:#f8fafc;">
               <div style="font-weight:700;color:#0f172a;margin-bottom:8px;">${title}</div>
+              <div style="font-size:0.84rem;color:#475569;margin-bottom:10px;">Follow this teaching path in order: Why -> Lesson -> Practice -> Mastery</div>
               <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-                <button type="button" data-module-tab="${tabPrefix}-why" style="padding:6px 10px;border:none;border-radius:999px;background:#0ea5e9;color:#ffffff;font-size:0.85rem;cursor:pointer;">Why</button>
-                <button type="button" data-module-tab="${tabPrefix}-learn" style="padding:6px 10px;border:none;border-radius:999px;background:#e2e8f0;color:#0f172a;font-size:0.85rem;cursor:pointer;">Learn</button>
-                <button type="button" data-module-tab="${tabPrefix}-practice" style="padding:6px 10px;border:none;border-radius:999px;background:#e2e8f0;color:#0f172a;font-size:0.85rem;cursor:pointer;">Practice</button>
-                <button type="button" data-module-tab="${tabPrefix}-proof" style="padding:6px 10px;border:none;border-radius:999px;background:#e2e8f0;color:#0f172a;font-size:0.85rem;cursor:pointer;">Proof</button>
+                <button type="button" data-module-tab="${tabPrefix}-why" style="padding:6px 10px;border:none;border-radius:999px;background:#0ea5e9;color:#ffffff;font-size:0.85rem;cursor:pointer;">1) Why</button>
+                <button type="button" data-module-tab="${tabPrefix}-learn" style="padding:6px 10px;border:none;border-radius:999px;background:#e2e8f0;color:#0f172a;font-size:0.85rem;cursor:pointer;">2) Lesson</button>
+                <button type="button" data-module-tab="${tabPrefix}-practice" style="padding:6px 10px;border:none;border-radius:999px;background:#e2e8f0;color:#0f172a;font-size:0.85rem;cursor:pointer;">3) Practice</button>
+                <button type="button" data-module-tab="${tabPrefix}-proof" style="padding:6px 10px;border:none;border-radius:999px;background:#e2e8f0;color:#0f172a;font-size:0.85rem;cursor:pointer;">4) Mastery</button>
               </div>
-              <div data-module-pane="${tabPrefix}-why" style="display:block;color:#334155;line-height:1.6;">${why}</div>
-              <div data-module-pane="${tabPrefix}-learn" style="display:none;color:#334155;line-height:1.6;">${learn}</div>
-              <div data-module-pane="${tabPrefix}-practice" style="display:none;color:#334155;line-height:1.6;">${practice}</div>
-              <div data-module-pane="${tabPrefix}-proof" style="display:none;color:#334155;line-height:1.6;">${proof}</div>
+              <div data-module-pane="${tabPrefix}-why" style="display:block;color:#334155;line-height:1.6;"><strong>Why this skill matters:</strong> ${why}</div>
+              <div data-module-pane="${tabPrefix}-learn" style="display:none;color:#334155;line-height:1.6;"><strong>Teach me:</strong> ${learn}</div>
+              <div data-module-pane="${tabPrefix}-practice" style="display:none;color:#334155;line-height:1.6;"><strong>Your drill:</strong> ${practice}</div>
+              <div data-module-pane="${tabPrefix}-proof" style="display:none;color:#334155;line-height:1.6;"><strong>Mastery check:</strong> ${proof}</div>
             </div>
           `;
         }).join('');
@@ -252,9 +277,11 @@ document.addEventListener('DOMContentLoaded', function () {
         `;
       }
 
-      const bodyLines = (section.lines || []).filter((line) => String(line || '').trim().length);
+      const bodyLines = (section.lines || [])
+        .map((line) => normalizeParsingLine(line))
+        .filter((line) => String(line || '').trim().length);
       const body = bodyLines.length
-        ? `<ul style="margin:0 0 0 18px;padding:0;display:grid;gap:6px;color:#334155;line-height:1.6;">${bodyLines.map((line) => `<li>${escapeHtml(line)}</li>`).join('')}</ul>`
+        ? `<ul style="margin:0 0 0 18px;padding:0;display:grid;gap:6px;color:#334155;line-height:1.6;">${bodyLines.map((line) => `<li>${renderInlineMarkdown(line)}</li>`).join('')}</ul>`
         : '<div style="color:#64748b;">No items listed.</div>';
 
       return `
@@ -278,6 +305,25 @@ document.addEventListener('DOMContentLoaded', function () {
     const value = String(text || '').trim();
     if (value.length <= max) return value;
     return `${value.slice(0, max - 1).trim()}...`;
+  }
+
+  function normalizeParsingLine(value) {
+    return String(value || '')
+      .replace(/^\s*[-*]\s*/, '')
+      .replace(/^\s*#{1,6}\s*/, '')
+      .replace(/\*\*/g, '')
+      .trim();
+  }
+
+  function renderInlineMarkdown(value) {
+    const text = String(value || '').trim();
+    if (!text) return '';
+
+    const parts = text.split('**');
+    return parts.map((part, idx) => {
+      const safe = escapeHtml(part);
+      return idx % 2 === 1 ? `<strong>${safe}</strong>` : safe;
+    }).join('');
   }
 
   function escapeHtml(value) {
