@@ -3482,14 +3482,14 @@ app.post('/api/learning/plan', authenticateToken, async (req, res) => {
             'Do not invent certifications or work history not supported by provided context.',
             'Use this output format exactly:',
             '1) Missing Skills Diagnosis (Top 5 gaps, each with evidence from job description)',
-            '2) Skill Teaching Modules (for each skill, output on separate lines: Module X: <skill name>, Why this matters: [explain the business impact and why this skill matters for the role], Learn: [provide 4-6 key concepts or resources to master, formatted as actionable teaching steps like "1. Understand concept X by reading/watching resource Y" or "2. Study how X works in healthcare"], Practice: [give 2-3 concrete hands-on exercises the candidate should do], Proof of mastery: [a specific deliverable, certification, or test that proves they have learned the skill])',
+            '2) Skill Teaching Modules (for each skill, output on separate lines: Module X: <skill name>, Why this matters: [explain the business impact and why this skill matters for the role], Learn: [teach the concept directly with 4-6 specific teaching points. Explain what the skill is, why it matters, key principles, best practices, common pitfalls, and real-world application in healthcare. Do NOT reference books, articles, courses, or external resources—provide the actual teaching material inline with examples and explanations], Practice: [give 2-3 concrete hands-on exercises the candidate should do to apply the skill], Proof of mastery: [a specific deliverable, certification, or test that proves they have learned the skill])',
             '3) 30-Day Skill-Building Plan (Week 1 to Week 4 mapped to those modules)',
             '4) Practice Projects (3 projects with scope + deliverable + which skill gaps they close)',
             '5) Interview Readiness Drills (5 drills tied to the missing skills)',
             '6) Resume Upgrade Targets (5 bullet changes after learning, tied to completed skills)',
             '7) Weekly Checkpoint Scorecard (5 measurable metrics)',
             '8) Trending Industry Courses (5 courses popular in the current 2025-2026 job market that are highly relevant to this role; for each use this exact format on its own line: Course Name: <name> | Platform: <platform> | Why it is trending: <reason> | Best for: <audience>)',
-            'CRITICAL: The Learn field MUST contain actual step-by-step teaching material, not just topic names. Each step should be actionable and specific to healthcare industry context.',
+            'CRITICAL: The Learn field MUST contain actual educational content with concepts, explanations, principles, and examples—NOT references to external resources like books, courses, articles, or websites. Teach inline. Do not say "read X" or "take course Y"—instead explain the material directly.',
             'Keep writing specific, measurable, and role-aligned.'
           ].join(' ')
         },
