@@ -249,7 +249,7 @@ document.addEventListener('DOMContentLoaded', function () {
         : (window.innerWidth <= 900);
       if (isSmallViewport) {
         window.requestAnimationFrame(() => {
-          continueButton.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          continueButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
           continueButton.focus({ preventScroll: true });
         });
       }
