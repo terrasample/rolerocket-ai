@@ -123,12 +123,50 @@ document.addEventListener('DOMContentLoaded', async () => {
       return order.indexOf(tier);
     }
 
+    const tierLabels = {
+      free: 'Free Tier',
+      pro: 'Pro Tier',
+      premium: 'Premium Tier',
+      elite: 'Elite Tier',
+      recruiter: 'Recruiter Tier',
+    };
+
+    const tierUpgradeLabels = {
+      pro: 'Upgrade to Pro',
+      premium: 'Upgrade to Premium',
+      elite: 'Upgrade to Elite',
+      recruiter: 'Upgrade to Recruiter',
+    };
+
+    function createTierSectionHeader(tier, locked) {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'grid-column:1/-1;display:flex;align-items:center;gap:14px;margin:28px 0 6px 0;';
+
+      const label = document.createElement('h3');
+      label.textContent = tierLabels[tier] || tier;
+      label.style.cssText = 'margin:0;font-size:1.15rem;font-weight:700;white-space:nowrap;color:' + (locked ? '#94a3b8' : '#1e293b') + ';';
+
+      const rule = document.createElement('hr');
+      rule.style.cssText = 'flex:1;border:none;border-top:2px solid ' + (locked ? '#e2e8f0' : '#cbd5e1') + ';margin:0;';
+
+      if (locked) {
+        const badge = document.createElement('span');
+        badge.textContent = tierUpgradeLabels[tier] || 'Upgrade';
+        badge.style.cssText = 'font-size:0.78rem;font-weight:700;padding:3px 10px;border-radius:999px;background:#f1f5f9;color:#64748b;border:1px solid #cbd5e1;white-space:nowrap;cursor:pointer;';
+        badge.onclick = () => { window.location.href = 'pricing.html'; };
+        wrapper.append(label, rule, badge);
+      } else {
+        wrapper.append(label, rule);
+      }
+
+      return wrapper;
+    }
+
     async function renderDashboardFeatures() {
       const featuresSection = document.getElementById('dashboardFeaturesSection');
       const featuresGrid = document.getElementById('dashboardFeaturesGrid');
       const featuresHeader = document.getElementById('dashboardFeaturesHeader');
       if (!featuresSection || !featuresGrid) return;
-      // Ensure the grid class is present (do not add pricing-top)
       featuresGrid.innerHTML = '';
       let userPlan = 'free';
       let isAdmin = false;
@@ -145,53 +183,56 @@ document.addEventListener('DOMContentLoaded', async () => {
         isRecruiter = userPlan && String(userPlan).toLowerCase().includes('recruiter');
       } catch {}
 
-      // If admin/lifetime/subscribed, show everything
-      if (isAdmin || isLifetime || isSubscribed) {
-        featuresHeader.textContent = 'All Features (Unlocked)';
-        // Show all candidate features
-        featureTiers.forEach(tier => {
-          tier.features.forEach(f => {
-            featuresGrid.appendChild(createFeatureCard(f, tier.tier));
-          });
-        });
-        // Show recruiter features
-        recruiterFeatures.forEach(f => {
-          featuresGrid.appendChild(createFeatureCard(f, 'recruiter'));
-        });
-        return;
-      }
-
-      // Show only features for the user's plan and lower
-      let maxTierIdx = getTierOrder(userPlan);
-      if (userPlan === 'lifetime') maxTierIdx = getTierOrder('elite');
+      const fullyUnlocked = isAdmin || isLifetime || isSubscribed;
+      let maxTierIdx = fullyUnlocked ? getTierOrder('elite') : getTierOrder(userPlan);
       if (maxTierIdx === -1) maxTierIdx = 0;
-      featuresHeader.textContent = 'Your Features';
-      for (let i = 0; i <= maxTierIdx; ++i) {
-        featureTiers[i].features.forEach(f => {
-          featuresGrid.appendChild(createFeatureCard(f, featureTiers[i].tier));
+
+      featuresHeader.textContent = fullyUnlocked ? 'All Features (Unlocked)' : 'Your Features';
+
+      // Render all candidate tiers — unlocked up to user plan, locked above
+      featureTiers.forEach((tierObj, idx) => {
+        const locked = !fullyUnlocked && idx > maxTierIdx;
+        featuresGrid.appendChild(createTierSectionHeader(tierObj.tier, locked));
+        tierObj.features.forEach(f => {
+          featuresGrid.appendChild(createFeatureCard(f, tierObj.tier, locked));
         });
-      }
-      // Show recruiter features only for recruiter plans
-      if (isRecruiter) {
-        recruiterFeatures.forEach(f => {
-          featuresGrid.appendChild(createFeatureCard(f, 'recruiter'));
-        });
-      }
+      });
+
+      // Recruiter tier — always locked unless recruiter or admin
+      const recruiterLocked = !fullyUnlocked && !isRecruiter;
+      featuresGrid.appendChild(createTierSectionHeader('recruiter', recruiterLocked));
+      recruiterFeatures.forEach(f => {
+        featuresGrid.appendChild(createFeatureCard(f, 'recruiter', recruiterLocked));
+      });
     }
 
-    function createFeatureCard(feature, tier) {
+    function createFeatureCard(feature, tier, locked) {
       const card = document.createElement('article');
       card.className = `marketing-card tier-feature ${tier}`;
-      card.tabIndex = 0;
-      card.style.cursor = 'pointer';
-      card.onclick = () => { window.location.href = feature.url; };
-      card.onkeypress = (e) => { if (e.key === 'Enter' || e.key === ' ') { window.location.href = feature.url; } };
       card.setAttribute('role', 'button');
       card.setAttribute('aria-label', feature.name);
-      card.innerHTML = `
-        <h3 class="feature-title">${feature.name}</h3>
-        <p>${feature.desc}</p>
-      `;
+
+      if (locked) {
+        card.tabIndex = 0;
+        card.style.cssText = 'cursor:pointer;opacity:0.48;filter:grayscale(0.6);position:relative;';
+        card.onclick = () => { window.location.href = 'pricing.html'; };
+        card.onkeypress = (e) => { if (e.key === 'Enter' || e.key === ' ') window.location.href = 'pricing.html'; };
+        card.innerHTML = `
+          <div style="position:absolute;top:12px;right:12px;font-size:0.75rem;font-weight:700;padding:2px 9px;border-radius:999px;background:#f1f5f9;color:#64748b;border:1px solid #cbd5e1;">🔒 Locked</div>
+          <h3 class="feature-title" style="color:#94a3b8;">${feature.name}</h3>
+          <p style="color:#94a3b8;">${feature.desc}</p>
+        `;
+      } else {
+        card.tabIndex = 0;
+        card.style.cursor = 'pointer';
+        card.onclick = () => { window.location.href = feature.url; };
+        card.onkeypress = (e) => { if (e.key === 'Enter' || e.key === ' ') window.location.href = feature.url; };
+        card.innerHTML = `
+          <h3 class="feature-title">${feature.name}</h3>
+          <p>${feature.desc}</p>
+        `;
+      }
+
       return card;
     }
 
