@@ -3565,6 +3565,46 @@ app.get('/api/learning/history', authenticateToken, async (req, res) => {
   }
 });
 
+app.post('/api/learning/course-lesson', authenticateToken, async (req, res) => {
+  try {
+    const topic = String(req.body?.topic || '').trim();
+    if (!topic) return res.status(400).json({ error: 'Topic is required.' });
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      max_tokens: 1400,
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an expert instructor teaching career and professional development skills. Teach directly like a live tutor sitting with the student. Do not use markdown symbols like *, #, **, or bullet dashes. Write in plain text with numbered concept labels only. Never reference external books, websites, courses, or tools the user should look up — teach the material inline with real explanations, examples, and techniques. Be specific and concrete.'
+        },
+        {
+          role: 'user',
+          content: [
+            `Teach me the skill: ${topic}`,
+            'Use this exact format, each on its own line:',
+            'Introduction: [2-3 sentences explaining what this skill is and why it is in high demand in the 2025-2026 job market]',
+            'Concept 1: [short title]: [teach this concept in 2-3 sentences — be specific, give a concrete example, explain how it works in real-world practice]',
+            'Concept 2: [short title]: [same format]',
+            'Concept 3: [short title]: [same format]',
+            'Concept 4: [short title]: [same format]',
+            'Concept 5: [short title]: [same format]',
+            'Common Mistake: [describe the most frequent error beginners make with this skill and explain exactly how to avoid it]',
+            'Exercise: [one specific hands-on task the learner should do right now — not "research X", but actually do something concrete like write code, create a document, run a command, fill in a template, or answer a scenario]',
+            'Quick Check: [ask one short question that tests genuine understanding of the material above, then on the next line write: Answer: [the correct answer with a brief explanation]]'
+          ].join('\n')
+        }
+      ]
+    });
+
+    const lesson = String(completion.choices[0].message.content || '').trim();
+    return res.json({ lesson });
+  } catch (err) {
+    console.error('Course lesson error:', err);
+    return res.status(500).json({ error: 'Failed to generate lesson.' });
+  }
+});
+
 app.post('/api/video-interview-practice/questions', authenticateToken, async (req, res) => {
   try {
     const roleTitle = String(req.body?.roleTitle || '').trim();

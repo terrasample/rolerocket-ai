@@ -581,3 +581,183 @@ document.addEventListener('DOMContentLoaded', function () {
 
   loadLearningHistory();
 });
+
+// ─── In-Demand Skills Library ────────────────────────────────────────────────
+(function initCourseLibrary() {
+  const COURSES = [
+    { id: 'python',              name: 'Python Programming',         cat: 'tech',     icon: '🐍', tag: 'Learn variables, functions, loops, and automation scripts.',   demand: 'Hot' },
+    { id: 'project-management', name: 'Project Management',         cat: 'business', icon: '📋', tag: 'Manage scope, timelines, budgets, and stakeholders.',           demand: 'Hot' },
+    { id: 'scrum-agile',        name: 'Scrum & Agile',              cat: 'business', icon: '🔄', tag: 'Master sprint planning, standups, and retrospectives.',         demand: 'Hot' },
+    { id: 'sql-data',           name: 'SQL & Data Analysis',        cat: 'data',     icon: '🗃️', tag: 'Query databases, join tables, and extract business insights.',  demand: 'Hot' },
+    { id: 'ai-ml',              name: 'AI & Machine Learning',      cat: 'tech',     icon: '🤖', tag: 'Understand how AI models work and apply ML to real problems.',  demand: 'Hot' },
+    { id: 'cybersecurity',      name: 'Cybersecurity Fundamentals', cat: 'tech',     icon: '🔒', tag: 'Identify threats and apply security best practices.',           demand: 'Rising' },
+    { id: 'cloud-computing',    name: 'Cloud Computing',            cat: 'tech',     icon: '☁️', tag: 'Learn cloud services, deployment models, and infrastructure.',  demand: 'Hot' },
+    { id: 'product-management', name: 'Product Management',         cat: 'business', icon: '📱', tag: 'Define roadmaps, lead teams, and ship products users love.',    demand: 'Rising' },
+    { id: 'power-bi',           name: 'Power BI & Data Viz',        cat: 'data',     icon: '📊', tag: 'Build dashboards that turn raw data into business decisions.',  demand: 'Rising' },
+    { id: 'ux-design',          name: 'UX Design Principles',       cat: 'design',   icon: '🎨', tag: 'Design user-centered interfaces with research and testing.',   demand: 'Rising' },
+    { id: 'advanced-excel',     name: 'Advanced Excel',             cat: 'data',     icon: '📈', tag: 'Master PivotTables, VLOOKUP, Power Query, and macros.',        demand: 'Hot' },
+    { id: 'leadership',         name: 'Leadership & Management',    cat: 'business', icon: '🧭', tag: 'Lead teams, give effective feedback, and manage performance.',  demand: 'Rising' },
+  ];
+
+  const grid = document.getElementById('courseGrid');
+  const filterBtns = document.querySelectorAll('.course-filter-btn');
+  const lessonPanel = document.getElementById('courseLessonPanel');
+  const lessonTitle = document.getElementById('courseLessonTitle');
+  const lessonBadge = document.getElementById('courseLessonBadge');
+  const lessonLoading = document.getElementById('courseLessonLoading');
+  const lessonContent = document.getElementById('courseLessonContent');
+  const closeBtn = document.getElementById('closeLessonBtn');
+
+  if (!grid) return;
+
+  let activeCat = 'all';
+  let activeCard = null;
+
+  function renderGrid(cat) {
+    const filtered = cat === 'all' ? COURSES : COURSES.filter((c) => c.cat === cat);
+    grid.innerHTML = filtered.map((course) => {
+      const demandColor = course.demand === 'Hot' ? '#ef4444' : '#f59e0b';
+      return `<div class="course-card" data-id="${course.id}" role="button" tabindex="0" aria-label="Start lesson: ${course.name}" style="background:#1e293b;border-radius:12px;padding:18px 16px;cursor:pointer;border:1px solid #334155;transition:border-color .2s,transform .15s;display:flex;flex-direction:column;gap:10px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:1.9rem;">${course.icon}</span>
+          <span style="font-size:0.72rem;font-weight:700;color:${demandColor};background:${demandColor}18;padding:3px 8px;border-radius:12px;letter-spacing:0.04em;">${course.demand.toUpperCase()}</span>
+        </div>
+        <div style="font-weight:700;color:#f1f5f9;font-size:0.97rem;line-height:1.3;">${course.name}</div>
+        <div style="font-size:0.83rem;color:#94a3b8;line-height:1.4;flex:1;">${course.tag}</div>
+        <button class="start-lesson-btn" data-id="${course.id}" style="margin-top:4px;padding:7px 0;border-radius:7px;border:none;background:#2563eb;color:#fff;font-size:0.83rem;font-weight:600;cursor:pointer;width:100%;">Start Lesson →</button>
+      </div>`;
+    }).join('');
+  }
+
+  function parseLessonHtml(raw) {
+    const lines = raw.split('\n').map((l) => l.trim()).filter(Boolean);
+    let html = '';
+    lines.forEach((line) => {
+      const introMatch = line.match(/^Introduction:\s*(.+)$/i);
+      if (introMatch) {
+        html += `<p style="color:#cbd5e1;font-style:italic;margin:0 0 18px 0;padding:12px 16px;background:#0f172a;border-radius:8px;border-left:3px solid #3b82f6;">${introMatch[1]}</p>`;
+        return;
+      }
+      const conceptMatch = line.match(/^Concept\s*\d+:\s*([^:]+):\s*(.+)$/i);
+      if (conceptMatch) {
+        html += `<div style="margin:0 0 16px 0;padding:14px 16px;background:#0f172a;border-radius:8px;">
+          <div style="font-weight:700;color:#60a5fa;font-size:0.87rem;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.04em;">${conceptMatch[1].trim()}</div>
+          <div style="color:#e2e8f0;line-height:1.7;">${conceptMatch[2].trim()}</div>
+        </div>`;
+        return;
+      }
+      const mistakeMatch = line.match(/^Common Mistake:\s*(.+)$/i);
+      if (mistakeMatch) {
+        html += `<div style="margin:0 0 16px 0;padding:14px 16px;background:#2d1515;border-radius:8px;border-left:3px solid #ef4444;">
+          <div style="font-weight:700;color:#f87171;font-size:0.87rem;margin-bottom:6px;">⚠ COMMON MISTAKE</div>
+          <div style="color:#fca5a5;line-height:1.7;">${mistakeMatch[1].trim()}</div>
+        </div>`;
+        return;
+      }
+      const exerciseMatch = line.match(/^Exercise:\s*(.+)$/i);
+      if (exerciseMatch) {
+        html += `<div style="margin:0 0 16px 0;padding:14px 16px;background:#0c1a10;border-radius:8px;border-left:3px solid #22c55e;">
+          <div style="font-weight:700;color:#4ade80;font-size:0.87rem;margin-bottom:6px;">✏ HANDS-ON EXERCISE</div>
+          <div style="color:#bbf7d0;line-height:1.7;">${exerciseMatch[1].trim()}</div>
+        </div>`;
+        return;
+      }
+      const quickCheckMatch = line.match(/^Quick Check:\s*(.+)$/i);
+      if (quickCheckMatch) {
+        html += `<div style="margin:0 0 8px 0;padding:14px 16px;background:#16213e;border-radius:8px;border-left:3px solid #a78bfa;">
+          <div style="font-weight:700;color:#c4b5fd;font-size:0.87rem;margin-bottom:6px;">💡 QUICK CHECK</div>
+          <div style="color:#e2e8f0;line-height:1.7;">${quickCheckMatch[1].trim()}</div>`;
+        return;
+      }
+      const answerMatch = line.match(/^Answer:\s*(.+)$/i);
+      if (answerMatch) {
+        html += `<div style="margin-top:8px;padding:10px 12px;background:#1e1b3a;border-radius:6px;color:#c4b5fd;font-size:0.9rem;line-height:1.6;"><strong>Answer:</strong> ${answerMatch[1].trim()}</div></div>`;
+        return;
+      }
+      html += `<p style="color:#e2e8f0;margin:0 0 10px 0;">${line}</p>`;
+    });
+    return html;
+  }
+
+  async function startLesson(courseId) {
+    const course = COURSES.find((c) => c.id === courseId);
+    if (!course) return;
+
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token') || '';
+
+    lessonTitle.textContent = course.name;
+    lessonBadge.textContent = course.cat.charAt(0).toUpperCase() + course.cat.slice(1);
+    lessonContent.innerHTML = '';
+    lessonLoading.style.display = 'block';
+    lessonPanel.style.display = 'block';
+    lessonPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    try {
+      const res = await fetch('/api/learning/course-lesson', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ topic: course.name })
+      });
+      const data = await res.json();
+      lessonLoading.style.display = 'none';
+      if (!res.ok || !data.lesson) {
+        lessonContent.innerHTML = `<div style="color:#f87171;">${(data && data.error) || 'Failed to generate lesson. Please try again.'}</div>`;
+        return;
+      }
+      lessonContent.innerHTML = parseLessonHtml(data.lesson);
+    } catch (err) {
+      lessonLoading.style.display = 'none';
+      lessonContent.innerHTML = '<div style="color:#f87171;">Error loading lesson. Please try again.</div>';
+    }
+  }
+
+  grid.addEventListener('click', function (e) {
+    const btn = e.target.closest('.start-lesson-btn');
+    const card = e.target.closest('.course-card');
+    const id = (btn || card)?.dataset?.id;
+    if (id) startLesson(id);
+  });
+
+  grid.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      const card = e.target.closest('.course-card');
+      if (card?.dataset?.id) startLesson(card.dataset.id);
+    }
+  });
+
+  closeBtn?.addEventListener('click', function () {
+    lessonPanel.style.display = 'none';
+    lessonContent.innerHTML = '';
+    activeCard = null;
+  });
+
+  filterBtns.forEach((btn) => {
+    btn.addEventListener('click', function () {
+      filterBtns.forEach((b) => {
+        b.style.background = 'transparent';
+        b.style.borderColor = '#475569';
+        b.style.color = '#94a3b8';
+        b.classList.remove('active-filter');
+      });
+      btn.style.background = '#1e40af';
+      btn.style.borderColor = '#3b82f6';
+      btn.style.color = '#fff';
+      btn.classList.add('active-filter');
+      activeCat = btn.dataset.cat;
+      renderGrid(activeCat);
+      lessonPanel.style.display = 'none';
+    });
+  });
+
+  // Card hover effects via event delegation
+  grid.addEventListener('mouseover', function (e) {
+    const card = e.target.closest('.course-card');
+    if (card) { card.style.borderColor = '#3b82f6'; card.style.transform = 'translateY(-2px)'; }
+  });
+  grid.addEventListener('mouseout', function (e) {
+    const card = e.target.closest('.course-card');
+    if (card) { card.style.borderColor = '#334155'; card.style.transform = ''; }
+  });
+
+  renderGrid('all');
+}());

@@ -85,6 +85,36 @@
 
         <div id="learningOutput"></div>
       </section>
+
+      <!-- In-Demand Skills Library -->
+      <section style="max-width:860px;margin:0 auto 48px auto;text-align:left;">
+        <div style="background:#0f172a;border-radius:16px;padding:32px 28px;">
+          <h2 style="color:#f1f5f9;margin:0 0 6px 0;font-size:1.45rem;">In-Demand Skills Library</h2>
+          <p style="color:#94a3b8;margin:0 0 24px 0;font-size:0.95rem;">Pick any course to get an instant AI-powered lesson — taught directly, no redirects or external links.</p>
+
+          <div id="courseFilterBtns" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px;">
+            <button class="course-filter-btn active-filter" data-cat="all" style="padding:6px 16px;border-radius:20px;border:1px solid #3b82f6;background:#1e40af;color:#fff;cursor:pointer;font-size:0.85rem;">All</button>
+            <button class="course-filter-btn" data-cat="tech" style="padding:6px 16px;border-radius:20px;border:1px solid #475569;background:transparent;color:#94a3b8;cursor:pointer;font-size:0.85rem;">Tech</button>
+            <button class="course-filter-btn" data-cat="business" style="padding:6px 16px;border-radius:20px;border:1px solid #475569;background:transparent;color:#94a3b8;cursor:pointer;font-size:0.85rem;">Business</button>
+            <button class="course-filter-btn" data-cat="data" style="padding:6px 16px;border-radius:20px;border:1px solid #475569;background:transparent;color:#94a3b8;cursor:pointer;font-size:0.85rem;">Data</button>
+            <button class="course-filter-btn" data-cat="design" style="padding:6px 16px;border-radius:20px;border:1px solid #475569;background:transparent;color:#94a3b8;cursor:pointer;font-size:0.85rem;">Design</button>
+          </div>
+
+          <div id="courseGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;"></div>
+
+          <div id="courseLessonPanel" style="display:none;margin-top:28px;background:#1e293b;border-radius:12px;padding:24px 22px;">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;gap:12px;">
+              <div>
+                <div id="courseLessonBadge" style="font-size:0.78rem;font-weight:600;letter-spacing:0.05em;color:#60a5fa;margin-bottom:4px;text-transform:uppercase;"></div>
+                <h3 id="courseLessonTitle" style="color:#f1f5f9;margin:0;font-size:1.2rem;"></h3>
+              </div>
+              <button id="closeLessonBtn" style="background:none;border:1px solid #475569;color:#94a3b8;border-radius:6px;padding:5px 14px;cursor:pointer;font-size:0.82rem;white-space:nowrap;flex-shrink:0;">✕ Close</button>
+            </div>
+            <div id="courseLessonLoading" style="color:#94a3b8;font-size:0.95rem;display:none;padding:12px 0;">Generating your lesson...</div>
+            <div id="courseLessonContent" style="color:#e2e8f0;line-height:1.75;font-size:0.95rem;"></div>
+          </div>
+        </div>
+      </section>
     </main>
   </div>
 
