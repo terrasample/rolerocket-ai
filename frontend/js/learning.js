@@ -2,10 +2,15 @@ document.addEventListener('DOMContentLoaded', function () {
   const grid = document.getElementById('courseGrid');
   const filterWrap = document.getElementById('courseDemandFilters');
   const filterSummary = document.getElementById('courseFilterSummary');
+  const searchInput = document.getElementById('courseSearchInput');
+  const clearSearchBtn = document.getElementById('courseSearchClearBtn');
+  const preferenceStatus = document.getElementById('coursePreferenceStatus');
   if (!grid) return;
 
+  const CATALOG_PREFS_KEY = 'learningCatalogPrefs';
   const progressByKey = new Map();
   let activeFilter = 'ALL';
+  let searchTerm = '';
 
   const courses = [
     { rank: 1, id: 'ai-machine-learning', name: 'AI & Machine Learning', summary: 'Understand how AI models work and apply ML to real problems.', demand: 'HOT' },
@@ -39,6 +44,48 @@ document.addEventListener('DOMContentLoaded', function () {
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '') || 'course';
+  }
+
+  function normalizeText(value) {
+    return String(value || '').trim().toLowerCase();
+  }
+
+  function savePreferences() {
+    try {
+      localStorage.setItem(CATALOG_PREFS_KEY, JSON.stringify({
+        activeFilter,
+        searchTerm
+      }));
+      if (preferenceStatus) preferenceStatus.textContent = 'Search and filter preferences are saved on this device.';
+    } catch (error) {
+      if (preferenceStatus) preferenceStatus.textContent = 'Preferences could not be saved in this browser.';
+    }
+  }
+
+  function loadPreferences() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(CATALOG_PREFS_KEY) || '{}');
+      const savedFilter = String(parsed?.activeFilter || 'ALL').toUpperCase();
+      const savedSearch = String(parsed?.searchTerm || '').trim();
+      activeFilter = ['ALL', 'HOT', 'RISING'].includes(savedFilter) ? savedFilter : 'ALL';
+      searchTerm = savedSearch;
+      if (searchInput) searchInput.value = searchTerm;
+    } catch (error) {
+      activeFilter = 'ALL';
+      searchTerm = '';
+    }
+  }
+
+  function matchesSearch(course) {
+    const query = normalizeText(searchTerm);
+    if (!query) return true;
+    const haystack = normalizeText([
+      course?.name,
+      course?.summary,
+      course?.demand,
+      `rank ${course?.rank}`
+    ].join(' '));
+    return haystack.includes(query);
   }
 
   function cardHtml(course) {
@@ -77,15 +124,28 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function renderGrid() {
-    const visibleCourses = courses.filter((course) => activeFilter === 'ALL' || course.demand === activeFilter);
+    const visibleCourses = courses.filter((course) => (
+      (activeFilter === 'ALL' || course.demand === activeFilter)
+      && matchesSearch(course)
+    ));
     if (filterSummary) {
-      if (activeFilter === 'ALL') {
-        filterSummary.textContent = `Showing all ${visibleCourses.length} courses`;
+      if (!visibleCourses.length) {
+        filterSummary.textContent = searchTerm
+          ? `No courses matched "${searchTerm}"`
+          : 'No courses matched the selected filter';
+      } else if (activeFilter === 'ALL') {
+        filterSummary.textContent = searchTerm
+          ? `Showing ${visibleCourses.length} search results`
+          : `Showing all ${visibleCourses.length} courses`;
       } else {
-        filterSummary.textContent = `Showing ${visibleCourses.length} ${activeFilter.toLowerCase()} courses`;
+        filterSummary.textContent = searchTerm
+          ? `Showing ${visibleCourses.length} ${activeFilter.toLowerCase()} search results`
+          : `Showing ${visibleCourses.length} ${activeFilter.toLowerCase()} courses`;
       }
     }
-    grid.innerHTML = visibleCourses.map(cardHtml).join('');
+    grid.innerHTML = visibleCourses.length
+      ? visibleCourses.map(cardHtml).join('')
+      : '<div style="grid-column:1 / -1;background:#132039;border:1px solid #2b3a56;border-radius:14px;padding:20px;color:#cbd5e1;"><div style="font-size:1rem;font-weight:700;color:#f8fafc;margin-bottom:8px;">No courses found</div><div style="line-height:1.6;">Try a different keyword or switch back to another demand filter.</div></div>';
   }
 
   function updateFilterButtons() {
@@ -156,10 +216,25 @@ document.addEventListener('DOMContentLoaded', function () {
       if (!button) return;
       activeFilter = String(button.getAttribute('data-course-filter') || 'ALL');
       updateFilterButtons();
+      savePreferences();
       renderGrid();
     });
   }
 
+  searchInput?.addEventListener('input', function () {
+    searchTerm = String(searchInput.value || '').trim();
+    savePreferences();
+    renderGrid();
+  });
+
+  clearSearchBtn?.addEventListener('click', function () {
+    searchTerm = '';
+    if (searchInput) searchInput.value = '';
+    savePreferences();
+    renderGrid();
+  });
+
+  loadPreferences();
   updateFilterButtons();
   loadCatalogProgress();
 });
