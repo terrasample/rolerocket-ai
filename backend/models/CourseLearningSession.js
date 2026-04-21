@@ -7,7 +7,7 @@ const CourseLearningSessionSchema = new mongoose.Schema(
     courseTitle: { type: String, required: true, trim: true },
     contentFingerprint: { type: String, required: true, trim: true, index: true },
     sessionToken: { type: String, required: true, trim: true, index: true },
-    answers: { type: [String], default: [] },
+    answers: { type: [mongoose.Schema.Types.Mixed], default: [] },
     expiresAt: { type: Date, required: true, index: true }
   },
   { timestamps: true }

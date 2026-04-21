@@ -5,19 +5,27 @@ document.addEventListener('DOMContentLoaded', function () {
   const progressByKey = new Map();
 
   const courses = [
-    { id: 'python-programming', name: 'Python Programming', summary: 'Learn variables, functions, loops, and automation scripts.', demand: 'HOT' },
-    { id: 'project-management', name: 'Project Management', summary: 'Manage scope, timelines, budgets, and stakeholders.', demand: 'HOT' },
-    { id: 'scrum-agile', name: 'Scrum & Agile', summary: 'Master sprint planning, standups, and retrospectives.', demand: 'HOT' },
-    { id: 'sql-data-analysis', name: 'SQL & Data Analysis', summary: 'Query databases, join tables, and extract business insights.', demand: 'HOT' },
-    { id: 'ai-machine-learning', name: 'AI & Machine Learning', summary: 'Understand how AI models work and apply ML to real problems.', demand: 'HOT' },
-    { id: 'cybersecurity-fundamentals', name: 'Cybersecurity Fundamentals', summary: 'Identify threats and apply security best practices.', demand: 'RISING' },
-    { id: 'cloud-computing', name: 'Cloud Computing', summary: 'Learn cloud services, deployment models, and infrastructure.', demand: 'HOT' },
-    { id: 'product-management', name: 'Product Management', summary: 'Define roadmaps, lead teams, and ship products users love.', demand: 'RISING' },
-    { id: 'power-bi-data-viz', name: 'Power BI & Data Viz', summary: 'Build dashboards that turn raw data into business decisions.', demand: 'RISING' },
-    { id: 'ux-design-principles', name: 'UX Design Principles', summary: 'Design user-centered interfaces with research and testing.', demand: 'RISING' },
-    { id: 'advanced-excel', name: 'Advanced Excel', summary: 'Master PivotTables, VLOOKUP, Power Query, and macros.', demand: 'HOT' },
-    { id: 'leadership-management', name: 'Leadership & Management', summary: 'Lead teams, give effective feedback, and manage performance.', demand: 'RISING' }
-  ];
+    { rank: 1, id: 'ai-machine-learning', name: 'AI & Machine Learning', summary: 'Understand how AI models work and apply ML to real problems.', demand: 'HOT' },
+    { rank: 2, id: 'prompt-engineering-ai-ops', name: 'Prompt Engineering & AI Ops', summary: 'Create reliable AI workflows, guardrails, and production-ready prompts.', demand: 'HOT' },
+    { rank: 3, id: 'data-engineering', name: 'Data Engineering', summary: 'Design pipelines, data models, and warehouse-ready datasets.', demand: 'HOT' },
+    { rank: 4, id: 'cloud-computing', name: 'Cloud Computing', summary: 'Learn cloud services, deployment models, and infrastructure.', demand: 'HOT' },
+    { rank: 5, id: 'cybersecurity-fundamentals', name: 'Cybersecurity Fundamentals', summary: 'Identify threats and apply security best practices.', demand: 'HOT' },
+    { rank: 6, id: 'software-engineering-fundamentals', name: 'Software Engineering Fundamentals', summary: 'Build reliable applications with core programming, testing, and architecture habits.', demand: 'HOT' },
+    { rank: 7, id: 'python-programming', name: 'Python Programming', summary: 'Learn variables, functions, loops, and automation scripts.', demand: 'HOT' },
+    { rank: 8, id: 'sql-data-analysis', name: 'SQL & Data Analysis', summary: 'Query databases, join tables, and extract business insights.', demand: 'HOT' },
+    { rank: 9, id: 'devops-kubernetes', name: 'DevOps & Kubernetes', summary: 'Ship faster with CI/CD, containers, orchestration, and observability.', demand: 'HOT' },
+    { rank: 10, id: 'project-management', name: 'Project Management', summary: 'Manage scope, timelines, budgets, and stakeholders.', demand: 'HOT' },
+    { rank: 11, id: 'product-management', name: 'Product Management', summary: 'Define roadmaps, lead teams, and ship products users love.', demand: 'HOT' },
+    { rank: 12, id: 'salesforce-administration', name: 'Salesforce Administration', summary: 'Configure objects, reports, automations, and user operations in Salesforce.', demand: 'HOT' },
+    { rank: 13, id: 'power-bi-data-viz', name: 'Power BI & Data Viz', summary: 'Build dashboards that turn raw data into business decisions.', demand: 'RISING' },
+    { rank: 14, id: 'advanced-excel', name: 'Advanced Excel', summary: 'Master PivotTables, VLOOKUP, Power Query, and macros.', demand: 'RISING' },
+    { rank: 15, id: 'scrum-agile', name: 'Scrum & Agile', summary: 'Master sprint planning, standups, and retrospectives.', demand: 'RISING' },
+    { rank: 16, id: 'business-analysis', name: 'Business Analysis', summary: 'Translate business needs into requirements, workflows, and delivery plans.', demand: 'RISING' },
+    { rank: 17, id: 'financial-analysis-fpa', name: 'Financial Analysis & FP&A', summary: 'Model revenue, forecast performance, and support strategic decisions.', demand: 'RISING' },
+    { rank: 18, id: 'digital-marketing-growth', name: 'Digital Marketing & Growth', summary: 'Run campaigns, measure funnels, and optimize customer acquisition.', demand: 'RISING' },
+    { rank: 19, id: 'ux-design-principles', name: 'UX Design Principles', summary: 'Design user-centered interfaces with research and testing.', demand: 'RISING' },
+    { rank: 20, id: 'leadership-management', name: 'Leadership & Management', summary: 'Lead teams, give effective feedback, and manage performance.', demand: 'RISING' }
+  ].sort((left, right) => left.rank - right.rank);
 
   function getToken() {
     return (typeof getStoredToken === 'function' ? getStoredToken() : localStorage.getItem('token')) || '';
@@ -34,6 +42,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const isHot = course.demand === 'HOT';
     const badgeBg = isHot ? 'rgba(239,68,68,0.12)' : 'rgba(245,158,11,0.16)';
     const badgeColor = isHot ? '#ef4444' : '#f59e0b';
+    const rankBg = course.rank <= 5 ? 'linear-gradient(135deg,#f59e0b,#f97316)' : 'linear-gradient(135deg,#2563eb,#0ea5e9)';
     const key = courseKey(course.name);
     const progress = progressByKey.get(key) || null;
     const percent = Number(progress?.progressPercent || 0);
@@ -43,12 +52,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
     return `
       <article class="course-card" data-course-id="${course.id}" style="background:#142138;border:1px solid #24334e;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px;cursor:pointer;min-height:210px;transition:transform .15s ease,border-color .15s ease;">
-        <div style="display:flex;justify-content:flex-end;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+          <span style="font-size:0.76rem;font-weight:800;padding:6px 10px;border-radius:999px;background:${rankBg};color:#fff;letter-spacing:.04em;">#${course.rank}</span>
           <span style="font-size:0.7rem;font-weight:700;padding:4px 10px;border-radius:999px;background:${badgeBg};color:${badgeColor};letter-spacing:.05em;">${course.demand}</span>
         </div>
         <h3 style="margin:0;color:#f8fafc;font-size:1.15rem;line-height:1.25;">${course.name}</h3>
         <p style="margin:0;color:#9fb0c7;font-size:0.92rem;line-height:1.4;flex:1;">${course.summary}</p>
         <div style="margin-top:auto;">
+          <div style="color:#7dd3fc;font-size:0.78rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin-bottom:8px;">2026 Heat Rank</div>
           <div style="display:flex;justify-content:space-between;align-items:center;color:#9fb0c7;font-size:0.78rem;margin-bottom:5px;">
             <span>${total > 0 ? `${done}/${total} modules` : 'No progress yet'}</span>
             <span>${percent}%</span>

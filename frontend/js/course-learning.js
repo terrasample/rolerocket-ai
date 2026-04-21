@@ -25,7 +25,15 @@ document.addEventListener('DOMContentLoaded', function () {
     totalModules: 0,
     completedModules: new Set(),
     learnerName: 'Learner',
-    sessionToken: ''
+    sessionToken: '',
+    moduleNarration: []
+  };
+
+  const audioState = {
+    activeModuleIndex: null,
+    utterance: null,
+    isPaused: false,
+    rate: 1
   };
 
   function getToken() {
@@ -56,20 +64,116 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
+  function resetModuleAudioButtons() {
+    document.querySelectorAll('button[data-module-audio-play-btn]').forEach((button) => {
+      button.textContent = 'Play Audio';
+      button.style.opacity = '1';
+    });
+    document.querySelectorAll('button[data-module-audio-pause-btn]').forEach((button) => {
+      button.textContent = 'Pause';
+      button.disabled = true;
+      button.style.opacity = '0.65';
+      button.style.cursor = 'default';
+    });
+  }
+
+  function setModuleAudioControls(idx, isPlaying) {
+    const playButton = document.querySelector(`button[data-module-audio-play-btn="${idx}"]`);
+    const pauseButton = document.querySelector(`button[data-module-audio-pause-btn="${idx}"]`);
+    if (playButton) {
+      playButton.textContent = isPlaying ? 'Stop Audio' : 'Play Audio';
+    }
+    if (pauseButton) {
+      pauseButton.disabled = !isPlaying;
+      pauseButton.style.opacity = isPlaying ? '1' : '0.65';
+      pauseButton.style.cursor = isPlaying ? 'pointer' : 'default';
+      pauseButton.textContent = audioState.isPaused ? 'Resume' : 'Pause';
+    }
+  }
+
+  function stopModuleAudio() {
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+    audioState.activeModuleIndex = null;
+    audioState.utterance = null;
+    audioState.isPaused = false;
+    resetModuleAudioButtons();
+  }
+
+  function playModuleAudio(idx, restart = false) {
+    if (!restart && audioState.activeModuleIndex === idx) {
+      stopModuleAudio();
+      return;
+    }
+
+    const narration = String(progressState.moduleNarration[idx] || '').trim();
+    if (!narration) return;
+
+    stopModuleAudio();
+
+    const playButton = document.querySelector(`button[data-module-audio-play-btn="${idx}"]`);
+    const utterance = new SpeechSynthesisUtterance(narration);
+    utterance.rate = audioState.rate;
+    utterance.pitch = 1;
+    utterance.onend = stopModuleAudio;
+    utterance.onerror = stopModuleAudio;
+
+    audioState.activeModuleIndex = idx;
+    audioState.utterance = utterance;
+    audioState.isPaused = false;
+    if (playButton) playButton.textContent = 'Stop Audio';
+    setModuleAudioControls(idx, true);
+    window.speechSynthesis.speak(utterance);
+  }
+
+  function startModuleAudio(idx) {
+    if (!window.speechSynthesis || typeof window.SpeechSynthesisUtterance !== 'function') {
+      alert('Audio playback is not supported in this browser.');
+      return;
+    }
+
+    playModuleAudio(idx, false);
+  }
+
+  function togglePauseModuleAudio(idx) {
+    if (!window.speechSynthesis || audioState.activeModuleIndex !== idx || !audioState.utterance) {
+      return;
+    }
+
+    if (window.speechSynthesis.paused || audioState.isPaused) {
+      window.speechSynthesis.resume();
+      audioState.isPaused = false;
+    } else {
+      window.speechSynthesis.pause();
+      audioState.isPaused = true;
+    }
+
+    setModuleAudioControls(idx, true);
+  }
+
+  function updateAudioRate(nextRate) {
+    const parsed = Number(nextRate);
+    if (!Number.isFinite(parsed) || parsed <= 0) return;
+    audioState.rate = parsed;
+
+    if (audioState.activeModuleIndex !== null) {
+      playModuleAudio(audioState.activeModuleIndex, true);
+    }
+  }
+
   function setPassedModuleUi(idx, source) {
     const moduleCheckbox = document.querySelector(`input[data-module-checkbox="${idx}"]`);
-    const answerInput = document.querySelector(`input[data-progress-check-input="${idx}"]`);
+    const answerInputs = document.querySelectorAll(`input[data-progress-check-option="${idx}"]`);
     const button = document.querySelector(`button[data-progress-check-btn="${idx}"]`);
     const resultWrap = document.querySelector(`div[data-progress-check-result="${idx}"]`);
 
     if (moduleCheckbox) {
       moduleCheckbox.checked = true;
     }
-    if (answerInput) {
-      answerInput.disabled = true;
-      answerInput.value = answerInput.value || 'Passed';
-      answerInput.style.opacity = '0.8';
-    }
+    answerInputs.forEach((input) => {
+      input.disabled = true;
+    });
     if (button) {
       button.disabled = true;
       button.textContent = 'Passed';
@@ -99,17 +203,18 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     const token = getToken();
-    const answerInput = document.querySelector(`input[data-progress-check-input="${idx}"]`);
+    const selectedOption = document.querySelector(`input[name="module-progress-check-${idx}"]:checked`);
     const resultWrap = document.querySelector(`div[data-progress-check-result="${idx}"]`);
     const button = document.querySelector(`button[data-progress-check-btn="${idx}"]`);
-    if (!answerInput || !resultWrap || !button) return;
+    if (!resultWrap || !button) return;
 
-    const userAnswer = String(answerInput.value || '').trim();
-    if (!userAnswer) {
-      resultWrap.textContent = 'Enter your answer first.';
+    if (!selectedOption) {
+      resultWrap.textContent = 'Select an answer first.';
       resultWrap.style.color = '#fda4af';
       return;
     }
+
+    const selectedOptionIndex = Number(selectedOption.value);
 
     button.disabled = true;
     const originalLabel = button.textContent;
@@ -125,7 +230,7 @@ document.addEventListener('DOMContentLoaded', function () {
         body: JSON.stringify({
           topic,
           moduleIndex: idx,
-          userAnswer,
+          selectedOptionIndex,
           sessionToken: progressState.sessionToken
         })
       });
@@ -211,13 +316,23 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     });
 
-    document.querySelectorAll('input[data-progress-check-input]').forEach((input) => {
-      input.addEventListener('keydown', function (event) {
-        if (event.key !== 'Enter') return;
-        event.preventDefault();
-        const idx = input.getAttribute('data-progress-check-input');
-        const button = document.querySelector(`button[data-progress-check-btn="${idx}"]`);
-        if (button && !button.disabled) button.click();
+    document.querySelectorAll('button[data-module-audio-play-btn]').forEach((button) => {
+      button.addEventListener('click', function () {
+        const idx = Number(button.getAttribute('data-module-audio-play-btn'));
+        startModuleAudio(idx);
+      });
+    });
+
+    document.querySelectorAll('button[data-module-audio-pause-btn]').forEach((button) => {
+      button.addEventListener('click', function () {
+        const idx = Number(button.getAttribute('data-module-audio-pause-btn'));
+        togglePauseModuleAudio(idx);
+      });
+    });
+
+    document.querySelectorAll('select[data-module-audio-rate]').forEach((select) => {
+      select.addEventListener('change', function () {
+        updateAudioRate(select.value);
       });
     });
   }
@@ -236,6 +351,21 @@ document.addEventListener('DOMContentLoaded', function () {
 
     progressState.totalModules = list.length;
     progressState.completedModules = new Set();
+    progressState.moduleNarration = list.map((moduleItem, index) => {
+      const options = asArray(moduleItem?.progressCheckOptions)
+        .map((option, optionIndex) => `Option ${optionIndex + 1}. ${String(option)}`)
+        .join(' ');
+      return [
+        `Module ${index + 1}. ${String(moduleItem?.title || `Module ${index + 1}`)}.`,
+        `Objective. ${String(moduleItem?.objective || '')}`,
+        `Lesson. ${String(moduleItem?.lesson || '')}`,
+        `Worked example. ${String(moduleItem?.workedExample || '')}`,
+        `Common mistake. ${String(moduleItem?.commonMistake || '')}`,
+        `Practice task. ${String(moduleItem?.practiceTask || '')}`,
+        `Progress check. ${String(moduleItem?.progressCheckQuestion || '')}`,
+        options
+      ].filter(Boolean).join(' ');
+    });
     updateProgressUi();
 
     if (!list.length) {
@@ -251,12 +381,19 @@ document.addEventListener('DOMContentLoaded', function () {
       const commonMistake = String(moduleItem?.commonMistake || '');
       const practiceTask = String(moduleItem?.practiceTask || '');
       const progressCheckQuestion = String(moduleItem?.progressCheckQuestion || `In one sentence, what is the key takeaway of module ${index + 1}?`);
+      const progressCheckOptions = asArray(moduleItem?.progressCheckOptions).slice(0, 4);
+      const optionMarkup = progressCheckOptions.map((option, optionIndex) => `
+        <label style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:8px;background:#111c31;border:1px solid #2a3954;cursor:pointer;color:#d0d9e7;">
+          <input type="radio" name="module-progress-check-${index}" data-progress-check-option="${index}" value="${optionIndex}" style="margin-top:3px;accent-color:#2563eb;" />
+          <span style="line-height:1.5;">${String(option)}</span>
+        </label>
+      `).join('');
 
       return `
         <section class="module-item">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;">
-            <h4 style="margin:0;">Module ${index + 1}: ${title}</h4>
-            <label style="display:flex;align-items:center;gap:6px;color:#86efac;font-size:0.84rem;white-space:nowrap;">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
+            <h4 style="margin:0;flex:1 1 260px;">Module ${index + 1}: ${title}</h4>
+            <label style="display:inline-flex;align-items:center;gap:8px;color:#86efac;font-size:0.84rem;white-space:nowrap;flex-shrink:0;margin-left:auto;padding:6px 10px;border-radius:999px;background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.24);">
               <input type="checkbox" data-module-checkbox="${index}" disabled style="accent-color:#22c55e;cursor:not-allowed;" />
               Completed
             </label>
@@ -266,12 +403,25 @@ document.addEventListener('DOMContentLoaded', function () {
           <p><strong style="color:#93c5fd;">Worked Example:</strong> ${workedExample}</p>
           <p><strong style="color:#fda4af;">Common Mistake:</strong> ${commonMistake}</p>
           <p><strong style="color:#86efac;">Practice Task:</strong> ${practiceTask}</p>
+          <div style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 12px 0;">
+            <button type="button" data-module-audio-play-btn="${index}" style="background:#0f766e;border:1px solid #14b8a6;color:#ecfeff;border-radius:8px;padding:8px 12px;cursor:pointer;font-size:0.82rem;font-weight:700;">Play Audio</button>
+            <button type="button" data-module-audio-pause-btn="${index}" disabled style="background:#1e293b;border:1px solid #475569;color:#e2e8f0;border-radius:8px;padding:8px 12px;cursor:default;font-size:0.82rem;font-weight:700;opacity:0.65;">Pause</button>
+            <label style="display:inline-flex;align-items:center;gap:6px;color:#cbd5e1;font-size:0.8rem;">
+              Speed
+              <select data-module-audio-rate="${index}" style="background:#0b1220;border:1px solid #2a3954;color:#f1f5f9;border-radius:8px;padding:7px 10px;">
+                <option value="0.9">0.9x</option>
+                <option value="1" selected>1.0x</option>
+                <option value="1.15">1.15x</option>
+                <option value="1.3">1.3x</option>
+              </select>
+            </label>
+          </div>
           <div style="margin-top:12px;padding:10px;border-radius:8px;background:#0b1220;border:1px solid #273449;">
             <div style="font-size:0.82rem;color:#c4b5fd;font-weight:700;margin-bottom:6px;">Progress Check</div>
             <div style="color:#d0d9e7;font-size:0.9rem;line-height:1.55;margin-bottom:8px;">${progressCheckQuestion}</div>
-            <input data-progress-check-input="${index}" type="text" placeholder="Type your answer" style="width:100%;margin-bottom:8px;background:#111c31;border:1px solid #2a3954;color:#f1f5f9;border-radius:6px;padding:8px;" />
-            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
-              <button type="button" data-progress-check-btn="${index}" style="background:#7c3aed;border:none;color:#fff;border-radius:6px;padding:7px 10px;cursor:pointer;font-size:0.82rem;font-weight:700;">Check Answer</button>
+            <div style="display:grid;gap:8px;margin-bottom:10px;">${optionMarkup}</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+              <button type="button" data-progress-check-btn="${index}" style="background:#7c3aed;border:none;color:#fff;border-radius:6px;padding:7px 10px;cursor:pointer;font-size:0.82rem;font-weight:700;">Submit Answer</button>
               <div data-progress-check-result="${index}" style="font-size:0.82rem;color:#9fb0c7;"></div>
             </div>
           </div>
@@ -412,7 +562,9 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     setCourseLoadingState(true, forceRefresh ? 'Refreshing...' : 'Loading...');
+    stopModuleAudio();
     progressState.sessionToken = '';
+    progressState.moduleNarration = [];
     titleMain.textContent = `Loading ${topic}...`;
     titleSide.textContent = `Loading ${topic}...`;
     subtitleSide.textContent = forceRefresh ? 'Refreshing course version...' : 'Generating complete curriculum...';

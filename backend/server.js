@@ -3587,7 +3587,7 @@ app.post('/api/learning/course-content', authenticateToken, async (req, res) => 
 
     let course = null;
 
-    if (!forceRefresh && cachedCourse && cachedCourse.expiresAt && new Date(cachedCourse.expiresAt).getTime() > now && cachedCourse.coursePayload) {
+    if (!forceRefresh && cachedCourse && cachedCourse.expiresAt && new Date(cachedCourse.expiresAt).getTime() > now && cachedCourse.coursePayload && hasStructuredProgressChecks(cachedCourse.coursePayload)) {
       course = cachedCourse.coursePayload;
     } else {
       const completion = await openai.chat.completions.create({
@@ -3621,7 +3621,8 @@ Return ONLY a JSON object with this exact shape and key names:
       "commonMistake": "string",
       "practiceTask": "string",
       "progressCheckQuestion": "string",
-      "progressCheckAnswer": "string"
+      "progressCheckOptions": ["string", "string", "string", "string"],
+      "correctOptionIndex": 0
     }
   ],
   "capstoneProject": {
@@ -3643,7 +3644,8 @@ Rules:
 - Each module.lesson must be 120-180 words and must teach concrete how-to steps.
 - Each module.workedExample must include a realistic scenario with numbers, constraints, or decisions.
 - Each module.progressCheckQuestion must test practical understanding of that specific module.
-- Each module.progressCheckAnswer must be concise (one sentence) and directly answer the question.
+- Each module.progressCheckOptions must contain exactly 4 plausible multiple-choice answers.
+- Each module.correctOptionIndex must be an integer from 0 to 3 and point to the single best answer.
 - Avoid fluff and generic advice.
 - No markdown, no code fences, no extra text outside JSON.`
           }
@@ -3687,6 +3689,10 @@ Rules:
         };
       }
 
+      if (Array.isArray(course?.modules)) {
+        course.modules = course.modules.map((module, index) => normalizeCourseModule(module, index));
+      }
+
       const generatedFingerprint = createCourseContentFingerprint(course);
       await CourseContentCache.findOneAndUpdate(
         { courseKey },
@@ -3704,7 +3710,9 @@ Rules:
 
     const contentFingerprint = createCourseContentFingerprint(course);
     const modules = Array.isArray(course?.modules) ? course.modules : [];
-    const answers = modules.map((module) => String(module?.progressCheckAnswer || '').trim());
+    const answers = modules.map((module) => ({
+      correctOptionIndex: Number(module?.correctOptionIndex)
+    }));
     const sessionToken = crypto.randomBytes(24).toString('hex');
     const expiresAt = new Date(Date.now() + COURSE_CHECK_SESSION_TTL_MS);
 
@@ -3759,7 +3767,7 @@ Rules:
       course: {
         ...course,
         modules: modules.map((module) => {
-          const { progressCheckAnswer, ...safeModule } = module || {};
+          const { correctOptionIndex, ...safeModule } = module || {};
           return safeModule;
         })
       }
@@ -3781,37 +3789,58 @@ function createCourseContentFingerprint(course) {
   return crypto.createHash('sha256').update(JSON.stringify(course || {})).digest('hex');
 }
 
-function normalizeCheckText(value) {
-  return String(value || '')
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+function hasStructuredProgressChecks(course) {
+  const modules = Array.isArray(course?.modules) ? course.modules : [];
+  if (!modules.length) return true;
+  return modules.every((module) => (
+    Array.isArray(module?.progressCheckOptions)
+    && module.progressCheckOptions.length >= 4
+    && Number.isInteger(Number(module?.correctOptionIndex))
+  ));
 }
 
-function checkAnswerMatch(userAnswer, expectedAnswer) {
-  const user = normalizeCheckText(userAnswer);
-  const expected = normalizeCheckText(expectedAnswer);
-  if (!user || !expected) return false;
-  if (user === expected) return true;
-  if (user.includes(expected) || expected.includes(user)) return true;
+function normalizeCourseModule(module, index) {
+  const rawOptions = Array.isArray(module?.progressCheckOptions)
+    ? module.progressCheckOptions.map((option) => String(option || '').trim()).filter(Boolean)
+    : [];
+  const fallbackOptions = [
+    'Apply the core process described in the lesson before moving forward.',
+    'Skip the planning step and rely on assumptions instead.',
+    'Wait until issues escalate before reviewing the work.',
+    'Focus only on tools and ignore communication with stakeholders.'
+  ];
+  const progressCheckOptions = rawOptions.length >= 4
+    ? rawOptions.slice(0, 4)
+    : fallbackOptions.map((option, optionIndex) => rawOptions[optionIndex] || option);
+  const numericCorrectOptionIndex = Number(module?.correctOptionIndex);
+  const correctOptionIndex = Number.isInteger(numericCorrectOptionIndex)
+    && numericCorrectOptionIndex >= 0
+    && numericCorrectOptionIndex < progressCheckOptions.length
+      ? numericCorrectOptionIndex
+      : 0;
 
-  const expectedTokens = expected.split(' ').filter((token) => token.length > 2);
-  if (!expectedTokens.length) return false;
-  const hitCount = expectedTokens.filter((token) => user.includes(token)).length;
-  return hitCount >= Math.max(2, Math.ceil(expectedTokens.length * 0.6));
+  return {
+    ...module,
+    title: String(module?.title || `Module ${index + 1}`).trim(),
+    progressCheckQuestion: String(module?.progressCheckQuestion || `Which answer best reflects the core lesson from module ${index + 1}?`).trim(),
+    progressCheckOptions,
+    correctOptionIndex
+  };
 }
 
 app.post('/api/learning/course-progress-check', authenticateToken, async (req, res) => {
   try {
     const topic = String(req.body?.topic || '').trim();
     const moduleIndex = Number(req.body?.moduleIndex);
-    const userAnswer = String(req.body?.userAnswer || '').trim();
+    const selectedOptionIndex = Number(req.body?.selectedOptionIndex);
     const sessionToken = String(req.body?.sessionToken || '').trim();
 
     if (!topic) return res.status(400).json({ error: 'Topic is required.' });
     if (!Number.isInteger(moduleIndex) || moduleIndex < 0) {
       return res.status(400).json({ error: 'Valid moduleIndex is required.' });
+    }
+    if (!Number.isInteger(selectedOptionIndex) || selectedOptionIndex < 0) {
+      return res.status(400).json({ error: 'Valid selectedOptionIndex is required.' });
     }
     if (!sessionToken) {
       return res.status(400).json({ error: 'Session token is required.' });
@@ -3833,12 +3862,15 @@ app.post('/api/learning/course-progress-check', authenticateToken, async (req, r
       return res.status(409).json({ error: 'Progress check session expired. Reload the course and try again.' });
     }
 
-    const expectedAnswer = String((Array.isArray(session.answers) ? session.answers[moduleIndex] : '') || '').trim();
-    if (!expectedAnswer) {
+    const answerEntry = Array.isArray(session.answers) ? session.answers[moduleIndex] : null;
+    const expectedIndex = typeof answerEntry === 'object' && answerEntry !== null
+      ? Number(answerEntry.correctOptionIndex)
+      : Number(answerEntry);
+    if (!Number.isInteger(expectedIndex) || expectedIndex < 0) {
       return res.status(404).json({ error: 'Progress check data not found for this module.' });
     }
 
-    const passed = checkAnswerMatch(userAnswer, expectedAnswer);
+    const passed = selectedOptionIndex === expectedIndex;
     if (!passed) {
       return res.json({ passed: false });
     }
