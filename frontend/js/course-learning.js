@@ -320,9 +320,24 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function finalizeProgressAdvance(idx) {
     const pending = progressState.pendingAdvance;
-    if (!pending || Number(pending.idx) !== Number(idx)) return;
+    const numericIdx = Number(idx);
+    if (!Number.isInteger(numericIdx) || numericIdx < 0) return;
+
+    // Fallback progression in case pending state is stale/missing in the browser.
+    if (!pending || Number(pending.idx) !== numericIdx) {
+      const fallbackCompleted = Array.from(new Set([
+        ...Array.from(progressState.completedModules),
+        numericIdx
+      ]))
+        .filter((n) => Number.isInteger(n) && n >= 0 && n < progressState.totalModules)
+        .sort((a, b) => a - b);
+      progressState.pendingAdvance = null;
+      applyCompletedModules(fallbackCompleted, numericIdx);
+      return;
+    }
+
     progressState.pendingAdvance = null;
-    applyCompletedModules(pending.completedModules, Number(idx));
+    applyCompletedModules(pending.completedModules, numericIdx);
   }
 
   function resetModuleAudioButtons() {
