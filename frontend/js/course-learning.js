@@ -29,15 +29,17 @@ document.addEventListener('DOMContentLoaded', function () {
     sessionToken: '',
     moduleNarration: []
   };
+  let moduleHandlersBound = false;
 
   const audioState = {
     activeModuleIndex: null,
     utterance: null,
     isPaused: false,
-    rate: 1,
+    rate: 0.96,
     voices: [],
     selectedVoice: ''
   };
+  const AUDIO_VOICE_PREF_KEY = 'courseAudioVoicePreference';
 
   function getToken() {
     return (typeof getStoredToken === 'function' ? getStoredToken() : localStorage.getItem('token')) || '';
@@ -47,6 +49,63 @@ document.addEventListener('DOMContentLoaded', function () {
     return Array.isArray(value) ? value.filter(Boolean) : [];
   }
 
+  function escapeHtml(value) {
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function getBestVoice(voices) {
+    if (!Array.isArray(voices) || !voices.length) return null;
+
+    const noveltyPatterns = [
+      /bad news/i,
+      /bahh/i,
+      /bells/i,
+      /boing/i,
+      /bubbles/i,
+      /jester/i,
+      /organ/i,
+      /trinoids/i,
+      /whisper/i,
+      /wobble/i,
+      /zarvox/i,
+      /superstar/i,
+      /junior/i
+    ];
+
+    const preferredNames = [
+      /samantha/i,
+      /karen/i,
+      /moira/i,
+      /daniel/i,
+      /google us english/i,
+      /microsoft.*aria/i,
+      /microsoft.*jenny/i,
+      /alloy/i,
+      /nova/i
+    ];
+
+    const scored = voices.map((voice) => {
+      const name = String(voice?.name || '');
+      const lang = String(voice?.lang || '').toLowerCase();
+      let score = 0;
+
+      if (/^en[-_]/i.test(lang)) score += 15;
+      if (voice?.localService) score += 3;
+      if (preferredNames.some((pattern) => pattern.test(name))) score += 20;
+      if (noveltyPatterns.some((pattern) => pattern.test(name))) score -= 30;
+
+      return { voice, score };
+    });
+
+    scored.sort((left, right) => right.score - left.score);
+    return scored[0]?.voice || voices[0] || null;
+  }
+
   function populateVoiceOptions() {
     if (!audioVoiceSelect || !window.speechSynthesis) return;
     const voices = window.speechSynthesis.getVoices()
@@ -54,13 +113,16 @@ document.addEventListener('DOMContentLoaded', function () {
       .sort((left, right) => String(left.name).localeCompare(String(right.name)));
 
     audioState.voices = voices;
-    const previousSelection = audioState.selectedVoice || audioVoiceSelect.value || '';
+    const rememberedVoice = String(localStorage.getItem(AUDIO_VOICE_PREF_KEY) || '').trim();
+    const previousSelection = audioState.selectedVoice || audioVoiceSelect.value || rememberedVoice || '';
     const options = ['<option value="">System Default</option>']
       .concat(voices.map((voice) => `<option value="${String(voice.voiceURI || voice.name)}">${String(voice.name)}${voice.lang ? ` (${voice.lang})` : ''}</option>`));
 
     audioVoiceSelect.innerHTML = options.join('');
     const hasPrevious = voices.some((voice) => String(voice.voiceURI || voice.name) === previousSelection);
-    audioVoiceSelect.value = hasPrevious ? previousSelection : '';
+    const bestVoice = getBestVoice(voices);
+    const defaultVoiceKey = String(bestVoice?.voiceURI || bestVoice?.name || '');
+    audioVoiceSelect.value = hasPrevious ? previousSelection : defaultVoiceKey;
     audioState.selectedVoice = audioVoiceSelect.value;
   }
 
@@ -336,36 +398,45 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function bindProgressHandlers() {
-    document.querySelectorAll('button[data-progress-check-btn]').forEach((button) => {
-      button.addEventListener('click', async function () {
-        const idx = Number(button.getAttribute('data-progress-check-btn'));
+    if (moduleHandlersBound || !modules) return;
+    moduleHandlersBound = true;
+
+    modules.addEventListener('click', async function (event) {
+      const progressButton = event.target.closest('button[data-progress-check-btn]');
+      if (progressButton) {
+        const idx = Number(progressButton.getAttribute('data-progress-check-btn'));
         await runProgressCheck(idx);
-      });
-    });
+        return;
+      }
 
-    document.querySelectorAll('button[data-module-audio-play-btn]').forEach((button) => {
-      button.addEventListener('click', function () {
-        const idx = Number(button.getAttribute('data-module-audio-play-btn'));
+      const playButton = event.target.closest('button[data-module-audio-play-btn]');
+      if (playButton) {
+        const idx = Number(playButton.getAttribute('data-module-audio-play-btn'));
         startModuleAudio(idx);
-      });
-    });
+        return;
+      }
 
-    document.querySelectorAll('button[data-module-audio-pause-btn]').forEach((button) => {
-      button.addEventListener('click', function () {
-        const idx = Number(button.getAttribute('data-module-audio-pause-btn'));
+      const pauseButton = event.target.closest('button[data-module-audio-pause-btn]');
+      if (pauseButton) {
+        const idx = Number(pauseButton.getAttribute('data-module-audio-pause-btn'));
         togglePauseModuleAudio(idx);
-      });
+      }
     });
 
-    document.querySelectorAll('select[data-module-audio-rate]').forEach((select) => {
-      select.addEventListener('change', function () {
-        updateAudioRate(select.value);
-      });
+    modules.addEventListener('change', function (event) {
+      const rateSelect = event.target.closest('select[data-module-audio-rate]');
+      if (!rateSelect) return;
+      updateAudioRate(rateSelect.value);
     });
 
     if (audioVoiceSelect) {
       audioVoiceSelect.addEventListener('change', function () {
         audioState.selectedVoice = audioVoiceSelect.value;
+        try {
+          localStorage.setItem(AUDIO_VOICE_PREF_KEY, audioState.selectedVoice || '');
+        } catch (error) {
+          // Ignore storage failures in restricted browser contexts.
+        }
         if (audioState.activeModuleIndex !== null) {
           playModuleAudio(audioState.activeModuleIndex, true);
         }
@@ -410,18 +481,18 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     modules.innerHTML = list.map((moduleItem, index) => {
-      const title = String(moduleItem?.title || `Module ${index + 1}`);
-      const objective = String(moduleItem?.objective || '');
-      const lesson = String(moduleItem?.lesson || '');
-      const workedExample = String(moduleItem?.workedExample || '');
-      const commonMistake = String(moduleItem?.commonMistake || '');
-      const practiceTask = String(moduleItem?.practiceTask || '');
-      const progressCheckQuestion = String(moduleItem?.progressCheckQuestion || `In one sentence, what is the key takeaway of module ${index + 1}?`);
+      const title = escapeHtml(String(moduleItem?.title || `Module ${index + 1}`));
+      const objective = escapeHtml(String(moduleItem?.objective || ''));
+      const lesson = escapeHtml(String(moduleItem?.lesson || ''));
+      const workedExample = escapeHtml(String(moduleItem?.workedExample || ''));
+      const commonMistake = escapeHtml(String(moduleItem?.commonMistake || ''));
+      const practiceTask = escapeHtml(String(moduleItem?.practiceTask || ''));
+      const progressCheckQuestion = escapeHtml(String(moduleItem?.progressCheckQuestion || `In one sentence, what is the key takeaway of module ${index + 1}?`));
       const progressCheckOptions = asArray(moduleItem?.progressCheckOptions).slice(0, 4);
       const optionMarkup = progressCheckOptions.map((option, optionIndex) => `
-        <label style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:8px;background:#111c31;border:1px solid #2a3954;cursor:pointer;color:#d0d9e7;">
+        <label style="display:grid;grid-template-columns:18px minmax(0,1fr);align-items:flex-start;column-gap:10px;width:100%;box-sizing:border-box;padding:10px 12px;border-radius:8px;background:#111c31;border:1px solid #2a3954;cursor:pointer;color:#d0d9e7;overflow:hidden;">
           <input type="radio" name="module-progress-check-${index}" data-progress-check-option="${index}" value="${optionIndex}" style="margin-top:3px;accent-color:#2563eb;" />
-          <span style="line-height:1.5;">${String(option)}</span>
+          <span style="line-height:1.5;word-break:break-word;overflow-wrap:anywhere;white-space:normal;min-width:0;max-width:100%;flex:1 1 auto;display:block;">${escapeHtml(String(option))}</span>
         </label>
       `).join('');
 
@@ -456,9 +527,9 @@ document.addEventListener('DOMContentLoaded', function () {
             <div style="font-size:0.82rem;color:#c4b5fd;font-weight:700;margin-bottom:6px;">Progress Check</div>
             <div style="color:#d0d9e7;font-size:0.9rem;line-height:1.55;margin-bottom:8px;">${progressCheckQuestion}</div>
             <div style="display:grid;gap:8px;margin-bottom:10px;">${optionMarkup}</div>
-            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+            <div style="display:flex;flex-direction:column;align-items:flex-start;gap:8px;">
               <button type="button" data-progress-check-btn="${index}" style="background:#7c3aed;border:none;color:#fff;border-radius:6px;padding:7px 10px;cursor:pointer;font-size:0.82rem;font-weight:700;">Submit Answer</button>
-              <div data-progress-check-result="${index}" style="font-size:0.82rem;color:#9fb0c7;"></div>
+              <div data-progress-check-result="${index}" style="font-size:0.82rem;color:#9fb0c7;line-height:1.5;word-break:break-word;overflow-wrap:anywhere;width:100%;"></div>
             </div>
           </div>
         </section>
