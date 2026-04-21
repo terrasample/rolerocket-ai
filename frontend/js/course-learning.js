@@ -34,37 +34,6 @@ document.addEventListener('DOMContentLoaded', function () {
     return Array.isArray(value) ? value.filter(Boolean) : [];
   }
 
-  function normalizeText(value) {
-    return String(value || '')
-      .toLowerCase()
-      .replace(/[^a-z0-9\s]/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-  }
-
-  function escapeAttr(value) {
-    return String(value || '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
-
-  function answerMatches(userAnswer, expectedAnswer) {
-    const user = normalizeText(userAnswer);
-    const expected = normalizeText(expectedAnswer);
-    if (!user || !expected) return false;
-
-    if (user === expected) return true;
-    if (user.includes(expected) || expected.includes(user)) return true;
-
-    const expectedTokens = expected.split(' ').filter((t) => t.length > 2);
-    if (!expectedTokens.length) return false;
-    const hitCount = expectedTokens.filter((token) => user.includes(token)).length;
-    return hitCount >= Math.max(2, Math.ceil(expectedTokens.length * 0.6));
-  }
-
   function updateProgressUi() {
     const total = Number(progressState.totalModules || 0);
     const completed = progressState.completedModules.size;
@@ -147,6 +116,69 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
+  async function runProgressCheck(idx) {
+    if (progressState.completedModules.has(idx)) {
+      setPassedModuleUi(idx, 'restored');
+      return;
+    }
+
+    const token = getToken();
+    const answerInput = document.querySelector(`input[data-progress-check-input="${idx}"]`);
+    const resultWrap = document.querySelector(`div[data-progress-check-result="${idx}"]`);
+    const button = document.querySelector(`button[data-progress-check-btn="${idx}"]`);
+    if (!answerInput || !resultWrap || !button) return;
+
+    const userAnswer = String(answerInput.value || '').trim();
+    if (!userAnswer) {
+      resultWrap.textContent = 'Enter your answer first.';
+      resultWrap.style.color = '#fda4af';
+      return;
+    }
+
+    button.disabled = true;
+    const originalLabel = button.textContent;
+    button.textContent = 'Checking...';
+
+    try {
+      const response = await fetch('/api/learning/course-progress-check', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          topic,
+          moduleIndex: idx,
+          userAnswer
+        })
+      });
+
+      const payload = await response.json();
+      if (response.ok && payload?.passed) {
+        progressState.completedModules.add(idx);
+        setPassedModuleUi(idx, 'fresh');
+        await saveProgress();
+        return;
+      }
+
+      if (response.status === 409) {
+        resultWrap.textContent = String(payload?.error || 'Session expired. Reload the course.');
+        resultWrap.style.color = '#fbbf24';
+      } else {
+        resultWrap.textContent = 'Not quite. Review the module and try again.';
+        resultWrap.style.color = '#fda4af';
+      }
+    } catch (error) {
+      resultWrap.textContent = 'Check failed. Please try again.';
+      resultWrap.style.color = '#fda4af';
+    } finally {
+      if (!progressState.completedModules.has(idx)) {
+        button.disabled = false;
+        button.textContent = originalLabel;
+      }
+    }
+  }
+
   async function loadProgress() {
     const token = getToken();
     if (!token || !topic || progressState.totalModules <= 0) {
@@ -189,29 +221,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function bindProgressHandlers() {
     document.querySelectorAll('button[data-progress-check-btn]').forEach((button) => {
-      button.addEventListener('click', function () {
+      button.addEventListener('click', async function () {
         const idx = Number(button.getAttribute('data-progress-check-btn'));
-        if (progressState.completedModules.has(idx)) {
-          setPassedModuleUi(idx, 'restored');
-          return;
-        }
-
-        const answerInput = document.querySelector(`input[data-progress-check-input="${idx}"]`);
-        const expectedInput = document.querySelector(`input[data-progress-check-answer="${idx}"]`);
-        const resultWrap = document.querySelector(`div[data-progress-check-result="${idx}"]`);
-
-        if (!answerInput || !expectedInput || !resultWrap) return;
-
-        const userAnswer = answerInput.value;
-        const expected = expectedInput.value;
-        if (answerMatches(userAnswer, expected)) {
-          progressState.completedModules.add(idx);
-          setPassedModuleUi(idx, 'fresh');
-          saveProgress();
-        } else {
-          resultWrap.textContent = 'Not quite. Review the module and try again.';
-          resultWrap.style.color = '#fda4af';
-        }
+        await runProgressCheck(idx);
       });
     });
 
@@ -255,7 +267,6 @@ document.addEventListener('DOMContentLoaded', function () {
       const commonMistake = String(moduleItem?.commonMistake || '');
       const practiceTask = String(moduleItem?.practiceTask || '');
       const progressCheckQuestion = String(moduleItem?.progressCheckQuestion || `In one sentence, what is the key takeaway of module ${index + 1}?`);
-      const progressCheckAnswer = String(moduleItem?.progressCheckAnswer || title);
 
       return `
         <section class="module-item">
@@ -275,7 +286,6 @@ document.addEventListener('DOMContentLoaded', function () {
             <div style="font-size:0.82rem;color:#c4b5fd;font-weight:700;margin-bottom:6px;">Progress Check</div>
             <div style="color:#d0d9e7;font-size:0.9rem;line-height:1.55;margin-bottom:8px;">${progressCheckQuestion}</div>
             <input data-progress-check-input="${index}" type="text" placeholder="Type your answer" style="width:100%;margin-bottom:8px;background:#111c31;border:1px solid #2a3954;color:#f1f5f9;border-radius:6px;padding:8px;" />
-            <input data-progress-check-answer="${index}" type="hidden" value="${escapeAttr(progressCheckAnswer)}" />
             <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
               <button type="button" data-progress-check-btn="${index}" style="background:#7c3aed;border:none;color:#fff;border-radius:6px;padding:7px 10px;cursor:pointer;font-size:0.82rem;font-weight:700;">Check Answer</button>
               <div data-progress-check-result="${index}" style="font-size:0.82rem;color:#9fb0c7;"></div>

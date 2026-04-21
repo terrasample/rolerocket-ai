@@ -318,6 +318,8 @@ const USAJOBS_USER_AGENT = process.env.USAJOBS_USER_AGENT || '';
 
 const JOB_CACHE_MS = 1000 * 60 * 5;
 const jobSearchCache = new Map();
+const COURSE_CHECK_CACHE_TTL_MS = 1000 * 60 * 120;
+const courseProgressCheckCache = new Map();
 const EXTERNAL_FETCH_TIMEOUT_MS = 1200;
 const jobSearchInFlight = new Map();
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '')
@@ -3674,7 +3676,25 @@ Rules:
       };
     }
 
-    return res.json({ course });
+    const courseKey = normalizeCourseKey(topic);
+    const modules = Array.isArray(course?.modules) ? course.modules : [];
+    const answers = modules.map((module) => String(module?.progressCheckAnswer || '').trim());
+    const cacheKey = `${String(req.user.userId || '')}:${courseKey}`;
+
+    courseProgressCheckCache.set(cacheKey, {
+      answers,
+      expiresAt: Date.now() + COURSE_CHECK_CACHE_TTL_MS
+    });
+
+    return res.json({
+      course: {
+        ...course,
+        modules: modules.map((module) => {
+          const { progressCheckAnswer, ...safeModule } = module || {};
+          return safeModule;
+        })
+      }
+    });
   } catch (err) {
     console.error('Course content error:', err);
     return res.status(500).json({ error: 'Failed to generate course content.' });
@@ -3687,6 +3707,65 @@ function normalizeCourseKey(topic) {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '') || 'course';
 }
+
+function normalizeCheckText(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function checkAnswerMatch(userAnswer, expectedAnswer) {
+  const user = normalizeCheckText(userAnswer);
+  const expected = normalizeCheckText(expectedAnswer);
+  if (!user || !expected) return false;
+  if (user === expected) return true;
+  if (user.includes(expected) || expected.includes(user)) return true;
+
+  const expectedTokens = expected.split(' ').filter((token) => token.length > 2);
+  if (!expectedTokens.length) return false;
+  const hitCount = expectedTokens.filter((token) => user.includes(token)).length;
+  return hitCount >= Math.max(2, Math.ceil(expectedTokens.length * 0.6));
+}
+
+app.post('/api/learning/course-progress-check', authenticateToken, async (req, res) => {
+  try {
+    const topic = String(req.body?.topic || '').trim();
+    const moduleIndex = Number(req.body?.moduleIndex);
+    const userAnswer = String(req.body?.userAnswer || '').trim();
+
+    if (!topic) return res.status(400).json({ error: 'Topic is required.' });
+    if (!Number.isInteger(moduleIndex) || moduleIndex < 0) {
+      return res.status(400).json({ error: 'Valid moduleIndex is required.' });
+    }
+
+    const user = await User.findById(req.user.userId);
+    if (!hasRequiredPlan(user, 'elite')) {
+      return res.status(403).json({ error: 'Upgrade to Elite to access full course content.' });
+    }
+
+    const courseKey = normalizeCourseKey(topic);
+    const cacheKey = `${String(req.user.userId || '')}:${courseKey}`;
+    const cached = courseProgressCheckCache.get(cacheKey);
+
+    if (!cached || Number(cached.expiresAt || 0) < Date.now()) {
+      courseProgressCheckCache.delete(cacheKey);
+      return res.status(409).json({ error: 'Progress check session expired. Reload the course and try again.' });
+    }
+
+    const expectedAnswer = String((Array.isArray(cached.answers) ? cached.answers[moduleIndex] : '') || '').trim();
+    if (!expectedAnswer) {
+      return res.status(404).json({ error: 'Progress check data not found for this module.' });
+    }
+
+    const passed = checkAnswerMatch(userAnswer, expectedAnswer);
+    return res.json({ passed });
+  } catch (err) {
+    console.error('Course progress check error:', err);
+    return res.status(500).json({ error: 'Failed to validate progress check.' });
+  }
+});
 
 app.get('/api/learning/course-progress', authenticateToken, async (req, res) => {
   try {
