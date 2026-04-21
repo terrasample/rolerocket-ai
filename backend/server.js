@@ -3565,43 +3565,114 @@ app.get('/api/learning/history', authenticateToken, async (req, res) => {
   }
 });
 
-app.post('/api/learning/course-lesson', authenticateToken, async (req, res) => {
+app.post('/api/learning/course-content', authenticateToken, async (req, res) => {
   try {
     const topic = String(req.body?.topic || '').trim();
     if (!topic) return res.status(400).json({ error: 'Topic is required.' });
 
+    const user = await User.findById(req.user.userId);
+    if (!hasRequiredPlan(user, 'elite')) {
+      return res.status(403).json({ error: 'Upgrade to Elite to access full course content.' });
+    }
+
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
-      max_tokens: 1400,
+      max_tokens: 2800,
+      temperature: 0.6,
       messages: [
         {
           role: 'system',
-          content: 'You are an expert instructor teaching career and professional development skills. Teach directly like a live tutor sitting with the student. Do not use markdown symbols like *, #, **, or bullet dashes. Write in plain text with numbered concept labels only. Never reference external books, websites, courses, or tools the user should look up — teach the material inline with real explanations, examples, and techniques. Be specific and concrete.'
+          content: 'You are a world-class technical instructor creating premium, full-length professional courses similar to enterprise learning platforms. Teach directly and concretely. Never reference external links, books, websites, or courses. Output only valid JSON.'
         },
         {
           role: 'user',
-          content: [
-            `Teach me the skill: ${topic}`,
-            'Use this exact format, each on its own line:',
-            'Introduction: [2-3 sentences explaining what this skill is and why it is in high demand in the 2025-2026 job market]',
-            'Concept 1: [short title]: [teach this concept in 2-3 sentences — be specific, give a concrete example, explain how it works in real-world practice]',
-            'Concept 2: [short title]: [same format]',
-            'Concept 3: [short title]: [same format]',
-            'Concept 4: [short title]: [same format]',
-            'Concept 5: [short title]: [same format]',
-            'Common Mistake: [describe the most frequent error beginners make with this skill and explain exactly how to avoid it]',
-            'Exercise: [one specific hands-on task the learner should do right now — not "research X", but actually do something concrete like write code, create a document, run a command, fill in a template, or answer a scenario]',
-            'Quick Check: [ask one short question that tests genuine understanding of the material above, then on the next line write: Answer: [the correct answer with a brief explanation]]'
-          ].join('\n')
+          content: `Create a full course for: ${topic}
+
+Return ONLY a JSON object with this exact shape and key names:
+{
+  "courseTitle": "string",
+  "subtitle": "string",
+  "difficulty": "Beginner|Intermediate|Advanced",
+  "estimatedDuration": "string",
+  "marketDemand": "string",
+  "overview": "string",
+  "learningOutcomes": ["string", "string", "string", "string", "string"],
+  "modules": [
+    {
+      "title": "string",
+      "objective": "string",
+      "lesson": "string",
+      "workedExample": "string",
+      "commonMistake": "string",
+      "practiceTask": "string"
+    }
+  ],
+  "capstoneProject": {
+    "title": "string",
+    "scenario": "string",
+    "deliverables": ["string", "string", "string"]
+  },
+  "finalAssessment": [
+    { "question": "string", "answer": "string" },
+    { "question": "string", "answer": "string" },
+    { "question": "string", "answer": "string" }
+  ],
+  "interviewPrep": ["string", "string", "string"],
+  "resumeSignals": ["string", "string", "string"]
+}
+
+Rules:
+- Create exactly 6 modules.
+- Each module.lesson must be 120-180 words and must teach concrete how-to steps.
+- Each module.workedExample must include a realistic scenario with numbers, constraints, or decisions.
+- Avoid fluff and generic advice.
+- No markdown, no code fences, no extra text outside JSON.`
         }
       ]
     });
 
-    const lesson = String(completion.choices[0].message.content || '').trim();
-    return res.json({ lesson });
+    const rawContent = String(completion.choices?.[0]?.message?.content || '').trim();
+    const cleaned = rawContent
+      .replace(/^```json\s*/i, '')
+      .replace(/^```\s*/i, '')
+      .replace(/\s*```$/i, '')
+      .trim();
+
+    let course = null;
+    try {
+      course = JSON.parse(cleaned);
+    } catch (parseError) {
+      console.warn('Course content JSON parse failed, returning fallback object.');
+      course = {
+        courseTitle: topic,
+        subtitle: `Professional course for ${topic}`,
+        difficulty: 'Intermediate',
+        estimatedDuration: '4-6 weeks',
+        marketDemand: `${topic} is highly demanded across 2025-2026 roles.`,
+        overview: cleaned || `Course generation for ${topic} is temporarily unavailable.`,
+        learningOutcomes: [
+          `Explain core ${topic} concepts`,
+          `Apply ${topic} in realistic job scenarios`,
+          `Avoid common ${topic} mistakes`,
+          `Execute hands-on ${topic} tasks`,
+          `Communicate ${topic} outcomes clearly`
+        ],
+        modules: [],
+        capstoneProject: {
+          title: `${topic} Capstone`,
+          scenario: `Build a practical deliverable using ${topic}.`,
+          deliverables: ['Plan', 'Execution artifact', 'Results summary']
+        },
+        finalAssessment: [],
+        interviewPrep: [],
+        resumeSignals: []
+      };
+    }
+
+    return res.json({ course });
   } catch (err) {
-    console.error('Course lesson error:', err);
-    return res.status(500).json({ error: 'Failed to generate lesson.' });
+    console.error('Course content error:', err);
+    return res.status(500).json({ error: 'Failed to generate course content.' });
   }
 });
 

@@ -3,15 +3,27 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>RoleRocketAI Learning | RoleRocket AI</title>
+  <title>In-Demand Courses | RoleRocket AI</title>
   <link rel="stylesheet" href="styles.css" />
-  <script src="js/jspdf-loader.js"></script>
+  <style>
+    @media (max-width: 1120px) {
+      #courseGrid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      }
+    }
+
+    @media (max-width: 720px) {
+      #courseGrid {
+        grid-template-columns: 1fr !important;
+      }
+    }
+  </style>
 </head>
 <body>
   <a class="skip-link" href="#mainContent">Skip to main content</a>
   <div class="hero contact-hero">
     <h1 class="home-brand-title"><span class="home-brand-rocket" aria-hidden="true">🚀</span><span>RoleRocket AI</span></h1>
-    <p class="home-brand-subtitle">RoleRocketAI Learning</p>
+    <p class="home-brand-subtitle">In-Demand Courses</p>
   </div>
   <div class="layout">
     <aside class="sidebar" aria-label="Primary navigation">
@@ -35,84 +47,11 @@
     <main class="main marketing-main" id="mainContent" tabindex="-1">
       <button onclick="window.history.back()" class="back-arrow-btn" aria-label="Go back" style="margin:12px 0 0 12px;background:none;border:none;cursor:pointer;font-size:1.6em;color:#2563eb;"><span aria-hidden="true">&#8592;</span> Back</button>
 
-      <section class="marketing-card tier-feature elite" style="max-width:860px;margin:0 auto 32px auto;text-align:center;">
-        <h2 class="feature-title">RoleRocketAI Learning</h2>
-        <p>Identify the exact skills you are missing for your target role, then learn each one through focused teaching modules, practice tasks, and proof-of-mastery steps.</p>
-
-        <div id="learningPreviousSessionBanner" style="display:none;max-width:760px;margin:16px auto 0 auto;padding:10px 14px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;color:#1d4ed8;font-size:0.92rem;"></div>
-
-        <div style="display:grid;gap:12px;text-align:left;max-width:760px;margin:20px auto;">
-          <label for="learningTargetRole"><strong>Target Role</strong></label>
-          <input id="learningTargetRole" type="text" style="width:100%;" placeholder="e.g. Diagnostic Imaging Project Manager" />
-
-          <label for="learningCurrentLevel"><strong>Current Level <span style="font-weight:normal;color:#64748b;">(optional)</span></strong></label>
-          <input id="learningCurrentLevel" type="text" style="width:100%;" placeholder="e.g. Project Coordinator with 3 years in healthcare operations" />
-
-          <label for="learningTimePerWeek"><strong>Weekly Time Budget</strong></label>
-          <select id="learningTimePerWeek" style="width:100%;">
-            <option value="3">3 hours/week</option>
-            <option value="5" selected>5 hours/week</option>
-            <option value="8">8 hours/week</option>
-            <option value="10">10+ hours/week</option>
-          </select>
-
-          <label for="learningJobDescription"><strong>Target Job Description</strong></label>
-          <textarea id="learningJobDescription" style="width:100%;height:180px;" placeholder="Paste the full target job description."></textarea>
-
-          <label for="learningResume"><strong>Your Resume / Skills Snapshot <span style="font-weight:normal;color:#64748b;">(optional)</span></strong></label>
-          <textarea id="learningResume" style="width:100%;height:140px;" placeholder="Paste your resume or key skills to personalize the roadmap."></textarea>
-        </div>
-
-        <div style="margin:18px 0;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
-          <button id="generateLearningPlanBtn" class="feature-launch-btn">Find Missing Skills & Build Learning Plan</button>
-          <button id="clearLearningFieldsBtn" class="feature-launch-btn" type="button" style="background:#334155;">Clear</button>
-        </div>
-
-        <div id="learningResultWrap" style="display:none;">
-          <textarea id="learningPlanText" readonly style="display:none;width:100%;max-width:760px;height:300px;margin:18px 0;"></textarea>
-          <div id="learningStructuredOutput" style="display:grid;gap:12px;text-align:left;max-width:760px;margin:18px auto;"></div>
-        </div>
-
-        <div id="learningDownloads" style="display:none;margin:18px 0;">
-          <button id="downloadLearningPdfBtn" class="feature-launch-btn" style="margin-right:12px;">Download as PDF</button>
-          <button id="downloadLearningWordBtn" class="feature-launch-btn">Download as Word</button>
-        </div>
-
-        <div id="learningHistoryWrap" style="margin-top:24px;text-align:left;max-width:760px;margin-left:auto;margin-right:auto;">
-          <h3 style="margin:0 0 10px 0;color:#1e293b;">Recent Learning Roadmaps</h3>
-          <div id="learningHistoryList" style="display:grid;gap:8px;"></div>
-        </div>
-
-        <div id="learningOutput"></div>
-      </section>
-
-      <!-- In-Demand Skills Library -->
-      <section style="max-width:860px;margin:0 auto 48px auto;text-align:left;">
-        <div style="background:#0f172a;border-radius:16px;padding:32px 28px;">
+      <section style="max-width:1440px;width:100%;margin:0 auto 48px auto;padding:0 20px;text-align:left;">
+        <div style="background:#0f172a;border-radius:16px;padding:32px 24px;">
           <h2 style="color:#f1f5f9;margin:0 0 6px 0;font-size:1.45rem;">In-Demand Skills Library</h2>
-          <p style="color:#94a3b8;margin:0 0 24px 0;font-size:0.95rem;">Pick any course to get an instant AI-powered lesson — taught directly, no redirects or external links.</p>
-
-          <div id="courseFilterBtns" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px;">
-            <button class="course-filter-btn active-filter" data-cat="all" style="padding:6px 16px;border-radius:20px;border:1px solid #3b82f6;background:#1e40af;color:#fff;cursor:pointer;font-size:0.85rem;">All</button>
-            <button class="course-filter-btn" data-cat="tech" style="padding:6px 16px;border-radius:20px;border:1px solid #475569;background:transparent;color:#94a3b8;cursor:pointer;font-size:0.85rem;">Tech</button>
-            <button class="course-filter-btn" data-cat="business" style="padding:6px 16px;border-radius:20px;border:1px solid #475569;background:transparent;color:#94a3b8;cursor:pointer;font-size:0.85rem;">Business</button>
-            <button class="course-filter-btn" data-cat="data" style="padding:6px 16px;border-radius:20px;border:1px solid #475569;background:transparent;color:#94a3b8;cursor:pointer;font-size:0.85rem;">Data</button>
-            <button class="course-filter-btn" data-cat="design" style="padding:6px 16px;border-radius:20px;border:1px solid #475569;background:transparent;color:#94a3b8;cursor:pointer;font-size:0.85rem;">Design</button>
-          </div>
-
-          <div id="courseGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;"></div>
-
-          <div id="courseLessonPanel" style="display:none;margin-top:28px;background:#1e293b;border-radius:12px;padding:24px 22px;">
-            <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;gap:12px;">
-              <div>
-                <div id="courseLessonBadge" style="font-size:0.78rem;font-weight:600;letter-spacing:0.05em;color:#60a5fa;margin-bottom:4px;text-transform:uppercase;"></div>
-                <h3 id="courseLessonTitle" style="color:#f1f5f9;margin:0;font-size:1.2rem;"></h3>
-              </div>
-              <button id="closeLessonBtn" style="background:none;border:1px solid #475569;color:#94a3b8;border-radius:6px;padding:5px 14px;cursor:pointer;font-size:0.82rem;white-space:nowrap;flex-shrink:0;">✕ Close</button>
-            </div>
-            <div id="courseLessonLoading" style="color:#94a3b8;font-size:0.95rem;display:none;padding:12px 0;">Generating your lesson...</div>
-            <div id="courseLessonContent" style="color:#e2e8f0;line-height:1.75;font-size:0.95rem;"></div>
-          </div>
+          <p style="color:#94a3b8;margin:0 0 24px 0;font-size:0.95rem;">Choose any course to open a dedicated full course page.</p>
+          <div id="courseGrid" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;"></div>
         </div>
       </section>
     </main>
