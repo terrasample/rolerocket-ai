@@ -252,13 +252,16 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function setPassedModuleUi(idx, source) {
-    const moduleCheckbox = document.querySelector(`input[data-module-checkbox="${idx}"]`);
+    const moduleStatus = document.querySelector(`[data-module-status-indicator="${idx}"]`);
     const answerInputs = document.querySelectorAll(`input[data-progress-check-option="${idx}"]`);
     const button = document.querySelector(`button[data-progress-check-btn="${idx}"]`);
     const resultWrap = document.querySelector(`div[data-progress-check-result="${idx}"]`);
 
-    if (moduleCheckbox) {
-      moduleCheckbox.checked = true;
+    if (moduleStatus) {
+      moduleStatus.setAttribute('data-completed', 'true');
+      moduleStatus.style.background = '#22c55e';
+      moduleStatus.style.borderColor = '#22c55e';
+      moduleStatus.innerHTML = '<span style="display:block;width:6px;height:10px;border:solid #052e16;border-width:0 2px 2px 0;transform:rotate(45deg);"></span>';
     }
     answerInputs.forEach((input) => {
       input.disabled = true;
@@ -384,9 +387,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
       progressState.completedModules = new Set(completed);
 
-      document.querySelectorAll('input[data-module-checkbox]').forEach((checkbox) => {
-        const idx = Number(checkbox.getAttribute('data-module-checkbox'));
-        checkbox.checked = progressState.completedModules.has(idx);
+      document.querySelectorAll('[data-module-status-indicator]').forEach((indicator) => {
+        const idx = Number(indicator.getAttribute('data-module-status-indicator'));
+        const isCompleted = progressState.completedModules.has(idx);
+        indicator.setAttribute('data-completed', isCompleted ? 'true' : 'false');
+        indicator.style.background = isCompleted ? '#22c55e' : 'rgba(148, 163, 184, 0.15)';
+        indicator.style.borderColor = isCompleted ? '#22c55e' : 'rgba(148, 163, 184, 0.35)';
+        indicator.innerHTML = isCompleted
+          ? '<span style="display:block;width:6px;height:10px;border:solid #052e16;border-width:0 2px 2px 0;transform:rotate(45deg);"></span>'
+          : '';
       });
 
       completed.forEach((idx) => setPassedModuleUi(idx, 'restored'));
@@ -498,12 +507,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
       return `
         <section class="module-item">
-          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
-            <h4 style="margin:0;flex:1 1 260px;">Module ${index + 1}: ${title}</h4>
-            <label style="display:inline-flex;align-items:center;gap:8px;color:#86efac;font-size:0.84rem;white-space:nowrap;flex-shrink:0;margin-left:auto;padding:6px 10px;border-radius:999px;background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.24);">
-              <input type="checkbox" data-module-checkbox="${index}" disabled style="accent-color:#22c55e;cursor:not-allowed;" />
-              Completed
-            </label>
+          <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:10px;margin-bottom:8px;">
+            <h4 style="margin:0;min-width:0;">Module ${index + 1}: ${title}</h4>
+            <div style="display:inline-flex;align-items:center;gap:8px;justify-self:end;max-width:100%;color:#86efac;font-size:0.84rem;padding:6px 10px;border-radius:999px;background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.24);">
+              <span data-module-status-indicator="${index}" data-completed="false" aria-hidden="true" style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;flex:0 0 16px;border-radius:5px;background:rgba(148, 163, 184, 0.15);border:1px solid rgba(148, 163, 184, 0.35);"></span>
+              <span style="white-space:normal;word-break:break-word;line-height:1.2;">Completed</span>
+            </div>
           </div>
           <p><strong style="color:#93c5fd;">Objective:</strong> ${objective}</p>
           <p><strong style="color:#93c5fd;">Lesson:</strong> ${lesson}</p>
