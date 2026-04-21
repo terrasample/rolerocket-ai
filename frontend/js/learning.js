@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const filterWrap = document.getElementById('courseDemandFilters');
   const filterSummary = document.getElementById('courseFilterSummary');
   const catalogSource = document.getElementById('courseCatalogSource');
+  const catalogStatus = document.getElementById('courseCatalogStatus');
   const hotCountBadge = document.getElementById('courseHotCountBadge');
   const risingCountBadge = document.getElementById('courseRisingCountBadge');
   const searchInput = document.getElementById('courseSearchInput');
@@ -144,6 +145,34 @@ document.addEventListener('DOMContentLoaded', function () {
       const generatedAt = payload?.generatedAt ? new Date(payload.generatedAt).toLocaleString() : '';
       const sourceLabel = String(payload?.sourceLabel || 'Source: backend-generated catalog').trim();
       catalogSource.textContent = generatedAt ? `${sourceLabel} · Updated ${generatedAt}` : sourceLabel;
+    }
+    if (catalogStatus) {
+      const tone = String(payload?.statusTone || 'info').toLowerCase();
+      const nextRetryAt = payload?.nextRetryAt ? new Date(payload.nextRetryAt).toLocaleString() : '';
+      const liveTopicCount = Number(payload?.liveTopicCount || 0);
+      const parts = [String(payload?.statusMessage || '').trim()];
+      if (liveTopicCount > 0) {
+        parts.push(`Live topic checks: ${liveTopicCount}`);
+      }
+      if (nextRetryAt) {
+        parts.push(`Next retry: ${nextRetryAt}`);
+      }
+      const message = parts.filter(Boolean).join(' · ');
+      catalogStatus.textContent = message;
+      catalogStatus.style.display = message ? 'block' : 'none';
+      if (tone === 'success') {
+        catalogStatus.style.background = 'rgba(22,163,74,0.14)';
+        catalogStatus.style.borderColor = 'rgba(34,197,94,0.28)';
+        catalogStatus.style.color = '#bbf7d0';
+      } else if (tone === 'warning') {
+        catalogStatus.style.background = 'rgba(245,158,11,0.14)';
+        catalogStatus.style.borderColor = 'rgba(245,158,11,0.28)';
+        catalogStatus.style.color = '#fde68a';
+      } else {
+        catalogStatus.style.background = 'rgba(37,99,235,0.12)';
+        catalogStatus.style.borderColor = 'rgba(59,130,246,0.24)';
+        catalogStatus.style.color = '#bfdbfe';
+      }
     }
     if (hotCountBadge) {
       hotCountBadge.textContent = `${Number(payload?.hotCount || 0)} HOT`;

@@ -279,6 +279,10 @@ const LEARNING_CATALOG_TOPICS = [
   { id: 'ux-design-principles', name: 'UX Design Principles', summary: 'Design user-centered interfaces with research and testing.', laborQuery: 'ux designer OR product designer' },
   { id: 'leadership-management', name: 'Leadership & Management', summary: 'Lead teams, give effective feedback, and manage performance.', laborQuery: 'operations manager OR team lead' }
 ];
+const LEARNING_CATALOG_EXTERNAL_TOPIC_LIMIT = Math.min(
+  LEARNING_CATALOG_TOPICS.length,
+  Math.max(1, Number(process.env.LEARNING_CATALOG_EXTERNAL_TOPIC_LIMIT || 8))
+);
 
 let learningCatalogCache = {
   expiresAt: 0,
@@ -3846,6 +3850,9 @@ function getFallbackLearningCatalogPayload(reason) {
   return {
     items,
     source: 'backend-curated',
+    status: 'fallback',
+    statusTone: 'warning',
+    statusMessage: reason || 'Live labor-market ranking is unavailable right now.',
     sourceLabel: `Source: backend-ranked catalog fallback${reasonSuffix}`,
     generatedAt: new Date().toISOString(),
     hotCount: items.filter((item) => item.demand === 'HOT').length,
@@ -3859,7 +3866,9 @@ function createCatalogMeta(payload, overrides = {}) {
     ...payload,
     ...overrides,
     hotCount: Number(overrides.hotCount ?? payload?.hotCount ?? items.filter((item) => item.demand === 'HOT').length),
-    risingCount: Number(overrides.risingCount ?? payload?.risingCount ?? items.filter((item) => item.demand === 'RISING').length)
+    risingCount: Number(overrides.risingCount ?? payload?.risingCount ?? items.filter((item) => item.demand === 'RISING').length),
+    liveTopicCount: Number(overrides.liveTopicCount ?? payload?.liveTopicCount ?? 0),
+    nextRetryAt: overrides.nextRetryAt ?? payload?.nextRetryAt ?? null
   };
 }
 
@@ -3868,6 +3877,9 @@ function buildStaleCatalogPayload(snapshot, note) {
   const baseLabel = String(snapshot?.sourceLabel || payload?.sourceLabel || 'Source: cached catalog').trim();
   return createCatalogMeta(payload, {
     source: String(snapshot?.source || payload?.source || 'backend-curated').trim(),
+    status: 'stale-live',
+    statusTone: 'warning',
+    statusMessage: note,
     sourceLabel: `${baseLabel} · ${note}`,
     generatedAt: payload?.generatedAt || snapshot?.refreshedAt || new Date().toISOString()
   });
@@ -3896,7 +3908,9 @@ async function fetchLaborMarketScore(topic) {
 }
 
 async function getExternalLearningCatalogPayload() {
-  const scoredTopics = await Promise.all(LEARNING_CATALOG_TOPICS.map(async (topic, index) => ({
+  const externallyRankedTopics = LEARNING_CATALOG_TOPICS.slice(0, LEARNING_CATALOG_EXTERNAL_TOPIC_LIMIT);
+  const unscoredTopics = LEARNING_CATALOG_TOPICS.slice(LEARNING_CATALOG_EXTERNAL_TOPIC_LIMIT);
+  const scoredTopics = await Promise.all(externallyRankedTopics.map(async (topic, index) => ({
     ...topic,
     baselineRank: index,
     laborScore: await fetchLaborMarketScore(topic)
@@ -3907,16 +3921,24 @@ async function getExternalLearningCatalogPayload() {
       if (right.laborScore !== left.laborScore) return right.laborScore - left.laborScore;
       return left.baselineRank - right.baselineRank;
     })
-    .map(({ baselineRank, ...topic }) => topic);
+    .map(({ baselineRank, ...topic }) => topic)
+    .concat(unscoredTopics.map((topic) => ({ ...topic, laborScore: 0 })));
 
   const items = buildCatalogItems(rankedTopics, 'adzuna');
+  const partialLabel = LEARNING_CATALOG_EXTERNAL_TOPIC_LIMIT < LEARNING_CATALOG_TOPICS.length
+    ? `Top ${LEARNING_CATALOG_EXTERNAL_TOPIC_LIMIT} topics ranked with live job volume; remaining topics use platform trend ordering`
+    : 'All tracked topics ranked with live job volume';
   return {
     items,
     source: 'adzuna',
-    sourceLabel: 'Source: live labor-market demand via Adzuna job volume',
+    status: 'live',
+    statusTone: 'success',
+    statusMessage: partialLabel,
+    sourceLabel: `Source: live labor-market demand via Adzuna job volume · ${partialLabel}`,
     generatedAt: new Date().toISOString(),
     hotCount: items.filter((item) => item.demand === 'HOT').length,
-    risingCount: items.filter((item) => item.demand === 'RISING').length
+    risingCount: items.filter((item) => item.demand === 'RISING').length,
+    liveTopicCount: LEARNING_CATALOG_EXTERNAL_TOPIC_LIMIT
   };
 }
 
@@ -3943,6 +3965,9 @@ async function getLearningCatalogPayload() {
     snapshot?.lastFailureAt
     && (now - new Date(snapshot.lastFailureAt).getTime()) < LEARNING_CATALOG_FAILURE_COOLDOWN_MS
   );
+  const nextRetryAt = failureCooldownActive
+    ? new Date(new Date(snapshot.lastFailureAt).getTime() + LEARNING_CATALOG_FAILURE_COOLDOWN_MS).toISOString()
+    : null;
 
   if (hasLaborMarketApiConfig() && !failureCooldownActive) {
     try {
@@ -3985,6 +4010,7 @@ async function getLearningCatalogPayload() {
       );
       if (snapshot?.payload) {
         payload = buildStaleCatalogPayload(snapshot, `Using cached snapshot while live refresh is unavailable (${String(error.message || 'request failed').toLowerCase()})`);
+        payload = createCatalogMeta(payload, { nextRetryAt });
         usedStaleSnapshot = true;
       }
     }
@@ -3993,6 +4019,7 @@ async function getLearningCatalogPayload() {
   if (!payload && failureCooldownActive && snapshot?.payload) {
     const reason = String(snapshot.lastFailureReason || 'recent live refresh failure').toLowerCase();
     payload = buildStaleCatalogPayload(snapshot, `Using cached snapshot while live refresh is paused (${reason})`);
+    payload = createCatalogMeta(payload, { nextRetryAt });
     usedStaleSnapshot = true;
   }
 
@@ -4001,6 +4028,14 @@ async function getLearningCatalogPayload() {
       ? 'Live labor-market refresh temporarily paused after repeated failures'
       : 'Live labor-market data unavailable';
     payload = getFallbackLearningCatalogPayload(reason);
+    payload = createCatalogMeta(payload, {
+      nextRetryAt,
+      status: failureCooldownActive ? 'paused' : 'fallback',
+      statusTone: failureCooldownActive ? 'warning' : 'warning',
+      statusMessage: failureCooldownActive
+        ? `Live ranking is temporarily paused. Next retry after ${new Date(nextRetryAt).toLocaleString()}.`
+        : reason
+    });
   }
 
   learningCatalogCache = {
