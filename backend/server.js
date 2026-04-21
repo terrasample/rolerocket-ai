@@ -960,23 +960,73 @@ function rankJobs(jobs, query) {
     .sort((a, b) => b.rankScore - a.rankScore);
 }
 
+const JOB_TEXT_NOISE_REGEX = /(skip to main content|this button displays|jobs people learning|clear text|join or sign in|privacy policy|cookie policy|forgot password|sign in to set job alerts|get notified when a new job is posted|by clicking continue|email or phone|already on linkedin)/i;
+
+function sanitizeJobField(value, fallback, maxLen) {
+  const collapsed = String(value || '')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!collapsed) return fallback;
+
+  let cleaned = collapsed;
+  const noiseMatch = cleaned.match(JOB_TEXT_NOISE_REGEX);
+  if (noiseMatch && Number.isInteger(noiseMatch.index) && noiseMatch.index > 0) {
+    cleaned = cleaned.slice(0, noiseMatch.index).trim();
+  }
+
+  cleaned = cleaned.replace(/^[|,;:/\-\s]+|[|,;:/\-\s]+$/g, '').trim();
+
+  if (maxLen > 0 && cleaned.length > maxLen) {
+    cleaned = cleaned.slice(0, maxLen).replace(/\s+\S*$/, '').trim();
+  }
+
+  return cleaned || fallback;
+}
+
+function isNoisyJobRecord(job) {
+  const title = String(job?.title || '').trim();
+  const company = String(job?.company || '').trim();
+  const combined = `${title} ${company}`;
+
+  if (!title || !company) return true;
+  if (title.length > 120 || company.length > 90) return true;
+  if (JOB_TEXT_NOISE_REGEX.test(combined)) return true;
+  if (/^(clear text|done|reset|get notified|sign in|join|by clicking)/i.test(title)) return true;
+
+  return false;
+}
+
+function isEligibleTopMatchJob(job) {
+  if (isNoisyJobRecord(job)) return false;
+
+  const hasValidLink = /^https?:\/\//i.test(String(job?.link || '').trim());
+  const matchScore = Number(job?.matchScore || 0);
+  return hasValidLink || matchScore > 0;
+}
+
 function normalizeJob(raw) {
+  const title = sanitizeJobField(raw.title, 'Untitled Job', 120);
+  const company = sanitizeJobField(raw.company, 'Unknown Company', 80);
+  const location = sanitizeJobField(raw.location, 'Remote', 80);
+
   return {
-    title: raw.title || 'Untitled Job',
-    company: raw.company || 'Unknown Company',
-    location: raw.location || 'Remote',
+    title,
+    company,
+    location,
     link: raw.link || '#',
     description: raw.description || '',
     postedAt: normalizeDate(raw.postedAt),
-    matchScore: Number(raw.matchScore || 0),
+    matchScore: Math.max(0, Math.min(100, Number(raw.matchScore || 0))),
     status: raw.status || 'saved',
     source: raw.source || 'Imported',
     linkedinSearchUrl:
       raw.linkedinSearchUrl ||
-      makeLinkedInSearchUrl(raw.title || '', raw.location || ''),
+      makeLinkedInSearchUrl(title, location),
     googleJobsUrl:
       raw.googleJobsUrl ||
-      makeGoogleJobsUrl(raw.title || '', raw.location || '')
+      makeGoogleJobsUrl(title, location)
   };
 }
 
@@ -5859,7 +5909,9 @@ app.post('/api/apply/one-click', authenticateToken, async (req, res) => {
       status: { $in: ['ready', 'saved'] }
     }).sort({ matchScore: -1, createdAt: -1 });
 
-    const topJobs = jobs.slice(0, 3).map((job) => ({
+    const eligibleJobs = jobs.filter(isEligibleTopMatchJob);
+
+    const topJobs = eligibleJobs.slice(0, 3).map((job) => ({
       title: job.title,
       company: job.company,
       urgencyLabel: job.status === 'ready' ? 'High' : 'Medium',

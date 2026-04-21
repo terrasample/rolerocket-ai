@@ -33,6 +33,24 @@ document.addEventListener('DOMContentLoaded', function () {
       .replace(/'/g, '&#39;');
   }
 
+  function compactDisplayText(value, fallback, maxLen) {
+    const markerRegex = /(skip to main content|this button displays|jobs people learning|clear text|join or sign in|privacy policy|cookie policy|forgot password|get notified when a new job is posted|by clicking continue)/i;
+    const text = String(value || '').replace(/\s+/g, ' ').trim();
+    if (!text) return fallback;
+
+    let cleaned = text;
+    const markerMatch = cleaned.match(markerRegex);
+    if (markerMatch && Number.isInteger(markerMatch.index) && markerMatch.index > 0) {
+      cleaned = cleaned.slice(0, markerMatch.index).trim();
+    }
+
+    if (maxLen > 0 && cleaned.length > maxLen) {
+      cleaned = cleaned.slice(0, maxLen).replace(/\s+\S*$/, '').trim() + '...';
+    }
+
+    return cleaned || fallback;
+  }
+
   function setMessage(message, color) {
     result.innerHTML = message ? `<div style="color:${color};">${message}</div>` : '';
   }
@@ -202,8 +220,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
       queuedJobsList.innerHTML = visibleJobs.map((job) => {
         const jobId = escapeHtml(job._id);
-        const title = escapeHtml(job.title || 'Untitled job');
-        const company = escapeHtml(job.company || 'Unknown company');
+        const title = escapeHtml(compactDisplayText(job.title, 'Untitled job', 85));
+        const company = escapeHtml(compactDisplayText(job.company, 'Unknown company', 70));
         const status = escapeHtml(job.status || 'saved');
         const link = job.link ? `<a href="${escapeHtml(job.link)}" target="_blank" rel="noopener noreferrer">Open posting</a>` : 'Manual entry';
         const readyButton = status === 'ready'
@@ -252,10 +270,10 @@ document.addEventListener('DOMContentLoaded', function () {
       recommendationsList.innerHTML = topJobs.map((job) => `
         <article class="queue-match-card">
           <div class="queue-match-header">
-            <h3 class="queue-match-title">${escapeHtml(job.title || 'Untitled job')}</h3>
+            <h3 class="queue-match-title">${escapeHtml(compactDisplayText(job.title, 'Untitled job', 85))}</h3>
             <span class="queue-status-chip">${escapeHtml(job.urgencyLabel || 'Ready')}</span>
           </div>
-          <p class="queue-match-meta"><strong>${escapeHtml(job.company || 'Unknown company')}</strong><br>Match score: ${escapeHtml(job.matchScore || 0)}</p>
+          <p class="queue-match-meta"><strong>${escapeHtml(compactDisplayText(job.company, 'Unknown company', 70))}</strong><br>Match score: ${escapeHtml(job.matchScore || 0)}</p>
         </article>
       `).join('');
     } catch (error) {
