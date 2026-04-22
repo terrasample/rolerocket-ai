@@ -162,81 +162,144 @@
 
   const DEMAND_COLOR = { 'Critical': '#dc2626', 'Very High': '#ea580c', 'High': '#ca8a04', 'Moderate': '#16a34a' };
 
+  const REGION_MARKETS = [
+    {
+      id: 'jamaica',
+      label: 'Jamaican Jobs',
+      icon: '🇯🇲',
+      locationQuery: 'Jamaica',
+      matchHints: ['jamaica', 'kingston', 'montego bay', 'st. andrew', 'st andrew', 'ocho rios', 'spanish town']
+    },
+    {
+      id: 'us',
+      label: 'US Jobs',
+      icon: '🇺🇸',
+      locationQuery: 'United States',
+      matchHints: ['united states', 'usa', 'us', 'new york', 'texas', 'florida', 'california', 'atlanta', 'miami']
+    },
+    {
+      id: 'uk',
+      label: 'UK Jobs',
+      icon: '🇬🇧',
+      locationQuery: 'United Kingdom',
+      matchHints: ['united kingdom', 'uk', 'england', 'london', 'birmingham', 'manchester', 'scotland', 'wales']
+    },
+    {
+      id: 'canada',
+      label: 'Canada Jobs',
+      icon: '🇨🇦',
+      locationQuery: 'Canada',
+      matchHints: ['canada', 'toronto', 'ontario', 'vancouver', 'alberta', 'montreal', 'calgary']
+    },
+    {
+      id: 'eu',
+      label: 'EU Jobs',
+      icon: '🇪🇺',
+      locationQuery: 'European Union',
+      matchHints: ['europe', 'eu', 'germany', 'france', 'netherlands', 'spain', 'ireland', 'italy', 'poland']
+    },
+    {
+      id: 'caribbean',
+      label: 'Caribbean Jobs',
+      icon: '🌴',
+      locationQuery: 'Caribbean',
+      matchHints: ['caribbean', 'trinidad', 'barbados', 'bahamas', 'st lucia', 'guyana', 'jamaica']
+    }
+  ];
+
   function isAbsoluteHttpUrl(value) {
     return /^https?:\/\//i.test(String(value || ''));
   }
 
-  async function findLiveJobSourceUrl(title, industry) {
-    const query = String(title || '').trim();
-    if (!query) return '';
+  function matchesMarketLocation(jobLocation, market) {
+    const text = String(jobLocation || '').toLowerCase();
+    if (!text) return false;
+    return market.matchHints.some((hint) => text.includes(hint));
+  }
 
+  function formatPostedDate(iso) {
+    if (!iso) return 'recent';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return 'recent';
+    return d.toLocaleDateString('en-JM', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+
+  async function fetchRegionalJobs(title, market, limit = 6) {
     try {
       const params = new URLSearchParams({
-        title: query,
-        location: 'Jamaica',
-        preferences: String(industry || '').trim(),
-        limit: '1'
+        title: String(title || '').trim() || 'Customer Service Representative',
+        location: market.locationQuery,
+        preferences: `${market.label} jobs only`,
+        limit: String(Math.max(6, limit * 2))
       });
+
       const res = await fetch(`/api/jobs/scout?${params.toString()}`);
-      if (!res.ok) return '';
+      if (!res.ok) return [];
+
       const payload = await res.json();
-      const firstJob = Array.isArray(payload?.jobs) ? payload.jobs[0] : null;
-      const sourceLink = String(firstJob?.link || '').trim();
-      return isAbsoluteHttpUrl(sourceLink) ? sourceLink : '';
-    } catch (_err) {
-      return '';
+      const jobs = Array.isArray(payload?.jobs) ? payload.jobs : [];
+
+      return jobs
+        .filter((job) => isAbsoluteHttpUrl(job?.link))
+        .filter((job) => matchesMarketLocation(job?.location, market))
+        .slice(0, limit)
+        .map((job) => ({
+          title: String(job.title || 'Untitled Role').trim(),
+          company: String(job.company || 'Unknown Company').trim(),
+          location: String(job.location || market.locationQuery).trim(),
+          source: String(job.source || 'Live Source').trim(),
+          postedAt: job.postedAt || job.created || '',
+          link: String(job.link || '').trim()
+        }));
+    } catch (_error) {
+      return [];
     }
   }
 
-  function renderMarketRadar() {
-    const container = document.getElementById('jwaMarketRadar');
+  async function renderMarketRadar() {
+    const container = document.getElementById('jwaRegionalMarkets');
     if (!container) return;
 
-    const filterVal = (document.getElementById('jwaIndustryFilter')?.value || 'all').toLowerCase();
+    const keywordInput = document.getElementById('jwaMarketKeyword');
+    const roleKeyword = String(keywordInput?.value || '').trim() || 'Customer Service Representative';
 
-    let html = '';
-    for (const [industry, data] of Object.entries(JAMAICA_MARKET)) {
-      if (filterVal !== 'all' && !industry.toLowerCase().includes(filterVal)) continue;
-      html += `
-        <section class="jwa-industry-block" style="border-left: 4px solid ${data.color};">
-          <h3 class="jwa-industry-title" style="color:${data.color};">${esc(industry)}</h3>
-          <div class="jwa-role-grid">
-            ${data.roles.map(r => `
-              <a
-                class="jwa-role-card"
-                data-job-query="${esc(r.title)}"
-                data-job-industry="${esc(industry)}"
-                href="https://jm.indeed.com/jobs?q=${encodeURIComponent(r.title)}"
-                style="display:block;text-decoration:none;cursor:pointer;"
-              >
-                <strong>${esc(r.title)}</strong>
-                <span class="jwa-salary">${esc(r.range)}</span>
-                <span class="jwa-demand-badge" style="background:${DEMAND_COLOR[r.demand] || '#64748b'};">${esc(r.demand)} Demand</span>
-                ${r.remote ? '<span class="jwa-remote-tag">Remote Eligible</span>' : ''}
-                <span style="color:#64748b;font-size:.74rem;line-height:1.3;">Market intelligence estimate (not a guaranteed posted salary)</span>
-              </a>
-            `).join('')}
+    container.innerHTML = REGION_MARKETS.map((market, idx) => `
+      <details class="jwa-collapsible" ${idx === 0 ? 'open' : ''} id="jwaMarket-${market.id}">
+        <summary>${market.icon} ${esc(market.label)} <span style="color:#94a3b8;font-weight:500;">(${esc(roleKeyword)})</span></summary>
+        <div class="jwa-collapsible-body">
+          <div id="jwaMarketBody-${market.id}">
+            <p class="jwa-empty">Loading ${esc(market.label.toLowerCase())}...</p>
           </div>
-        </section>
+        </div>
+      </details>
+    `).join('');
+
+    const results = await Promise.all(REGION_MARKETS.map((market) => fetchRegionalJobs(roleKeyword, market, 6)));
+
+    REGION_MARKETS.forEach((market, index) => {
+      const body = document.getElementById(`jwaMarketBody-${market.id}`);
+      if (!body) return;
+
+      const jobs = results[index] || [];
+      if (!jobs.length) {
+        body.innerHTML = `<p class="jwa-empty">No matching ${esc(market.label.toLowerCase())} found for "${esc(roleKeyword)}". Try a broader title.</p>`;
+        return;
+      }
+
+      body.innerHTML = `
+        <div class="jwa-role-grid">
+          ${jobs.map((job) => `
+            <a class="jwa-role-card" href="${esc(job.link)}" target="_blank" rel="noopener noreferrer" style="display:block;text-decoration:none;cursor:pointer;">
+              <strong>${esc(job.title)}</strong>
+              <span class="jwa-salary">${esc(job.company)}</span>
+              <span class="jwa-demand-badge" style="background:#1d4ed8;">${esc(job.location)}</span>
+              <span class="jwa-remote-tag">${esc(job.source)}</span>
+              <span style="color:#64748b;font-size:.74rem;line-height:1.3;">Posted: ${esc(formatPostedDate(job.postedAt))}</span>
+            </a>
+          `).join('')}
+        </div>
       `;
-    }
-    container.innerHTML = html || '<p class="jwa-empty">No industries match your filter.</p>';
-
-    if (!container.dataset.boundLiveSource) {
-      container.dataset.boundLiveSource = '1';
-      container.addEventListener('click', async function (event) {
-        const card = event.target.closest('.jwa-role-card[data-job-query]');
-        if (!card) return;
-
-        event.preventDefault();
-        const title = String(card.getAttribute('data-job-query') || '').trim();
-        const industry = String(card.getAttribute('data-job-industry') || '').trim();
-        const fallbackHref = String(card.getAttribute('href') || '').trim();
-
-        const liveSourceUrl = await findLiveJobSourceUrl(title, industry);
-        window.location.href = liveSourceUrl || fallbackHref;
-      });
-    }
+    });
   }
 
   /* ── 2. Diaspora Connection Pipeline ───────────────────────────────────── */
@@ -2199,7 +2262,13 @@
     initCurriculumLearning();
     renderCareerInit();
 
-    document.getElementById('jwaIndustryFilter')?.addEventListener('change', renderMarketRadar);
+    document.getElementById('jwaRefreshRegionalJobsBtn')?.addEventListener('click', renderMarketRadar);
+    document.getElementById('jwaMarketKeyword')?.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        renderMarketRadar();
+      }
+    });
     document.getElementById('jwaDiasporaMatchBtn')?.addEventListener('click', submitDiasporaMatch);
     document.getElementById('jwaCheckResumeBtn')?.addEventListener('click', checkResumeLocalization);
     document.getElementById('jwaDownloadReportBtn')?.addEventListener('click', downloadSkillsGapReport);

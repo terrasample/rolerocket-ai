@@ -612,34 +612,27 @@
           <button class="jwa-tab-btn" role="tab" data-tab="jwaTabGap" aria-selected="false">📊 Skills Gap Report</button>
           <button class="jwa-tab-btn" role="tab" data-tab="jwaTabCourses" aria-selected="false">🎓 CSEC / CAPE Learning</button>
           <button class="jwa-tab-btn" role="tab" data-tab="jwaTabEmployer" aria-selected="false">🏢 Employer Portal</button>
+          <button class="jwa-tab-btn" role="tab" data-tab="jwaTabScholarships" aria-selected="false">💸 Scholarships &amp; Funding</button>
+          <button class="jwa-tab-btn" role="tab" data-tab="jwaTabApprenticeships" aria-selected="false">🛠️ HEART / Apprenticeships</button>
+          <button class="jwa-tab-btn" role="tab" data-tab="jwaTabInterviewPrep" aria-selected="false">🎤 Interview &amp; Assessment Prep</button>
+          <button class="jwa-tab-btn" role="tab" data-tab="jwaTabLabourRights" aria-selected="false">⚖️ Labour Rights &amp; Contracts</button>
+          <button class="jwa-tab-btn" role="tab" data-tab="jwaTabEntrepreneur" aria-selected="false">🚀 Entrepreneurship / Freelance</button>
+          <button class="jwa-tab-btn" role="tab" data-tab="jwaTabMentor" aria-selected="false">🤝 Mentor &amp; Alumni Network</button>
           <button class="jwa-tab-btn" role="tab" data-tab="jwaTabAthlete" aria-selected="false">🚀 Career Pathway Builder</button>
         </div>
 
         <!-- Tab 1: Jamaica Job Market Radar -->
         <div id="jwaTabMarket" class="jwa-tab-panel" role="tabpanel">
-          <p style="color:#94a3b8;font-size:.9rem;line-height:1.6;margin:0 0 14px;">These cards show representative high-demand roles and salary ranges, not guaranteed live postings. Click any card to open matching live job results.</p>
-          <div class="jwa-filter-row">
-            <label for="jwaIndustryFilter">Filter by industry:</label>
-            <select id="jwaIndustryFilter">
-              <option value="all">All Industries</option>
-              <option value="bpo">BPO</option>
-              <option value="finance">Finance &amp; Accounting</option>
-              <option value="tourism">Tourism &amp; Hospitality</option>
-              <option value="technology">Technology &amp; Digital</option>
-              <option value="logistics">Logistics &amp; Supply Chain</option>
-              <option value="healthcare">Healthcare</option>
-              <option value="engineering">Engineering &amp; Construction</option>
-              <option value="aviation">Aviation &amp; Transport</option>
-              <option value="agriculture">Agriculture &amp; Agribusiness</option>
-              <option value="education">Education &amp; Training</option>
-              <option value="legal">Legal &amp; Professional Services</option>
-              <option value="creative">Creative Industries</option>
-              <option value="energy">Energy &amp; Utilities</option>
-              <option value="real estate">Real Estate &amp; Property</option>
-            </select>
+          <p style="color:#94a3b8;font-size:.9rem;line-height:1.6;margin:0 0 14px;">Each section below is location-locked. Jamaican Jobs only surfaces Jamaica roles; US/UK/Canada and other markets are separated into their own collapsible feeds.</p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px;">
+            <div style="flex:1;min-width:260px;">
+              <label for="jwaMarketKeyword" style="color:#94a3b8;font-size:.85rem;display:block;margin-bottom:6px;">Job title / keyword</label>
+              <input id="jwaMarketKeyword" class="jwa-input" type="text" value="Customer Service Representative" placeholder="e.g. Software Developer" />
+            </div>
+            <button id="jwaRefreshRegionalJobsBtn" class="jwa-submit-btn" type="button">Refresh Regional Jobs</button>
           </div>
-          <div id="jwaMarketRadar">
-            <p class="jwa-empty">Loading market data...</p>
+          <div id="jwaRegionalMarkets">
+            <p class="jwa-empty">Loading regional job feeds...</p>
           </div>
         </div>
 
@@ -792,6 +785,90 @@
             <h3>Free Access Model (Current)</h3>
             <p style="margin-bottom:10px;">For now, keep all employer onboarding and posting features free so adoption can grow quickly across Jamaican companies, schools, and training partners.</p>
             <p style="margin:0;">Track usage and hiring outcomes first, then decide later if premium tiers are needed.</p>
+          </div>
+        </div>
+
+        <!-- Tab 7: Scholarships & Funding -->
+        <div id="jwaTabScholarships" class="jwa-tab-panel" role="tabpanel" hidden>
+          <div class="jwa-report-section" style="margin-top:18px;">
+            <h3>💸 Scholarships &amp; Funding Finder</h3>
+            <p>Track high-value scholarship pathways and funding windows that Jamaican learners can realistically target.</p>
+            <ul style="margin:0;padding-left:18px;line-height:1.7;color:#cbd5e1;">
+              <li>GOJ / SLB financing windows and requirements</li>
+              <li>Chevening, Commonwealth, Fulbright timelines</li>
+              <li>UWI, UTech, NCU scholarship trackers</li>
+              <li>Application checklist: transcripts, references, statement of purpose, deadlines</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Tab 8: HEART / Apprenticeships -->
+        <div id="jwaTabApprenticeships" class="jwa-tab-panel" role="tabpanel" hidden>
+          <div class="jwa-report-section" style="margin-top:18px;">
+            <h3>🛠️ HEART / Apprenticeships</h3>
+            <p>Hands-on vocational pathways for users choosing skills-first routes.</p>
+            <ul style="margin:0;padding-left:18px;line-height:1.7;color:#cbd5e1;">
+              <li>HEART/NSTA programme map by parish and field</li>
+              <li>Apprenticeship intake cycles and readiness checklist</li>
+              <li>Bridge pathways: HEART certificate to entry-level employment</li>
+              <li>Employer-linked apprenticeship opportunities</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Tab 9: Interview & Assessment Prep -->
+        <div id="jwaTabInterviewPrep" class="jwa-tab-panel" role="tabpanel" hidden>
+          <div class="jwa-report-section" style="margin-top:18px;">
+            <h3>🎤 Interview &amp; Assessment Prep</h3>
+            <p>Prepare candidates for screening tests and interviews with Jamaica- and diaspora-relevant practice.</p>
+            <ul style="margin:0;padding-left:18px;line-height:1.7;color:#cbd5e1;">
+              <li>Behavioral interview question banks by role family</li>
+              <li>Aptitude and critical-reasoning practice packs</li>
+              <li>Video interview and spoken-English confidence drills</li>
+              <li>Mock scorecards and improvement feedback loops</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Tab 10: Labour Rights & Contracts -->
+        <div id="jwaTabLabourRights" class="jwa-tab-panel" role="tabpanel" hidden>
+          <div class="jwa-report-section" style="margin-top:18px;">
+            <h3>⚖️ Labour Rights &amp; Contracts</h3>
+            <p>Help users avoid exploitative offers and understand contract terms before signing.</p>
+            <ul style="margin:0;padding-left:18px;line-height:1.7;color:#cbd5e1;">
+              <li>Offer letter and contract clause checker</li>
+              <li>Notice periods, probation, overtime, benefits awareness</li>
+              <li>Salary negotiation prompts for local and diaspora roles</li>
+              <li>Escalation guidance for unfair workplace practices</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Tab 11: Entrepreneurship / Freelance -->
+        <div id="jwaTabEntrepreneur" class="jwa-tab-panel" role="tabpanel" hidden>
+          <div class="jwa-report-section" style="margin-top:18px;">
+            <h3>🚀 Entrepreneurship / Freelance Path</h3>
+            <p>For users building independent income or small businesses instead of traditional employment.</p>
+            <ul style="margin:0;padding-left:18px;line-height:1.7;color:#cbd5e1;">
+              <li>Freelance starter roadmap and portfolio blueprint</li>
+              <li>Pricing, client acquisition, and contract basics</li>
+              <li>JBDC / DBJ / JAMPRO support pathways</li>
+              <li>Transition plan: side-income to full-time business</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Tab 12: Mentor & Alumni Network -->
+        <div id="jwaTabMentor" class="jwa-tab-panel" role="tabpanel" hidden>
+          <div class="jwa-report-section" style="margin-top:18px;">
+            <h3>🤝 Mentor &amp; Alumni Network</h3>
+            <p>Connect users with Jamaican and diaspora professionals for practical guidance.</p>
+            <ul style="margin:0;padding-left:18px;line-height:1.7;color:#cbd5e1;">
+              <li>Mentor matching by industry, role level, and country</li>
+              <li>Monthly office-hours and career clinics</li>
+              <li>Alumni referral pipeline for internships and jobs</li>
+              <li>Structured mentorship goals and progress tracking</li>
+            </ul>
           </div>
         </div>
 
@@ -994,6 +1071,6 @@
   <script src="js/auth-storage.js"></script>
   <script src="js/nav-plan-sync.js"></script>
   <script src="js/return-navigation.js"></script>
-  <script src="js/jamaica-workforce-accelerator.js?v=20260422e"></script>
+  <script src="js/jamaica-workforce-accelerator.js?v=20260422f"></script>
 </body>
 </html>
