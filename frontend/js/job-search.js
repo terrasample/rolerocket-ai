@@ -49,10 +49,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (queryInput) queryInput.value = query;
 
-    // When arriving from a market job card, skip the internal board and show
-    // live external search links immediately — the internal board has no listings yet.
+    // Legacy market links should jump directly to the source (Indeed Jamaica).
     if (options.fromMarket) {
-      renderJobs([], query, options);
+      const encoded = encodeURIComponent(query);
+      window.location.href = `https://jm.indeed.com/jobs?q=${encoded}`;
       return;
     }
 

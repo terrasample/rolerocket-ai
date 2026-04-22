@@ -176,7 +176,7 @@
           <h3 class="jwa-industry-title" style="color:${data.color};">${esc(industry)}</h3>
           <div class="jwa-role-grid">
             ${data.roles.map(r => `
-              <a class="jwa-role-card" data-job-query="${esc(r.title)}" href="job-search.html?q=${encodeURIComponent(r.title)}&industry=${encodeURIComponent(industry)}&source=market" style="display:block;text-decoration:none;cursor:pointer;">
+              <a class="jwa-role-card" href="https://jm.indeed.com/jobs?q=${encodeURIComponent(r.title)}" target="_blank" rel="noopener noreferrer" style="display:block;text-decoration:none;cursor:pointer;">
                 <strong>${esc(r.title)}</strong>
                 <span class="jwa-salary">${esc(r.range)}</span>
                 <span class="jwa-demand-badge" style="background:${DEMAND_COLOR[r.demand] || '#64748b'};">${esc(r.demand)} Demand</span>
@@ -189,19 +189,6 @@
       `;
     }
     container.innerHTML = html || '<p class="jwa-empty">No industries match your filter.</p>';
-
-    // Fallback click routing: ensures navigation works even if anchor default is interfered with.
-    if (!container.dataset.boundClicks) {
-      container.dataset.boundClicks = '1';
-      container.addEventListener('click', function (event) {
-        const card = event.target.closest('.jwa-role-card[data-job-query]');
-        if (!card) return;
-        const query = String(card.getAttribute('data-job-query') || '').trim();
-        if (!query) return;
-        event.preventDefault();
-        window.location.href = `job-search.html?q=${encodeURIComponent(query)}&source=market`;
-      });
-    }
   }
 
   /* ── 2. Diaspora Connection Pipeline ───────────────────────────────────── */
