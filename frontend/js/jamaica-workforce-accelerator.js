@@ -814,6 +814,96 @@
 
   /* ── 5. Career Pathway Builder ──────────────────────────────────────────── */
 
+  /* ─── Role Ladders (entry → mid → senior, with salary bands) ───────────── */
+  const ROLE_LADDERS = {
+    'project-manager':   [
+      { level: 'Entry',  title: 'Project Co-ordinator',       salary: 'JMD 1.2–1.8M / yr', note: 'Support PMs, handle scheduling & documentation.' },
+      { level: 'Mid',    title: 'Project Manager',            salary: 'JMD 2.5–4.5M / yr', note: 'Own end-to-end delivery; PMP or PRINCE2 an advantage.' },
+      { level: 'Senior', title: 'Programme / Portfolio Lead', salary: 'JMD 5–9M+ / yr',    note: 'Oversee multiple projects; strategic planning focus.' },
+    ],
+    'software-developer':[
+      { level: 'Entry',  title: 'Junior Developer / Intern',  salary: 'JMD 1.2–2M / yr',   note: 'Bug fixes, tests, small features under mentorship.' },
+      { level: 'Mid',    title: 'Software Engineer',          salary: 'JMD 3–5.5M / yr',   note: 'Own features, code review, architecture input.' },
+      { level: 'Senior', title: 'Senior / Lead Engineer',     salary: 'JMD 6–12M+ / yr',   note: 'Technical lead; system design; remote USD roles possible.' },
+    ],
+    'nurse':             [
+      { level: 'Entry',  title: 'Staff Nurse (Grade 1)',       salary: 'JMD 1.8–2.4M / yr', note: 'Ward rotations; NMC Jamaica registration required.' },
+      { level: 'Mid',    title: 'Senior Staff Nurse / Sister', salary: 'JMD 2.8–4M / yr',   note: 'Ward leadership; specialisation (ICU, Midwifery, etc.).' },
+      { level: 'Senior', title: 'Ward Manager / CNO',          salary: 'JMD 4.5–8M+ / yr',  note: 'Clinical governance; UK / Canada migration pathway viable.' },
+    ],
+    'marketing-manager': [
+      { level: 'Entry',  title: 'Marketing Assistant / Co-ord', salary: 'JMD 1.1–1.6M / yr', note: 'Social media, copy, events support.' },
+      { level: 'Mid',    title: 'Marketing Manager',            salary: 'JMD 2.5–4M / yr',   note: 'Campaign ownership, budget management, brand voice.' },
+      { level: 'Senior', title: 'Head of Marketing / CMO',      salary: 'JMD 5–10M+ / yr',   note: 'Growth strategy, agency management, C-suite reporting.' },
+    ],
+    'accountant':        [
+      { level: 'Entry',  title: 'Accounts Clerk / Junior Auditor', salary: 'JMD 1.2–1.8M / yr', note: 'Data entry, reconciliation, trial balance support.' },
+      { level: 'Mid',    title: 'Accountant / Audit Senior',        salary: 'JMD 2.5–4.5M / yr', note: 'Financial statements, tax filings, ACCA student/affiliate.' },
+      { level: 'Senior', title: 'Finance Manager / CFO',            salary: 'JMD 5–12M+ / yr',   note: 'Strategic finance, ACCA / CPA qualified; diaspora roles.' },
+    ],
+    'entrepreneur':      [
+      { level: 'Entry',  title: 'Sole Trader / Freelancer',  salary: 'Variable — JMD 0–1.5M', note: 'Validate idea, first paying customers, register business.' },
+      { level: 'Mid',    title: 'Small Business Owner',       salary: 'JMD 2–6M / yr',         note: 'Team of 2–10, recurring revenue, JBDC / BNS support.' },
+      { level: 'Senior', title: 'Established Entrepreneur',   salary: 'JMD 8M+ / yr',          note: 'Multiple revenue streams; investors; export potential.' },
+    ],
+  };
+
+  /* ─── TVET / Vocational Route overlays (per career, key points per year) ─ */
+  const TVET_ROUTES = {
+    'project-manager': {
+      y1: ['Enrol in HEART/NSTA Construction Project Management Level 2 programme.', 'Shadow a site supervisor or logistics co-ordinator part-time.', 'Build a paper-based project plan for a small community task (event, repair, fundraiser).', 'Look into MIND (Management Institute for National Development) short courses.'],
+      y2: ['Complete HEART/NSTA Level 3 Project Management or Operations Management certificate.', 'Target a paid Admin / Operations Assistant role to build real-world experience.', 'Study for CAPM (Certified Associate in Project Management) — available via PMI online, no degree required.', 'Apply to JBDC\'s SME programme workshops for project planning skills.'],
+      y3: ['Sit CAPM exam; cost ~USD 225 — apply for NHT or JN Bank study loan if needed.', 'Move into a Junior Project Co-ordinator role; document every project you touch.', 'Join PMI Jamaica Chapter as a student member for networking and mentorship.', 'Study PRINCE2 Foundation remotely (Coursera / Udemy ~ JMD 5,000–15,000).'],
+      y4: ['Pursue PMP certification once you have 36 months of project leadership experience.', 'Target government project offices, construction firms, or BPO project leads.', 'Build a portfolio of 3 managed projects — sizes, budgets, outcomes documented.', 'Consider ACPM (UK-accredited) as a cost-effective alternative to PMP.'],
+      y5: ['Day 1 ready: CAPM/PMP cert + HEART certificate + documented portfolio.', 'Target entry-level Project Co-ordinator positions in tourism, construction, or BPO.', 'Salary target: JMD 1.2–1.8M; use first role to clock hours toward PMP if not yet held.', 'HEART/NSTA Caribbean Project Management qualification is fully recognised by local employers.'],
+    },
+    'software-developer': {
+      y1: ['Enrol in HEART/NSTA ICT Level 1–2 programme (Digital Technology pathway).', 'Start free coding: The Odin Project, freeCodeCamp, CS50 (Harvard, free online).', 'Build 2 small HTML/CSS/JS projects — host for free on GitHub Pages.', 'Join Code Jamaica or local tech WhatsApp / Discord communities.'],
+      y2: ['Complete HEART/NSTA ICT Level 3 — Software Development track.', 'Learn one backend language: Node.js or Python (freeCodeCamp or Scrimba).', 'Contribute to 1 open-source project on GitHub to build public profile.', 'Target a part-time junior dev, data entry, or IT support role to gain income + experience.'],
+      y3: ['Build a portfolio of 3 full-stack projects — each solving a real Jamaican business problem.', 'Start freelancing on Upwork or Toptal to earn USD while studying.', 'Study AWS Cloud Practitioner (free prep on AWS Skill Builder) — globally recognised.', 'HEART/NSTA CompTIA A+ or Network+ tracks are a cost-effective entry to tech ops.'],
+      y4: ['Apply for Amazon, Digicel, GraceKennedy, or NCB tech internship / junior role.', 'Complete AWS / Google Cloud Associate cert if interested in cloud/DevOps.', 'Consider Caribbean Software & Tech Academy (CSTA) bootcamp for structured mentorship.', 'Start building LinkedIn profile — many Jamaican developers land USD remote roles this way.'],
+      y5: ['Day 1 ready: GitHub portfolio + HEART ICT cert + at least one cloud cert.', 'Target entry-level developer roles or USD remote junior roles.', 'Salary band: JMD 1.2–2M local or USD 20–40k remote.', 'Path does not require a university degree — portfolio + cert is enough for first junior role.'],
+    },
+    'nurse': {
+      y1: ['Enrol in HEART/NSTA Healthcare Auxiliary / Community Health Worker Level 1–2.', 'Volunteer at a local clinic, health centre, or Red Cross chapter — builds compassion and reference letters.', 'Study CXC Biology, Chemistry, and Human & Social Biology — grade B required for nursing school.', 'Attend an open day at the University Hospital of the West Indies (UHWI) School of Nursing.'],
+      y2: ['Apply to Registered Nurse programme at G.C. Foster College, UHWI, or Northern Caribbean University.', 'If not ready for degree, enrol in HEART/NSTA Community Healthcare Level 3 as a bridge.', 'Complete CPR and First Aid certification (Red Cross Jamaica — approx JMD 5,000).', 'Find a healthcare assistant / ward aide role to fund studies and build clinical exposure.'],
+      y3: ['Complete Year 1 of the UHWI / NCU BSc Nursing or Enrolled Nurse programme.', 'Apply for the GOJ Student Loan Scheme (SLASPA) — covers nursing tuition at approved institutions.', 'Begin nursing simulation labs — core clinical competencies documented in your logbook.', 'Connect with RNAO (Registered Nurses\' Association of Jamaica) student chapter for mentorship.'],
+      y4: ['Complete Year 2 clinical rotations — paediatrics, maternity, surgical, medical wards.', 'Apply early for HECS scholarship if targeting UK registration post-graduation.', 'Study NCLEX-RN prep materials if targeting US migration path — start early.', 'Identify your specialisation interest: ICU, midwifery, mental health, community nursing.'],
+      y5: ['Graduate with BSc Nursing or Enrolled Nurse diploma; register with Nursing Council of Jamaica.', 'Apply to Queen Elizabeth for Health Workers Programme (Canada) or NHS Band 5 UK pathway.', 'Salary band in Jamaica: JMD 1.8–2.4M; UK Band 5: £28,000–£34,000.', 'TVET/vocational route is fully viable — HEART bridge cert to enrolled nurse to registered nurse is an established pathway.'],
+    },
+    'marketing-manager': {
+      y1: ['Take Google Digital Marketing & E-commerce Certificate (free on Coursera, 6 months).', 'Create and grow a personal social media account in a niche you care about — your first portfolio piece.', 'Volunteer to manage social media for a local school, church, or small business.', 'Study CXC Principles of Business and Economics as academic foundation.'],
+      y2: ['Complete HubSpot Content Marketing and Email Marketing certifications (free).', 'Build a basic WordPress or Wix website for a local SME — charge a small fee or do it in exchange for testimonial.', 'Target a Social Media Assistant or Marketing Admin role with a local agency or BPO.', 'Enrol in HEART/NSTA Business Administration Level 3 if degree path is not viable.'],
+      y3: ['Complete Google Ads and Meta Blueprint certifications — both free.', 'Run a real paid ad campaign (even USD 10) — document results for portfolio.', 'Apply for a Marketing Co-ordinator role at a hotel, FMCG brand, or digital agency.', 'Study for CIM (Chartered Institute of Marketing) Foundation Certificate — available via distance learning.'],
+      y4: ['Build a portfolio of 5+ campaigns: before/after metrics, channel mix, budget managed.', 'Apply for marketing assistant / brand co-ordinator at Grace Kennedy, Digicel, or Sandals.', 'Complete LinkedIn Marketing Solutions or TikTok Business Centre certifications.', 'Consider UWI Open Campus part-time marketing programme as a degree entry point if desired.'],
+      y5: ['Day 1 ready: Google/HubSpot/Meta certs + brand case studies + 1 year of hands-on experience.', 'Target Marketing Manager roles in tourism, FMCG, financial services, or telecoms.', 'Salary band: JMD 1.1–1.6M entry; 2.5–4M with experience.', 'Degree is NOT required for most marketing roles in Jamaica — a strong portfolio wins more interviews.'],
+    },
+    'accountant': {
+      y1: ['Study CXC Accounts and Additional Mathematics — grade 1 or 2 target.', 'Complete a free Introduction to Financial Accounting course (Coursera / edX, University of Pennsylvania).', 'Offer basic bookkeeping to a family or community business — practice real data.', 'Register as a student member with ICAJ (Institute of Chartered Accountants of Jamaica).'],
+      y2: ['Enrol in ACCA Foundation level (FIA) — these qualifications do not require a degree to start.', 'ACCA FIA Level 1–3 covers Bookkeeping, Financial Statements, and Management Accounting.', 'Target an Accounts Clerk or Payroll Assistant role to earn income while studying.', 'HEART/NSTA Business Administration Level 3 includes bookkeeping modules — useful bridge.'],
+      y3: ['Progress to ACCA Applied Knowledge papers (BT, MA, FA) — sit one per sitting.', 'Keep working in an accounting support role; each year of experience counts toward ACCA membership.', 'Apply for ICAJ student bursary — available annually for ACCA students in Jamaica.', 'QuickBooks ProAdvisor certification is free and immediately marketable to SMEs.'],
+      y4: ['Sit ACCA Applied Skills papers (LW, PM, TX, FR, AA, FM).', 'Target Accounts Officer or Junior Auditor role at a Big 4 firm (Deloitte, KPMG, PwC Jamaica).', 'Build Excel / Google Sheets mastery — most Jamaica employers test this at interview.', 'Consider CIPA (Certified International Professional Accountant) as a faster alternative pathway.'],
+      y5: ['Day 1 ready: ACCA Part-qualified + 2–3 years experience + QBO/Sage skills.', 'Target Accountant or Audit Senior roles at local firms or global companies with JA offices.', 'Salary band: JMD 1.2–1.8M entry; 2.5–4.5M as ACCA-qualified.', 'ACCA qualification does not require a university degree — experience + papers = recognised globally.'],
+    },
+    'entrepreneur': {
+      y1: ['Identify one problem in your community that you could solve for money — write 1 page on it.', 'Register as a Sole Trader with JAMPRO / Companies Office of Jamaica (approx JMD 4,000).', 'Complete JBDC (Jamaica Business Development Corporation) free SME starter workshop.', 'Start selling something small: a skill, a product, a service — even JMD 500/week is real traction.'],
+      y2: ['Open a business bank account (NCB Business Xtra, BNS SME) — keep personal and business money separate.', 'Complete HEART/NSTA Entrepreneurship Development Level 1–2 programme.', 'Apply for JMD 50,000–150,000 from the Micro Enterprise Financing Ltd (MEFL) loan programme.', 'Build a simple social media presence: Instagram + WhatsApp Business are enough to start.'],
+      y3: ['Get your first 10 repeat customers — customer retention beats acquisition at this stage.', 'Study basic financial literacy: cash flow, gross margin, break-even (JBDC offers free workshops).', 'Apply for the DBJ (Development Bank of Jamaica) Youth Entrepreneurship Loan (up to JMD 1M).', 'Look into JAMPRO Export Ready programme if your product has Caribbean or diaspora demand.'],
+      y4: ['Register a limited liability company (Jamaica Companies Office — approx JMD 15,000).', 'Apply for ScotiaBank Jamaica Women\'s Initiative or BNS Small Business Grant if eligible.', 'Hire your first part-time employee or commission-based sales person — document everything.', 'Apply for NHT or CHASE Fund grants if your business has a social impact angle.'],
+      y5: ['Day 1 "established": registered company + tax compliance + 2+ years of revenue history.', 'Target first export sale (UK, US, Canadian diaspora) via JAMPRO trade facilitation.', 'Revenue target: JMD 4–8M annual by end of Year 5.', 'No degree required — JBDC, HEART, and DBJ programmes are your university for entrepreneurship.'],
+    },
+  };
+
+  /* ─── Jamaica local institution mapping per career ──────────────────────── */
+  const JAMAICA_INSTITUTIONS = {
+    'project-manager':    { degree: 'UWI Mona (BSc Mgmt)', vocational: 'HEART/NSTA — Project Mgmt Level 3', cert: 'MIND Jamaica (PM short courses)', scholarship: 'NHT Education Loan' },
+    'software-developer': { degree: 'UTech (BSc CS / IT)', vocational: 'HEART/NSTA — ICT Level 3', cert: 'Caribbean Software & Tech Academy', scholarship: 'GOJ Student Loan (SLASPA)' },
+    'nurse':              { degree: 'UHWI School of Nursing / NCU', vocational: 'HEART/NSTA — Community Health Level 3', cert: 'Nursing Council of Jamaica', scholarship: 'GOJ Nursing Bursary' },
+    'marketing-manager':  { degree: 'UWI Mona (BSc Marketing)', vocational: 'HEART/NSTA — Business Admin Level 3', cert: 'Google / HubSpot / CIM Foundation', scholarship: 'UWI Open Campus Bursary' },
+    'accountant':         { degree: 'UWI / UTech (BSc Accounting)', vocational: 'ACCA FIA (no degree required)', cert: 'ICAJ Student Membership', scholarship: 'ICAJ Annual Bursary' },
+    'entrepreneur':       { degree: 'UTech (BSc Entrepreneurship)', vocational: 'HEART/NSTA Entrepreneurship Level 2', cert: 'JBDC SME Certification', scholarship: 'DBJ Youth Loan / CHASE Fund' },
+  };
+
   const CAREER_META = {
     'project-manager':   { label: 'Project Manager',              certPill: '💼 PM Certifications',        lessonsTitle: '📚 8 Core Project Management Lessons',      lessonsDesc: 'These translate directly from classroom and sport to the boardroom.' },
     'software-developer':{ label: 'Software Developer',           certPill: '💻 Dev Certifications',       lessonsTitle: '📚 8 Core Software Development Lessons',    lessonsDesc: 'Principles that separate junior developers from senior engineers.' },
@@ -1770,11 +1860,55 @@
       </div>
     ` : '';
 
+    // Monthly execution panel — top 3 actions from first item of first 3 blocks
+    const actionBlocks = data.blocks.filter(b => b.items && b.items.length && !b.balance).slice(0, 3);
+    const monthlyActions = actionBlocks.map(b => b.items[0]).filter(Boolean);
+    const monthlyHtml = monthlyActions.length ? `
+      <div style="background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);border-radius:12px;padding:16px 20px;margin-bottom:22px;border-left:4px solid ${data.color};">
+        <div style="font-weight:700;color:#fdb714;font-size:.95rem;margin-bottom:10px;">📅 This Month — Your Top 3 Actions</div>
+        <ol style="margin:0;padding-left:18px;color:#e2e8f0;font-size:.88rem;line-height:1.7;">
+          ${monthlyActions.map(a => `<li>${a}</li>`).join('')}
+        </ol>
+      </div>
+    ` : '';
+
+    // TVET overlay panel
+    const isTVET = document.getElementById('cpRouteTVET')?.classList.contains('cp-route-active');
+    const career = timelineState.career || '';
+    const tvetYear = (TVET_ROUTES[career] || {})[yearKey];
+    const tvetHtml = (isTVET && tvetYear) ? `
+      <div style="background:#1a2a1a;border-radius:12px;padding:16px 20px;margin-bottom:22px;border-left:4px solid #22c55e;">
+        <div style="font-weight:700;color:#4ade80;font-size:.95rem;margin-bottom:10px;">🏗️ TVET / Vocational Route — Your Path This Year</div>
+        <ul style="margin:0;padding-left:18px;color:#d1fae5;font-size:.88rem;line-height:1.7;">
+          ${tvetYear.map(a => `<li>${esc(a)}</li>`).join('')}
+        </ul>
+      </div>
+    ` : '';
+
+    // Local institution callout
+    const inst = JAMAICA_INSTITUTIONS[career];
+    const instHtml = inst ? `
+      <div style="background:#1e293b;border-radius:10px;padding:14px 18px;margin-top:18px;border:1px solid #334155;">
+        <div style="font-weight:700;color:#94a3b8;font-size:.85rem;margin-bottom:8px;">🏛️ Jamaica Institutions for This Career</div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;font-size:.83rem;">
+          <span style="color:#e2e8f0;"><strong>Degree:</strong> ${esc(inst.degree)}</span>
+          <span style="color:#e2e8f0;">·</span>
+          <span style="color:#4ade80;"><strong>Vocational:</strong> ${esc(inst.vocational)}</span>
+          <span style="color:#e2e8f0;">·</span>
+          <span style="color:#fdb714;"><strong>Cert:</strong> ${esc(inst.cert)}</span>
+          <span style="color:#e2e8f0;">·</span>
+          <span style="color:#60a5fa;"><strong>Funding:</strong> ${esc(inst.scholarship)}</span>
+        </div>
+      </div>
+    ` : '';
+
     content.innerHTML = `
       <div style="margin-bottom:20px;">
         <h3 style="color:${data.color};margin:0 0 4px;font-size:1.2rem;">${esc(data.label)}</h3>
         <p style="color:#64748b;font-size:.88rem;margin:0;">${esc(data.subtitle)}</p>
       </div>
+      ${monthlyHtml}
+      ${tvetHtml}
       <div class="sa-year-grid">
         ${data.blocks.map(b => `
           <div class="sa-block">
@@ -1785,6 +1919,7 @@
         ${balanceHtml}
       </div>
       <div class="sa-milestone">${esc(data.milestone)}</div>
+      ${instHtml}
     `;
   }
 
@@ -1914,17 +2049,69 @@
 
     const lifeStage = document.getElementById('cpLifeStage')?.value || 'secondary';
     const STAGE_TO_YEAR = {
-      'secondary':       'y1',
-      'sixthform':       'y2',
-      'university-early':'y3',
-      'university-final':'y4',
-      'working':         'y5',
-      'change':          'y5',
+      'secondary':        'y1',
+      'sixthform':        'y2',
+      'university-early': 'y3',
+      'university-final':  'y4',
+      'working':          'y5',
+      'change':           'y5',
+      'returner':         'y1',
     };
     const stageKey = STAGE_TO_YEAR[lifeStage] || 'y1';
     const preferredKey = options.resetYear ? stageKey : timelineState.activeYearKey;
     timelineState.activeYearKey = renderYearTabs(pathway, preferredKey);
     renderCareerYear(pathway, timelineState.activeYearKey);
+
+    // --- Role ladder ---
+    const ladderEl = document.getElementById('cpRoleLadder');
+    if (ladderEl) {
+      const ladder = ROLE_LADDERS[career];
+      if (ladder) {
+        ladderEl.innerHTML = `
+          <div style="font-size:.85rem;color:#94a3b8;margin-bottom:8px;font-weight:600;">📈 Role Progression</div>
+          <div style="display:flex;flex-wrap:wrap;gap:10px;">
+            ${ladder.map((r, i) => `
+              <div style="flex:1;min-width:140px;background:#1e293b;border-radius:10px;padding:12px 14px;border-top:3px solid ${i===0?'#64748b':i===1?'#6366f1':'#fdb714'};">
+                <div style="font-size:.75rem;font-weight:700;color:${i===0?'#94a3b8':i===1?'#a5b4fc':'#fdb714'};margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em;">${esc(r.level)}</div>
+                <div style="font-weight:700;color:#f1f5f9;font-size:.88rem;margin-bottom:4px;">${esc(r.title)}</div>
+                <div style="color:#fdb714;font-size:.8rem;margin-bottom:4px;">${esc(r.salary)}</div>
+                <div style="color:#94a3b8;font-size:.78rem;line-height:1.4;">${esc(r.note)}</div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      } else {
+        ladderEl.innerHTML = '';
+      }
+    }
+
+    // --- Constraint / readiness bar ---
+    const readinessEl = document.getElementById('cpReadinessBar');
+    if (readinessEl) {
+      const budget    = document.getElementById('cpConstraintBudget')?.checked;
+      const noUni     = document.getElementById('cpConstraintNoUni')?.checked;
+      const migration = document.getElementById('cpConstraintMigration')?.checked;
+      const family    = document.getElementById('cpConstraintFamily')?.checked;
+      const isReturner = lifeStage === 'returner';
+      const notes = [];
+      if (budget)    notes.push('💰 Budget-aware: prioritise free/low-cost certs (HEART, Google, HubSpot) and apply for all available bursaries.');
+      if (noUni)     notes.push('🚫 No-university path activated: TVET, ACCA FIA, or short-cert routes shown alongside the standard plan.');
+      if (migration) notes.push('✈️ Migration-open: look for globally recognised certs (ACCA, PMP, AWS) and visa-pathway employers in the diaspora section.');
+      if (family)    notes.push('👨‍👩‍👧 Flexible schedule: focus on evening courses, distance learning, and remote/part-time options that fit family commitments.');
+      if (isReturner) notes.push('🔁 Career returner: your 90-day priority is to update credentials, build 3 recent portfolio pieces, and reconnect with your professional network.');
+      if (notes.length) {
+        readinessEl.innerHTML = `
+          <div style="background:#172033;border-radius:10px;padding:14px 18px;border-left:4px solid #6366f1;">
+            <div style="font-weight:700;color:#a5b4fc;font-size:.88rem;margin-bottom:8px;">🎯 Your plan is personalised for your situation:</div>
+            <ul style="margin:0;padding-left:18px;color:#cbd5e1;font-size:.85rem;line-height:1.7;">
+              ${notes.map(n => `<li>${n}</li>`).join('')}
+            </ul>
+          </div>
+        `;
+      } else {
+        readinessEl.innerHTML = '';
+      }
+    }
   }
 
   function renderCareerInit() {
@@ -1956,6 +2143,25 @@
         if (timelineState.career === 'custom-any') loadCareer('custom-any', { resetYear: false });
       });
     }
+
+    // Route toggle buttons
+    const btnAcademic = document.getElementById('cpRouteAcademic');
+    const btnTVET     = document.getElementById('cpRouteTVET');
+    function setRoute(active, inactive) {
+      active.classList.add('cp-route-active');    active.setAttribute('aria-pressed', 'true');
+      inactive.classList.remove('cp-route-active'); inactive.setAttribute('aria-pressed', 'false');
+      renderCareerYear(timelineState.pathway, timelineState.activeYearKey);
+    }
+    if (btnAcademic && btnTVET) {
+      btnAcademic.addEventListener('click', () => setRoute(btnAcademic, btnTVET));
+      btnTVET.addEventListener('click',     () => setRoute(btnTVET, btnAcademic));
+    }
+
+    // Constraint checkboxes — re-render readiness note + year on change
+    ['cpConstraintBudget','cpConstraintNoUni','cpConstraintMigration','cpConstraintFamily'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('change', () => loadCareer(timelineState.career, { resetYear: false }));
+    });
 
     const regionSelect = document.getElementById('saImmigRegion');
     const typeSelect = document.getElementById('saImmigPathType');

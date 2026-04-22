@@ -221,6 +221,9 @@
     .sa-year-btn:last-child { border-right: none; }
     .sa-year-btn:hover { background: #334155; color: #fff; }
     .sa-year-btn.sa-year-active { background: linear-gradient(135deg,#007847,#fdb714); color: #000; }
+    .cp-route-btn { background:#1e293b; color:#94a3b8; border:1.5px solid #334155; padding:8px 18px; border-radius:8px; font-size:.9rem; cursor:pointer; transition:all .2s; }
+    .cp-route-btn:hover { background:#334155; color:#fff; }
+    .cp-route-btn.cp-route-active { background:linear-gradient(135deg,#007847,#fdb714); color:#000; border-color:transparent; font-weight:700; }
 
     /* Year panel */
     .sa-year-panel { display: none; }
@@ -593,8 +596,8 @@
         <h1>Jamaica Workforce Accelerator</h1>
         <p>Connecting Jamaica's talent to local and global opportunity — powered by AI career intelligence, diaspora networks, and real skills data.</p>
         <div class="jwa-hero-stats">
-          <div class="jwa-stat-pill">🏢 6 High-Growth Industries</div>
-          <div class="jwa-stat-pill">🌍 2,800+ Diaspora Employers Mapped</div>
+          <div class="jwa-stat-pill">🏢 14 High-Growth Industries</div>
+          <div class="jwa-stat-pill">🌍 2,859 Diaspora Employers Mapped</div>
           <div class="jwa-stat-pill">📊 10 Critical Skills Gaps Identified</div>
           <div class="jwa-stat-pill">🎓 CXC / CAPE / HEART Ready</div>
         </div>
@@ -809,7 +812,18 @@
                 <option value="university-final">🎓 University — Final year</option>
                 <option value="working">💼 Already working, looking to advance</option>
                 <option value="change">🔄 Career change / starting fresh</option>
+                <option value="returner">🔁 Returning after a career gap (1+ years)</option>
               </select>
+
+              <!-- Route toggle -->
+              <div style="margin-bottom:16px;">
+                <span style="color:#94a3b8;font-size:.88rem;display:block;margin-bottom:8px;">Which route fits you best?</span>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                  <button id="cpRouteAcademic" class="cp-route-btn cp-route-active" type="button" aria-pressed="true">🎓 Academic / University</button>
+                  <button id="cpRouteTVET" class="cp-route-btn" type="button" aria-pressed="false">🏗️ TVET / Vocational / Apprenticeship</button>
+                </div>
+              </div>
+
               <label for="cpCareerSelect" style="color:#94a3b8;font-size:.88rem;display:block;margin-bottom:8px;">Choose your career goal:</label>
               <select id="cpCareerSelect" style="background:#1e293b;color:#f1f5f9;border:1.5px solid #334155;padding:10px 18px;border-radius:8px;font-size:1rem;cursor:pointer;min-width:300px;max-width:100%;">
                 <option value="project-manager">💼  Project Manager</option>
@@ -820,6 +834,33 @@
                 <option value="entrepreneur">🚀  Entrepreneur / Business Owner</option>
                 <option value="custom-any">🌍  Any Career (Custom)</option>
               </select>
+
+              <!-- Role ladder strip -->
+              <div id="cpRoleLadder" style="margin-top:14px;"></div>
+
+              <!-- Constraint checkboxes -->
+              <div style="margin-top:18px;padding:14px;background:#1e293b;border-radius:10px;border:1px solid #334155;">
+                <span style="color:#94a3b8;font-size:.85rem;display:block;margin-bottom:10px;font-weight:600;">⚙️ Your situation (tick all that apply — your plan adapts):</span>
+                <label style="display:flex;align-items:center;gap:8px;color:#cbd5e1;font-size:.88rem;margin-bottom:8px;cursor:pointer;">
+                  <input type="checkbox" id="cpConstraintBudget" style="accent-color:#6366f1;width:15px;height:15px;" />
+                  💰 I have limited budget (no school fees available right now)
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;color:#cbd5e1;font-size:.88rem;margin-bottom:8px;cursor:pointer;">
+                  <input type="checkbox" id="cpConstraintNoUni" style="accent-color:#6366f1;width:15px;height:15px;" />
+                  🚫 I cannot commit to 3+ years at university
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;color:#cbd5e1;font-size:.88rem;margin-bottom:8px;cursor:pointer;">
+                  <input type="checkbox" id="cpConstraintMigration" style="accent-color:#6366f1;width:15px;height:15px;" />
+                  ✈️ Migration is an option I am open to
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;color:#cbd5e1;font-size:.88rem;cursor:pointer;">
+                  <input type="checkbox" id="cpConstraintFamily" style="accent-color:#6366f1;width:15px;height:15px;" />
+                  👨‍👩‍👧 I have family / dependant responsibilities
+                </label>
+              </div>
+
+              <!-- Readiness score bar -->
+              <div id="cpReadinessBar" style="margin-top:14px;"></div>
             </div>
             <div id="cpCustomCareerWrap" style="display:none;margin:6px 0 14px;">
               <label for="cpCustomCareerInput" style="color:#94a3b8;font-size:.88rem;display:block;margin-bottom:8px;">Type any career (example: Singer, Actor, Plumber, Pilot, Chef):</label>
@@ -953,6 +994,6 @@
   <script src="js/auth-storage.js"></script>
   <script src="js/nav-plan-sync.js"></script>
   <script src="js/return-navigation.js"></script>
-  <script src="js/jamaica-workforce-accelerator.js?v=20260422d"></script>
+  <script src="js/jamaica-workforce-accelerator.js?v=20260422e"></script>
 </body>
 </html>
