@@ -53,6 +53,56 @@ document.addEventListener('DOMContentLoaded', function () {
   const AUDIO_VOICE_PREF_KEY = 'courseAudioVoicePreference';
   const CURRICULUM_LAST_REVIEWED = '2026-04-22';
 
+  function getJamaicaStrandsForCourse(name) {
+    const topicName = normalizeTopic(name);
+    if (!topicName) return [];
+
+    if (/^csec mathematics$|^csec math$/i.test(topicName)) {
+      return ['Numbers', 'Algebra', 'Geometry & Measurement', 'Trigonometry', 'Statistics & Probability'];
+    }
+    if (/^cape mathematics$|^cape pure mathematics$|^cape applied mathematics$/i.test(topicName)) {
+      return ['Functions & Graphs', 'Calculus', 'Vectors', 'Probability'];
+    }
+    if (/^csec english a$/i.test(topicName)) {
+      return ['Reading Comprehension', 'Grammar & Language Use', 'Essay Writing', 'Editing & Revision'];
+    }
+    if (/^csec information technology$/i.test(topicName)) {
+      return ['Computer Systems', 'Productivity Tools & Data Handling', 'Networking & Cyber Safety', 'Problem Solving & Algorithms'];
+    }
+    if (/^csec principles of accounts$/i.test(topicName)) {
+      return ['Double Entry', 'Ledger & Trial Balance', 'Final Accounts', 'Interpretation & Controls'];
+    }
+    if (/^cape accounting$/i.test(topicName)) {
+      return ['Financial Accounting', 'Adjustments & Reporting', 'Management Accounting Basics', 'Controls & Analysis'];
+    }
+    if (/^cape biology$/i.test(topicName)) {
+      return ['Cells & Biochemistry', 'Genetics', 'Physiology', 'Ecology'];
+    }
+    if (/^cape chemistry$/i.test(topicName)) {
+      return ['Atomic Structure & Bonding', 'Stoichiometry', 'Physical Chemistry', 'Organic/Applied Chemistry'];
+    }
+    if (/^cape economics$/i.test(topicName)) {
+      return ['Microeconomics', 'Macroeconomics', 'Development Economics', 'Policy Analysis'];
+    }
+    if (/^communication studies$/i.test(topicName)) {
+      return ['Communication Theory', 'Language & Audience', 'Message Design', 'Argumentation & Delivery'];
+    }
+    if (/^heart customer service$/i.test(topicName)) {
+      return ['Service Standards', 'Complaint Resolution', 'Professional Communication', 'Quality Metrics'];
+    }
+    if (/^heart practical nursing support$/i.test(topicName)) {
+      return ['Infection Control', 'Patient Observation', 'Patient Communication', 'Documentation & Handover'];
+    }
+    if (/^nvq-j electrical installation$/i.test(topicName)) {
+      return ['Safety & Regulations', 'Circuit Theory', 'Installation Practice', 'Testing & Fault Finding'];
+    }
+    if (/^nvq-j welding and fabrication$/i.test(topicName)) {
+      return ['Safety', 'Joint Preparation', 'Welding Technique', 'Inspection & Rework'];
+    }
+
+    return [];
+  }
+
   function getJamaicaCurriculumMeta(courseTitle, fallbackTopic) {
     const name = normalizeTopic(courseTitle || fallbackTopic);
     if (!name) return null;
@@ -66,8 +116,11 @@ document.addEventListener('DOMContentLoaded', function () {
     else if (/heart/i.test(name)) framework = 'HEART/NSTA competency pathway';
     else if (/nvq-j/i.test(name)) framework = 'NVQ-J competency standards pathway';
 
+    const strands = getJamaicaStrandsForCourse(name);
+
     return {
       framework,
+      strands,
       lastReviewed: CURRICULUM_LAST_REVIEWED,
       updateCycle: 'Monthly content review + termly syllabus alignment pass',
       note: 'Always cross-check with your current school syllabus/teacher guidance and the latest official examination guidance before final exam preparation.',
@@ -76,7 +129,9 @@ document.addEventListener('DOMContentLoaded', function () {
         { label: 'CSEC programme information', href: 'https://www.cxc.org/examinations/csec/' },
         { label: 'CAPE programme information', href: 'https://www.cxc.org/examinations/cape/' },
         { label: 'HEART/NSTA Trust', href: 'https://www.heart-nta.org/' },
-        { label: 'Ministry of Education, Jamaica', href: 'https://www.moey.gov.jm/' }
+        { label: 'Ministry of Education, Jamaica', href: 'https://www.moey.gov.jm/' },
+        { label: 'MOEY NSC (Grade 7-9 Mathematics)', href: 'https://moey.gov.jm/curriculum/page/3/' },
+        { label: 'MOEY Mathematics Student Resources', href: 'https://moey.gov.jm/students-2/' }
       ]
     };
   }
@@ -92,6 +147,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const sourceList = asArray(meta.sources)
       .map((source) => `<li><a href="${escapeHtml(String(source.href || '#'))}" target="_blank" rel="noopener noreferrer" style="color:#7dd3fc;">${escapeHtml(String(source.label || 'Official source'))}</a></li>`)
       .join('');
+    const strandList = asArray(meta.strands)
+      .map((strand) => `<li>${escapeHtml(String(strand))}</li>`)
+      .join('');
 
     curriculumMeta.style.display = 'block';
     curriculumMeta.innerHTML = `
@@ -99,6 +157,7 @@ document.addEventListener('DOMContentLoaded', function () {
       <div style="margin-bottom:6px;"><strong style="color:#bfdbfe;">Alignment:</strong> ${escapeHtml(String(meta.framework || 'Curriculum-aligned'))}</div>
       <div style="margin-bottom:6px;"><strong style="color:#bfdbfe;">Last reviewed:</strong> ${escapeHtml(String(meta.lastReviewed || 'N/A'))}</div>
       <div style="margin-bottom:10px;"><strong style="color:#bfdbfe;">Update cycle:</strong> ${escapeHtml(String(meta.updateCycle || 'Periodic review'))}</div>
+      ${strandList ? `<div style="color:#93c5fd;font-weight:700;margin-bottom:4px;">Strand structure</div><ul style="margin:0 0 10px 0;padding-left:18px;line-height:1.5;">${strandList}</ul>` : ''}
       <div style="margin-bottom:8px;color:#cbd5e1;">${escapeHtml(String(meta.note || ''))}</div>
       <div style="color:#93c5fd;font-weight:700;margin-bottom:4px;">Official reference sources</div>
       <ul style="margin:0;padding-left:18px;line-height:1.5;">${sourceList}</ul>
@@ -110,18 +169,40 @@ document.addEventListener('DOMContentLoaded', function () {
       match: [/^csec mathematics$/i, /^csec math$/i],
       course: {
         courseTitle: 'CSEC Mathematics',
-        subtitle: 'Algebra, geometry, trigonometry, and statistics with graded checks.',
+        subtitle: 'Numbers, algebra, geometry/measurement, trigonometry, and statistics/probability with graded checks.',
         difficulty: 'Intermediate',
         estimatedDuration: '8 weeks',
         marketDemand: 'Required for many CAPE, tertiary, and career pathways.',
         overview: 'This course teaches CSEC Mathematics through concept-first lessons, worked examples, and tested practice.',
         learningOutcomes: [
+          'Use number operations, fractions, decimals, percentages, and ratio confidently.',
           'Solve algebraic equations and factorization questions.',
-          'Apply geometry and mensuration rules correctly.',
+          'Apply geometry and measurement rules correctly.',
           'Use Pythagoras and trig ratios in right-triangle problems.',
-          'Interpret data and calculate basic probability.'
+          'Interpret data and calculate probability accurately.'
         ],
         modules: [
+          {
+            title: 'Number Concepts and Operations',
+            objective: 'Apply fractions, decimals, percentages, ratio, and proportion in context.',
+            lesson: 'Convert flexibly between fractions, decimals, and percentages and use ratio/proportion to solve everyday and exam problems.',
+            workedExample: 'If an item is discounted by 15% from JMD 2,400, discount = 0.15 x 2400 = 360, sale price = JMD 2,040.',
+            workedExampleSteps: [
+              'Example A: Convert 3/4 to decimal and percent.',
+              'Step 1: 3 divided by 4 = 0.75.',
+              'Step 2: Multiply by 100 to convert to percent: 0.75 x 100 = 75%.',
+              'Example B: Solve ratio proportion 2:5 = x:20.',
+              'Step 1: Write as fractions: 2/5 = x/20.',
+              'Step 2: Cross multiply: 2 x 20 = 5x => 40 = 5x.',
+              'Step 3: x = 8.'
+            ],
+            commonMistake: 'Mixing percentage and decimal forms without converting correctly.',
+            practiceTask: 'A school store marks up a JMD 1,500 item by 20%. Find the new price.',
+            progressCheckQuestion: 'Convert 0.35 to a percentage.',
+            progressCheckOptions: ['3.5%', '35%', '350%', '0.35%'],
+            correctOptionIndex: 1,
+            progressCheckExplanation: 'Multiply by 100: 0.35 x 100 = 35%.'
+          },
           {
             title: 'Algebra Foundations',
             objective: 'Simplify expressions and solve linear equations.',
@@ -167,22 +248,22 @@ document.addEventListener('DOMContentLoaded', function () {
             progressCheckExplanation: 'Use difference of squares: a^2 - b^2 = (a-b)(a+b).'
           },
           {
-            title: 'Geometry and Mensuration',
-            objective: 'Use angle facts and area formulas in exam questions.',
-            lesson: 'Angles in a triangle sum to 180 deg. Area of rectangle = l x w. Area of circle = pi r^2.',
+            title: 'Geometry and Measurement',
+            objective: 'Use angle facts, perimeter/area, and basic mensuration formulas.',
+            lesson: 'Angles in a triangle sum to 180 deg. Perimeter and area formulas must match the shape and unit requirements.',
             workedExample: 'Triangle angles 50 deg and 60 deg leave 70 deg for the third angle.',
             workedExampleSteps: [
               'Example A: Triangle angle problem with angles 50 deg and 60 deg.',
               'Step 1: Use triangle rule: sum of interior angles = 180 deg.',
               'Step 2: Add known angles: 50 + 60 = 110 deg.',
               'Step 3: Subtract from 180 deg: 180 - 110 = 70 deg.',
-              'Example B: Area of rectangle where l = 9 cm and w = 4 cm.',
-              'Step 1: Use formula A = l x w.',
-              'Step 2: Substitute values: A = 9 x 4.',
-              'Step 3: Compute area: A = 36 cm^2.'
+              'Example B: Perimeter and area of rectangle where l = 9 cm and w = 4 cm.',
+              'Step 1: Perimeter P = 2(l + w) = 2(9 + 4) = 26 cm.',
+              'Step 2: Area A = l x w = 9 x 4 = 36 cm^2.',
+              'Step 3: Keep units correct: cm for perimeter, cm^2 for area.'
             ],
             commonMistake: 'Confusing perimeter formulas with area formulas.',
-            practiceTask: 'Find area of a rectangle with l = 9 cm and w = 4 cm.',
+            practiceTask: 'Find perimeter and area of a rectangle with l = 12 cm and w = 5 cm.',
             progressCheckQuestion: 'What is the sum of interior angles in a triangle?',
             progressCheckOptions: ['90 deg', '180 deg', '270 deg', '360 deg'],
             correctOptionIndex: 1,
@@ -205,6 +286,27 @@ document.addEventListener('DOMContentLoaded', function () {
             ],
             commonMistake: 'Mixing opposite and adjacent sides when choosing trig ratios.',
             practiceTask: 'Find tan(theta) if opposite = 4 and adjacent = 3.',
+            progressCheckQuestion: 'A right triangle has legs 5 and 12. What is the hypotenuse?',
+            progressCheckOptions: ['11', '12', '13', '14'],
+            correctOptionIndex: 2,
+            progressCheckExplanation: 'c^2 = 5^2 + 12^2 = 25 + 144 = 169, so c = 13.'
+          },
+          {
+            title: 'Data Handling and Probability',
+            objective: 'Interpret tables/charts and calculate probability in simple events.',
+            lesson: 'Use mean, median, mode, and probability rules to interpret and solve data-based questions.',
+            workedExample: 'For values 4, 6, 8, 10, mean = (4 + 6 + 8 + 10)/4 = 7.',
+            workedExampleSteps: [
+              'Example A: Find median of 3, 5, 9, 11, 12.',
+              'Step 1: Order values (already ordered).',
+              'Step 2: Middle value is 9, so median = 9.',
+              'Example B: Probability of drawing a red marble from bag with 3 red and 7 blue.',
+              'Step 1: Favorable outcomes = 3.',
+              'Step 2: Total outcomes = 10.',
+              'Step 3: P(red) = 3/10.'
+            ],
+            commonMistake: 'Using total outcomes incorrectly in probability questions.',
+            practiceTask: 'A die is rolled once. Find P(odd).',
             progressCheckQuestion: 'A die is rolled once. What is P(even)?',
             progressCheckOptions: ['1/6', '1/3', '1/2', '2/3'],
             correctOptionIndex: 2,

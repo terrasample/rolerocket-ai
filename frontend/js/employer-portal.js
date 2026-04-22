@@ -118,6 +118,7 @@
 
     if (!title)       return setMsg('epPostMsg', 'Job title is required.');
     if (!location)    return setMsg('epPostMsg', 'Location is required.');
+    if (!salary)      return setMsg('epPostMsg', 'Salary range is required.');
     if (!description) return setMsg('epPostMsg', 'Job description is required.');
 
     setBtn('epPostBtn', true);
