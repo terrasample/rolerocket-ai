@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jamaica Workforce Accelerator | RoleRocket AI</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    /* ── JWA Page Styles ───────────────────────────────────────────────── */
+    .jwa-hero {
+      background: linear-gradient(135deg, #000000 0%, #007847 50%, #fdb714 100%);
+      color: #fff;
+      padding: 48px 32px 40px;
+      text-align: center;
+      border-radius: 0 0 24px 24px;
+      margin-bottom: 32px;
+      position: relative;
+      overflow: hidden;
+    }
+    .jwa-hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        45deg,
+        rgba(0,0,0,0.04) 0px,
+        rgba(0,0,0,0.04) 2px,
+        transparent 2px,
+        transparent 12px
+      );
+    }
+    .jwa-hero-flag { font-size: 3.5rem; display: block; margin-bottom: 12px; position: relative; z-index: 1; }
+    .jwa-hero h1 { font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 800; margin: 0 0 10px; position: relative; z-index: 1; }
+    .jwa-hero p  { font-size: 1.05rem; max-width: 680px; margin: 0 auto; opacity: .9; position: relative; z-index: 1; }
+    .jwa-hero-stats {
+      display: flex; gap: 24px; justify-content: center; flex-wrap: wrap;
+      margin-top: 28px; position: relative; z-index: 1;
+    }
+    .jwa-stat-pill {
+      background: rgba(255,255,255,.15);
+      border: 1px solid rgba(255,255,255,.3);
+      border-radius: 50px;
+      padding: 8px 20px;
+      font-size: .9rem;
+      font-weight: 600;
+      backdrop-filter: blur(4px);
+    }
+
+    /* ── Tabs ──────────────────────────────────────────────────────────── */
+    .jwa-tabs {
+      display: flex; gap: 8px; flex-wrap: wrap;
+      margin-bottom: 24px; border-bottom: 2px solid #1e293b; padding-bottom: 0;
+    }
+    .jwa-tab-btn {
+      padding: 10px 22px; border: none; background: #1e293b;
+      color: #94a3b8; border-radius: 10px 10px 0 0; cursor: pointer;
+      font-size: .95rem; font-weight: 600; transition: all .2s; white-space: nowrap;
+    }
+    .jwa-tab-btn:hover { background: #334155; color: #fff; }
+    .jwa-tab-btn.jwa-tab-active {
+      background: linear-gradient(135deg, #007847, #fdb714);
+      color: #000; box-shadow: 0 4px 12px rgba(0,120,71,.35);
+    }
+    .jwa-tab-panel { outline: none; }
+
+    /* ── Market Radar ──────────────────────────────────────────────────── */
+    .jwa-filter-row { display: flex; gap: 12px; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
+    .jwa-filter-row label { color: #94a3b8; font-size: .9rem; font-weight: 600; }
+    .jwa-filter-row select {
+      padding: 8px 14px; border-radius: 8px; border: 1px solid #334155;
+      background: #1e293b; color: #fff; font-size: .9rem;
+    }
+    .jwa-industry-block {
+      background: #1e293b; border-radius: 14px; padding: 20px 24px;
+      margin-bottom: 20px; border-left-width: 4px; border-left-style: solid;
+    }
+    .jwa-industry-title { font-size: 1.1rem; font-weight: 700; margin: 0 0 16px; }
+    .jwa-role-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px,1fr)); gap: 14px; }
+    .jwa-role-card {
+      background: #0f172a; border-radius: 10px; padding: 14px 16px;
+      display: flex; flex-direction: column; gap: 6px;
+      border: 1px solid rgba(255,255,255,.06);
+    }
+    .jwa-role-card strong { color: #e2e8f0; font-size: .95rem; line-height: 1.35; }
+    .jwa-salary { color: #34d399; font-size: .85rem; font-weight: 600; }
+    .jwa-demand-badge {
+      display: inline-block; padding: 3px 10px; border-radius: 50px;
+      font-size: .75rem; font-weight: 700; color: #fff; align-self: flex-start;
+    }
+    .jwa-remote-tag {
+      display: inline-block; padding: 3px 10px; border-radius: 50px;
+      font-size: .75rem; font-weight: 600; background: #1d4ed8; color: #bfdbfe; align-self: flex-start;
+    }
+
+    /* ── Diaspora Pipeline ─────────────────────────────────────────────── */
+    .jwa-diaspora-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px,1fr)); gap: 16px; margin-bottom: 28px; }
+    .jwa-diaspora-card {
+      background: #1e293b; border-radius: 12px; padding: 18px 20px;
+      border: 1px solid rgba(255,255,255,.07);
+    }
+    .jwa-diaspora-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+    .jwa-diaspora-city { color: #fdb714; font-size: 1rem; }
+    .jwa-diaspora-country { color: #64748b; font-size: .85rem; }
+    .jwa-diaspora-sectors { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    .jwa-sector-tag {
+      background: rgba(0,120,71,.2); border: 1px solid rgba(0,120,71,.5);
+      color: #4ade80; border-radius: 6px; padding: 2px 10px; font-size: .78rem; font-weight: 600;
+    }
+    .jwa-diaspora-meta { color: #64748b; font-size: .82rem; }
+
+    .jwa-match-form {
+      background: #1e293b; border-radius: 14px; padding: 24px 28px;
+      border: 1px solid rgba(253,183,20,.2); margin-top: 8px;
+    }
+    .jwa-match-form h3 { color: #fdb714; margin: 0 0 18px; }
+    .jwa-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+    @media (max-width: 600px) { .jwa-form-row { grid-template-columns: 1fr; } }
+    .jwa-input {
+      width: 100%; padding: 10px 14px; border-radius: 9px;
+      border: 1px solid #334155; background: #0f172a; color: #fff; font-size: .95rem;
+      box-sizing: border-box;
+    }
+    .jwa-input::placeholder { color: #475569; }
+    .jwa-input:focus { outline: 2px solid #007847; border-color: transparent; }
+    .jwa-submit-btn {
+      padding: 11px 28px; border-radius: 10px; border: none; cursor: pointer;
+      background: linear-gradient(135deg, #007847, #fdb714);
+      color: #000; font-weight: 700; font-size: 1rem; transition: opacity .2s;
+    }
+    .jwa-submit-btn:hover { opacity: .88; }
+    .jwa-submit-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+    /* ── Resume Localization ───────────────────────────────────────────── */
+    .jwa-resume-box {
+      background: #1e293b; border-radius: 14px; padding: 24px; margin-bottom: 20px;
+      border: 1px solid rgba(255,255,255,.07);
+    }
+    .jwa-resume-box h3 { margin: 0 0 14px; color: #e2e8f0; }
+    .jwa-textarea {
+      width: 100%; height: 180px; padding: 12px 14px; border-radius: 10px;
+      border: 1px solid #334155; background: #0f172a; color: #e2e8f0;
+      font-size: .9rem; resize: vertical; box-sizing: border-box; font-family: inherit;
+    }
+    .jwa-textarea:focus { outline: 2px solid #007847; border-color: transparent; }
+    .jwa-check-results { margin-top: 18px; display: flex; flex-direction: column; gap: 10px; }
+    .jwa-check-item {
+      display: flex; gap: 10px; padding: 12px 16px;
+      border-radius: 9px; font-size: .9rem; line-height: 1.5; align-items: flex-start;
+    }
+    .jwa-check-good   { background: rgba(22,163,74,.12);   border: 1px solid rgba(22,163,74,.3);   color: #86efac; }
+    .jwa-check-warn   { background: rgba(202,138,4,.12);   border: 1px solid rgba(202,138,4,.3);   color: #fde047; }
+    .jwa-check-improve{ background: rgba(37,99,235,.12);   border: 1px solid rgba(37,99,235,.3);   color: #93c5fd; }
+    .jwa-check-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+
+    /* ── Skills Gap Chart ─────────────────────────────────────────────── */
+    .jwa-gap-row {
+      background: #1e293b; border-radius: 12px; padding: 16px 20px;
+      margin-bottom: 12px; border: 1px solid rgba(255,255,255,.06);
+    }
+    .jwa-gap-label {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 12px; flex-wrap: wrap; gap: 8px;
+    }
+    .jwa-gap-label > span:first-child { color: #e2e8f0; font-weight: 600; font-size: .95rem; }
+    .jwa-gap-badge {
+      padding: 3px 12px; border-radius: 50px; font-size: .75rem;
+      font-weight: 700; color: #fff; white-space: nowrap;
+    }
+    .jwa-gap-bars { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+    .jwa-bar-wrap { display: flex; align-items: center; gap: 10px; }
+    .jwa-bar-wrap label { width: 140px; color: #64748b; font-size: .8rem; flex-shrink: 0; }
+    .jwa-bar {
+      height: 20px; border-radius: 6px; display: flex; align-items: center;
+      padding-left: 8px; font-size: .78rem; font-weight: 700; color: #fff;
+      min-width: 36px; transition: width .6s ease;
+    }
+    .jwa-bar-demand { background: linear-gradient(90deg, #0f4cbe, #3b82f6); }
+    .jwa-bar-supply { background: linear-gradient(90deg, #065f46, #10b981); }
+    .jwa-gap-delta { color: #94a3b8; font-size: .85rem; text-align: right; }
+    .jwa-report-section {
+      background: #1e293b; border-radius: 14px; padding: 24px 28px; margin-top: 20px;
+      border: 1px solid rgba(253,183,20,.2);
+    }
+    .jwa-report-section h3 { color: #fdb714; margin: 0 0 10px; }
+    .jwa-report-section p  { color: #94a3b8; font-size: .9rem; margin-bottom: 18px; }
+    .jwa-download-btn {
+      padding: 12px 28px; border-radius: 10px; border: none; cursor: pointer;
+      background: linear-gradient(135deg, #000, #007847);
+      color: #fdb714; font-weight: 700; font-size: 1rem;
+      border: 2px solid #fdb714; transition: opacity .2s;
+    }
+    .jwa-download-btn:hover { opacity: .85; }
+    .jwa-download-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+    /* ── General utils ─────────────────────────────────────────────────── */
+    .jwa-section-label {
+      color: #94a3b8; font-size: .8rem; text-transform: uppercase;
+      letter-spacing: .1em; font-weight: 700; margin-bottom: 14px; display: block;
+    }
+    .jwa-status { margin-top: 14px; font-size: .92rem; min-height: 22px; line-height: 1.5; }
+    .jwa-empty { color: #64748b; font-style: italic; }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#mainContent">Skip to main content</a>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebarNav" aria-label="Primary navigation">
+      <h2 aria-label="RoleRocket AI"></h2>
+      <nav>
+        <a class="sidebar-link-btn" href="index.html">Home</a>
+        <a class="sidebar-link-btn" href="about-us.html">About Us</a>
+        <a class="sidebar-link-btn" href="features.html">Features</a>
+        <a class="sidebar-link-btn" href="job-tracking.html">Find, Search &amp; Track</a>
+        <a class="sidebar-link-btn" href="ai-recruiter-assist.html">AI Recruiter Assist</a>
+        <a class="sidebar-link-btn" href="pricing.html">Pricing</a>
+        <a class="sidebar-link-btn" href="contact-us.html">Contact Us</a>
+        <a class="sidebar-link-btn active" href="jamaica-workforce-accelerator.html">🇯🇲 Jamaica Accelerator</a>
+        <hr />
+        <p id="planBadge">Free Plan</p>
+        <a class="sidebar-link-btn" href="account.html">👤 Account</a>
+        <a class="sidebar-link-btn premium-btn" href="dashboard.html">🧑‍💼 My Dashboard</a>
+        <a class="sidebar-link-btn" href="login.html?relogin=1">Logout</a>
+      </nav>
+    </aside>
+    <div class="sidebar-overlay" id="sidebarOverlay" tabindex="-1" aria-hidden="true"></div>
+
+    <main class="main" id="mainContent" tabindex="-1" style="padding:0 0 60px;">
+
+      <!-- Hero -->
+      <div class="jwa-hero">
+        <span class="jwa-hero-flag" aria-hidden="true">🇯🇲</span>
+        <h1>Jamaica Workforce Accelerator</h1>
+        <p>Connecting Jamaica's talent to local and global opportunity — powered by AI career intelligence, diaspora networks, and real skills data.</p>
+        <div class="jwa-hero-stats">
+          <div class="jwa-stat-pill">🏢 6 High-Growth Industries</div>
+          <div class="jwa-stat-pill">🌍 2,800+ Diaspora Employers Mapped</div>
+          <div class="jwa-stat-pill">📊 10 Critical Skills Gaps Identified</div>
+          <div class="jwa-stat-pill">🎓 CXC / CAPE / HEART Ready</div>
+        </div>
+      </div>
+
+      <div style="padding: 0 28px;">
+        <!-- Tabs -->
+        <div class="jwa-tabs" role="tablist" aria-label="Jamaica Workforce Accelerator features">
+          <button class="jwa-tab-btn jwa-tab-active" role="tab" data-tab="jwaTabMarket" aria-selected="true">📈 Job Market Radar</button>
+          <button class="jwa-tab-btn" role="tab" data-tab="jwaTabDiaspora" aria-selected="false">🌍 Diaspora Pipeline</button>
+          <button class="jwa-tab-btn" role="tab" data-tab="jwaTabResume" aria-selected="false">📄 Resume Localization</button>
+          <button class="jwa-tab-btn" role="tab" data-tab="jwaTabGap" aria-selected="false">📊 Skills Gap Report</button>
+        </div>
+
+        <!-- Tab 1: Jamaica Job Market Radar -->
+        <div id="jwaTabMarket" class="jwa-tab-panel" role="tabpanel">
+          <div class="jwa-filter-row">
+            <label for="jwaIndustryFilter">Filter by industry:</label>
+            <select id="jwaIndustryFilter">
+              <option value="all">All Industries</option>
+              <option value="bpo">BPO</option>
+              <option value="finance">Finance &amp; Accounting</option>
+              <option value="tourism">Tourism &amp; Hospitality</option>
+              <option value="technology">Technology &amp; Digital</option>
+              <option value="logistics">Logistics &amp; Supply Chain</option>
+              <option value="healthcare">Healthcare</option>
+            </select>
+          </div>
+          <div id="jwaMarketRadar">
+            <p class="jwa-empty">Loading market data...</p>
+          </div>
+        </div>
+
+        <!-- Tab 2: Diaspora Pipeline -->
+        <div id="jwaTabDiaspora" class="jwa-tab-panel" role="tabpanel" hidden>
+          <span class="jwa-section-label">Diaspora employer clusters by city</span>
+          <div class="jwa-diaspora-grid" id="jwaDiasporaList"></div>
+
+          <div class="jwa-match-form">
+            <h3>🔗 Match My Profile to Diaspora Employers</h3>
+            <div class="jwa-form-row">
+              <div>
+                <label for="diasporaRole" style="color:#94a3b8;font-size:.85rem;display:block;margin-bottom:6px;">Target Role</label>
+                <input id="diasporaRole" class="jwa-input" type="text" placeholder="e.g. Software Developer" />
+              </div>
+              <div>
+                <label for="diasporaLocation" style="color:#94a3b8;font-size:.85rem;display:block;margin-bottom:6px;">Preferred Country / City</label>
+                <input id="diasporaLocation" class="jwa-input" type="text" placeholder="e.g. Toronto, Canada" />
+              </div>
+            </div>
+            <div style="margin-bottom:16px;">
+              <label for="diasporaSkills" style="color:#94a3b8;font-size:.85rem;display:block;margin-bottom:6px;">Key Skills (optional)</label>
+              <input id="diasporaSkills" class="jwa-input" type="text" placeholder="e.g. Python, project management, customer service" />
+            </div>
+            <button id="jwaDiasporaMatchBtn" class="jwa-submit-btn">Find Diaspora Matches</button>
+            <div id="diasporaStatus" class="jwa-status"></div>
+          </div>
+        </div>
+
+        <!-- Tab 3: Resume Localization -->
+        <div id="jwaTabResume" class="jwa-tab-panel" role="tabpanel" hidden>
+          <div class="jwa-resume-box">
+            <h3>Jamaica-Ready Resume Checker</h3>
+            <p style="color:#64748b;font-size:.9rem;margin-bottom:14px;">Paste your resume text below. The checker will identify CXC/CAPE/HEART credentials, flag weak language, and give you specific localization recommendations for both Jamaican employers and diaspora-connected international roles.</p>
+            <textarea id="jwaResumeText" class="jwa-textarea" placeholder="Paste your full resume text here..."></textarea>
+            <div style="margin-top:14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+              <button id="jwaCheckResumeBtn" class="jwa-submit-btn">Analyze Resume</button>
+              <div id="jwaResumeStatus" class="jwa-status" style="margin:0;flex:1;"></div>
+            </div>
+            <div id="jwaResumeResults" class="jwa-check-results"></div>
+          </div>
+
+          <div style="background:#1e293b;border-radius:14px;padding:20px 24px;border:1px solid rgba(255,255,255,.07);">
+            <h3 style="color:#fdb714;margin:0 0 12px;font-size:1rem;">🎓 Recognized Jamaican Credentials</h3>
+            <p style="color:#64748b;font-size:.88rem;margin-bottom:14px;">These credentials are globally recognized and should appear on your resume exactly as listed below:</p>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+              <span class="jwa-sector-tag">CXC (Caribbean Examinations Council)</span>
+              <span class="jwa-sector-tag">CSEC (Caribbean Secondary Education Certificate)</span>
+              <span class="jwa-sector-tag">CAPE (Caribbean Advanced Proficiency Examination)</span>
+              <span class="jwa-sector-tag">HEART (Human Employment and Resource Training)</span>
+              <span class="jwa-sector-tag">NSTA Trust Certification</span>
+              <span class="jwa-sector-tag">NVQ-J (National Vocational Qualification of Jamaica)</span>
+              <span class="jwa-sector-tag">UWI (University of the West Indies)</span>
+              <span class="jwa-sector-tag">UTech (University of Technology Jamaica)</span>
+              <span class="jwa-sector-tag">NCU (Northern Caribbean University)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 4: Skills Gap Report -->
+        <div id="jwaTabGap" class="jwa-tab-panel" role="tabpanel" hidden>
+          <span class="jwa-section-label">Jamaica National Skills Gap — Employer Demand vs. Workforce Supply</span>
+          <div id="jwaSkillsGapChart"></div>
+
+          <div class="jwa-report-section">
+            <h3>📥 Download Full Intelligence Report</h3>
+            <p>The full report includes strategic recommendations for government partnership, HEART/NSTA integration, diaspora employer corridor proposals, and projected 18-month workforce impact projections. Share it with decision-makers at the Ministry of Labour, PIOJ, or HEART/NSTA Trust.</p>
+            <button id="jwaDownloadReportBtn" class="jwa-download-btn">Download Skills Gap Report</button>
+            <div id="jwaReportStatus" class="jwa-status"></div>
+          </div>
+        </div>
+
+      </div><!-- /padding wrapper -->
+    </main>
+  </div>
+
+  <script src="js/api-base.js"></script>
+  <script src="js/auth-storage.js"></script>
+  <script src="js/nav-plan-sync.js"></script>
+  <script src="js/return-navigation.js"></script>
+  <script src="js/jamaica-workforce-accelerator.js?v=20260421a"></script>
+</body>
+</html>
