@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const duration = document.getElementById('courseDuration');
   const demand = document.getElementById('courseDemand');
   const overview = document.getElementById('courseOverview');
+  const curriculumMeta = document.getElementById('courseCurriculumMeta');
   const outcomes = document.getElementById('courseOutcomeList');
   const resumeSignals = document.getElementById('courseResumeSignals');
   const modules = document.getElementById('courseModules');
@@ -50,6 +51,59 @@ document.addEventListener('DOMContentLoaded', function () {
     selectedVoice: ''
   };
   const AUDIO_VOICE_PREF_KEY = 'courseAudioVoicePreference';
+  const CURRICULUM_LAST_REVIEWED = '2026-04-22';
+
+  function getJamaicaCurriculumMeta(courseTitle, fallbackTopic) {
+    const name = normalizeTopic(courseTitle || fallbackTopic);
+    if (!name) return null;
+
+    const isJamaicaTrack = /(csec|cape|heart|nvq-j|communication studies)/i.test(name);
+    if (!isJamaicaTrack) return null;
+
+    let framework = 'Jamaica curriculum-aligned pathway';
+    if (/csec/i.test(name)) framework = 'CSEC-aligned learning outcomes';
+    else if (/cape/i.test(name) || /communication studies/i.test(name)) framework = 'CAPE-aligned learning outcomes';
+    else if (/heart/i.test(name)) framework = 'HEART/NSTA competency pathway';
+    else if (/nvq-j/i.test(name)) framework = 'NVQ-J competency standards pathway';
+
+    return {
+      framework,
+      lastReviewed: CURRICULUM_LAST_REVIEWED,
+      updateCycle: 'Monthly content review + termly syllabus alignment pass',
+      note: 'Always cross-check with your current school syllabus/teacher guidance and the latest official examination guidance before final exam preparation.',
+      sources: [
+        { label: 'CXC official examinations portal', href: 'https://www.cxc.org/' },
+        { label: 'CSEC programme information', href: 'https://www.cxc.org/examinations/csec/' },
+        { label: 'CAPE programme information', href: 'https://www.cxc.org/examinations/cape/' },
+        { label: 'HEART/NSTA Trust', href: 'https://www.heart-nta.org/' },
+        { label: 'Ministry of Education, Jamaica', href: 'https://www.moey.gov.jm/' }
+      ]
+    };
+  }
+
+  function renderCurriculumMetaPanel(meta) {
+    if (!curriculumMeta) return;
+    if (!meta) {
+      curriculumMeta.style.display = 'none';
+      curriculumMeta.innerHTML = '';
+      return;
+    }
+
+    const sourceList = asArray(meta.sources)
+      .map((source) => `<li><a href="${escapeHtml(String(source.href || '#'))}" target="_blank" rel="noopener noreferrer" style="color:#7dd3fc;">${escapeHtml(String(source.label || 'Official source'))}</a></li>`)
+      .join('');
+
+    curriculumMeta.style.display = 'block';
+    curriculumMeta.innerHTML = `
+      <div style="font-size:0.82rem;color:#7dd3fc;text-transform:uppercase;letter-spacing:0.04em;font-weight:700;margin-bottom:8px;">Curriculum Currency</div>
+      <div style="margin-bottom:6px;"><strong style="color:#bfdbfe;">Alignment:</strong> ${escapeHtml(String(meta.framework || 'Curriculum-aligned'))}</div>
+      <div style="margin-bottom:6px;"><strong style="color:#bfdbfe;">Last reviewed:</strong> ${escapeHtml(String(meta.lastReviewed || 'N/A'))}</div>
+      <div style="margin-bottom:10px;"><strong style="color:#bfdbfe;">Update cycle:</strong> ${escapeHtml(String(meta.updateCycle || 'Periodic review'))}</div>
+      <div style="margin-bottom:8px;color:#cbd5e1;">${escapeHtml(String(meta.note || ''))}</div>
+      <div style="color:#93c5fd;font-weight:700;margin-bottom:4px;">Official reference sources</div>
+      <ul style="margin:0;padding-left:18px;line-height:1.5;">${sourceList}</ul>
+    `;
+  }
 
   const LOCAL_CURRICULUM_COURSES = [
     {
@@ -73,6 +127,16 @@ document.addEventListener('DOMContentLoaded', function () {
             objective: 'Simplify expressions and solve linear equations.',
             lesson: 'Collect like terms, use inverse operations, and check your final answer by substitution.',
             workedExample: '2x + 7 = 19 gives 2x = 12, so x = 6.',
+            workedExampleSteps: [
+              'Example A: Solve 2x + 7 = 19.',
+              'Step 1: Subtract 7 from both sides to keep the equation balanced: 2x = 12.',
+              'Step 2: Divide both sides by 2: x = 6.',
+              'Step 3: Check by substitution: 2(6) + 7 = 12 + 7 = 19, so the solution is correct.',
+              'Example B: Solve 3x - 5 = 16.',
+              'Step 1: Add 5 to both sides: 3x = 21.',
+              'Step 2: Divide both sides by 3: x = 7.',
+              'Step 3: Check: 3(7) - 5 = 21 - 5 = 16.'
+            ],
             commonMistake: 'Applying operations to only one side of an equation.',
             practiceTask: 'Solve: 3x - 5 = 16.',
             progressCheckQuestion: 'Solve 4x + 3 = 19.',
@@ -85,6 +149,16 @@ document.addEventListener('DOMContentLoaded', function () {
             objective: 'Factorize common quadratic expressions.',
             lesson: 'For x^2 + bx + c, find two numbers that add to b and multiply to c.',
             workedExample: 'x^2 + 5x + 6 = (x + 2)(x + 3).',
+            workedExampleSteps: [
+              'Example A: Factorize x^2 + 5x + 6.',
+              'Step 1: Identify b = 5 and c = 6.',
+              'Step 2: Find two numbers that multiply to 6 and add to 5: 2 and 3.',
+              'Step 3: Write factors: (x + 2)(x + 3).',
+              'Example B: Factorize x^2 + 7x + 12.',
+              'Step 1: Identify b = 7 and c = 12.',
+              'Step 2: Find two numbers that multiply to 12 and add to 7: 3 and 4.',
+              'Step 3: Final factors: (x + 3)(x + 4).'
+            ],
             commonMistake: 'Choosing numbers that multiply to c but do not add to b.',
             practiceTask: 'Factorize: x^2 + 7x + 12.',
             progressCheckQuestion: 'Factorize x^2 - 9.',
@@ -97,6 +171,16 @@ document.addEventListener('DOMContentLoaded', function () {
             objective: 'Use angle facts and area formulas in exam questions.',
             lesson: 'Angles in a triangle sum to 180 deg. Area of rectangle = l x w. Area of circle = pi r^2.',
             workedExample: 'Triangle angles 50 deg and 60 deg leave 70 deg for the third angle.',
+            workedExampleSteps: [
+              'Example A: Triangle angle problem with angles 50 deg and 60 deg.',
+              'Step 1: Use triangle rule: sum of interior angles = 180 deg.',
+              'Step 2: Add known angles: 50 + 60 = 110 deg.',
+              'Step 3: Subtract from 180 deg: 180 - 110 = 70 deg.',
+              'Example B: Area of rectangle where l = 9 cm and w = 4 cm.',
+              'Step 1: Use formula A = l x w.',
+              'Step 2: Substitute values: A = 9 x 4.',
+              'Step 3: Compute area: A = 36 cm^2.'
+            ],
             commonMistake: 'Confusing perimeter formulas with area formulas.',
             practiceTask: 'Find area of a rectangle with l = 9 cm and w = 4 cm.',
             progressCheckQuestion: 'What is the sum of interior angles in a triangle?',
@@ -109,6 +193,16 @@ document.addEventListener('DOMContentLoaded', function () {
             objective: 'Solve right-triangle questions with Pythagoras and SOH-CAH-TOA.',
             lesson: 'Use a^2 + b^2 = c^2 for side lengths and trig ratios for unknown angles or sides.',
             workedExample: 'A right triangle with sides 6 and 8 has hypotenuse 10.',
+            workedExampleSteps: [
+              'Example A: Right triangle with legs 6 and 8.',
+              'Step 1: Use Pythagoras: c^2 = a^2 + b^2.',
+              'Step 2: Substitute: c^2 = 6^2 + 8^2 = 36 + 64 = 100.',
+              'Step 3: Take square root: c = sqrt(100) = 10.',
+              'Example B: Find tan(theta) if opposite = 4 and adjacent = 3.',
+              'Step 1: Use tangent rule: tan(theta) = opposite/adjacent.',
+              'Step 2: Substitute values: tan(theta) = 4/3.',
+              'Step 3: Keep ratio exact or convert to decimal if required by question.'
+            ],
             commonMistake: 'Mixing opposite and adjacent sides when choosing trig ratios.',
             practiceTask: 'Find tan(theta) if opposite = 4 and adjacent = 3.',
             progressCheckQuestion: 'A die is rolled once. What is P(even)?',
@@ -230,6 +324,111 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function normalizeTopic(topicName) {
     return String(topicName || '').trim().toLowerCase();
+  }
+
+  function inferCourseFocus(courseTitle, fallbackTopic) {
+    const name = normalizeTopic(courseTitle || fallbackTopic);
+    if (!name) return 'subject';
+    if (name.includes('mathematics') || name.includes('math')) return 'mathematics';
+    if (name.includes('english')) return 'english';
+    if (name.includes('information technology') || name.includes('it')) return 'information technology';
+    if (name.includes('accounts') || name.includes('accounting')) return 'accounting';
+    if (name.includes('biology')) return 'biology';
+    if (name.includes('chemistry')) return 'chemistry';
+    if (name.includes('economics')) return 'economics';
+    if (name.includes('communication')) return 'communication studies';
+    if (name.includes('customer service')) return 'customer service';
+    if (name.includes('nursing')) return 'nursing support';
+    if (name.includes('electrical')) return 'electrical installation';
+    if (name.includes('welding')) return 'welding and fabrication';
+    return 'subject';
+  }
+
+  function buildFromScratchScaffold(focus) {
+    const topicLabel = String(focus || 'subject');
+
+    return {
+      diagnostic: {
+        title: `Baseline Diagnostic for ${topicLabel}`,
+        objective: `Measure your starting point before formal ${topicLabel} instruction.`,
+        lesson: `Start with a short diagnostic to identify strengths, weak areas, and confidence gaps. This helps personalize your learning path and prevents skipping essential basics.`,
+        workedExample: `Diagnostic method: answer a short mixed set, classify errors by topic, then prioritize the highest-impact weak areas first.`,
+        workedExampleSteps: [
+          `Step 1: Attempt a short mixed diagnostic without help to capture true baseline ability in ${topicLabel}.`,
+          `Step 2: Mark each response as correct or incorrect and tag errors by skill area.`,
+          'Step 3: Rank weak areas by impact and frequency.',
+          'Step 4: Build a weekly study plan that starts with the top two weak areas before moving ahead.'
+        ],
+        commonMistake: 'Skipping diagnostics and jumping straight into advanced material.',
+        practiceTask: `Complete a 10-question baseline check and list your top 3 ${topicLabel} improvement targets.`,
+        progressCheckQuestion: 'What should happen before starting full course content?',
+        progressCheckOptions: ['Skip to final assessment', 'Run a baseline diagnostic', 'Only watch videos', 'Memorize answers'],
+        correctOptionIndex: 1,
+        progressCheckExplanation: 'Diagnostic-first learning prevents hidden gaps from blocking later progress.'
+      },
+      foundation: {
+        title: `Foundations of ${topicLabel}`,
+        objective: `Build core language, symbols, and methods used throughout ${topicLabel}.`,
+        lesson: `Strong execution begins with fundamentals. Learn the terms, structures, and core operations that every later module assumes you already understand.`,
+        workedExample: `Foundation workflow: identify the concept, choose the right method, apply it carefully, and check your result.`,
+        workedExampleSteps: [
+          `Step 1: Name the core concept being tested in ${topicLabel}.`,
+          'Step 2: Select the best method or framework for that concept.',
+          'Step 3: Execute each step in order, showing your full working.',
+          'Step 4: Verify your result using a quick check or alternate method.'
+        ],
+        commonMistake: 'Trying advanced tasks without mastering basic terminology and method selection.',
+        practiceTask: `Create a one-page foundation sheet with the most important terms and methods in ${topicLabel}.`,
+        progressCheckQuestion: 'Why are foundations important?',
+        progressCheckOptions: ['They are optional', 'They make advanced modules easier and more accurate', 'They only help with memorization', 'They replace all practice'],
+        correctOptionIndex: 1,
+        progressCheckExplanation: 'Foundations improve comprehension, speed, and accuracy in later modules.'
+      },
+      checkpoint: {
+        title: `Spiral Review and Mastery Checkpoint`,
+        objective: 'Consolidate earlier modules before final assessment.',
+        lesson: 'Revisit earlier concepts in mixed format. Mastery means applying the right method when question styles vary, not just repeating one familiar pattern.',
+        workedExample: 'Spiral review method: mix easy, medium, and challenge items from previous modules and track error patterns.',
+        workedExampleSteps: [
+          'Step 1: Attempt a mixed review set spanning all modules completed so far.',
+          'Step 2: Categorize mistakes by concept type rather than by question number.',
+          'Step 3: Re-solve missed items with full step-by-step reasoning.',
+          'Step 4: Re-test weak areas after review to confirm mastery.'
+        ],
+        commonMistake: 'Reviewing only your strongest topics before final assessment.',
+        practiceTask: 'Complete a mixed review set and write a targeted revision plan for your weakest two topics.',
+        progressCheckQuestion: 'What is the purpose of a mastery checkpoint?',
+        progressCheckOptions: ['Skip revision', 'Confirm understanding across mixed topics before final testing', 'Replace all assessments', 'Only review one easy topic'],
+        correctOptionIndex: 1,
+        progressCheckExplanation: 'Checkpoint review confirms readiness and reduces repeated mistakes in final assessment.'
+      }
+    };
+  }
+
+  function applyFromScratchCourseScaffold(course, fallbackTopic) {
+    const baseCourse = course || {};
+    const existingModules = asArray(baseCourse.modules);
+    if (!existingModules.length) return baseCourse;
+
+    const alreadyScaffolded = existingModules.some((moduleItem) => /baseline diagnostic|foundations of|mastery checkpoint/i.test(String(moduleItem?.title || '')));
+    if (alreadyScaffolded) return baseCourse;
+
+    const focus = inferCourseFocus(baseCourse.courseTitle, fallbackTopic);
+    const scaffold = buildFromScratchScaffold(focus);
+    const modules = [scaffold.diagnostic, scaffold.foundation].concat(existingModules).concat([scaffold.checkpoint]);
+
+    const outcomes = asArray(baseCourse.learningOutcomes);
+    const mergedOutcomes = outcomes.concat([
+      'Establish baseline proficiency before module progression.',
+      'Build fundamentals first, then advance to applied concepts.',
+      'Pass a mastery checkpoint before final assessment.'
+    ]).filter(Boolean);
+
+    return {
+      ...baseCourse,
+      modules,
+      learningOutcomes: mergedOutcomes
+    };
   }
 
   function buildSubjectTemplateCourse(topicName) {
@@ -1079,6 +1278,15 @@ document.addEventListener('DOMContentLoaded', function () {
     const fallbackCorrectAnswer = String(progressState.allModules?.[idx]?.progressCheckOptions?.[Number(progressState.answerKey[idx])] || '').trim();
     const fallbackExplanation = getProgressCheckExplanation(idx);
 
+    // Local curriculum packs validate in-browser and do not depend on API session tokens.
+    if (String(progressState.sessionToken || '').startsWith('local-')) {
+      const usedLocalFallback = applyLocalProgressCheck(idx, selectedOptionIndex, resultWrap);
+      if (usedLocalFallback) {
+        setResultHtml(resultWrap, true, formatProgressCheckFeedback(true, fallbackCorrectAnswer, fallbackExplanation));
+      }
+      return;
+    }
+
     button.disabled = true;
     const originalLabel = button.textContent;
     button.textContent = 'Checking...';
@@ -1118,8 +1326,13 @@ document.addEventListener('DOMContentLoaded', function () {
       }
 
       if (response.status === 409) {
-        resultWrap.textContent = String(payload?.error || 'Session expired. Reload the course.');
-        resultWrap.style.color = '#fbbf24';
+        const usedLocalFallback = applyLocalProgressCheck(idx, selectedOptionIndex, resultWrap);
+        if (usedLocalFallback) {
+          setResultHtml(resultWrap, true, formatProgressCheckFeedback(true, fallbackCorrectAnswer, fallbackExplanation));
+        } else {
+          resultWrap.textContent = String(payload?.error || 'Session expired. Reload the course.');
+          resultWrap.style.color = '#fbbf24';
+        }
       } else if (response.status === 400 && payload?.error) {
         progressState.lastProgressFeedback = null;
         resultWrap.textContent = String(payload.error);
@@ -1479,6 +1692,15 @@ document.addEventListener('DOMContentLoaded', function () {
       const objective = escapeHtml(String(moduleItem?.objective || ''));
       const lesson = escapeHtml(String(moduleItem?.lesson || ''));
       const workedExample = escapeHtml(String(moduleItem?.workedExample || ''));
+      const workedExampleSteps = asArray(moduleItem?.workedExampleSteps);
+      const workedExampleStepsHtml = workedExampleSteps.length
+        ? `<div style="margin-top:8px;padding:10px;border-radius:8px;background:#0b1220;border:1px solid #273449;">
+            <div style="color:#93c5fd;font-weight:700;font-size:0.86rem;margin-bottom:6px;">Step-by-Step Breakdown</div>
+            <ol style="margin:0;padding-left:18px;color:#d0d9e7;line-height:1.55;display:grid;gap:4px;">
+              ${workedExampleSteps.map((step) => `<li>${escapeHtml(String(step))}</li>`).join('')}
+            </ol>
+          </div>`
+        : '';
       const commonMistake = escapeHtml(String(moduleItem?.commonMistake || ''));
       const practiceTask = escapeHtml(String(moduleItem?.practiceTask || ''));
       const progressCheckQuestion = escapeHtml(String(moduleItem?.progressCheckQuestion || `In one sentence, what is the key takeaway of module ${index + 1}?`));
@@ -1508,6 +1730,7 @@ document.addEventListener('DOMContentLoaded', function () {
           <p><strong style="color:#93c5fd;">Objective:</strong> ${objective}</p>
           <p><strong style="color:#93c5fd;">Lesson:</strong> ${lesson}</p>
           <p><strong style="color:#93c5fd;">Worked Example:</strong> ${workedExample}</p>
+          ${workedExampleStepsHtml}
           <p><strong style="color:#fda4af;">Common Mistake:</strong> ${commonMistake}</p>
           <p><strong style="color:#86efac;">Practice Task:</strong> ${practiceTask}</p>
           <div style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 12px 0;">
@@ -1598,24 +1821,26 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function renderCourse(course) {
-    const courseTitle = String(course?.courseTitle || topic || 'Course');
+    const scaffoldedCourse = applyFromScratchCourseScaffold(course, topic);
+    const courseTitle = String(scaffoldedCourse?.courseTitle || topic || 'Course');
     titleMain.textContent = courseTitle;
     titleSide.textContent = courseTitle;
-    subtitleSide.textContent = String(course?.subtitle || 'Complete professional course');
-    level.textContent = String(course?.difficulty || 'Intermediate');
-    duration.textContent = String(course?.estimatedDuration || '4-6 weeks');
-    demand.textContent = String(course?.marketDemand || 'High demand in current job market.');
-    overview.textContent = String(course?.overview || 'Overview not available.');
+    subtitleSide.textContent = String(scaffoldedCourse?.subtitle || 'Complete professional course');
+    level.textContent = String(scaffoldedCourse?.difficulty || 'Intermediate');
+    duration.textContent = String(scaffoldedCourse?.estimatedDuration || '4-6 weeks');
+    demand.textContent = String(scaffoldedCourse?.marketDemand || 'High demand in current job market.');
+    overview.textContent = String(scaffoldedCourse?.overview || 'Overview not available.');
+    renderCurriculumMetaPanel(getJamaicaCurriculumMeta(courseTitle, topic));
 
-    renderList(outcomes, course?.learningOutcomes);
-    renderList(resumeSignals, course?.resumeSignals);
+    renderList(outcomes, scaffoldedCourse?.learningOutcomes);
+    renderList(resumeSignals, scaffoldedCourse?.resumeSignals);
     
-    progressState.assessmentItems = asArray(course?.finalAssessment);
-    progressState.interviewPrepItems = asArray(course?.interviewPrep);
+    progressState.assessmentItems = asArray(scaffoldedCourse?.finalAssessment);
+    progressState.interviewPrepItems = asArray(scaffoldedCourse?.interviewPrep);
     
-    renderModules(course?.modules);
+    renderModules(scaffoldedCourse?.modules);
 
-    const project = course?.capstoneProject || {};
+    const project = scaffoldedCourse?.capstoneProject || {};
     const deliverables = asArray(project?.deliverables)
       .map((item) => `<li style="margin-bottom:6px;">${String(item)}</li>`)
       .join('');
@@ -1709,6 +1934,7 @@ document.addEventListener('DOMContentLoaded', function () {
     titleSide.textContent = topic || 'Course';
     subtitleSide.textContent = subtitle || 'Course access required';
     overview.textContent = message;
+    renderCurriculumMetaPanel(null);
     if (modules) {
       modules.innerHTML = '<div class="module-item"><p>Sign in with an Elite account to load modules, audio playback, and progress checks.</p></div>';
     }
@@ -1746,6 +1972,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (interviewPrepSection) interviewPrepSection.hidden = true;
     if (outcomes) outcomes.innerHTML = '';
     if (resumeSignals) resumeSignals.innerHTML = '';
+    renderCurriculumMetaPanel(null);
 
     // Local curriculum packs take priority for known CSEC/CAPE/HEART/NVQ topics.
     const localCourse = getLocalCurriculumCourse(topic);
