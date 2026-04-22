@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Employer Portal — Post Jobs on RoleRocket AI</title>
+  <meta name="description" content="Register your company and post jobs directly to thousands of qualified candidates on RoleRocket AI." />
+  <link rel="icon" type="image/svg+xml" href="assets/rolerocket-logo-square.svg" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    /* ── Employer Portal Styles ─────────────────────────────────────── */
+    .ep-hero {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      border: 1px solid #1e3a5f;
+      border-radius: 14px;
+      padding: 40px 36px 32px;
+      margin-bottom: 28px;
+      text-align: center;
+    }
+    .ep-hero h1 { color: #f1f5f9; font-size: clamp(1.4rem, 3vw, 2rem); margin: 0 0 10px; }
+    .ep-hero p  { color: #94a3b8; max-width: 600px; margin: 0 auto 20px; font-size: .95rem; }
+    .ep-stats   { display: flex; gap: 24px; justify-content: center; flex-wrap: wrap; margin-top: 20px; }
+    .ep-stat    { background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 14px 22px; text-align: center; }
+    .ep-stat strong { display: block; font-size: 1.5rem; color: #2563eb; }
+    .ep-stat span   { font-size: .8rem; color: #64748b; }
+
+    /* ── Auth / Form card ───────────────────────────────────────────── */
+    .ep-card {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 14px;
+      padding: 32px;
+      margin-bottom: 24px;
+      max-width: 520px;
+    }
+    .ep-card h2 { color: #f1f5f9; font-size: 1.15rem; margin: 0 0 20px; }
+    .ep-tabs    { display: flex; gap: 0; border-bottom: 1px solid #1e3a5f; margin-bottom: 24px; }
+    .ep-tab-btn {
+      flex: 1; background: none; border: none; color: #64748b; padding: 10px 0;
+      font-size: .9rem; cursor: pointer; font-family: inherit;
+      border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color .2s, border-color .2s;
+    }
+    .ep-tab-btn.active { color: #2563eb; border-color: #2563eb; font-weight: 600; }
+    .ep-form-group { margin-bottom: 16px; }
+    .ep-form-group label { display: block; color: #94a3b8; font-size: .85rem; margin-bottom: 6px; }
+    .ep-form-group input,
+    .ep-form-group select,
+    .ep-form-group textarea {
+      width: 100%; background: #1e293b; border: 1.5px solid #334155; border-radius: 8px;
+      color: #f1f5f9; padding: 10px 14px; font-size: .95rem; font-family: inherit; box-sizing: border-box;
+      transition: border-color .2s;
+    }
+    .ep-form-group input:focus,
+    .ep-form-group select:focus,
+    .ep-form-group textarea:focus { outline: none; border-color: #2563eb; }
+    .ep-form-group textarea { min-height: 90px; resize: vertical; }
+    .ep-btn {
+      width: 100%; background: #2563eb; color: #fff; border: none; border-radius: 8px;
+      padding: 12px 0; font-size: 1rem; font-weight: 600; cursor: pointer; font-family: inherit;
+      transition: background .2s; margin-top: 4px;
+    }
+    .ep-btn:hover { background: #1d4ed8; }
+    .ep-btn:disabled { background: #334155; cursor: not-allowed; }
+    .ep-msg { padding: 10px 14px; border-radius: 8px; font-size: .88rem; margin: 12px 0; }
+    .ep-msg.success { background: #064e3b; color: #6ee7b7; border: 1px solid #059669; }
+    .ep-msg.error   { background: #450a0a; color: #fca5a5; border: 1px solid #dc2626; }
+
+    /* ── Dashboard (post-login) ─────────────────────────────────────── */
+    .ep-dashboard { display: none; }
+    .ep-dashboard.visible { display: block; }
+    .ep-section-head {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 16px;
+    }
+    .ep-section-head h2 { color: #f1f5f9; font-size: 1.1rem; margin: 0; }
+    .ep-company-badge {
+      background: #1e293b; border: 1px solid #2563eb; border-radius: 20px;
+      padding: 4px 14px; color: #60a5fa; font-size: .85rem; font-weight: 600;
+    }
+
+    /* ── Post job form (full width) ─────────────────────────────────── */
+    .ep-post-card {
+      background: #0f172a; border: 1px solid #1e293b; border-radius: 14px;
+      padding: 28px 32px; margin-bottom: 28px;
+    }
+    .ep-post-card h3 { color: #fdb714; font-size: 1rem; margin: 0 0 20px; }
+    .ep-post-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media(max-width:640px){ .ep-post-grid { grid-template-columns: 1fr; } }
+    .ep-post-grid .ep-form-group { margin-bottom: 0; }
+    .ep-post-full { grid-column: 1 / -1; }
+
+    /* ── Job listing cards ──────────────────────────────────────────── */
+    .ep-jobs-section { margin-top: 32px; }
+    .ep-jobs-section h3 { color: #f1f5f9; font-size: 1rem; margin: 0 0 16px; }
+    .ep-job-card {
+      background: #0f172a; border: 1px solid #1e293b; border-radius: 12px;
+      padding: 18px 20px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;
+    }
+    .ep-job-card:hover { border-color: #2563eb22; }
+    .ep-job-info h4 { color: #f1f5f9; font-size: .95rem; margin: 0 0 4px; }
+    .ep-job-meta { color: #64748b; font-size: .82rem; display: flex; gap: 12px; flex-wrap: wrap; margin-top: 4px; }
+    .ep-job-badge {
+      background: #1e3a5f; color: #60a5fa; border-radius: 6px;
+      padding: 2px 8px; font-size: .78rem; font-weight: 600;
+    }
+    .ep-delete-btn {
+      background: none; border: 1px solid #334155; color: #94a3b8; border-radius: 6px;
+      padding: 5px 10px; font-size: .8rem; cursor: pointer; font-family: inherit;
+      transition: border-color .2s, color .2s; white-space: nowrap;
+    }
+    .ep-delete-btn:hover { border-color: #ef4444; color: #ef4444; }
+    .ep-empty { color: #64748b; font-size: .9rem; padding: 24px 0; text-align: center; }
+
+    /* ── Benefits section ───────────────────────────────────────────── */
+    .ep-benefits {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 18px; margin-top: 32px;
+    }
+    .ep-benefit-card {
+      background: #0f172a; border: 1px solid #1e293b; border-radius: 12px; padding: 20px;
+    }
+    .ep-benefit-icon { font-size: 1.6rem; margin-bottom: 10px; }
+    .ep-benefit-card h4 { color: #f1f5f9; margin: 0 0 6px; font-size: .95rem; }
+    .ep-benefit-card p  { color: #64748b; font-size: .83rem; margin: 0; line-height: 1.5; }
+  </style>
+</head>
+<body>
+
+  <div class="business-bar">
+    <span class="rocket compact-rocket">🚀</span>
+    <span class="brand-name compact-brand-name">RoleRocket AI</span>
+    <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open navigation" aria-controls="sidebarNav" aria-expanded="false">
+      <span class="menu-icon">☰</span>
+    </button>
+  </div>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebarNav" aria-label="Primary navigation">
+      <h2 aria-label="RoleRocket AI"></h2>
+      <nav>
+        <a class="sidebar-link-btn" href="index.html">Home</a>
+        <a class="sidebar-link-btn" href="about-us.html">About Us</a>
+        <a class="sidebar-link-btn" href="features.html">Features</a>
+        <a class="sidebar-link-btn" href="job-tracking.html">Find, Search &amp; Track</a>
+        <a class="sidebar-link-btn" href="ai-recruiter-assist.html">AI Recruiter Assist</a>
+        <a class="sidebar-link-btn" href="pricing.html">Pricing</a>
+        <a class="sidebar-link-btn" href="contact-us.html">Contact Us</a>
+        <a class="sidebar-link-btn" href="jamaica-workforce-accelerator.html">🇯🇲 Jamaica Accelerator</a>
+        <a class="sidebar-link-btn active" href="employer-portal.html">🏢 Post a Job</a>
+        <hr />
+        <a class="sidebar-link-btn" href="account.html">👤 Account</a>
+        <a class="sidebar-link-btn premium-btn" href="dashboard.html">🧑‍💼 My Dashboard</a>
+        <a class="sidebar-link-btn" href="login.html?relogin=1">Logout</a>
+      </nav>
+    </aside>
+    <div class="sidebar-overlay" id="sidebarOverlay" tabindex="-1" aria-hidden="true"></div>
+
+    <main class="main" id="mainContent" tabindex="-1" style="padding:28px 32px 60px;max-width:900px;">
+
+      <!-- Hero -->
+      <div class="ep-hero">
+        <h1>🏢 Employer Portal</h1>
+        <p>Post jobs directly to thousands of qualified candidates on RoleRocket AI. Free to register. Your listings appear in our AI-powered job matching system.</p>
+        <div class="ep-stats">
+          <div class="ep-stat"><strong>10,000+</strong><span>Active Job Seekers</span></div>
+          <div class="ep-stat"><strong>Free</strong><span>To Register &amp; Post</span></div>
+          <div class="ep-stat"><strong>AI-Matched</strong><span>Candidate Recommendations</span></div>
+        </div>
+      </div>
+
+      <!-- Auth panel (shown when NOT logged in as employer) -->
+      <div id="epAuthPanel">
+        <div class="ep-card">
+          <div class="ep-tabs">
+            <button class="ep-tab-btn active" id="epTabRegister" onclick="switchEpTab('register')">Register Company</button>
+            <button class="ep-tab-btn" id="epTabLogin" onclick="switchEpTab('login')">Sign In</button>
+          </div>
+
+          <!-- Register form -->
+          <div id="epRegisterForm">
+            <div class="ep-form-group">
+              <label>Company Name</label>
+              <input type="text" id="epRegCompany" placeholder="e.g. Grace Kennedy Company" />
+            </div>
+            <div class="ep-form-group">
+              <label>Work Email</label>
+              <input type="email" id="epRegEmail" placeholder="hr@yourcompany.com" />
+            </div>
+            <div class="ep-form-group">
+              <label>Password</label>
+              <input type="password" id="epRegPassword" placeholder="Minimum 8 characters" />
+            </div>
+            <div class="ep-form-group">
+              <label>Industry</label>
+              <select id="epRegIndustry">
+                <option value="">Select your industry</option>
+                <option>Food &amp; Beverage</option>
+                <option>Finance &amp; Banking</option>
+                <option>Technology &amp; IT</option>
+                <option>Telecommunications</option>
+                <option>Healthcare</option>
+                <option>Education</option>
+                <option>Tourism &amp; Hospitality</option>
+                <option>Manufacturing</option>
+                <option>Retail &amp; Consumer Goods</option>
+                <option>Construction &amp; Engineering</option>
+                <option>Government &amp; Public Sector</option>
+                <option>NGO / Non-Profit</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="ep-form-group">
+              <label>Company Website (optional)</label>
+              <input type="url" id="epRegWebsite" placeholder="https://www.yourcompany.com" />
+            </div>
+            <div id="epRegMsg"></div>
+            <button class="ep-btn" id="epRegBtn" onclick="registerEmployer()">Create Employer Account</button>
+            <p style="color:#64748b;font-size:.8rem;margin-top:12px;text-align:center;">By registering, you agree to post only legitimate job opportunities. Spam or misleading listings will result in account removal.</p>
+          </div>
+
+          <!-- Login form -->
+          <div id="epLoginForm" style="display:none;">
+            <div class="ep-form-group">
+              <label>Work Email</label>
+              <input type="email" id="epLoginEmail" placeholder="hr@yourcompany.com" />
+            </div>
+            <div class="ep-form-group">
+              <label>Password</label>
+              <input type="password" id="epLoginPassword" placeholder="Your password" />
+            </div>
+            <div id="epLoginMsg"></div>
+            <button class="ep-btn" id="epLoginBtn" onclick="loginEmployer()">Sign In</button>
+          </div>
+        </div>
+
+        <!-- Benefits for employers who haven't signed up -->
+        <div class="ep-benefits">
+          <div class="ep-benefit-card">
+            <div class="ep-benefit-icon">🎯</div>
+            <h4>AI-Matched Candidates</h4>
+            <p>Your job listings are automatically matched to the most qualified candidates in our database based on skills, experience, and career goals.</p>
+          </div>
+          <div class="ep-benefit-card">
+            <div class="ep-benefit-icon">🇯🇲</div>
+            <h4>Jamaica Talent Pool</h4>
+            <p>Access a growing pool of Jamaican graduates, professionals, and diaspora returnees actively looking for opportunities with reputable local employers.</p>
+          </div>
+          <div class="ep-benefit-card">
+            <div class="ep-benefit-icon">📊</div>
+            <h4>Dashboard Analytics</h4>
+            <p>Track how many candidates have viewed, saved, or applied to each of your posted roles in real time.</p>
+          </div>
+          <div class="ep-benefit-card">
+            <div class="ep-benefit-icon">💸</div>
+            <h4>Free to Start</h4>
+            <p>Post up to 5 active jobs at no cost. Premium plans unlock unlimited postings, featured placement, and direct candidate outreach.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dashboard (shown when logged in as employer) -->
+      <div class="ep-dashboard" id="epDashboard">
+
+        <div class="ep-section-head">
+          <h2>Your Job Dashboard</h2>
+          <span class="ep-company-badge" id="epCompanyBadge">Company</span>
+        </div>
+
+        <!-- Post new job -->
+        <div class="ep-post-card">
+          <h3>➕ Post a New Job</h3>
+          <div class="ep-post-grid">
+            <div class="ep-form-group">
+              <label>Job Title</label>
+              <input type="text" id="postTitle" placeholder="e.g. Marketing Manager" />
+            </div>
+            <div class="ep-form-group">
+              <label>Location</label>
+              <input type="text" id="postLocation" placeholder="e.g. Kingston, Jamaica" />
+            </div>
+            <div class="ep-form-group">
+              <label>Job Type</label>
+              <select id="postType">
+                <option value="Full-Time">Full-Time</option>
+                <option value="Part-Time">Part-Time</option>
+                <option value="Contract">Contract</option>
+                <option value="Internship">Internship</option>
+                <option value="Remote">Remote</option>
+              </select>
+            </div>
+            <div class="ep-form-group">
+              <label>Salary Range (optional)</label>
+              <input type="text" id="postSalary" placeholder="e.g. JMD 2.5M – 3.5M / yr" />
+            </div>
+            <div class="ep-form-group">
+              <label>Application Link or Email</label>
+              <input type="text" id="postLink" placeholder="https://apply.company.com or careers@company.com" />
+            </div>
+            <div class="ep-form-group">
+              <label>Closing Date (optional)</label>
+              <input type="date" id="postClosing" />
+            </div>
+            <div class="ep-form-group ep-post-full">
+              <label>Job Description</label>
+              <textarea id="postDescription" placeholder="Describe the role, responsibilities, required qualifications, and why candidates should apply..."></textarea>
+            </div>
+          </div>
+          <div id="epPostMsg" style="margin-top:12px;"></div>
+          <button class="ep-btn" id="epPostBtn" style="max-width:240px;margin-top:16px;" onclick="postJob()">Publish Job Listing</button>
+        </div>
+
+        <!-- Posted jobs list -->
+        <div class="ep-jobs-section">
+          <div class="ep-section-head">
+            <h3>Your Active Listings</h3>
+            <button onclick="loadMyJobs()" style="background:none;border:1px solid #334155;color:#94a3b8;border-radius:6px;padding:5px 12px;font-size:.8rem;cursor:pointer;font-family:inherit;">↻ Refresh</button>
+          </div>
+          <div id="epJobsList"><p class="ep-empty">Loading your listings…</p></div>
+        </div>
+
+        <div style="margin-top:32px;border-top:1px solid #1e293b;padding-top:20px;">
+          <button onclick="logoutEmployer()" style="background:none;border:1px solid #334155;color:#64748b;border-radius:8px;padding:8px 18px;font-size:.85rem;cursor:pointer;font-family:inherit;">Sign out of employer account</button>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="js/api-base.js"></script>
+  <script src="js/nav-plan-sync.js"></script>
+  <script src="js/employer-portal.js?v=20260421a"></script>
+</body>
+</html>

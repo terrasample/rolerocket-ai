@@ -293,6 +293,8 @@ const { runATSAnalysis } = require('./services/atsScorer');
 const User = require('./models/User');
 const Resume = require('./models/Resume');
 const Job = require('./models/Job');
+const Employer = require('./models/Employer');
+const EmployerJob = require('./models/EmployerJob');
 const JobAlert = require('./models/JobAlert');
 const Application = require('./models/Application');
 const Telemetry = require('./models/Telemetry');
@@ -6292,6 +6294,173 @@ app.get('/google1e7a24f124416c47.html', (_req, res) => {
 
 app.get('/sitemap.xml/google1e7a24f124416c47.html', (_req, res) => {
   return res.type('text/plain').send('google-site-verification: google1e7a24f124416c47.html');
+});
+
+// ─── Employer Portal ─────────────────────────────────────────────────────────
+
+// Register a new employer account
+app.post('/api/employers/register', async (req, res) => {
+  try {
+    const { company, email, password, industry, website } = req.body || {};
+    if (!company || typeof company !== 'string' || company.trim().length < 2)
+      return res.status(400).json({ error: 'Company name is required.' });
+    if (!email || typeof email !== 'string' || !email.includes('@'))
+      return res.status(400).json({ error: 'A valid work email is required.' });
+    if (!password || typeof password !== 'string' || password.length < 8)
+      return res.status(400).json({ error: 'Password must be at least 8 characters.' });
+
+    const existing = await Employer.findOne({ email: email.toLowerCase().trim() });
+    if (existing) return res.status(409).json({ error: 'An account with this email already exists.' });
+
+    const hashedPassword = await bcrypt.hash(password, 12);
+    const employer = await Employer.create({
+      company: company.trim().slice(0, 120),
+      email: email.toLowerCase().trim(),
+      password: hashedPassword,
+      industry: (industry || '').slice(0, 80),
+      website: (website || '').slice(0, 500),
+    });
+    return res.status(201).json({ message: 'Employer account created.', company: employer.company });
+  } catch (err) {
+    console.error('Employer register error:', err);
+    return res.status(500).json({ error: 'Server error. Please try again.' });
+  }
+});
+
+// Employer login
+app.post('/api/employers/login', async (req, res) => {
+  try {
+    const { email, password } = req.body || {};
+    if (!email || !password) return res.status(400).json({ error: 'Email and password are required.' });
+
+    const employer = await Employer.findOne({ email: email.toLowerCase().trim() });
+    if (!employer) return res.status(401).json({ error: 'Invalid email or password.' });
+
+    const match = await bcrypt.compare(password, employer.password);
+    if (!match) return res.status(401).json({ error: 'Invalid email or password.' });
+
+    const token = jwt.sign(
+      { employerId: employer._id, company: employer.company, role: 'employer' },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+    return res.json({ token, company: employer.company });
+  } catch (err) {
+    console.error('Employer login error:', err);
+    return res.status(500).json({ error: 'Server error. Please try again.' });
+  }
+});
+
+// Middleware: verify employer JWT
+function requireEmployerAuth(req, res, next) {
+  const auth = req.headers.authorization || '';
+  const bearer = auth.startsWith('Bearer ') ? auth.slice(7) : '';
+  if (!bearer) return res.status(401).json({ error: 'Employer authentication required.' });
+  try {
+    const decoded = jwt.verify(bearer, process.env.JWT_SECRET);
+    if (decoded.role !== 'employer') return res.status(403).json({ error: 'Employer access only.' });
+    req.employer = decoded;
+    next();
+  } catch {
+    return res.status(401).json({ error: 'Invalid or expired employer token.' });
+  }
+}
+
+// Post a new job
+app.post('/api/employers/jobs', requireEmployerAuth, async (req, res) => {
+  try {
+    const { title, location, type, salary, link, closing, description } = req.body || {};
+    if (!title || typeof title !== 'string' || !title.trim())
+      return res.status(400).json({ error: 'Job title is required.' });
+    if (!description || typeof description !== 'string' || !description.trim())
+      return res.status(400).json({ error: 'Job description is required.' });
+    if (!location || typeof location !== 'string' || !location.trim())
+      return res.status(400).json({ error: 'Location is required.' });
+
+    const ALLOWED_TYPES = ['Full-Time', 'Part-Time', 'Contract', 'Internship', 'Remote'];
+    const jobType = ALLOWED_TYPES.includes(type) ? type : 'Full-Time';
+
+    // Validate link is a safe URL or email when provided
+    if (link && link.trim()) {
+      const l = link.trim();
+      const isUrl = /^https?:\/\//i.test(l);
+      const isEmail = /^[^@]+@[^@]+\.[^@]+$/.test(l);
+      if (!isUrl && !isEmail)
+        return res.status(400).json({ error: 'Application link must be a valid URL or email address.' });
+    }
+
+    const employer = await Employer.findById(req.employer.employerId).select('company');
+    if (!employer) return res.status(404).json({ error: 'Employer account not found.' });
+
+    const job = await EmployerJob.create({
+      employerId: req.employer.employerId,
+      company: employer.company,
+      title: title.trim().slice(0, 160),
+      location: (location || '').trim().slice(0, 120),
+      type: jobType,
+      salary: (salary || '').trim().slice(0, 120),
+      link: (link || '').trim().slice(0, 500),
+      closing: closing ? new Date(closing) : null,
+      description: description.trim().slice(0, 8000),
+    });
+    return res.status(201).json(job);
+  } catch (err) {
+    console.error('Employer post job error:', err);
+    return res.status(500).json({ error: 'Server error. Please try again.' });
+  }
+});
+
+// Get employer's own posted jobs
+app.get('/api/employers/jobs', requireEmployerAuth, async (req, res) => {
+  try {
+    const jobs = await EmployerJob.find({ employerId: req.employer.employerId, active: true })
+      .sort({ createdAt: -1 }).limit(50).lean();
+    return res.json(jobs);
+  } catch (err) {
+    console.error('Employer get jobs error:', err);
+    return res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// Delete (deactivate) an employer job
+app.delete('/api/employers/jobs/:jobId', requireEmployerAuth, async (req, res) => {
+  try {
+    const { jobId } = req.params;
+    if (!jobId || !/^[a-f0-9]{24}$/i.test(jobId))
+      return res.status(400).json({ error: 'Invalid job ID.' });
+    const result = await EmployerJob.findOneAndUpdate(
+      { _id: jobId, employerId: req.employer.employerId },
+      { active: false },
+      { new: true }
+    );
+    if (!result) return res.status(404).json({ error: 'Job not found or you do not have permission to remove it.' });
+    return res.json({ message: 'Job listing removed.' });
+  } catch (err) {
+    console.error('Employer delete job error:', err);
+    return res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// Public job board — all active employer-posted jobs (no auth required)
+app.get('/api/jobs/board', async (req, res) => {
+  try {
+    const page  = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 20));
+    const skip  = (page - 1) * limit;
+    const query = { active: true };
+    if (req.query.q) {
+      const safe = String(req.query.q).slice(0, 100).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      query.$or = [{ title: new RegExp(safe, 'i') }, { company: new RegExp(safe, 'i') }, { location: new RegExp(safe, 'i') }];
+    }
+    const [jobs, total] = await Promise.all([
+      EmployerJob.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+      EmployerJob.countDocuments(query),
+    ]);
+    return res.json({ jobs, total, page, pages: Math.ceil(total / limit) });
+  } catch (err) {
+    console.error('Job board error:', err);
+    return res.status(500).json({ error: 'Server error.' });
+  }
 });
 
 app.get('/{*path}', (req, res) => {

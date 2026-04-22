@@ -356,7 +356,7 @@
           <button class="jwa-tab-btn" role="tab" data-tab="jwaTabDiaspora" aria-selected="false">🌍 Diaspora Pipeline</button>
           <button class="jwa-tab-btn" role="tab" data-tab="jwaTabResume" aria-selected="false">📄 Resume Localization</button>
           <button class="jwa-tab-btn" role="tab" data-tab="jwaTabGap" aria-selected="false">📊 Skills Gap Report</button>
-          <button class="jwa-tab-btn" role="tab" data-tab="jwaTabAthlete" aria-selected="false">🏆 Student Athlete PM Path</button>
+          <button class="jwa-tab-btn" role="tab" data-tab="jwaTabAthlete" aria-selected="false">🚀 Career Pathway Builder</button>
         </div>
 
         <!-- Tab 1: Jamaica Job Market Radar -->
@@ -449,37 +449,48 @@
 
       </div><!-- /padding wrapper -->
 
-        <!-- Tab 5: Student Athlete PM Pathway -->
+        <!-- Tab 5: Career Pathway Builder -->
         <div id="jwaTabAthlete" class="jwa-tab-panel" role="tabpanel" hidden style="padding:0 28px 40px;">
 
           <div class="sa-hero">
-            <h2>🏆 Student Athlete → Project Manager</h2>
-            <p>A complete 4-year roadmap from high school to Day 1 on the job. Built for Jamaican student athletes who want to compete in the classroom and the boardroom.</p>
-            <div class="sa-hero-pills">
+            <h2 id="cpHeroTitle">🚀 Career Pathway Builder</h2>
+            <p id="cpHeroSubtitle">Choose your career goal and get a personalised roadmap from high school to Day 1 on the job — built for Jamaican students.</p>
+            <div style="margin:20px 0 12px;">
+              <label for="cpCareerSelect" style="color:#94a3b8;font-size:.88rem;display:block;margin-bottom:8px;">Choose your career goal:</label>
+              <select id="cpCareerSelect" style="background:#1e293b;color:#f1f5f9;border:1.5px solid #334155;padding:10px 18px;border-radius:8px;font-size:1rem;cursor:pointer;min-width:300px;max-width:100%;">
+                <option value="project-manager">💼  Project Manager</option>
+                <option value="software-developer">💻  Software Developer</option>
+                <option value="nurse">🏥  Registered Nurse / Midwife</option>
+                <option value="marketing-manager">📢  Marketing &amp; Brand Manager</option>
+                <option value="accountant">📊  Accountant / Finance Professional</option>
+                <option value="entrepreneur">🚀  Entrepreneur / Business Owner</option>
+              </select>
+            </div>
+            <div class="sa-hero-pills" id="cpPills">
               <span class="sa-hero-pill">🎓 High School → University</span>
-              <span class="sa-hero-pill">💼 PM Certifications</span>
+              <span class="sa-hero-pill" id="cpCertPill">📜 Certifications</span>
               <span class="sa-hero-pill">💰 Financing Your Education</span>
-              <span class="sa-hero-pill">⚖️ Work/Life Balance</span>
+              <span class="sa-hero-pill">⚖️ Work / Life Balance</span>
               <span class="sa-hero-pill">📋 Day 1 Ready</span>
             </div>
           </div>
 
           <!-- Year selector -->
           <div class="sa-year-strip" role="tablist" aria-label="Select your year">
-            <button class="sa-year-btn sa-year-active" data-year="y1">Year 1<br><small>6th Form / Grade 11</small></button>
-            <button class="sa-year-btn" data-year="y2">Year 2<br><small>6th Form / Grade 12</small></button>
-            <button class="sa-year-btn" data-year="y3">Year 3<br><small>1st Year University</small></button>
-            <button class="sa-year-btn" data-year="y4">Year 4<br><small>Final Year + PM Cert</small></button>
-            <button class="sa-year-btn" data-year="y5">Day 1<br><small>First PM Role</small></button>
+            <button class="sa-year-btn sa-year-active" data-year="y1">Year 1<br><small id="saY1Sub">Grade 11</small></button>
+            <button class="sa-year-btn" data-year="y2">Year 2<br><small id="saY2Sub">Grade 12</small></button>
+            <button class="sa-year-btn" data-year="y3">Year 3<br><small id="saY3Sub">1st Year Uni</small></button>
+            <button class="sa-year-btn" data-year="y4">Year 4<br><small id="saY4Sub">Final Year</small></button>
+            <button class="sa-year-btn" data-year="y5">Day 1<br><small id="saY5Sub">First Role</small></button>
           </div>
 
           <!-- Year panels rendered by JS -->
           <div id="saYearContent"></div>
 
-          <!-- Core PM Lessons (always visible) -->
+          <!-- Core Lessons (career-specific, always visible) -->
           <section style="margin-top:40px;">
-            <h3 style="color:#fdb714;margin:0 0 6px;font-size:1.15rem;">📚 8 Core PM Lessons Every Student Athlete Must Learn</h3>
-            <p style="color:#64748b;font-size:.88rem;margin-bottom:20px;">These are not just classroom concepts — they are the same skills you already practise on the field. The sport parallel shows you why you are further ahead than you think.</p>
+            <h3 id="saLessonsTitle" style="color:#fdb714;margin:0 0 6px;font-size:1.15rem;">📚 8 Core Career Lessons</h3>
+            <p id="saLessonsDesc" style="color:#64748b;font-size:.88rem;margin-bottom:20px;">Essential skills and mindset shifts for your chosen career path.</p>
             <div class="sa-lessons-grid" id="saLessonsGrid"></div>
           </section>
 
