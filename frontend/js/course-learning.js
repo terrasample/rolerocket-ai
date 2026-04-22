@@ -352,15 +352,15 @@ document.addEventListener('DOMContentLoaded', function () {
         title: 'Formula and Method Refresher',
         objective: 'Refresh core formulas and solution habits before starting full modules.',
         lesson: 'Review the formulas you will repeatedly use: linear equations, factorization patterns, triangle angle sum, area formulas, Pythagoras theorem, and basic probability. Focus on when to use each formula, not just memorizing it.',
-        workedExample: 'Refresher workflow: identify question type -> choose formula -> substitute values -> compute -> verify with a quick check.',
+        workedExample: 'ax + b = c => x = (c - b)/a; then verify by substitution.',
         workedExampleSteps: [
-          'Formula 1: Linear equation form ax + b = c. Method: isolate x using inverse operations.',
-          'Formula 2: Difference of squares a^2 - b^2 = (a - b)(a + b).',
-          'Formula 3: Triangle interior angle sum = 180 deg.',
-          'Formula 4: Rectangle area A = l x w and circle area A = pi r^2.',
-          'Formula 5: Pythagoras theorem c^2 = a^2 + b^2 for right triangles.',
-          'Formula 6: Probability P(event) = favorable outcomes / total outcomes.',
-          'Tip: Always include units, show all steps, and do one reasonableness check at the end.'
+          '2x + 7 = 19 => 2x = 12 => x = 6; check: 2(6) + 7 = 19.',
+          'x^2 - 9 = x^2 - 3^2 => (x - 3)(x + 3).',
+          'x + 50 + 60 = 180 => x = 70 deg.',
+          'A = l x w = 9 x 4 = 36 cm^2; A = pi r^2 = pi(5)^2 = 25pi cm^2.',
+          'c^2 = a^2 + b^2 = 6^2 + 8^2 = 36 + 64 = 100 => c = 10.',
+          'P(even) = favorable/total = 3/6 = 1/2.',
+          'Verification rule: substitute answer and confirm LHS = RHS.'
         ],
         commonMistake: 'Memorizing formulas without recognizing which question type they fit.',
         practiceTask: 'Create a one-page formula sheet and solve one example per formula from memory.',
