@@ -379,8 +379,11 @@
               <strong>${esc(job.title)}</strong>
               <span class="jwa-salary">${esc(job.company)}</span>
               <span class="jwa-demand-badge" style="background:#1d4ed8;">${esc(job.location)}</span>
+              ${job.salaryRange ? `<span class="jwa-salary-tag" style="background:#16a34a; color:#fff; padding:4px 8px; border-radius:4px; font-size:0.85em;">💰 ${job.salaryRange.min?.toLocaleString() || '?'}-${job.salaryRange.max?.toLocaleString() || '?'} ${job.salaryRange.currency}</span>` : ''}
+              ${job.sponsorshipAvailable ? `<span style="background:#fbbf24; color:#000; padding:4px 8px; border-radius:4px; font-size:0.85em; margin-left:4px;">🛂 Sponsorship</span>` : ''}
               <span class="jwa-remote-tag">${esc(job.source)}</span>
               <span style="color:#64748b;font-size:.74rem;line-height:1.3;">Posted: ${esc(formatPostedDate(job.postedAt))}</span>
+              ${job.requiredCredentials && job.requiredCredentials.length ? `<span style="font-size:0.85em; color:#0284c7;">Creds: ${job.requiredCredentials.slice(0,2).join(', ')}${job.requiredCredentials.length > 2 ? '...' : ''}</span>` : ''}
             </a>
           `).join('')}
         </div>
@@ -2555,6 +2558,209 @@
     loadCareer('project-manager', { resetYear: true });
   }
 
+  /* ── 5. Diaspora Employer Direct Pipeline ─────────────────────────────── */
+  async function loadDiasporaEmployerRoles(country = 'USA', sponsorshipLevel = 'visa-sponsorship') {
+    const container = document.getElementById('diasporaEmployerRoles');
+    if (!container) return;
+
+    container.innerHTML = '<p style="color:#64748b;">Loading diaspora employers...</p>';
+
+    try {
+      const response = await fetch(`${window.apiUrl()}/api/diaspora-employers/search?country=${encodeURIComponent(country)}&sponsorshipLevel=${encodeURIComponent(sponsorshipLevel)}`);
+      const data = await response.json();
+      const employers = data.employers || [];
+
+      if (!employers.length) {
+        container.innerHTML = '<p style="color:#64748b;">No diaspora employers with current openings.</p>';
+        return;
+      }
+
+      container.innerHTML = employers.map(emp => `
+        <details class="jwa-collapsible" open>
+          <summary style="font-weight:600; cursor:pointer;">
+            🌍 ${esc(emp.companyName)} — ${esc(emp.country)}
+            <span style="font-size:0.9em; color:#64748b;">(${emp.remoteFirstRoles.length} roles)</span>
+          </summary>
+          <div style="padding:16px; background:#f8fafc;">
+            <p>${esc(emp.description || '')}</p>
+            <div style="margin-top:12px;">
+              ${emp.remoteFirstRoles.map(role => `
+                <div style="border-left:3px solid #0284c7; padding:12px; margin:12px 0; background:#fff;">
+                  <strong>${esc(role.roleTitle)}</strong>
+                  <p style="margin:4px 0; font-size:0.95em; color:#475569;">${esc(role.description || '')}</p>
+                  <div style="display:flex; gap:12px; font-size:0.9em; margin-top:8px;">
+                    <span>💰 ${role.salaryMin?.toLocaleString() || '?'} - ${role.salaryMax?.toLocaleString() || '?'} ${role.currency}</span>
+                    <span>📊 ${esc(role.experienceLevel || 'All')}</span>
+                    ${role.requiredCredentials && role.requiredCredentials.length ? `<span>📋 ${role.requiredCredentials.join(', ')}</span>` : ''}
+                  </div>
+                  <a href="${esc(role.applyUrl || '#')}" style="display:inline-block; margin-top:8px; padding:8px 16px; background:#0284c7; color:#fff; text-decoration:none; border-radius:4px; font-size:0.9em;">Apply Now</a>
+                </div>
+              `).join('')}
+            </div>
+            <p style="margin-top:12px; font-size:0.9em; color:#64748b;">
+              <strong>Sponsorship:</strong> ${esc(emp.sponsorshipLevel).replace('-', ' ')}<br/>
+              <strong>Contact:</strong> ${esc(emp.contactEmail)}
+            </p>
+          </div>
+        </details>
+      `).join('');
+    } catch (err) {
+      console.error('Error loading diaspora employers:', err);
+      container.innerHTML = '<p style="color:#dc2626;">Failed to load diaspora employers.</p>';
+    }
+  }
+
+  /* ── 6. Credential Verification Badge ────────────────────────────────── */
+  async function loadUserCredentials() {
+    try {
+      const token = localStorage.getItem('rr_token');
+      if (!token) return;
+
+      const response = await fetch(`${window.apiUrl()}/api/credentials/my`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      const credentials = data.credentials || [];
+      const verified = credentials.filter(c => c.verificationStatus === 'verified');
+
+      const credBadge = document.getElementById('credentialBadge');
+      if (credBadge && verified.length) {
+        credBadge.innerHTML = `
+          <div style="padding:12px; background:#dcfce7; border:1px solid #86efac; border-radius:8px;">
+            <strong style="color:#16a34a;">✓ Verified Credentials</strong>
+            <div style="font-size:0.9em; margin-top:6px;">
+              ${verified.map(c => `${c.credentialType}: ${c.subjectName} (${c.yearAwarded})`).join('<br/>')}
+            </div>
+          </div>
+        `;
+      }
+    } catch (err) {
+      console.error('Error loading credentials:', err);
+    }
+  }
+
+  /* ── 7. SMS Job Alerts Registration ──────────────────────────────────── */
+  async function registerSMSAlert() {
+    const phoneInput = document.getElementById('phoneNumber');
+    const rolesInput = document.getElementById('alertRoles');
+    const frequencySelect = document.getElementById('alertFrequency');
+
+    if (!phoneInput || !phoneInput.value) {
+      alert('Please enter a phone number');
+      return;
+    }
+
+    const token = localStorage.getItem('rr_token');
+    if (!token) {
+      alert('Please log in first');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${window.apiUrl()}/api/alerts/sms/register`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          phoneNumber: phoneInput.value,
+          alertType: 'sms',
+          frequency: frequencySelect?.value || 'daily',
+          rolePreferences: rolesInput?.value ? rolesInput.value.split(',').map(r => r.trim()) : []
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        alert(`SMS alert registered! We've sent a verification code to ${phoneInput.value}`);
+      } else {
+        alert(`Error: ${data.error}`);
+      }
+    } catch (err) {
+      console.error('SMS registration error:', err);
+      alert('Failed to register SMS alert');
+    }
+  }
+
+  async function uploadCredential() {
+    const token = localStorage.getItem('rr_token');
+    if (!token) {
+      alert('Please log in first');
+      return;
+    }
+
+    const credentialType = String(document.getElementById('credentialType')?.value || '').trim();
+    const subjectName = String(document.getElementById('credentialSubject')?.value || '').trim();
+    const yearAwarded = Number(document.getElementById('credentialYear')?.value || 0);
+    const grade = String(document.getElementById('credentialGrade')?.value || '').trim() || null;
+
+    if (!credentialType || !subjectName || !yearAwarded) {
+      alert('Please complete credential type, subject, and year.');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${window.apiUrl()}/api/credentials/upload`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ credentialType, subjectName, yearAwarded, grade })
+      });
+
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Upload failed');
+      }
+
+      alert(`Credential uploaded. Verification code: ${data.verificationCode}`);
+      loadUserCredentials();
+    } catch (err) {
+      console.error('Credential upload error:', err);
+      alert('Unable to upload credential right now. Please try again.');
+    }
+  }
+
+  /* ── 8. Community Hub Finder ────────────────────────────────────────── */
+  async function loadCommunityHubs() {
+    const container = document.getElementById('communityHubsList');
+    if (!container) return;
+
+    container.innerHTML = '<p style="color:#64748b;">Loading community hubs...</p>';
+
+    try {
+      const response = await fetch(`${window.apiUrl()}/api/community-hubs/all`);
+      const data = await response.json();
+      const hubs = data.hubs || [];
+
+      if (!hubs.length) {
+        container.innerHTML = '<p style="color:#64748b;">No community hubs found in your area yet.</p>';
+        return;
+      }
+
+      container.innerHTML = hubs.map(hub => `
+        <div style="border:1px solid #e2e8f0; border-radius:8px; padding:16px; margin:12px 0;">
+          <h4 style="margin:0 0 8px; color:#1e293b;">${esc(hub.hubName)}</h4>
+          <p style="margin:4px 0; font-size:0.9em; color:#64748b;">📍 ${esc(hub.location)}</p>
+          <p style="margin:4px 0; font-size:0.9em; color:#64748b;">📞 ${esc(hub.phone || 'N/A')}</p>
+          <div style="margin-top:8px; font-size:0.85em;">
+            <span style="background:#f0f9ff; padding:4px 8px; border-radius:4px; margin-right:4px;">
+              ${esc(hub.hubType).replace('-', ' ')}
+            </span>
+            ${hub.computerAccess ? '<span style="background:#dcfce7; padding:4px 8px; border-radius:4px; margin-right:4px;">💻 Computer Access</span>' : ''}
+            ${hub.partnersWithRoleRocket ? '<span style="background:#fef3c7; padding:4px 8px; border-radius:4px;">🤝 RoleRocket Partner</span>' : ''}
+          </div>
+          <p style="margin-top:8px; font-size:0.9em;">${esc(hub.description || '')}</p>
+        </div>
+      `).join('');
+    } catch (err) {
+      console.error('Error loading community hubs:', err);
+      container.innerHTML = '<p style="color:#dc2626;">Failed to load community hubs.</p>';
+    }
+  }
+
   /* ── Init ───────────────────────────────────────────────────────────────── */
   document.addEventListener('DOMContentLoaded', function () {
     initCollapsiblePersistence();
@@ -2563,6 +2769,9 @@
     renderSkillsGapChart();
     initCurriculumLearning();
     renderCareerInit();
+    loadDiasporaEmployerRoles();
+    loadUserCredentials();
+    loadCommunityHubs();
 
     document.getElementById('jwaRefreshRegionalJobsBtn')?.addEventListener('click', renderMarketRadar);
     document.getElementById('jwaMarketKeyword')?.addEventListener('keydown', function (event) {
@@ -2582,10 +2791,19 @@
     document.getElementById('jwaAnalyzeContractBtn')?.addEventListener('click', analyzeContractTerms);
     document.getElementById('jwaGenerateBizPlanBtn')?.addEventListener('click', generateBusinessPlan);
     document.getElementById('jwaFindMentorBtn')?.addEventListener('click', findMentorMatches);
+    document.getElementById('registerSMSAlertBtn')?.addEventListener('click', registerSMSAlert);
+    document.getElementById('refreshCommunityHubsBtn')?.addEventListener('click', loadCommunityHubs);
+    document.getElementById('refreshDiasporaEmployersBtn')?.addEventListener('click', function () {
+      const country = String(document.getElementById('diasporaCountryFilter')?.value || 'USA');
+      const sponsorship = String(document.getElementById('diasporaSponsshipFilter')?.value || 'visa-sponsorship');
+      loadDiasporaEmployerRoles(country, sponsorship);
+    });
 
     document.querySelectorAll('.jwa-tab-btn').forEach(btn => {
       btn.addEventListener('click', () => activateTab(btn.dataset.tab));
     });
+
+    window.uploadCredential = uploadCredential;
 
     activateTab('jwaTabMarket');
   });

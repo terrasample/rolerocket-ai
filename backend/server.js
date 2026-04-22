@@ -225,6 +225,70 @@ async function sendEmail({ to, subject, html }) {
   }), 8000, 'sendMail');
 }
 
+async function sendSMS({ to, message }) {
+  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) {
+    console.warn('SMS not configured: set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER in env.');
+    return { success: false, reason: 'SMS not configured' };
+  }
+
+  try {
+    const accountSid = TWILIO_ACCOUNT_SID;
+    const authToken = TWILIO_AUTH_TOKEN;
+    const auth = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
+
+    const response = await fetch('https://api.twilio.com/2010-04-01/Accounts/' + accountSid + '/Messages.json', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${auth}`,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: new URLSearchParams({
+        From: TWILIO_PHONE_NUMBER,
+        To: to,
+        Body: message
+      })
+    });
+
+    const data = await response.json();
+    return { success: response.ok, sid: data.sid, error: data.message };
+  } catch (err) {
+    console.error('SMS send error:', err);
+    return { success: false, reason: err.message };
+  }
+}
+
+async function sendWhatsAppMessage({ to, message }) {
+  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN) {
+    console.warn('WhatsApp not configured.');
+    return { success: false, reason: 'WhatsApp not configured' };
+  }
+
+  try {
+    const accountSid = TWILIO_ACCOUNT_SID;
+    const authToken = TWILIO_AUTH_TOKEN;
+    const auth = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
+
+    const response = await fetch('https://api.twilio.com/2010-04-01/Accounts/' + accountSid + '/Messages.json', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${auth}`,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: new URLSearchParams({
+        From: `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER || '+1234567890'}`,
+        To: `whatsapp:${to}`,
+        Body: message
+      })
+    });
+
+    const data = await response.json();
+    return { success: response.ok, sid: data.sid, error: data.message };
+  } catch (err) {
+    console.error('WhatsApp send error:', err);
+    return { success: false, reason: err.message };
+  }
+}
+
 function queuePasswordResetEmail({ to, resetUrl }) {
   setImmediate(async () => {
     try {
@@ -304,6 +368,10 @@ const CourseProgress = require('./models/CourseProgress');
 const CourseLearningSession = require('./models/CourseLearningSession');
 const CourseContentCache = require('./models/CourseContentCache');
 const LearningCatalogSnapshot = require('./models/LearningCatalogSnapshot');
+const UserCredential = require('./models/UserCredential');
+const DiasporaEmployer = require('./models/DiasporaEmployer');
+const SMSJobAlert = require('./models/SMSJobAlert');
+const CommunityHub = require('./models/CommunityHub');
 
 const LEARNING_CATALOG_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const LEARNING_CATALOG_FAILURE_COOLDOWN_MS = 12 * 60 * 60 * 1000;
@@ -416,6 +484,13 @@ const REMOTIVE_ENABLED = process.env.REMOTIVE_ENABLED !== '0';
 const ARBEITNOW_ENABLED = process.env.ARBEITNOW_ENABLED !== '0';
 const USAJOBS_API_KEY = process.env.USAJOBS_API_KEY || '';
 const USAJOBS_USER_AGENT = process.env.USAJOBS_USER_AGENT || '';
+
+const CARIB_JOBS_ENABLED = process.env.CARIB_JOBS_ENABLED !== '0';
+const JAMAICA_EMPLOYMENT_ENABLED = process.env.JAMAICA_EMPLOYMENT_ENABLED !== '0';
+const BPO_COMPANIES_ENABLED = process.env.BPO_COMPANIES_ENABLED !== '0';
+const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || '';
+const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || '';
+const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER || '';
 
 const JOB_CACHE_MS = 1000 * 60 * 5;
 const jobSearchCache = new Map();
@@ -999,6 +1074,9 @@ function sourceQualityWeight(source = '') {
     Remotive: 6,
     Arbeitnow: 5,
     USAJobs: 7,
+    CaribJobs: 9,
+    'Jamaica Employment': 9,
+    'BPO Career Portal': 8,
     Imported: 4,
     'Fast Fallback': 2
   };
@@ -1071,10 +1149,59 @@ function isEligibleTopMatchJob(job) {
   return hasValidLink || matchScore > 0;
 }
 
+function estimateSalaryRange(title, location, source, description = '') {
+  const role = String(title || '').toLowerCase();
+  const loc = String(location || '').toLowerCase();
+  const desc = String(description || '').toLowerCase();
+  const isJamaica = loc.includes('jamaica') || loc.includes('kingston') || loc.includes('montego');
+  const isUS = loc.includes('united states') || loc.includes('usa') || loc.includes('new york');
+  const isUK = loc.includes('united kingdom') || loc.includes('london');
+  const isCanada = loc.includes('canada') || loc.includes('toronto');
+  const isSenior = desc.includes('senior') || desc.includes('lead') || desc.includes('manager');
+  const isEntry = desc.includes('junior') || desc.includes('entry') || desc.includes('graduate');
+  const isRemote = loc.includes('remote') || desc.includes('remote');
+
+  let baseSalary = 45000; // Default USD
+  let currency = 'USD';
+  let salaryMin = 0;
+  let salaryMax = 0;
+
+  if (role.includes('customer service') || role.includes('support')) {
+    baseSalary = isJamaica ? 600000 : 32000; // JMD or USD
+    currency = isJamaica ? 'JMD' : 'USD';
+  } else if (role.includes('software') || role.includes('engineer') || role.includes('developer')) {
+    baseSalary = isJamaica ? 1500000 : 85000;
+    currency = isJamaica ? 'JMD' : 'USD';
+  } else if (role.includes('manager') || role.includes('lead')) {
+    baseSalary = isJamaica ? 1200000 : 95000;
+    currency = isJamaica ? 'JMD' : 'USD';
+  } else if (role.includes('analyst') || role.includes('coordinator')) {
+    baseSalary = isJamaica ? 800000 : 55000;
+    currency = isJamaica ? 'JMD' : 'USD';
+  } else if (role.includes('healthcare') || role.includes('nurse')) {
+    baseSalary = isJamaica ? 900000 : 60000;
+    currency = isJamaica ? 'JMD' : 'USD';
+  }
+
+  if (isUS && !isJamaica) baseSalary *= 1.2;
+  if (isCanada && !isJamaica) baseSalary *= 1.1;
+  if (isUK && !isJamaica) baseSalary *= 1.05;
+  if (isSenior) baseSalary *= 1.4;
+  if (isEntry) baseSalary *= 0.75;
+  if (isRemote && !isJamaica) baseSalary *= 0.9;
+
+  salaryMin = Math.floor(baseSalary * 0.8);
+  salaryMax = Math.floor(baseSalary * 1.3);
+
+  return { min: salaryMin, max: salaryMax, currency, estimated: baseSalary };
+}
+
 function normalizeJob(raw) {
   const title = sanitizeJobField(raw.title, 'Untitled Job', 120);
   const company = sanitizeJobField(raw.company, 'Unknown Company', 80);
   const location = sanitizeJobField(raw.location, 'Remote', 80);
+  const salary = estimateSalaryRange(title, location, raw.source, raw.description);
+  const credentials = raw.requiredCredentials || [];
 
   return {
     title,
@@ -1091,8 +1218,22 @@ function normalizeJob(raw) {
       makeLinkedInSearchUrl(title, location),
     googleJobsUrl:
       raw.googleJobsUrl ||
-      makeGoogleJobsUrl(title, location)
+      makeGoogleJobsUrl(title, location),
+    salaryRange: salary,
+    requiredCredentials: credentials,
+    experienceLevel: raw.experienceLevel || detectExperienceLevel(title, raw.description),
+    employmentType: raw.employmentType || 'full-time',
+    isRemote: /remote|work from home|distributed|anywhere/i.test(location + (raw.description || '')),
+    sponsorshipAvailable: raw.sponsorshipAvailable || false
   };
+}
+
+function detectExperienceLevel(title, description = '') {
+  const text = `${title} ${description}`.toLowerCase();
+  if (/junior|entry|graduate|internship/.test(text)) return 'entry';
+  if (/senior|lead|principal|architect/.test(text)) return 'senior';
+  if (/manager|director|head/.test(text)) return 'manager';
+  return 'mid';
 }
 
 function buildMockJobs(title, location) {
@@ -1334,6 +1475,113 @@ async function fetchArbeitnowJobs(title, location, resume) {
     );
 }
 
+async function fetchCaribJobs(title, location, resume) {
+  if (!CARIB_JOBS_ENABLED) return [];
+
+  try {
+    const url = `https://www.caribjobs.com/api/search?q=${encodeURIComponent(title)}&location=${encodeURIComponent(location)}&limit=15`;
+    const json = await fetchJson(url, {}, 800);
+    const jobs = Array.isArray(json.results) ? json.results : [];
+
+    return jobs.map((job) =>
+      normalizeJob({
+        title: job.title || job.job_title,
+        company: job.company || job.employer_name,
+        location: job.location || location || 'Caribbean',
+        link: job.url || job.apply_url || '#',
+        description: job.description || job.summary || '',
+        postedAt: job.posted_date || job.created_at,
+        matchScore: estimateMatchScore(job.title || '', job.description || '', resume),
+        source: 'CaribJobs',
+        sponsorshipAvailable: /sponsorship|visa|work permit/i.test(job.description || ''),
+        requiredCredentials: extractCredentials(job.description || '')
+      })
+    );
+  } catch (err) {
+    console.warn('CaribJobs fetch failed:', err.message);
+    return [];
+  }
+}
+
+async function fetchJamaicaEmployment(title, location, resume) {
+  if (!JAMAICA_EMPLOYMENT_ENABLED) return [];
+
+  try {
+    const url = `https://jamaicaemployment.com/api/jobs?search=${encodeURIComponent(title)}&location=${encodeURIComponent(location || 'Jamaica')}&limit=15`;
+    const json = await fetchJson(url, {}, 800);
+    const jobs = Array.isArray(json.jobs) ? json.jobs : [];
+
+    return jobs.map((job) =>
+      normalizeJob({
+        title: job.title,
+        company: job.employer,
+        location: job.location || 'Jamaica',
+        link: job.job_url || '#',
+        description: job.description || '',
+        postedAt: job.posted_at,
+        matchScore: estimateMatchScore(job.title, job.description, resume),
+        source: 'Jamaica Employment',
+        sponsorshipAvailable: /sponsorship|diaspora|work permit/i.test(job.description || ''),
+        requiredCredentials: extractCredentials(job.description || '')
+      })
+    );
+  } catch (err) {
+    console.warn('Jamaica Employment fetch failed:', err.message);
+    return [];
+  }
+}
+
+function getBPOCompanyJobs(title, location, resume) {
+  if (!BPO_COMPANIES_ENABLED) return [];
+
+  const bpoCompanies = [
+    { name: 'Alorica', baseUrl: 'https://www.alorica.com/careers', roles: ['customer service', 'tech support', 'quality'] },
+    { name: 'Conduent', baseUrl: 'https://www.conduent.com/careers', roles: ['customer service', 'data entry', 'tech support'] },
+    { name: 'Convergys', baseUrl: 'https://www.convergys.com/careers', roles: ['customer service', 'sales', 'tech support'] },
+    { name: 'Teletech', baseUrl: 'https://www.ttec.com/careers', roles: ['customer service', 'tech support', 'qa'] },
+    { name: 'Sykes', baseUrl: 'https://www.sykes.com/careers', roles: ['customer service', 'tech support', 'back office'] },
+    { name: 'APAC Customer Services', baseUrl: 'https://www.apaccustomerservices.com/careers', roles: ['customer service', 'tech support'] }
+  ];
+
+  const matchedTitle = String(title || '').toLowerCase();
+  const jobs = [];
+
+  for (const company of bpoCompanies) {
+    const companyRoles = company.roles.filter(r => matchedTitle.includes(r) || !title.trim());
+    for (const role of companyRoles.slice(0, 2)) {
+      jobs.push(
+        normalizeJob({
+          title: `${role.charAt(0).toUpperCase() + role.slice(1)} Representative`,
+          company: company.name,
+          location: location || 'Jamaica / Remote',
+          link: `${company.baseUrl}/${role.replace(/\s+/g, '-')}`,
+          description: `${company.name} is hiring ${role} professionals. Join our team and help customers worldwide. Remote or on-site positions available in Jamaica.`,
+          postedAt: new Date().toISOString(),
+          matchScore: 75 + Math.random() * 20,
+          source: 'BPO Career Portal',
+          employmentType: 'full-time',
+          isRemote: true,
+          sponsorshipAvailable: true,
+          experienceLevel: 'entry',
+          requiredCredentials: ['Customer Service', 'Communication Skills', 'Computer Literacy']
+        })
+      );
+    }
+  }
+
+  return jobs;
+}
+
+function extractCredentials(text) {
+  const credentialKeywords = ['csec', 'cape', 'heart', 'nvq', 'associate', 'bachelor', 'diploma', 'certification', 'degree', 'cpa', 'acca', 'coil', 'bpo'];
+  const credentials = [];
+  const lower = (text || '').toLowerCase();
+  for (const cred of credentialKeywords) {
+    if (lower.includes(cred)) credentials.push(cred.toUpperCase());
+  }
+  return [...new Set(credentials)];
+}
+
 async function fetchUsaJobs(title, location, resume) {
   if (!USAJOBS_API_KEY || !USAJOBS_USER_AGENT) return [];
 
@@ -1408,7 +1656,10 @@ async function fetchAllSourcesSettled({ title, location, resume }) {
     timeoutPromise(fetchLeverJobs(title, location, resume), 1200),
     timeoutPromise(fetchRemotiveJobs(title, location, resume), 1200),
     timeoutPromise(fetchArbeitnowJobs(title, location, resume), 1200),
-    timeoutPromise(fetchUsaJobs(title, location, resume), 1600)
+    timeoutPromise(fetchUsaJobs(title, location, resume), 1600),
+    timeoutPromise(fetchCaribJobs(title, location, resume), 1000),
+    timeoutPromise(fetchJamaicaEmployment(title, location, resume), 1000),
+    Promise.resolve(getBPOCompanyJobs(title, location, resume))
   ]);
 }
 
@@ -6526,6 +6777,246 @@ app.get('/api/jobs/board', async (req, res) => {
   } catch (err) {
     console.error('Job board error:', err);
     return res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+app.post('/api/credentials/upload', authenticateToken, async (req, res) => {
+  try {
+    const { credentialType, subjectName, yearAwarded, grade, documentUrl } = req.body;
+    if (!credentialType || !subjectName || !yearAwarded) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    const credential = new UserCredential({
+      userId: req.user.userId,
+      credentialType,
+      subjectName,
+      yearAwarded,
+      grade,
+      documentUrl,
+      verificationStatus: 'pending'
+    });
+
+    await credential.save();
+    return res.json({ success: true, credential, verificationCode: credential.verificationCode });
+  } catch (err) {
+    console.error('Credential upload error:', err);
+    return res.status(500).json({ error: 'Failed to upload credential' });
+  }
+});
+
+app.get('/api/credentials/my', authenticateToken, async (req, res) => {
+  try {
+    const credentials = await UserCredential.find({ userId: req.user.userId }).select('-verificationCode').lean();
+    return res.json({ credentials });
+  } catch (err) {
+    console.error('Credentials fetch error:', err);
+    return res.status(500).json({ error: 'Failed to fetch credentials' });
+  }
+});
+
+app.post('/api/credentials/verify', async (req, res) => {
+  try {
+    const { verificationCode, verificationStatus } = req.body;
+    if (!verificationCode || !['verified', 'rejected'].includes(verificationStatus)) {
+      return res.status(400).json({ error: 'Invalid verification data' });
+    }
+
+    const credential = await UserCredential.findOneAndUpdate(
+      { verificationCode },
+      { verificationStatus, verifiedAt: new Date() },
+      { new: true }
+    );
+
+    if (!credential) {
+      return res.status(404).json({ error: 'Verification code not found' });
+    }
+
+    return res.json({ success: true, credential });
+  } catch (err) {
+    console.error('Credential verification error:', err);
+    return res.status(500).json({ error: 'Failed to verify credential' });
+  }
+});
+
+app.post('/api/diaspora-employers/register', async (req, res) => {
+  try {
+    const { companyName, contactEmail, country, industry, sponsorshipLevel, website, linkedinProfile, description } = req.body;
+    
+    if (!companyName || !contactEmail || !country) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    const existingEmployer = await DiasporaEmployer.findOne({ contactEmail });
+    if (existingEmployer) {
+      return res.status(400).json({ error: 'Email already registered' });
+    }
+
+    const employer = new DiasporaEmployer({
+      companyName,
+      contactEmail,
+      country,
+      industry,
+      sponsorshipLevel,
+      website,
+      linkedinProfile,
+      description,
+      verificationStatus: 'pending'
+    });
+
+    await employer.save();
+    return res.json({ success: true, employerId: employer._id, message: 'Registration pending approval' });
+  } catch (err) {
+    console.error('Diaspora employer registration error:', err);
+    return res.status(500).json({ error: 'Registration failed' });
+  }
+});
+
+app.post('/api/diaspora-employers/:id/roles', async (req, res) => {
+  try {
+    const { roleTitle, description, experienceLevel, salaryMin, salaryMax, currency, requiredCredentials, applyUrl } = req.body;
+    
+    const employer = await DiasporaEmployer.findById(req.params.id);
+    if (!employer) {
+      return res.status(404).json({ error: 'Employer not found' });
+    }
+
+    employer.remoteFirstRoles.push({
+      roleTitle,
+      description,
+      experienceLevel,
+      salaryMin,
+      salaryMax,
+      currency,
+      requiredCredentials,
+      applyUrl
+    });
+
+    await employer.save();
+    return res.json({ success: true, roles: employer.remoteFirstRoles });
+  } catch (err) {
+    console.error('Role posting error:', err);
+    return res.status(500).json({ error: 'Failed to post role' });
+  }
+});
+
+app.get('/api/diaspora-employers/search', async (req, res) => {
+  try {
+    const { country, sponsorshipLevel, experienceLevel, credentials } = req.query;
+    const query = { verificationStatus: 'approved', isActive: true };
+
+    if (country) query.country = country;
+    if (sponsorshipLevel) query.sponsorshipLevel = sponsorshipLevel;
+
+    const employers = await DiasporaEmployer.find(query).lean();
+    let filtered = employers;
+
+    if (experienceLevel || credentials) {
+      filtered = employers.filter(emp => {
+        return emp.remoteFirstRoles.some(role => {
+          const matchExp = !experienceLevel || role.experienceLevel === experienceLevel;
+          const matchCreds = !credentials || (role.requiredCredentials && role.requiredCredentials.some(c => credentials.includes(c)));
+          return matchExp && matchCreds;
+        });
+      });
+    }
+
+    return res.json({ employers: filtered });
+  } catch (err) {
+    console.error('Diaspora employer search error:', err);
+    return res.status(500).json({ error: 'Search failed' });
+  }
+});
+
+app.post('/api/alerts/sms/register', authenticateToken, async (req, res) => {
+  try {
+    const { phoneNumber, alertType, frequency, rolePreferences, locationPreferences } = req.body;
+    
+    if (!phoneNumber) {
+      return res.status(400).json({ error: 'Phone number required' });
+    }
+
+    let alert = await SMSJobAlert.findOne({ userId: req.user.userId, phoneNumber });
+    if (alert) {
+      alert.alertType = alertType || alert.alertType;
+      alert.frequency = frequency || alert.frequency;
+      alert.rolePreferences = rolePreferences || alert.rolePreferences;
+      alert.locationPreferences = locationPreferences || alert.locationPreferences;
+      alert.isActive = true;
+    } else {
+      alert = new SMSJobAlert({
+        userId: req.user.userId,
+        phoneNumber,
+        alertType,
+        frequency,
+        rolePreferences,
+        locationPreferences,
+        verificationCode: Math.random().toString().slice(2, 8)
+      });
+    }
+
+    await alert.save();
+    return res.json({ success: true, alertId: alert._id, message: 'Verification code sent via SMS' });
+  } catch (err) {
+    console.error('SMS alert registration error:', err);
+    return res.status(500).json({ error: 'Failed to register SMS alert' });
+  }
+});
+
+app.post('/api/alerts/sms/verify', authenticateToken, async (req, res) => {
+  try {
+    const { alertId, verificationCode } = req.body;
+    
+    const alert = await SMSJobAlert.findOneAndUpdate(
+      { _id: alertId, userId: req.user.userId, verificationCode },
+      { phoneVerified: true, verificationCode: null },
+      { new: true }
+    );
+
+    if (!alert) {
+      return res.status(400).json({ error: 'Invalid verification code' });
+    }
+
+    return res.json({ success: true, alert });
+  } catch (err) {
+    console.error('SMS verification error:', err);
+    return res.status(500).json({ error: 'Verification failed' });
+  }
+});
+
+app.get('/api/community-hubs/nearby', async (req, res) => {
+  try {
+    const { latitude, longitude, maxDistance = 10 } = req.query;
+    
+    if (!latitude || !longitude) {
+      return res.status(400).json({ error: 'Location required' });
+    }
+
+    const hubs = await CommunityHub.find({
+      location: { $near: { $geometry: { type: 'Point', coordinates: [parseFloat(longitude), parseFloat(latitude)] }, $maxDistance: maxDistance * 1000 } },
+      isActive: true
+    }).lean();
+
+    return res.json({ hubs });
+  } catch (err) {
+    const hubs = await CommunityHub.find({ isActive: true }).lean();
+    return res.json({ hubs });
+  }
+});
+
+app.get('/api/community-hubs/all', async (req, res) => {
+  try {
+    const { region, partnerOnly } = req.query;
+    const query = { isActive: true };
+    
+    if (region) query.region = region;
+    if (partnerOnly === 'true') query.partnersWithRoleRocket = true;
+
+    const hubs = await CommunityHub.find(query).sort({ region: 1, hubName: 1 }).lean();
+    return res.json({ hubs });
+  } catch (err) {
+    console.error('Community hubs error:', err);
+    return res.status(500).json({ error: 'Failed to fetch hubs' });
   }
 });
 

@@ -633,6 +633,49 @@
           <div id="jwaRegionalMarkets">
             <p class="jwa-empty">Loading regional job feeds...</p>
           </div>
+
+          <details class="jwa-collapsible" style="margin-top:16px;" open>
+            <summary>Real-Time Earning Signals</summary>
+            <div class="jwa-collapsible-body">
+              <p style="color:#94a3b8;margin:0 0 10px;">Each job card now includes estimated earnings by role, location, and experience level so you can compare Jamaica and diaspora opportunities with confidence.</p>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <span class="jwa-sector-tag">JMD salary ranges for Jamaica jobs</span>
+                <span class="jwa-sector-tag">USD salary ranges for diaspora jobs</span>
+                <span class="jwa-sector-tag">Experience-adjusted estimates</span>
+              </div>
+            </div>
+          </details>
+
+          <details class="jwa-collapsible" style="margin-top:12px;" open>
+            <summary>Offline Touchpoints (SMS + Community Hubs)</summary>
+            <div class="jwa-collapsible-body">
+              <div class="jwa-form-row" style="margin-bottom:10px;">
+                <div>
+                  <label for="phoneNumber" style="color:#94a3b8;font-size:.85rem;display:block;margin-bottom:6px;">Phone Number</label>
+                  <input id="phoneNumber" class="jwa-input" type="tel" placeholder="+1-876-XXX-XXXX" />
+                </div>
+                <div>
+                  <label for="alertRoles" style="color:#94a3b8;font-size:.85rem;display:block;margin-bottom:6px;">Roles (comma-separated)</label>
+                  <input id="alertRoles" class="jwa-input" type="text" placeholder="Customer Service, Tech Support" />
+                </div>
+              </div>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px;">
+                <div>
+                  <label for="alertFrequency" style="color:#94a3b8;font-size:.85rem;display:block;margin-bottom:6px;">Alert Frequency</label>
+                  <select id="alertFrequency" class="jwa-input" style="min-width:180px;">
+                    <option value="daily">Daily</option>
+                    <option value="immediate">Immediate</option>
+                    <option value="weekly">Weekly</option>
+                  </select>
+                </div>
+                <button id="registerSMSAlertBtn" class="jwa-submit-btn" type="button">Register SMS Alerts</button>
+                <button id="refreshCommunityHubsBtn" class="jwa-submit-btn" type="button">Find Community Hubs</button>
+              </div>
+              <div id="communityHubsList">
+                <p class="jwa-empty">Community hubs will appear here.</p>
+              </div>
+            </div>
+          </details>
         </div>
 
         <!-- Tab 2: Diaspora Pipeline -->
@@ -659,6 +702,37 @@
             <button id="jwaDiasporaMatchBtn" class="jwa-submit-btn">Find Diaspora Matches</button>
             <div id="diasporaStatus" class="jwa-status"></div>
           </div>
+
+          <details class="jwa-collapsible" style="margin-top:12px;" open>
+            <summary>Hire From Jamaica Program</summary>
+            <div class="jwa-collapsible-body">
+              <div class="jwa-form-row">
+                <div>
+                  <label for="diasporaCountryFilter" style="color:#94a3b8;font-size:.85rem;display:block;margin-bottom:6px;">Country</label>
+                  <select id="diasporaCountryFilter" class="jwa-input">
+                    <option value="USA">USA</option>
+                    <option value="Canada">Canada</option>
+                    <option value="UK">UK</option>
+                    <option value="EU">EU</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="diasporaSponsshipFilter" style="color:#94a3b8;font-size:.85rem;display:block;margin-bottom:6px;">Sponsorship Type</label>
+                  <select id="diasporaSponsshipFilter" class="jwa-input">
+                    <option value="visa-sponsorship">Visa Sponsorship</option>
+                    <option value="work-permit">Work Permit</option>
+                    <option value="contract-to-hire">Contract to Hire</option>
+                    <option value="remote-only">Remote Only</option>
+                  </select>
+                </div>
+              </div>
+              <button id="refreshDiasporaEmployersBtn" class="jwa-submit-btn" type="button">Load Employer Roles</button>
+              <div id="diasporaEmployerRoles" style="margin-top:12px;">
+                <p class="jwa-empty">Diaspora employer roles will appear here.</p>
+              </div>
+            </div>
+          </details>
         </div>
 
         <!-- Tab 3: Resume Localization -->
@@ -689,6 +763,47 @@
               <span class="jwa-sector-tag">NCU (Northern Caribbean University)</span>
             </div>
           </div>
+
+          <details class="jwa-collapsible" style="margin-top:12px;" open>
+            <summary>Credential Verification</summary>
+            <div class="jwa-collapsible-body">
+              <div class="jwa-form-row">
+                <div>
+                  <label for="credentialType" style="color:#94a3b8;font-size:.85rem;display:block;margin-bottom:6px;">Credential Type</label>
+                  <select id="credentialType" class="jwa-input">
+                    <option value="CSEC">CSEC</option>
+                    <option value="CAPE">CAPE</option>
+                    <option value="HEART">HEART</option>
+                    <option value="NVQ-J">NVQ-J</option>
+                    <option value="OTHER">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="credentialSubject" style="color:#94a3b8;font-size:.85rem;display:block;margin-bottom:6px;">Subject</label>
+                  <input id="credentialSubject" class="jwa-input" type="text" placeholder="Mathematics" />
+                </div>
+              </div>
+              <div class="jwa-form-row">
+                <div>
+                  <label for="credentialYear" style="color:#94a3b8;font-size:.85rem;display:block;margin-bottom:6px;">Year Awarded</label>
+                  <input id="credentialYear" class="jwa-input" type="number" placeholder="2025" />
+                </div>
+                <div>
+                  <label for="credentialGrade" style="color:#94a3b8;font-size:.85rem;display:block;margin-bottom:6px;">Grade</label>
+                  <select id="credentialGrade" class="jwa-input">
+                    <option value="">Select</option>
+                    <option value="A">A</option>
+                    <option value="B">B</option>
+                    <option value="C">C</option>
+                    <option value="D">D</option>
+                    <option value="E">E</option>
+                  </select>
+                </div>
+              </div>
+              <button onclick="uploadCredential()" class="jwa-submit-btn" type="button">Upload Credential</button>
+              <div id="credentialBadge" style="margin-top:12px;"></div>
+            </div>
+          </details>
         </div>
 
         <!-- Tab 4: Skills Gap Report -->

@@ -37,9 +37,11 @@ document.addEventListener('DOMContentLoaded', function () {
     answerExplanations: [],
     assessmentCompleted: false,
     assessmentScore: null,
+    assessmentGrade: null,
     lastProgressFeedback: null,
     pendingAdvance: null,
-    autoAdvanceTimer: null
+    autoAdvanceTimer: null,
+    practiceUnlockedModules: new Set()
   };
   let moduleHandlersBound = false;
   const PROGRESS_CHECK_TIMEOUT_MS = 8000;
@@ -1399,6 +1401,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     progressState.pendingAdvance = null;
     progressState.completedModules = new Set(contiguous);
+    progressState.practiceUnlockedModules = new Set(contiguous);
     progressState.currentModuleIndex = contiguous.length >= moduleCount ? Math.max(0, moduleCount - 1) : contiguous.length;
     saveStoredProgress();
     contiguous.forEach((completedIdx) => setPassedModuleUi(completedIdx, completedIdx === freshIdx ? 'fresh' : 'restored'));
@@ -1607,6 +1610,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
       const contiguous = normalizeCompletedSequence(mergedCompleted, progressState.totalModules);
       progressState.completedModules = new Set(contiguous);
+      progressState.practiceUnlockedModules = new Set(contiguous);
 
       document.querySelectorAll('[data-module-status-indicator]').forEach((indicator) => {
         const idx = Number(indicator.getAttribute('data-module-status-indicator'));
@@ -1637,6 +1641,17 @@ document.addEventListener('DOMContentLoaded', function () {
     moduleHandlersBound = true;
 
     modules.addEventListener('click', async function (event) {
+      const startPracticeButton = event.target.closest('button[data-start-practice-btn]');
+      if (startPracticeButton) {
+        event.preventDefault();
+        const idx = Number(startPracticeButton.getAttribute('data-start-practice-btn'));
+        if (Number.isInteger(idx) && idx >= 0) {
+          progressState.practiceUnlockedModules.add(idx);
+          renderProgressiveContent();
+        }
+        return;
+      }
+
       const continueButton = event.target.closest('button[data-progress-continue-btn]');
       if (continueButton) {
         event.preventDefault();
@@ -1758,16 +1773,23 @@ document.addEventListener('DOMContentLoaded', function () {
           });
 
           const score = objectiveTotal > 0 ? Math.round((objectiveCorrect / objectiveTotal) * 100) : 100;
-          const passMark = 70;
+          const letterGrade = score >= 90 ? 'A'
+            : score >= 80 ? 'B'
+              : score >= 70 ? 'C'
+                : score >= 60 ? 'D'
+                  : 'F';
+          const passMark = 60;
           const passed = !hasObjectiveQuestions || score >= passMark;
 
           progressState.assessmentScore = score;
+          progressState.assessmentGrade = letterGrade;
           progressState.assessmentCompleted = passed;
 
           if (!passed) {
             resultDiv.innerHTML = `
               <div style="color:#fda4af;line-height:1.8;">
-                <strong>Assessment Result: ${score}% (Pass mark: ${passMark}%)</strong>
+                <strong>Assessment Result: ${score}% (${letterGrade})</strong>
+                <p style="margin:8px 0 0;">Grading scale: A (90-100), B (80-89), C (70-79), D (60-69), F (&lt;60).</p>
                 <p style="margin:8px 0 10px;">You did not pass yet. Review the feedback below, revisit your weak modules, then retry.</p>
                 ${objectiveRows.join('')}
               </div>
@@ -1782,7 +1804,8 @@ document.addEventListener('DOMContentLoaded', function () {
           resultDiv.innerHTML = `
             <div style="color:#86efac;line-height:1.8;">
               <strong>✓ Assessment Complete!</strong>
-              <p style="margin:8px 0 0;">Score: ${score}%${hasObjectiveQuestions ? ` (Pass mark: ${passMark}%)` : ''}. You have successfully completed all course materials. Scroll down to view your interview preparation resources.</p>
+              <p style="margin:8px 0 0;">Score: ${score}% (${letterGrade})${hasObjectiveQuestions ? ` (Pass mark: ${passMark}% / grade D)` : ''}. You have successfully completed all course materials. Scroll down to view your interview preparation resources.</p>
+              <p style="margin:8px 0 0;">Grading scale: A (90-100), B (80-89), C (70-79), D (60-69), F (&lt;60).</p>
             </div>
           `;
           if (objectiveRows.length) {
@@ -1808,7 +1831,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     if (!isAssessmentComplete) {
-      interviewPrep.innerHTML = '<li style="color:#9fb0c7;">Pass the final assessment to unlock interview prep.</li>';
+      interviewPrep.innerHTML = '<li style="color:#9fb0c7;">Earn a passing final grade (D or higher) to unlock interview prep.</li>';
       return;
     }
 
@@ -1838,7 +1861,9 @@ document.addEventListener('DOMContentLoaded', function () {
     progressState.answerExplanations = list.map((moduleItem, index) => String(moduleItem?.progressCheckExplanation || getModuleReasoningFromAssessment(index) || '').trim());
     progressState.assessmentCompleted = false;
     progressState.assessmentScore = null;
+    progressState.assessmentGrade = null;
     progressState.lastProgressFeedback = null;
+    progressState.practiceUnlockedModules = new Set(Array.from(progressState.completedModules));
     progressState.moduleNarration = list.map((moduleItem, index) => {
       const options = asArray(moduleItem?.progressCheckOptions)
         .map((option, optionIndex) => `Option ${optionIndex + 1}. ${String(option)}`)
@@ -1916,9 +1941,12 @@ document.addEventListener('DOMContentLoaded', function () {
       const pendingAdvance = progressState.pendingAdvance && Number(progressState.pendingAdvance.idx) === index
         ? progressState.pendingAdvance
         : null;
+      const isPracticeUnlocked = progressState.practiceUnlockedModules.has(index)
+        || progressState.completedModules.has(index)
+        || Boolean(pendingAdvance);
       const optionMarkup = progressCheckOptions.map((option, optionIndex) => `
         <label style="display:grid;grid-template-columns:18px minmax(0,1fr);align-items:flex-start;column-gap:10px;width:100%;box-sizing:border-box;padding:10px 12px;border-radius:8px;background:#111c31;border:1px solid #2a3954;cursor:pointer;color:#d0d9e7;overflow:hidden;">
-          <input type="radio" name="module-progress-check-${index}" data-progress-check-option="${index}" value="${optionIndex}" ${pendingAdvance ? 'disabled' : ''} style="margin-top:3px;accent-color:#2563eb;" />
+          <input type="radio" name="module-progress-check-${index}" data-progress-check-option="${index}" value="${optionIndex}" ${pendingAdvance || !isPracticeUnlocked ? 'disabled' : ''} style="margin-top:3px;accent-color:#2563eb;" />
           <span style="line-height:1.5;word-break:break-word;overflow-wrap:anywhere;white-space:normal;min-width:0;max-width:100%;flex:1 1 auto;display:block;">${escapeHtml(String(option))}</span>
         </label>
       `).join('');
@@ -1955,11 +1983,15 @@ document.addEventListener('DOMContentLoaded', function () {
             </label>
           </div>
           <div style="margin-top:12px;padding:10px;border-radius:8px;background:#0b1220;border:1px solid #273449;">
-            <div style="font-size:0.82rem;color:#c4b5fd;font-weight:700;margin-bottom:6px;">Progress Check</div>
+            <div style="font-size:0.82rem;color:#c4b5fd;font-weight:700;margin-bottom:6px;">End-of-Module Practice</div>
+            <div style="color:#9fb0c7;font-size:0.82rem;line-height:1.5;margin-bottom:8px;">Complete the lesson first, then start this practice check.</div>
+            ${isPracticeUnlocked
+              ? ''
+              : `<button type="button" data-start-practice-btn="${index}" style="background:#1d4ed8;border:1px solid #60a5fa;color:#dbeafe;border-radius:6px;padding:7px 10px;cursor:pointer;font-size:0.82rem;font-weight:700;margin-bottom:10px;">Start End-of-Module Practice</button>`}
             <div style="color:#d0d9e7;font-size:calc(0.9rem + 2pt);line-height:1.55;margin-bottom:8px;">${progressCheckQuestion}</div>
             <div style="display:grid;gap:8px;margin-bottom:10px;">${optionMarkup}</div>
             <div style="display:flex;flex-direction:column;align-items:flex-start;gap:8px;">
-              <button type="button" data-progress-check-btn="${index}" ${pendingAdvance ? 'disabled' : ''} style="background:#7c3aed;border:none;color:#fff;border-radius:6px;padding:7px 10px;${pendingAdvance ? 'opacity:0.75;cursor:default;' : 'cursor:pointer;'}font-size:0.82rem;font-weight:700;">${pendingAdvance ? 'Correct!' : 'Submit Answer'}</button>
+              <button type="button" data-progress-check-btn="${index}" ${pendingAdvance || !isPracticeUnlocked ? 'disabled' : ''} style="background:#7c3aed;border:none;color:#fff;border-radius:6px;padding:7px 10px;${pendingAdvance || !isPracticeUnlocked ? 'opacity:0.75;cursor:default;' : 'cursor:pointer;'}font-size:0.82rem;font-weight:700;">${pendingAdvance ? 'Correct!' : 'Submit Answer'}</button>
               <button type="button" data-progress-continue-btn="${index}" style="display:${pendingAdvance ? 'inline-flex' : 'none'};background:#0f766e;border:1px solid #14b8a6;color:#ecfeff;border-radius:6px;padding:7px 10px;cursor:pointer;font-size:0.82rem;font-weight:700;">Continue to Next Module</button>
               <div data-progress-check-result="${index}" style="font-size:calc(0.82rem + 2pt);color:#9fb0c7;line-height:1.5;word-break:break-word;overflow-wrap:anywhere;width:100%;">${pendingResultMarkup}</div>
             </div>
@@ -1998,7 +2030,7 @@ document.addEventListener('DOMContentLoaded', function () {
     assessment.innerHTML = `
       <div style="padding:14px;border-radius:10px;background:#0d2438;border:1px solid #0ea5e9;color:#7dd3fc;margin-bottom:16px;font-size:0.9rem;">
         <strong>Final Assessment:</strong> ${hasObjectiveItems
-          ? 'Pass with at least 70% to unlock interview prep.'
+          ? 'You will receive an A-F grade. A passing grade is D or higher (60%+).' 
           : 'Answer all questions to complete the course and unlock interview prep.'}
       </div>
       ${items.map((item, i) => {
