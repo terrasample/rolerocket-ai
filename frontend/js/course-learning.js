@@ -29,6 +29,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const progressState = {
     totalModules: 0,
     completedModules: new Set(),
+    currentModuleIndex: 0,
     learnerName: 'Learner',
     sessionToken: '',
     moduleNarration: [],
@@ -935,7 +936,9 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function asArray(value) {
-    return Array.isArray(value) ? value.filter(Boolean) : [];
+    return Array.isArray(value)
+      ? value.filter((item) => item !== null && item !== undefined && item !== '')
+      : [];
   }
 
   function renderList(target, items) {
@@ -1170,7 +1173,12 @@ document.addEventListener('DOMContentLoaded', function () {
     saveStoredProgress();
     updateProgressUi();
 
-    progressState.pendingAdvance = null;
+    progressState.pendingAdvance = {
+      idx: numericIdx,
+      completedModules: nextCompleted,
+      nextIndex: Math.min(nextCompleted.length, Math.max(0, moduleCount - 1)),
+      feedbackMessage: String(feedbackMessage || '').trim()
+    };
 
     const answerInputs = document.querySelectorAll(`input[data-progress-check-option="${numericIdx}"]`);
     const submitButton = document.querySelector(`button[data-progress-check-btn="${numericIdx}"]`);
@@ -1187,12 +1195,15 @@ document.addEventListener('DOMContentLoaded', function () {
       submitButton.style.cursor = 'default';
     }
 
+    const continueButton = document.querySelector(`button[data-progress-continue-btn="${numericIdx}"]`);
+    if (continueButton) {
+      continueButton.style.display = 'inline-flex';
+      continueButton.disabled = false;
+    }
+
     if (resultWrap) {
       setResultHtml(resultWrap, true, feedbackMessage);
     }
-
-    progressState.lastProgressFeedback = { type: 'success', message: String(feedbackMessage || '').trim() };
-    applyCompletedModules(nextCompleted, numericIdx);
   }
 
   function finalizeProgressAdvance(idx) {
@@ -1221,6 +1232,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
     progressState.pendingAdvance = null;
     applyCompletedModules(pending.completedModules, numericIdx);
+
+    if (Number.isInteger(pending.nextIndex) && pending.nextIndex >= 0) {
+      progressState.currentModuleIndex = pending.nextIndex;
+      renderProgressiveContent();
+      updateProgressiveSections();
+    }
 
     // Defensive fallback: if state did not advance (for example, duplicate click handler race), force contiguous progress.
     if (progressState.completedModules.size <= beforeSize && progressState.totalModules > 0) {
@@ -1382,6 +1399,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     progressState.pendingAdvance = null;
     progressState.completedModules = new Set(contiguous);
+    progressState.currentModuleIndex = contiguous.length >= moduleCount ? Math.max(0, moduleCount - 1) : contiguous.length;
     saveStoredProgress();
     contiguous.forEach((completedIdx) => setPassedModuleUi(completedIdx, completedIdx === freshIdx ? 'fresh' : 'restored'));
     updateProgressUi();
@@ -1815,6 +1833,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     progressState.totalModules = list.length;
     progressState.completedModules = new Set(loadStoredProgress(list.length));
+    progressState.currentModuleIndex = Math.min(progressState.completedModules.size, Math.max(0, list.length - 1));
     progressState.answerKey = list.map((moduleItem) => Number(moduleItem?.correctOptionIndex));
     progressState.answerExplanations = list.map((moduleItem, index) => String(moduleItem?.progressCheckExplanation || getModuleReasoningFromAssessment(index) || '').trim());
     progressState.assessmentCompleted = false;
@@ -1850,7 +1869,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     const completed = progressState.completedModules.size;
-    const currentIdx = Math.min(completed, list.length - 1);
+    const currentIdx = Math.max(0, Math.min(Number(progressState.currentModuleIndex || 0), list.length - 1));
     const currentModule = list[currentIdx];
     const isAllComplete = completed >= list.length;
 
@@ -1894,14 +1913,18 @@ document.addEventListener('DOMContentLoaded', function () {
       const practiceTask = escapeHtml(String(moduleItem?.practiceTask || ''));
       const progressCheckQuestion = escapeHtml(String(moduleItem?.progressCheckQuestion || `In one sentence, what is the key takeaway of module ${index + 1}?`));
       const progressCheckOptions = asArray(moduleItem?.progressCheckOptions).slice(0, 4);
-      const pendingAdvance = null;
+      const pendingAdvance = progressState.pendingAdvance && Number(progressState.pendingAdvance.idx) === index
+        ? progressState.pendingAdvance
+        : null;
       const optionMarkup = progressCheckOptions.map((option, optionIndex) => `
         <label style="display:grid;grid-template-columns:18px minmax(0,1fr);align-items:flex-start;column-gap:10px;width:100%;box-sizing:border-box;padding:10px 12px;border-radius:8px;background:#111c31;border:1px solid #2a3954;cursor:pointer;color:#d0d9e7;overflow:hidden;">
           <input type="radio" name="module-progress-check-${index}" data-progress-check-option="${index}" value="${optionIndex}" ${pendingAdvance ? 'disabled' : ''} style="margin-top:3px;accent-color:#2563eb;" />
           <span style="line-height:1.5;word-break:break-word;overflow-wrap:anywhere;white-space:normal;min-width:0;max-width:100%;flex:1 1 auto;display:block;">${escapeHtml(String(option))}</span>
         </label>
       `).join('');
-      const pendingResultMarkup = '';
+      const pendingResultMarkup = pendingAdvance
+        ? `<span style="font-weight:700;color:#86efac;">✓ Correct.</span> <span style="color:#d0d9e7;">${escapeHtml(String(pendingAdvance.feedbackMessage || ''))}</span>`
+        : '';
 
       html += `
         <section class="module-item">
@@ -1936,7 +1959,8 @@ document.addEventListener('DOMContentLoaded', function () {
             <div style="color:#d0d9e7;font-size:calc(0.9rem + 2pt);line-height:1.55;margin-bottom:8px;">${progressCheckQuestion}</div>
             <div style="display:grid;gap:8px;margin-bottom:10px;">${optionMarkup}</div>
             <div style="display:flex;flex-direction:column;align-items:flex-start;gap:8px;">
-              <button type="button" data-progress-check-btn="${index}" style="background:#7c3aed;border:none;color:#fff;border-radius:6px;padding:7px 10px;cursor:pointer;font-size:0.82rem;font-weight:700;">Submit Answer</button>
+              <button type="button" data-progress-check-btn="${index}" ${pendingAdvance ? 'disabled' : ''} style="background:#7c3aed;border:none;color:#fff;border-radius:6px;padding:7px 10px;${pendingAdvance ? 'opacity:0.75;cursor:default;' : 'cursor:pointer;'}font-size:0.82rem;font-weight:700;">${pendingAdvance ? 'Correct!' : 'Submit Answer'}</button>
+              <button type="button" data-progress-continue-btn="${index}" style="display:${pendingAdvance ? 'inline-flex' : 'none'};background:#0f766e;border:1px solid #14b8a6;color:#ecfeff;border-radius:6px;padding:7px 10px;cursor:pointer;font-size:0.82rem;font-weight:700;">Continue to Next Module</button>
               <div data-progress-check-result="${index}" style="font-size:calc(0.82rem + 2pt);color:#9fb0c7;line-height:1.5;word-break:break-word;overflow-wrap:anywhere;width:100%;">${pendingResultMarkup}</div>
             </div>
           </div>

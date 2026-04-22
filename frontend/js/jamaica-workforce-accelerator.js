@@ -327,7 +327,7 @@
         deduped.push(job);
       });
 
-      const filtered = deduped.length ? deduped : normalized.slice(0, limit);
+      const filtered = deduped;
 
       if (market.id === 'jamaica') {
         filtered.sort((a, b) => scoreJamaicaSourcePreference(b) - scoreJamaicaSourcePreference(a));
@@ -462,7 +462,7 @@
     { term: 'hard worker', suggestion: 'Replace "hard worker" with a quantified result that proves it.' },
   ];
 
-  const CURRICULUM_TRACKS = ['ALL', 'CSEC', 'CAPE', 'HEART / NSTA', 'NVQ-J', 'CATALOG'];
+  const CURRICULUM_TRACKS = ['ALL', 'CXC', 'CSEC', 'CAPE', 'HEART / NSTA', 'NVQ-J', 'CATALOG'];
   const CURRICULUM_COURSES = [
     {
       topic: 'CSEC Mathematics',
@@ -743,14 +743,17 @@
 
     const activeBundle = CURRICULUM_BUNDLES.find(bundle => bundle.id === curriculumState.bundle) || CURRICULUM_BUNDLES[0];
     const visible = CURRICULUM_COURSES.filter(course => {
-      const trackMatch = curriculumState.track === 'ALL' || course.track === curriculumState.track;
+      const trackMatch = curriculumState.track === 'ALL'
+        || (curriculumState.track === 'CXC' ? (course.track === 'CSEC' || course.track === 'CAPE') : course.track === curriculumState.track);
       return trackMatch && matchesCurriculumBundle(course, activeBundle) && matchesCurriculumSearch(course, curriculumState.search);
     });
 
     if (summary) {
       const parts = [];
       parts.push(`${visible.length} subject pathway${visible.length === 1 ? '' : 's'} showing`);
-      if (curriculumState.track !== 'ALL') parts.push(`for ${curriculumState.track}`);
+      if (curriculumState.track !== 'ALL') {
+        parts.push(curriculumState.track === 'CXC' ? 'for CXC (CSEC + CAPE)' : `for ${curriculumState.track}`);
+      }
       if (activeBundle.id !== 'all') parts.push(`inside the ${activeBundle.label} bundle`);
       if (curriculumState.search) parts.push(`matching "${curriculumState.search}"`);
       summary.textContent = parts.join(' ');

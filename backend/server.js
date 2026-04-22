@@ -916,6 +916,69 @@ function scoreLocationRelevance(jobLocation = '', queryLocation = '') {
   return 2;
 }
 
+function buildLocationHints(queryLocation = '') {
+  const query = String(queryLocation || '').trim().toLowerCase();
+  if (!query) return [];
+
+  const hintMap = [
+    {
+      match: ['jamaica'],
+      hints: ['jamaica', 'kingston', 'montego bay', 'mobay', 'st. andrew', 'st andrew', 'spanish town', 'ocho rios', 'portmore', 'negril']
+    },
+    {
+      match: ['united kingdom', 'uk', 'britain', 'england'],
+      hints: ['united kingdom', 'uk', 'england', 'scotland', 'wales', 'northern ireland', 'london', 'manchester', 'birmingham', 'glasgow']
+    },
+    {
+      match: ['canada'],
+      hints: ['canada', 'ontario', 'toronto', 'vancouver', 'british columbia', 'alberta', 'calgary', 'montreal', 'quebec']
+    },
+    {
+      match: ['caribbean'],
+      hints: ['caribbean', 'jamaica', 'trinidad', 'barbados', 'bahamas', 'guyana', 'st lucia', 'saint lucia', 'antigua', 'grenada']
+    },
+    {
+      match: ['united states', 'usa', 'us'],
+      hints: ['united states', 'usa', 'u.s.', 'new york', 'texas', 'florida', 'california', 'atlanta', 'miami', 'chicago']
+    },
+    {
+      match: ['european union', 'europe', 'eu'],
+      hints: ['europe', 'european union', 'eu', 'germany', 'france', 'netherlands', 'spain', 'ireland', 'italy', 'poland']
+    }
+  ];
+
+  const matched = hintMap.find((entry) => entry.match.some((token) => query.includes(token)));
+  if (matched) return matched.hints;
+
+  return query.split(/\s+/).filter(Boolean);
+}
+
+function isLocationCompatible(job = {}, queryLocation = '') {
+  const query = String(queryLocation || '').trim().toLowerCase();
+  if (!query) return true;
+  if (query.includes('remote')) {
+    const remoteText = `${String(job?.location || '')} ${String(job?.description || '')}`.toLowerCase();
+    return /remote|worldwide|work from home|distributed/.test(remoteText);
+  }
+
+  const hints = buildLocationHints(query);
+  if (!hints.length) return true;
+
+  const haystack = `${String(job?.location || '')} ${String(job?.description || '')} ${String(job?.source || '')} ${String(job?.company || '')} ${String(job?.link || '')}`.toLowerCase();
+
+  // Disambiguate Jamaica (country) from Jamaica, Queens (New York, USA).
+  if (query.includes('jamaica')) {
+    const hasJamaicaSignal = /\bjamaica\b|kingston|montego\s*bay|st\.?\s*andrew|spanish\s*town|ocho\s*rios|portmore|negril/.test(haystack);
+    if (!hasJamaicaSignal) return false;
+
+    const hasUsJamaicaSignal = /jamaica\s*,\s*queens|queens|new\s*york|\bny\b|united\s*states|\busa\b|nassau\s*county|brooklyn|bronx/.test(haystack);
+    const hasJamaicaIslandSignal = /kingston|montego\s*bay|st\.?\s*andrew|spanish\s*town|ocho\s*rios|portmore|negril/.test(haystack);
+    if (hasUsJamaicaSignal && !hasJamaicaIslandSignal) return false;
+  }
+
+  return hints.some((hint) => haystack.includes(hint));
+}
+
 function scoreFreshness(postedAt) {
   if (!postedAt) return 8;
 
@@ -1367,7 +1430,10 @@ async function searchJobsFast({ title, location, resume }) {
   });
 
   const ranked = rankJobs(dedupeJobs(combined), { title, location });
-  const jobs = ranked.slice(0, 60);
+  const locationMatched = ranked.filter((job) => isLocationCompatible(job, location));
+  const locationQuery = String(location || '').trim().toLowerCase();
+  const allowBroadFallback = !locationQuery || /remote|worldwide|global|anywhere|anywhere in/i.test(locationQuery);
+  const jobs = (locationMatched.length || !allowBroadFallback ? locationMatched : ranked).slice(0, 60);
   const finalJobs = jobs;
 
   jobSearchCache.set(cacheKey, {

@@ -42,7 +42,7 @@
       hostname === '127.0.0.1' ||
       hostname === '[::1]'
     ) {
-      if (!port || port === '5000' || port === '5555') return `${global.location.protocol}//${hostname}${port ? `:${port}` : ''}`;
+      if (!port || port === '5555') return `${global.location.protocol}//${hostname}${port ? `:${port}` : ''}`;
       return `${global.location.protocol}//${hostname}:5555`;
     }
 
