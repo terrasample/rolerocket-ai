@@ -920,6 +920,219 @@
     setStatus('jwaReportStatus', 'Report downloaded successfully.', '#16a34a');
   }
 
+  /* ── 4b. New Functional Tabs ──────────────────────────────────────────── */
+  const SCHOLARSHIP_DATA = [
+    { name: 'Jamaica Student Loan Bureau (SLB)', level: 'undergrad', destination: 'jamaica', focus: ['all'], deadline: 'Rolling by academic term', amount: 'Tuition and approved fees', link: 'https://www.slbja.com/' },
+    { name: 'Jamaica Values and Attitudes Scholarship', level: 'undergrad', destination: 'jamaica', focus: ['business', 'healthcare', 'technology'], deadline: 'Annual (Q2)', amount: 'Partial tuition support', link: 'https://moey.gov.jm/' },
+    { name: 'Chevening Scholarship', level: 'postgrad', destination: 'uk', focus: ['all'], deadline: 'Annual (typically Nov)', amount: 'Full tuition + stipend', link: 'https://www.chevening.org/' },
+    { name: 'Commonwealth Scholarship', level: 'postgrad', destination: 'uk', focus: ['all'], deadline: 'Annual (Q4)', amount: 'Full scholarship package', link: 'https://cscuk.fcdo.gov.uk/' },
+    { name: 'Fulbright Foreign Student Program', level: 'postgrad', destination: 'us', focus: ['all'], deadline: 'Annual (country-specific)', amount: 'Tuition + living support', link: 'https://foreign.fulbrightonline.org/' },
+    { name: 'Vanier Canada Graduate Scholarships', level: 'postgrad', destination: 'canada', focus: ['healthcare', 'technology', 'business'], deadline: 'Annual (Q4)', amount: 'CAD 50,000/year', link: 'https://vanier.gc.ca/' },
+    { name: 'HEART/NSTA Training Support', level: 'tvet', destination: 'jamaica', focus: ['trades', 'technology', 'hospitality', 'healthcare'], deadline: 'By intake cycle', amount: 'Programme-specific support', link: 'https://www.heart-nsta.org/' },
+    { name: 'JBDC Entrepreneur Support Programmes', level: 'tvet', destination: 'jamaica', focus: ['business'], deadline: 'Rolling', amount: 'Grant/loan mix by programme', link: 'https://www.jbdc.net/' },
+  ];
+
+  const APPRENTICESHIP_DATA = [
+    { title: 'HEART Electrical Installation L2', parish: 'kingston', field: 'electrical', intake: 'Jan / May / Sep', duration: '9-12 months', link: 'https://www.heart-nsta.org/' },
+    { title: 'HEART Welding and Fabrication L2', parish: 'st-james', field: 'welding', intake: 'Feb / Jun / Oct', duration: '9-12 months', link: 'https://www.heart-nsta.org/' },
+    { title: 'HEART Software Development (ICT)', parish: 'portmore', field: 'it', intake: 'Quarterly', duration: '6-9 months', link: 'https://www.heart-nsta.org/' },
+    { title: 'Hospitality Operations Apprentice Track', parish: 'st-james', field: 'hospitality', intake: 'Seasonal', duration: '6 months', link: 'https://www.heart-nsta.org/' },
+    { title: 'Practical Nursing Support Track', parish: 'clarendon', field: 'health', intake: 'Quarterly', duration: '9 months', link: 'https://www.heart-nsta.org/' },
+  ];
+
+  const MENTOR_DATA = [
+    { name: 'Shanique Brown', industry: 'technology', market: 'jamaica', title: 'Engineering Manager', org: 'Kingston FinTech Hub' },
+    { name: 'Andre Williams', industry: 'finance', market: 'canada', title: 'Senior Financial Analyst', org: 'Toronto Banking Group' },
+    { name: 'Tameka Reid', industry: 'healthcare', market: 'uk', title: 'NHS Nurse Educator', org: 'Birmingham NHS Trust' },
+    { name: 'David Johnson', industry: 'construction', market: 'jamaica', title: 'Project Controls Lead', org: 'Caribbean BuildCo' },
+    { name: 'Kerry-Ann Smith', industry: 'hospitality', market: 'us', title: 'Hotel Operations Director', org: 'Miami Hospitality Group' },
+  ];
+
+  const INTERVIEW_QUESTION_BANK = {
+    behavioral: [
+      { q: 'Tell me about a time you had to deliver under tight deadlines. What did you do?', a: 'Use STAR: Situation, Task, Action, Result. Focus on planning, prioritisation, and measurable outcome (for example, delivered 2 days early, reduced backlog by 30%).' },
+      { q: 'Describe a conflict within your team and how you handled it.', a: 'Show calm communication: clarify goals, align stakeholders, agree on next actions, and confirm improved collaboration afterward.' },
+      { q: 'Give an example of when you made a mistake at work. What did you learn?', a: 'Own the mistake quickly, explain corrective action, and show process change that prevented recurrence.' },
+    ],
+    technical: [
+      { q: 'How do you structure your approach when starting a new role project?', a: 'Define objective, constraints, stakeholders, deliverables, timeline, risks, then set weekly checkpoints and communication cadence.' },
+      { q: 'What metrics would you track in your first 90 days?', a: 'Track output (deliverables), quality (error/rework rate), and impact (cost, time, customer outcomes), then report trend and next actions.' },
+      { q: 'How do you prioritise multiple urgent tasks?', a: 'Use impact vs urgency matrix, align with manager expectations, communicate tradeoffs early, and timebox execution blocks.' },
+    ],
+    case: [
+      { q: 'A key project is behind by 3 weeks and stakeholders are frustrated. What do you do first?', a: 'Stabilise scope, identify blockers by owner, publish recovery plan with dates, and set transparent weekly status updates.' },
+      { q: 'Budget was cut by 20% mid-project. How do you respond?', a: 'Re-baseline scope with MVP mindset, protect highest-value outcomes, and communicate revised plan and risks immediately.' },
+      { q: 'A top performer is disengaged and output is falling. What is your approach?', a: 'Have a private diagnostic conversation, identify root cause, reset expectations, offer support, and track short-cycle improvement goals.' },
+    ],
+  };
+
+  function renderScholarshipFinder() {
+    const level = String(document.getElementById('jwaScholarLevel')?.value || 'all');
+    const destination = String(document.getElementById('jwaScholarDestination')?.value || 'all');
+    const keyword = String(document.getElementById('jwaScholarKeyword')?.value || '').trim().toLowerCase();
+    const resultsEl = document.getElementById('jwaScholarResults');
+    if (!resultsEl) return;
+
+    const filtered = SCHOLARSHIP_DATA.filter((item) => {
+      const levelOk = level === 'all' || item.level === level;
+      const destOk = destination === 'all' || item.destination === destination;
+      const keywordOk = !keyword || [item.name, item.amount, item.deadline, item.focus.join(' ')].join(' ').toLowerCase().includes(keyword);
+      return levelOk && destOk && keywordOk;
+    });
+
+    if (!filtered.length) {
+      resultsEl.innerHTML = '<p class="jwa-empty">No matches found. Try broader filters.</p>';
+      setStatus('jwaScholarStatus', '0 funding options found for current filters.', '#f59e0b');
+      return;
+    }
+
+    resultsEl.innerHTML = `
+      <div class="jwa-role-grid">
+        ${filtered.map((item) => `
+          <a class="jwa-role-card" href="${esc(item.link)}" target="_blank" rel="noopener noreferrer" style="display:block;text-decoration:none;">
+            <strong>${esc(item.name)}</strong>
+            <span class="jwa-salary">${esc(item.amount)}</span>
+            <span class="jwa-demand-badge" style="background:#1d4ed8;">Deadline: ${esc(item.deadline)}</span>
+            <span class="jwa-remote-tag">${esc(item.level.toUpperCase())} • ${esc(item.destination.toUpperCase())}</span>
+          </a>
+        `).join('')}
+      </div>
+    `;
+    setStatus('jwaScholarStatus', `${filtered.length} live funding option${filtered.length === 1 ? '' : 's'} matched.`, '#16a34a');
+  }
+
+  function generateScholarChecklist() {
+    const level = String(document.getElementById('jwaScholarLevel')?.value || 'all');
+    const status = document.getElementById('jwaScholarStatus');
+    const baseItems = [
+      'Academic transcripts (certified copies)',
+      'Two references (academic or professional)',
+      'Personal statement tailored to programme goals',
+      'Updated CV with achievements and leadership',
+      'Valid passport and ID documents',
+      'Application deadline tracker with reminders',
+    ];
+    if (level === 'postgrad') baseItems.push('Research proposal / study plan draft');
+    if (level === 'tvet') baseItems.push('Skills portfolio and practical evidence (photos/projects)');
+    if (status) {
+      status.innerHTML = `<span style="color:#7dd3fc;"><strong>Application Checklist</strong><br>${baseItems.map((x) => `• ${esc(x)}`).join('<br>')}</span>`;
+    }
+  }
+
+  function generateInterviewPrep() {
+    const role = String(document.getElementById('jwaInterviewRole')?.value || '').trim() || 'Project Manager';
+    const market = String(document.getElementById('jwaInterviewMarket')?.value || 'jamaica').toUpperCase();
+    const type = String(document.getElementById('jwaInterviewType')?.value || 'behavioral');
+    const target = document.getElementById('jwaInterviewResults');
+    if (!target) return;
+
+    const pool = INTERVIEW_QUESTION_BANK[type] || INTERVIEW_QUESTION_BANK.behavioral;
+    target.innerHTML = pool.map((item, idx) => `
+      <details class="jwa-collapsible" ${idx === 0 ? 'open' : ''}>
+        <summary>${esc(role)} Interview Q${idx + 1} (${esc(market)})</summary>
+        <div class="jwa-collapsible-body">
+          <p style="margin:0 0 10px;color:#e2e8f0;"><strong>Question:</strong> ${esc(item.q)}</p>
+          <p style="margin:0;color:#a7f3d0;"><strong>High-scoring sample answer approach:</strong> ${esc(item.a)}</p>
+        </div>
+      </details>
+    `).join('');
+  }
+
+  function renderApprenticeships() {
+    const parish = String(document.getElementById('jwaApprenticeParish')?.value || 'all');
+    const field = String(document.getElementById('jwaApprenticeField')?.value || 'all');
+    const target = document.getElementById('jwaApprenticeResults');
+    if (!target) return;
+
+    const filtered = APPRENTICESHIP_DATA.filter((item) => (parish === 'all' || item.parish === parish) && (field === 'all' || item.field === field));
+    target.innerHTML = filtered.length ? `
+      <div class="jwa-role-grid">
+        ${filtered.map((item) => `
+          <a class="jwa-role-card" href="${esc(item.link)}" target="_blank" rel="noopener noreferrer" style="display:block;text-decoration:none;">
+            <strong>${esc(item.title)}</strong>
+            <span class="jwa-salary">Duration: ${esc(item.duration)}</span>
+            <span class="jwa-demand-badge" style="background:#0f766e;">Intake: ${esc(item.intake)}</span>
+            <span class="jwa-remote-tag">Apply via HEART/NSTA portal</span>
+          </a>
+        `).join('')}
+      </div>
+    ` : '<p class="jwa-empty">No matching apprenticeship programmes found.</p>';
+  }
+
+  function analyzeContractTerms() {
+    const text = String(document.getElementById('jwaContractText')?.value || '').toLowerCase();
+    const target = document.getElementById('jwaContractResults');
+    if (!target) return;
+    if (!text.trim()) {
+      target.innerHTML = '<p class="jwa-empty">Paste contract terms first.</p>';
+      return;
+    }
+
+    const risks = [];
+    if (!text.includes('overtime')) risks.push('No overtime policy stated. Ask for rates and approval rules.');
+    if (!text.includes('probation')) risks.push('Probation terms missing. Confirm probation length and exit terms.');
+    if (!text.includes('notice')) risks.push('Notice period missing. Request written notice conditions.');
+    if (!text.includes('benefit')) risks.push('Benefits not clearly listed. Ask about health, leave, pension, and allowances.');
+    if (text.includes('at will') || text.includes('terminate immediately')) risks.push('Termination wording is high-risk. Ask for fair termination and appeal language.');
+
+    target.innerHTML = risks.length ? `
+      <div class="jwa-check-results">
+        ${risks.map((r) => `<div class="jwa-check-item jwa-check-warn"><span class="jwa-check-icon">⚠</span><span>${esc(r)}</span></div>`).join('')}
+        <div class="jwa-check-item jwa-check-improve"><span class="jwa-check-icon">💡</span><span>Negotiation prompt: "I can commit quickly once overtime, notice, and benefits are documented in writing."</span></div>
+      </div>
+    ` : '<p style="color:#86efac;">No major contract red flags detected from the pasted text.</p>';
+  }
+
+  function generateBusinessPlan() {
+    const skill = String(document.getElementById('jwaBizSkill')?.value || '').trim() || 'Freelance Service';
+    const budget = Number(document.getElementById('jwaBizBudget')?.value || 0);
+    const goal = Number(document.getElementById('jwaBizGoal')?.value || 0);
+    const target = document.getElementById('jwaBizPlanResults');
+    if (!target) return;
+
+    const monthlyTarget = goal > 0 ? Math.ceil(goal / 3) : 0;
+    const starterPrice = monthlyTarget > 0 ? Math.max(5000, Math.ceil(monthlyTarget / 6 / 500) * 500) : 7500;
+    target.innerHTML = `
+      <details class="jwa-collapsible" open>
+        <summary>90-Day Launch Plan: ${esc(skill)}</summary>
+        <div class="jwa-collapsible-body">
+          <p style="margin:0 0 8px;color:#cbd5e1;"><strong>Budget:</strong> JMD ${Number.isFinite(budget) ? budget.toLocaleString() : '0'} | <strong>Target:</strong> JMD ${Number.isFinite(goal) ? goal.toLocaleString() : '0'}</p>
+          <ul style="margin:0;padding-left:18px;line-height:1.7;color:#cbd5e1;">
+            <li><strong>Days 1-30:</strong> Build portfolio sample + outreach list of 30 prospects.</li>
+            <li><strong>Days 31-60:</strong> Close first 2 paying clients and request testimonials.</li>
+            <li><strong>Days 61-90:</strong> Standardise delivery and increase to 4-6 active clients.</li>
+            <li><strong>Suggested starting package price:</strong> JMD ${starterPrice.toLocaleString()} per client/month.</li>
+            <li><strong>Monthly target run-rate:</strong> JMD ${monthlyTarget.toLocaleString()}.</li>
+          </ul>
+        </div>
+      </details>
+    `;
+  }
+
+  function findMentorMatches() {
+    const industry = String(document.getElementById('jwaMentorIndustry')?.value || 'technology');
+    const market = String(document.getElementById('jwaMentorMarket')?.value || 'jamaica');
+    const target = document.getElementById('jwaMentorResults');
+    if (!target) return;
+
+    const matches = MENTOR_DATA.filter((m) => m.industry === industry && m.market === market);
+    if (!matches.length) {
+      target.innerHTML = '<p class="jwa-empty">No exact mentor match right now. Try another market or industry.</p>';
+      return;
+    }
+
+    target.innerHTML = matches.map((m) => `
+      <div class="jwa-diaspora-card" style="margin-bottom:10px;">
+        <div class="jwa-diaspora-header">
+          <strong class="jwa-diaspora-city">${esc(m.name)}</strong>
+          <span class="jwa-diaspora-country">${esc(m.market.toUpperCase())}</span>
+        </div>
+        <div style="color:#cbd5e1;line-height:1.6;">${esc(m.title)} • ${esc(m.org)}</div>
+        <div style="margin-top:8px;color:#93c5fd;font-size:.86rem;">First meeting agenda: 1) Career direction 2) Skill gaps 3) 30-day actions 4) Referral opportunities.</div>
+      </div>
+    `).join('');
+  }
+
   /* ── Tab switching ──────────────────────────────────────────────────────── */
   function activateTab(tabId) {
     document.querySelectorAll('.jwa-tab-btn').forEach(btn => {
@@ -2358,6 +2571,14 @@
     document.getElementById('jwaDiasporaMatchBtn')?.addEventListener('click', submitDiasporaMatch);
     document.getElementById('jwaCheckResumeBtn')?.addEventListener('click', checkResumeLocalization);
     document.getElementById('jwaDownloadReportBtn')?.addEventListener('click', downloadSkillsGapReport);
+
+    document.getElementById('jwaFindScholarshipsBtn')?.addEventListener('click', renderScholarshipFinder);
+    document.getElementById('jwaScholarChecklistBtn')?.addEventListener('click', generateScholarChecklist);
+    document.getElementById('jwaGenerateInterviewBtn')?.addEventListener('click', generateInterviewPrep);
+    document.getElementById('jwaFindApprenticeshipsBtn')?.addEventListener('click', renderApprenticeships);
+    document.getElementById('jwaAnalyzeContractBtn')?.addEventListener('click', analyzeContractTerms);
+    document.getElementById('jwaGenerateBizPlanBtn')?.addEventListener('click', generateBusinessPlan);
+    document.getElementById('jwaFindMentorBtn')?.addEventListener('click', findMentorMatches);
 
     document.querySelectorAll('.jwa-tab-btn').forEach(btn => {
       btn.addEventListener('click', () => activateTab(btn.dataset.tab));
