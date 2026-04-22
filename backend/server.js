@@ -1,4 +1,5 @@
 const path = require('path');
+const net = require('net');
 require('dotenv').config({
   path: path.join(__dirname, '.env'),
   override: process.env.NODE_ENV !== 'production'
@@ -6469,16 +6470,60 @@ app.get('/{*path}', (req, res) => {
 
 
 if (process.env.NODE_ENV !== 'test') {
-  app.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
-    startJobAlertScheduler();
-    setTimeout(() => {
-      prewarmJobSearches().catch((err) => {
-        console.warn('Job prewarm failed:', err.message);
-      });
-    }, 500);
-    console.log('DEBUG: app.listen callback completed');
+  const preferredPort = Number(PORT) || 5000;
+  const maxPortAttempts = 10;
+
+  const canBindPort = (candidatePort) => new Promise((resolve) => {
+    const tester = net.createServer();
+    tester.once('error', (error) => {
+      if (error && error.code === 'EADDRINUSE') {
+        resolve(false);
+        return;
+      }
+      resolve(false);
+    });
+    tester.once('listening', () => {
+      tester.close(() => resolve(true));
+    });
+    tester.listen(candidatePort);
   });
+
+  const findAvailablePort = async (startPort, maxAttempts) => {
+    for (let offset = 0; offset < maxAttempts; offset += 1) {
+      const candidatePort = startPort + offset;
+      // Try preferred port first, then move upward until one is available.
+      const available = await canBindPort(candidatePort);
+      if (available) return candidatePort;
+      if (offset === 0) {
+        console.warn(`Port ${startPort} is already in use. Searching for the next available port...`);
+      }
+    }
+    return null;
+  };
+
+  (async () => {
+    const selectedPort = await findAvailablePort(preferredPort, maxPortAttempts);
+    if (!selectedPort) {
+      console.error(`Failed to start server: no open port found in range ${preferredPort}-${preferredPort + maxPortAttempts - 1}.`);
+      process.exit(1);
+      return;
+    }
+
+    app.listen(selectedPort, () => {
+      process.env.PORT = String(selectedPort);
+      console.log(`🚀 Server running on port ${selectedPort}`);
+      if (selectedPort !== preferredPort) {
+        console.warn(`⚠️ Preferred port ${preferredPort} was unavailable. Using ${selectedPort} instead.`);
+      }
+      startJobAlertScheduler();
+      setTimeout(() => {
+        prewarmJobSearches().catch((err) => {
+          console.warn('Job prewarm failed:', err.message);
+        });
+      }, 500);
+      console.log('DEBUG: app.listen callback completed');
+    });
+  })();
 }
 
 console.log('DEBUG: server bootstrap complete');
