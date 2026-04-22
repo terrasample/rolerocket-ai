@@ -98,12 +98,12 @@
           <h3 class="jwa-industry-title" style="color:${data.color};">${esc(industry)}</h3>
           <div class="jwa-role-grid">
             ${data.roles.map(r => `
-              <article class="jwa-role-card">
+              <a class="jwa-role-card" href="job-search.html?q=${encodeURIComponent(r.title)}&industry=${encodeURIComponent(industry)}" style="display:block;text-decoration:none;cursor:pointer;">
                 <strong>${esc(r.title)}</strong>
                 <span class="jwa-salary">${esc(r.range)}</span>
                 <span class="jwa-demand-badge" style="background:${DEMAND_COLOR[r.demand] || '#64748b'};">${esc(r.demand)} Demand</span>
                 ${r.remote ? '<span class="jwa-remote-tag">Remote Eligible</span>' : ''}
-              </article>
+              </a>
             `).join('')}
           </div>
         </section>
@@ -186,6 +186,182 @@
     { term: 'hard worker', suggestion: 'Replace "hard worker" with a quantified result that proves it.' },
   ];
 
+  const CURRICULUM_TRACKS = ['ALL', 'CSEC', 'CAPE', 'HEART / NSTA', 'NVQ-J', 'CATALOG'];
+  const CURRICULUM_COURSES = [
+    {
+      topic: 'CSEC Mathematics',
+      title: 'CSEC Mathematics',
+      track: 'CSEC',
+      focus: 'STEM Foundation',
+      careers: ['software', 'engineering', 'finance', 'healthcare', 'trades'],
+      description: 'Core quantitative foundation for engineering, technology, finance, logistics, and healthcare pathways.',
+      outcomes: ['Build problem-solving and numeracy confidence.', 'Strengthen entry readiness for CAPE and university programmes.', 'Improve performance in data-heavy career tracks.']
+    },
+    {
+      topic: 'CSEC English A',
+      title: 'CSEC English A',
+      track: 'CSEC',
+      focus: 'Communication',
+      careers: ['all', 'law', 'business', 'media', 'healthcare'],
+      description: 'Essential for scholarships, resumes, interviews, tertiary study, and any role requiring strong written communication.',
+      outcomes: ['Improve writing clarity and comprehension.', 'Prepare for personal statements and scholarship essays.', 'Build the communication base employers expect.']
+    },
+    {
+      topic: 'CSEC Information Technology',
+      title: 'CSEC Information Technology',
+      track: 'CSEC',
+      focus: 'Digital Skills',
+      careers: ['software', 'business', 'media'],
+      description: 'Best entry path for students moving into coding, office productivity, digital operations, and remote work.',
+      outcomes: ['Understand digital tools, systems, and workflows.', 'Prepare for software, BPO, and admin-tech jobs.', 'Create a foundation for deeper technical learning.']
+    },
+    {
+      topic: 'CSEC Principles of Accounts',
+      title: 'CSEC Principles of Accounts',
+      track: 'CSEC',
+      focus: 'Business Foundation',
+      careers: ['business', 'finance'],
+      description: 'Strong early subject for students interested in finance, bookkeeping, entrepreneurship, and business operations.',
+      outcomes: ['Understand basic financial records and reporting.', 'Prepare for CAPE Accounting and business study.', 'Develop business language that employers value.']
+    },
+    {
+      topic: 'CAPE Biology',
+      title: 'CAPE Biology',
+      track: 'CAPE',
+      focus: 'Healthcare',
+      careers: ['healthcare'],
+      description: 'Critical for nursing, medicine, public health, lab science, and many overseas health scholarship pathways.',
+      outcomes: ['Deepen life-science understanding for health careers.', 'Support entry into clinical and science degrees.', 'Prepare for nursing and bioscience interviews.']
+    },
+    {
+      topic: 'CAPE Chemistry',
+      title: 'CAPE Chemistry',
+      track: 'CAPE',
+      focus: 'Science Progression',
+      careers: ['healthcare', 'engineering'],
+      description: 'Valuable for medicine, pharmacy, engineering, lab science, and any path that needs strong science progression.',
+      outcomes: ['Strengthen scientific reasoning and lab readiness.', 'Support entry into health and technical degrees.', 'Improve competitiveness for science scholarships.']
+    },
+    {
+      topic: 'CAPE Accounting',
+      title: 'CAPE Accounting',
+      track: 'CAPE',
+      focus: 'Finance Path',
+      careers: ['finance', 'business'],
+      description: 'Strong route into ACCA, banking, audit, financial analysis, and business operations roles in Jamaica and abroad.',
+      outcomes: ['Understand financial statements and reporting logic.', 'Prepare for tertiary finance and accounting study.', 'Build a direct bridge into regulated finance careers.']
+    },
+    {
+      topic: 'Communication Studies',
+      title: 'Communication Studies',
+      track: 'CAPE',
+      focus: 'Leadership',
+      careers: ['media', 'law', 'business', 'all'],
+      description: 'Useful across law, management, public service, customer success, media, and any leadership-oriented profession.',
+      outcomes: ['Sharpen speaking, presenting, and analysis.', 'Improve interview and stakeholder communication.', 'Support scholarships, debate, and leadership tracks.']
+    },
+    {
+      topic: 'CAPE Economics',
+      title: 'CAPE Economics',
+      track: 'CAPE',
+      focus: 'Policy and Business',
+      careers: ['business', 'finance', 'law'],
+      description: 'Excellent subject for students interested in business strategy, policy, banking, development, and economic reasoning.',
+      outcomes: ['Understand markets, incentives, and policy effects.', 'Prepare for economics, finance, and public policy degrees.', 'Develop stronger analytical writing for decision-making careers.']
+    },
+    {
+      topic: 'HEART Customer Service',
+      title: 'HEART Customer Service',
+      track: 'HEART / NSTA',
+      focus: 'Employability',
+      careers: ['business', 'media', 'all'],
+      description: 'Practical employability course for BPO, hospitality, retail, front office, and support roles with fast labour-market entry.',
+      outcomes: ['Learn service standards and workplace communication.', 'Prepare for interview-ready entry-level jobs.', 'Build immediate employment signals for recruiters.']
+    },
+    {
+      topic: 'HEART Practical Nursing Support',
+      title: 'HEART Practical Nursing Support',
+      track: 'HEART / NSTA',
+      focus: 'Health Support',
+      careers: ['healthcare'],
+      description: 'Early vocational route for students interested in patient care, clinical support, and healthcare service pathways.',
+      outcomes: ['Understand basic patient support expectations.', 'Build employability for health-support roles.', 'Create momentum toward further nursing qualifications.']
+    },
+    {
+      topic: 'NVQ-J Electrical Installation',
+      title: 'NVQ-J Electrical Installation',
+      track: 'NVQ-J',
+      focus: 'Skilled Trades',
+      careers: ['trades', 'engineering'],
+      description: 'Strong vocational pathway into construction, facilities, energy, maintenance, and migration-ready technical work.',
+      outcomes: ['Understand trade certification progression.', 'Prepare for technical employment and apprenticeships.', 'Connect practical skills to income-generating careers.']
+    },
+    {
+      topic: 'NVQ-J Welding and Fabrication',
+      title: 'NVQ-J Welding and Fabrication',
+      track: 'NVQ-J',
+      focus: 'Industrial Skills',
+      careers: ['trades', 'engineering'],
+      description: 'Hands-on technical route into manufacturing, maintenance, construction, and industrial career tracks.',
+      outcomes: ['Build practical fabrication and workshop awareness.', 'Open apprenticeship and industrial work routes.', 'Create a pathway into migration-ready trade skills.']
+    },
+    {
+      topic: 'Browse Full Catalog',
+      title: 'Browse the Full Learning Catalog',
+      track: 'CATALOG',
+      focus: 'Explore More',
+      careers: ['all'],
+      description: 'Open the main learning catalog to explore additional in-demand courses beyond school subjects, including AI, business, and digital skills.',
+      outcomes: ['Search the hottest courses in the app.', 'Filter by demand level.', 'Launch any course into the dedicated learning page.'],
+      href: 'learning.html'
+    }
+  ];
+
+  const CURRICULUM_BUNDLES = [
+    {
+      id: 'all',
+      label: 'All Paths',
+      note: 'Start here if you are still exploring. This shows the full subject set so you can compare options before narrowing down.',
+      careers: []
+    },
+    {
+      id: 'healthcare',
+      label: 'Nursing / Health',
+      note: 'If you want nursing, medicine, lab science, or public health, prioritise Math, English, Biology, Chemistry, and practical health-support training.',
+      careers: ['healthcare']
+    },
+    {
+      id: 'software',
+      label: 'Software / Tech',
+      note: 'If you want software, cybersecurity, or IT, build around Math, IT, strong English, and then deepen into digital and technical learning.',
+      careers: ['software']
+    },
+    {
+      id: 'business',
+      label: 'Business / Finance',
+      note: 'If you want accounting, banking, entrepreneurship, management, or office leadership, focus on Math, English, Accounts, Economics, and communication.',
+      careers: ['business', 'finance']
+    },
+    {
+      id: 'media',
+      label: 'Media / Communication',
+      note: 'If you want marketing, content, media, PR, or leadership-heavy careers, your base should be English, Communication Studies, IT, and customer-facing skill building.',
+      careers: ['media']
+    },
+    {
+      id: 'trades',
+      label: 'Trades / Technical',
+      note: 'If you want a hands-on technical route, focus on Math plus practical HEART/NVQ-J pathways that can lead directly to income and apprenticeships.',
+      careers: ['trades', 'engineering']
+    }
+  ];
+
+  const curriculumState = {
+    track: 'ALL',
+    bundle: 'all',
+    search: ''
+  };
+
   function checkResumeLocalization() {
     const text = String(document.getElementById('jwaResumeText')?.value || '').trim();
     if (!text) { setStatus('jwaResumeStatus', 'Please paste your resume text first.', '#dc2626'); return; }
@@ -236,6 +412,113 @@
 
     const score = Math.min(100, Math.max(30, 40 + (foundCreds.length * 15) + (foundSignals.length * 5) - (GLOBAL_RESUME_TERMS.filter(i => lower.includes(i.term.toLowerCase())).length * 8)));
     setStatus('jwaResumeStatus', `Localization Score: <strong>${score}/100</strong>. ${score >= 75 ? 'Strong localization.' : score >= 50 ? 'Good base — apply suggestions above.' : 'Resume needs Jamaica-market alignment.'}`, score >= 75 ? '#16a34a' : score >= 50 ? '#ca8a04' : '#dc2626');
+  }
+
+  function matchesCurriculumBundle(course, bundle) {
+    if (!bundle || bundle.id === 'all') return true;
+    return course.careers.includes('all') || bundle.careers.some(career => course.careers.includes(career));
+  }
+
+  function matchesCurriculumSearch(course, searchTerm) {
+    const q = String(searchTerm || '').trim().toLowerCase();
+    if (!q) return true;
+    const haystack = [course.title, course.track, course.focus, course.description].concat(course.outcomes || []).join(' ').toLowerCase();
+    return haystack.includes(q);
+  }
+
+  function curriculumHref(course) {
+    if (course.href) return course.href;
+    return `course-learning.html?topic=${encodeURIComponent(course.topic)}`;
+  }
+
+  function renderCurriculumTrackFilters() {
+    const wrap = document.getElementById('jwaCourseTrackFilters');
+    if (!wrap) return;
+    wrap.innerHTML = CURRICULUM_TRACKS.map(track => `
+      <button type="button" class="jwa-learning-filter-btn${curriculumState.track === track ? ' active' : ''}" data-track="${esc(track)}">${esc(track === 'ALL' ? 'All Levels' : track)}</button>
+    `).join('');
+  }
+
+  function renderCurriculumBundleFilters() {
+    const wrap = document.getElementById('jwaCourseBundleFilters');
+    if (!wrap) return;
+    wrap.innerHTML = CURRICULUM_BUNDLES.map(bundle => `
+      <button type="button" class="jwa-learning-bundle-btn${curriculumState.bundle === bundle.id ? ' active' : ''}" data-bundle="${esc(bundle.id)}">${esc(bundle.label)}</button>
+    `).join('');
+
+    const note = document.getElementById('jwaCourseBundleNote');
+    const activeBundle = CURRICULUM_BUNDLES.find(bundle => bundle.id === curriculumState.bundle) || CURRICULUM_BUNDLES[0];
+    if (note) note.textContent = activeBundle.note;
+  }
+
+  function renderCurriculumCourses() {
+    const grid = document.getElementById('jwaCourseLearningGrid');
+    const summary = document.getElementById('jwaCourseLearningSummary');
+    if (!grid) return;
+
+    const activeBundle = CURRICULUM_BUNDLES.find(bundle => bundle.id === curriculumState.bundle) || CURRICULUM_BUNDLES[0];
+    const visible = CURRICULUM_COURSES.filter(course => {
+      const trackMatch = curriculumState.track === 'ALL' || course.track === curriculumState.track;
+      return trackMatch && matchesCurriculumBundle(course, activeBundle) && matchesCurriculumSearch(course, curriculumState.search);
+    });
+
+    if (summary) {
+      const parts = [];
+      parts.push(`${visible.length} subject pathway${visible.length === 1 ? '' : 's'} showing`);
+      if (curriculumState.track !== 'ALL') parts.push(`for ${curriculumState.track}`);
+      if (activeBundle.id !== 'all') parts.push(`inside the ${activeBundle.label} bundle`);
+      if (curriculumState.search) parts.push(`matching "${curriculumState.search}"`);
+      summary.textContent = parts.join(' ');
+    }
+
+    grid.innerHTML = visible.length ? visible.map(course => `
+      <a class="jwa-learning-card" href="${curriculumHref(course)}">
+        <div class="jwa-learning-meta">
+          <span class="jwa-learning-pill">${esc(course.track)}</span>
+          <span class="jwa-learning-pill">${esc(course.focus)}</span>
+        </div>
+        <h4>${esc(course.title)}</h4>
+        <p>${esc(course.description)}</p>
+        <ul class="jwa-learning-outcomes">
+          ${(course.outcomes || []).map(outcome => `<li>${esc(outcome)}</li>`).join('')}
+        </ul>
+        <span class="jwa-learning-link">${course.track === 'CATALOG' ? 'Browse all courses →' : 'Open course →'}</span>
+      </a>
+    `).join('') : '<div class="jwa-empty">No subject pathways match that filter yet. Try another bundle or search term.</div>';
+  }
+
+  function renderCurriculumLearning() {
+    renderCurriculumTrackFilters();
+    renderCurriculumBundleFilters();
+    renderCurriculumCourses();
+  }
+
+  function initCurriculumLearning() {
+    const trackWrap = document.getElementById('jwaCourseTrackFilters');
+    const bundleWrap = document.getElementById('jwaCourseBundleFilters');
+    const searchInput = document.getElementById('jwaCourseSearchInput');
+    if (!trackWrap || !bundleWrap || !searchInput) return;
+
+    trackWrap.addEventListener('click', function (event) {
+      const btn = event.target.closest('[data-track]');
+      if (!btn) return;
+      curriculumState.track = String(btn.getAttribute('data-track') || 'ALL');
+      renderCurriculumLearning();
+    });
+
+    bundleWrap.addEventListener('click', function (event) {
+      const btn = event.target.closest('[data-bundle]');
+      if (!btn) return;
+      curriculumState.bundle = String(btn.getAttribute('data-bundle') || 'all');
+      renderCurriculumLearning();
+    });
+
+    searchInput.addEventListener('input', function () {
+      curriculumState.search = String(this.value || '').trim();
+      renderCurriculumLearning();
+    });
+
+    renderCurriculumLearning();
   }
 
   /* ── 4. Skills Gap Report ───────────────────────────────────────────────── */
@@ -1522,6 +1805,7 @@
     renderMarketRadar();
     renderDiasporaPipeline();
     renderSkillsGapChart();
+    initCurriculumLearning();
     renderCareerInit();
 
     document.getElementById('jwaIndustryFilter')?.addEventListener('change', renderMarketRadar);

@@ -335,6 +335,132 @@
     }
     .sa-checklist li strong { color: #e2e8f0; display: block; margin-bottom: 2px; }
 
+    .jwa-learning-hero {
+      background: linear-gradient(135deg, #0f172a 0%, #17304f 58%, #14532d 100%);
+      border-radius: 16px;
+      padding: 28px 24px;
+      border: 1px solid rgba(125, 211, 252, .2);
+      margin-bottom: 22px;
+    }
+    .jwa-learning-hero h3 { color: #f8fafc; margin: 0 0 8px; font-size: 1.35rem; }
+    .jwa-learning-hero p { color: #cbd5e1; margin: 0; line-height: 1.65; font-size: .92rem; max-width: 860px; }
+    .jwa-learning-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 18px;
+      margin-top: 18px;
+    }
+    .jwa-learning-card {
+      background: #1e293b;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.07);
+      padding: 20px 22px;
+      text-decoration: none;
+      display: block;
+      transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease;
+    }
+    .jwa-learning-card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(96,165,250,.55);
+      box-shadow: 0 10px 24px rgba(2, 6, 23, .24);
+    }
+    .jwa-learning-card h4 { margin: 0 0 8px; color: #f8fafc; font-size: 1.05rem; line-height: 1.35; }
+    .jwa-learning-card p { margin: 0 0 12px; color: #94a3b8; font-size: .87rem; line-height: 1.6; }
+    .jwa-learning-meta { display:flex; gap:8px; flex-wrap:wrap; margin-bottom: 10px; }
+    .jwa-learning-pill {
+      display:inline-flex; align-items:center; gap:6px;
+      padding: 5px 10px; border-radius: 999px; font-size: .74rem; font-weight: 700;
+      background: rgba(37,99,235,.12); color: #93c5fd; border: 1px solid rgba(37,99,235,.24);
+    }
+    .jwa-learning-outcomes { margin: 0; padding-left: 18px; }
+    .jwa-learning-outcomes li { color: #cbd5e1; font-size: .84rem; line-height: 1.55; margin-bottom: 5px; }
+    .jwa-learning-link {
+      margin-top: 14px; display: inline-flex; align-items: center; gap: 8px;
+      color: #fdb714; font-weight: 700; font-size: .84rem;
+    }
+    .jwa-learning-intro {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+    .jwa-learning-intro-card {
+      background: #1e293b;
+      border: 1px solid rgba(255,255,255,.07);
+      border-radius: 14px;
+      padding: 16px 18px;
+    }
+    .jwa-learning-intro-card h4 {
+      margin: 0 0 8px;
+      color: #f8fafc;
+      font-size: .96rem;
+    }
+    .jwa-learning-intro-card p {
+      margin: 0;
+      color: #94a3b8;
+      font-size: .86rem;
+      line-height: 1.6;
+    }
+    .jwa-learning-toolbar {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .jwa-learning-filter-group,
+    .jwa-learning-bundle-group {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .jwa-learning-filter-btn,
+    .jwa-learning-bundle-btn {
+      background: transparent;
+      border: 1px solid #334155;
+      color: #cbd5e1;
+      font-weight: 700;
+      border-radius: 999px;
+      padding: 9px 13px;
+      cursor: pointer;
+      font-size: .82rem;
+    }
+    .jwa-learning-filter-btn.active,
+    .jwa-learning-bundle-btn.active {
+      background: #2563eb;
+      border-color: #3b82f6;
+      color: #fff;
+    }
+    .jwa-learning-search {
+      flex: 1 1 280px;
+      min-width: 240px;
+      background: #132039;
+      border: 1px solid #2b3a56;
+      border-radius: 10px;
+      padding: 11px 14px;
+      color: #f8fafc;
+      font-size: .9rem;
+    }
+    .jwa-learning-search::placeholder { color: #7c8ba1; }
+    .jwa-learning-bundle-note {
+      background: rgba(37,99,235,.1);
+      border: 1px solid rgba(37,99,235,.24);
+      border-radius: 12px;
+      padding: 14px 16px;
+      color: #bfdbfe;
+      font-size: .87rem;
+      line-height: 1.6;
+      margin-bottom: 12px;
+    }
+    .jwa-learning-summary {
+      color: #93c5fd;
+      font-size: .86rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
     /* ── General utils ─────────────────────────────────────────────────── */
     .jwa-section-label {
       color: #94a3b8; font-size: .8rem; text-transform: uppercase;
@@ -359,6 +485,7 @@
         <a class="sidebar-link-btn" href="pricing.html">Pricing</a>
         <a class="sidebar-link-btn" href="contact-us.html">Contact Us</a>
         <a class="sidebar-link-btn active" href="jamaica-workforce-accelerator.html">🇯🇲 Jamaica Accelerator</a>
+        <a class="sidebar-link-btn" href="employer-portal.html">🏢 Post a Job</a>
         <hr />
         <p id="planBadge">Free Plan</p>
         <a class="sidebar-link-btn" href="account.html">👤 Account</a>
@@ -390,11 +517,13 @@
           <button class="jwa-tab-btn" role="tab" data-tab="jwaTabDiaspora" aria-selected="false">🌍 Diaspora Pipeline</button>
           <button class="jwa-tab-btn" role="tab" data-tab="jwaTabResume" aria-selected="false">📄 Resume Localization</button>
           <button class="jwa-tab-btn" role="tab" data-tab="jwaTabGap" aria-selected="false">📊 Skills Gap Report</button>
+          <button class="jwa-tab-btn" role="tab" data-tab="jwaTabCourses" aria-selected="false">🎓 CSEC / CAPE Learning</button>
           <button class="jwa-tab-btn" role="tab" data-tab="jwaTabAthlete" aria-selected="false">🚀 Career Pathway Builder</button>
         </div>
 
         <!-- Tab 1: Jamaica Job Market Radar -->
         <div id="jwaTabMarket" class="jwa-tab-panel" role="tabpanel">
+          <p style="color:#94a3b8;font-size:.9rem;line-height:1.6;margin:0 0 14px;">These cards show representative high-demand roles and salary ranges, not guaranteed live postings. Click any card to open matching live job results.</p>
           <div class="jwa-filter-row">
             <label for="jwaIndustryFilter">Filter by industry:</label>
             <select id="jwaIndustryFilter">
@@ -481,9 +610,45 @@
           </div>
         </div>
 
+        <!-- Tab 5: CSEC / CAPE / HEART Learning -->
+        <div id="jwaTabCourses" class="jwa-tab-panel" role="tabpanel" hidden>
+          <div class="jwa-learning-hero">
+            <h3>Jamaican Curriculum Learning Hub</h3>
+            <p>If you are a student, this section is here to help you answer one simple question: “What subjects should I focus on right now if I already have an idea of the life and career I want?” Use the filters, search, and career bundles below to choose the subjects that move you closer to your goal, then open a course and start learning immediately.</p>
+          </div>
+
+          <div class="jwa-learning-intro">
+            <div class="jwa-learning-intro-card">
+              <h4>1. Start with your target</h4>
+              <p>Think about the career or life path you want first, even if you are not 100% sure yet. You do not need a perfect plan. You just need a direction.</p>
+            </div>
+            <div class="jwa-learning-intro-card">
+              <h4>2. Choose the right subjects</h4>
+              <p>Use the career bundles to see which CSEC, CAPE, HEART, and vocational subjects give you the strongest foundation for that direction.</p>
+            </div>
+            <div class="jwa-learning-intro-card">
+              <h4>3. Click and start learning</h4>
+              <p>Every card opens a course page. That means this is not just advice. It is a study pathway you can actually act on today.</p>
+            </div>
+          </div>
+
+          <div class="jwa-learning-toolbar">
+            <div class="jwa-learning-filter-group" id="jwaCourseTrackFilters" aria-label="Filter curriculum by level"></div>
+            <input id="jwaCourseSearchInput" class="jwa-learning-search" type="search" placeholder="Search subjects, careers, skills, or pathways" />
+          </div>
+
+          <span class="jwa-section-label">Recommended Subject Bundles by Career Goal</span>
+          <div class="jwa-learning-bundle-group" id="jwaCourseBundleFilters" aria-label="Choose a recommended career bundle"></div>
+          <div id="jwaCourseBundleNote" class="jwa-learning-bundle-note">Choose a bundle to see the subjects that make the most sense for that path.</div>
+
+          <span class="jwa-section-label">High-Value Subject Pathways</span>
+          <div id="jwaCourseLearningSummary" class="jwa-learning-summary"></div>
+          <div class="jwa-learning-grid" id="jwaCourseLearningGrid"></div>
+        </div>
+
       </div><!-- /padding wrapper -->
 
-        <!-- Tab 5: Career Pathway Builder -->
+        <!-- Tab 6: Career Pathway Builder -->
         <div id="jwaTabAthlete" class="jwa-tab-panel" role="tabpanel" hidden style="padding:0 28px 40px;">
 
           <div class="sa-hero">
