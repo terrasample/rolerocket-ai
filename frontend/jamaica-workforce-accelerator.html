@@ -6,6 +6,8 @@
   <title>Jamaica Workforce Accelerator | RoleRocket AI</title>
   <link rel="stylesheet" href="styles.css" />
   <style>
+    html { font-size: calc(16px + 2pt); }
+
     /* ── JWA Page Styles ───────────────────────────────────────────────── */
     .jwa-hero {
       background: linear-gradient(135deg, #000000 0%, #007847 50%, #fdb714 100%);
@@ -529,6 +531,34 @@
     }
     .jwa-status { margin-top: 14px; font-size: .92rem; min-height: 22px; line-height: 1.5; }
     .jwa-empty { color: #64748b; font-style: italic; }
+
+    .jwa-collapsible {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      margin: 16px 0;
+      overflow: hidden;
+    }
+    .jwa-collapsible summary {
+      cursor: pointer;
+      list-style: none;
+      padding: 14px 16px;
+      background: #1e293b;
+      color: #e2e8f0;
+      font-weight: 700;
+      border-bottom: 1px solid #334155;
+    }
+    .jwa-collapsible summary::-webkit-details-marker { display: none; }
+    .jwa-collapsible summary::before {
+      content: '▸';
+      display: inline-block;
+      margin-right: 8px;
+      color: #fdb714;
+      transform: rotate(0deg);
+      transition: transform .15s ease;
+    }
+    .jwa-collapsible[open] summary::before { transform: rotate(90deg); }
+    .jwa-collapsible-body { padding: 14px 16px 18px; }
   </style>
 </head>
 <body>
@@ -545,8 +575,7 @@
         <a class="sidebar-link-btn" href="ai-recruiter-assist.html">AI Recruiter Assist</a>
         <a class="sidebar-link-btn" href="pricing.html">Pricing</a>
         <a class="sidebar-link-btn" href="contact-us.html">Contact Us</a>
-        <a class="sidebar-link-btn active" href="jamaica-workforce-accelerator.html">🇯🇲 Jamaica Accelerator</a>
-        <a class="sidebar-link-btn" href="employer-portal.html">🏢 Post a Job</a>
+        <a class="sidebar-link-btn active" href="jamaica-workforce-accelerator.html">🇯🇲 Jamaica Workforce Accelerator</a>
         <hr />
         <p id="planBadge">Free Plan</p>
         <a class="sidebar-link-btn" href="account.html">👤 Account</a>
@@ -579,6 +608,7 @@
           <button class="jwa-tab-btn" role="tab" data-tab="jwaTabResume" aria-selected="false">📄 Resume Localization</button>
           <button class="jwa-tab-btn" role="tab" data-tab="jwaTabGap" aria-selected="false">📊 Skills Gap Report</button>
           <button class="jwa-tab-btn" role="tab" data-tab="jwaTabCourses" aria-selected="false">🎓 CSEC / CAPE Learning</button>
+          <button class="jwa-tab-btn" role="tab" data-tab="jwaTabEmployer" aria-selected="false">🏢 Employer Portal</button>
           <button class="jwa-tab-btn" role="tab" data-tab="jwaTabAthlete" aria-selected="false">🚀 Career Pathway Builder</button>
         </div>
 
@@ -673,43 +703,90 @@
 
         <!-- Tab 5: CSEC / CAPE / HEART Learning -->
         <div id="jwaTabCourses" class="jwa-tab-panel" role="tabpanel" hidden>
-          <div class="jwa-learning-hero">
-            <h3>Jamaican Curriculum Learning Hub</h3>
-            <p>If you are a student, this section is here to help you answer one simple question: “What subjects should I focus on right now if I already have an idea of the life and career I want?” Use the filters, search, and career bundles below to choose the subjects that move you closer to your goal, then open a course and start learning immediately.</p>
+          <details class="jwa-collapsible" open>
+            <summary>Learning Hub Overview</summary>
+            <div class="jwa-collapsible-body">
+              <div class="jwa-learning-hero" style="margin-bottom:0;">
+                <h3>Jamaican Curriculum Learning Hub</h3>
+                <p>If you are a student, this section helps you focus on the right subjects for your target career and then move directly into real lessons and tests.</p>
+              </div>
+
+              <div class="jwa-learning-intro" style="margin-top:16px;">
+                <div class="jwa-learning-intro-card">
+                  <h4>1. Start with your target</h4>
+                  <p>Choose the life or career direction you want, even if your plan is still evolving.</p>
+                </div>
+                <div class="jwa-learning-intro-card">
+                  <h4>2. Choose the right subjects</h4>
+                  <p>Use bundles to map CSEC, CAPE, HEART, and vocational subjects to your goal.</p>
+                </div>
+                <div class="jwa-learning-intro-card">
+                  <h4>3. Click and start learning</h4>
+                  <p>Each card opens practical lessons with progress checks and graded assessment.</p>
+                </div>
+              </div>
+            </div>
+          </details>
+
+          <details class="jwa-collapsible" open>
+            <summary>Filters and Bundles</summary>
+            <div class="jwa-collapsible-body">
+              <div class="jwa-learning-toolbar">
+                <div class="jwa-learning-filter-group" id="jwaCourseTrackFilters" aria-label="Filter curriculum by level"></div>
+                <input id="jwaCourseSearchInput" class="jwa-learning-search" type="search" placeholder="Search subjects, careers, skills, or pathways" />
+              </div>
+
+              <span class="jwa-section-label">Recommended Subject Bundles by Career Goal</span>
+              <div class="jwa-learning-bundle-group" id="jwaCourseBundleFilters" aria-label="Choose a recommended career bundle"></div>
+              <div id="jwaCourseBundleNote" class="jwa-learning-bundle-note">Choose a bundle to see the subjects that make the most sense for that path.</div>
+            </div>
+          </details>
+
+          <details class="jwa-collapsible" open>
+            <summary>High-Value Subject Pathways</summary>
+            <div class="jwa-collapsible-body">
+              <div id="jwaCourseLearningSummary" class="jwa-learning-summary"></div>
+              <div class="jwa-learning-grid" id="jwaCourseLearningGrid"></div>
+            </div>
+          </details>
+        </div>
+
+        <!-- Tab 6: Employer Portal -->
+        <div id="jwaTabEmployer" class="jwa-tab-panel" role="tabpanel" hidden>
+          <div class="jwa-learning-hero" style="margin-bottom:16px;">
+            <h3>Employer Portal for Jamaican Organizations</h3>
+            <p>Register your company, post jobs and internships, and reach students and professionals directly from the Jamaica Workforce Accelerator ecosystem.</p>
           </div>
 
-          <div class="jwa-learning-intro">
+          <div class="jwa-learning-intro" style="margin-bottom:18px;">
             <div class="jwa-learning-intro-card">
-              <h4>1. Start with your target</h4>
-              <p>Think about the career or life path you want first, even if you are not 100% sure yet. You do not need a perfect plan. You just need a direction.</p>
+              <h4>1. Onboard your organization</h4>
+              <p>Create an employer account, verify your company profile, and start publishing openings in minutes.</p>
             </div>
             <div class="jwa-learning-intro-card">
-              <h4>2. Choose the right subjects</h4>
-              <p>Use the career bundles to see which CSEC, CAPE, HEART, and vocational subjects give you the strongest foundation for that direction.</p>
+              <h4>2. Publish targeted opportunities</h4>
+              <p>Post jobs, internships, trainee roles, and graduate programmes mapped to CSEC/CAPE/HEART pathways.</p>
             </div>
             <div class="jwa-learning-intro-card">
-              <h4>3. Click and start learning</h4>
-              <p>Every card opens a course page. That means this is not just advice. It is a study pathway you can actually act on today.</p>
+              <h4>3. Monetization-ready posting flow</h4>
+              <p>Use tiered employer plans: free basic posting, paid premium visibility, and enterprise sourcing support.</p>
             </div>
           </div>
 
-          <div class="jwa-learning-toolbar">
-            <div class="jwa-learning-filter-group" id="jwaCourseTrackFilters" aria-label="Filter curriculum by level"></div>
-            <input id="jwaCourseSearchInput" class="jwa-learning-search" type="search" placeholder="Search subjects, careers, skills, or pathways" />
+          <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:16px;">
+            <a class="jwa-submit-btn" href="employer-portal.html" style="text-decoration:none;display:inline-flex;align-items:center;">Open Employer Portal</a>
           </div>
 
-          <span class="jwa-section-label">Recommended Subject Bundles by Career Goal</span>
-          <div class="jwa-learning-bundle-group" id="jwaCourseBundleFilters" aria-label="Choose a recommended career bundle"></div>
-          <div id="jwaCourseBundleNote" class="jwa-learning-bundle-note">Choose a bundle to see the subjects that make the most sense for that path.</div>
-
-          <span class="jwa-section-label">High-Value Subject Pathways</span>
-          <div id="jwaCourseLearningSummary" class="jwa-learning-summary"></div>
-          <div class="jwa-learning-grid" id="jwaCourseLearningGrid"></div>
+          <div class="jwa-report-section" style="margin-top:0;">
+            <h3>Free Access Model (Current)</h3>
+            <p style="margin-bottom:10px;">For now, keep all employer onboarding and posting features free so adoption can grow quickly across Jamaican companies, schools, and training partners.</p>
+            <p style="margin:0;">Track usage and hiring outcomes first, then decide later if premium tiers are needed.</p>
+          </div>
         </div>
 
       </div><!-- /padding wrapper -->
 
-        <!-- Tab 6: Career Pathway Builder -->
+        <!-- Tab 7: Career Pathway Builder -->
         <div id="jwaTabAthlete" class="jwa-tab-panel" role="tabpanel" hidden style="padding:0 28px 40px;">
 
           <div class="sa-hero">
@@ -760,14 +837,6 @@
             </div>
           </div>
 
-          <div class="sa-employer-callout">
-            <div>
-              <h3>Are you an employer or school partner?</h3>
-              <p>If you are a Jamaican company, recruiter, school, or training partner and you want to post jobs or opportunities for students and professionals, use the employer portal to register your organization and publish openings.</p>
-            </div>
-            <a class="sa-employer-link" href="employer-portal.html">Open Employer Portal</a>
-          </div>
-
           <!-- Timeline selector -->
           <div class="sa-year-strip" aria-label="Select your timeline">
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -782,56 +851,80 @@
           <div id="saYearContent"></div>
 
           <!-- Core Lessons (career-specific, always visible) -->
-          <section style="margin-top:40px;">
-            <h3 id="saLessonsTitle" style="color:#fdb714;margin:0 0 6px;font-size:1.15rem;">📚 8 Core Career Lessons</h3>
-            <p id="saLessonsDesc" style="color:#64748b;font-size:.88rem;margin-bottom:20px;">Essential skills and mindset shifts for your chosen career path.</p>
-            <div class="sa-lessons-grid" id="saLessonsGrid"></div>
-          </section>
-
-          <!-- Financing -->
-          <section style="margin-top:40px;">
-            <h3 style="color:#fdb714;margin:0 0 6px;font-size:1.15rem;">💰 How to Finance Your Education</h3>
-            <p style="color:#64748b;font-size:.88rem;margin-bottom:20px;">Whether you stay in Jamaica or go overseas, there are real funding pathways available. Apply early — most deadlines are 12–18 months before the programme starts.</p>
-            <div class="sa-finance-grid" id="saFinanceGrid"></div>
-          </section>
-
-          <section style="margin-top:40px;">
-            <h3 style="color:#fdb714;margin:0 0 6px;font-size:1.15rem;">🧭 Offer Pathways: What Happens After You Get In</h3>
-            <p style="color:#64748b;font-size:.88rem;margin-bottom:20px;">If you receive a job offer, academic scholarship, or athletic scholarship, follow these practical steps so your transition from Jamaica to your destination is smooth and compliant.</p>
-            <div class="sa-finance-grid" id="saOfferGrid"></div>
-          </section>
-
-          <section style="margin-top:28px;">
-            <h3 style="color:#fdb714;margin:0 0 6px;font-size:1.15rem;">🌍 Country Routes: US, UK, Canada, EU</h3>
-            <p style="color:#64748b;font-size:.88rem;margin-bottom:20px;">Destination-specific steps, common visa routes, and document bundles Jamaican applicants should prepare before departure.</p>
-            <div class="sa-finance-grid" id="saCountryOfferGrid"></div>
-          </section>
-
-          <section style="margin-top:28px;">
-            <h3 style="color:#fdb714;margin:0 0 6px;font-size:1.15rem;">🛂 Immigration Barrier Pathway (Visual)</h3>
-            <p style="color:#64748b;font-size:.88rem;margin-bottom:14px;">A simple visual flow from offer to arrival with common barriers and what to do next.</p>
-            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px;">
-              <div>
-                <label for="saImmigRegion" style="display:block;color:#94a3b8;font-size:.82rem;margin-bottom:6px;">Destination</label>
-                <select id="saImmigRegion" style="background:#1e293b;color:#f1f5f9;border:1.5px solid #334155;padding:9px 12px;border-radius:8px;min-width:180px;">
-                  <option value="United States (US)">United States (US)</option>
-                  <option value="United Kingdom (UK)">United Kingdom (UK)</option>
-                  <option value="Canada">Canada</option>
-                  <option value="European Union (EU)">European Union (EU)</option>
-                </select>
-              </div>
-              <div>
-                <label for="saImmigPathType" style="display:block;color:#94a3b8;font-size:.82rem;margin-bottom:6px;">Pathway type</label>
-                <select id="saImmigPathType" style="background:#1e293b;color:#f1f5f9;border:1.5px solid #334155;padding:9px 12px;border-radius:8px;min-width:220px;">
-                  <option value="Work Offer Route">Work Offer Route</option>
-                  <option value="Academic Scholarship Route">Academic Scholarship Route</option>
-                  <option value="Athletic Scholarship Route">Athletic Scholarship Route</option>
-                </select>
-              </div>
-              <button id="saPrintChecklistBtn" class="jwa-download-btn" style="padding:10px 18px;font-size:.9rem;">Generate One-Page Checklist</button>
+          <details class="jwa-collapsible" open>
+            <summary>Core Career Lessons</summary>
+            <div class="jwa-collapsible-body">
+              <section style="margin-top:6px;">
+                <h3 id="saLessonsTitle" style="color:#fdb714;margin:0 0 6px;font-size:1.15rem;">📚 8 Core Career Lessons</h3>
+                <p id="saLessonsDesc" style="color:#64748b;font-size:.88rem;margin-bottom:20px;">Essential skills and mindset shifts for your chosen career path.</p>
+                <div class="sa-lessons-grid" id="saLessonsGrid"></div>
+              </section>
             </div>
-            <div class="sa-immig-flow" id="saImmigrationPathway"></div>
-          </section>
+          </details>
+
+          <details class="jwa-collapsible">
+            <summary>How to Finance Your Education</summary>
+            <div class="jwa-collapsible-body">
+              <section style="margin-top:6px;">
+                <h3 style="color:#fdb714;margin:0 0 6px;font-size:1.15rem;">💰 How to Finance Your Education</h3>
+                <p style="color:#64748b;font-size:.88rem;margin-bottom:20px;">Whether you stay in Jamaica or go overseas, there are real funding pathways available. Apply early — most deadlines are 12–18 months before the programme starts.</p>
+                <div class="sa-finance-grid" id="saFinanceGrid"></div>
+              </section>
+            </div>
+          </details>
+
+          <details class="jwa-collapsible">
+            <summary>Offer Pathways</summary>
+            <div class="jwa-collapsible-body">
+              <section style="margin-top:6px;">
+                <h3 style="color:#fdb714;margin:0 0 6px;font-size:1.15rem;">🧭 Offer Pathways: What Happens After You Get In</h3>
+                <p style="color:#64748b;font-size:.88rem;margin-bottom:20px;">If you receive a job offer, academic scholarship, or athletic scholarship, follow these practical steps so your transition from Jamaica to your destination is smooth and compliant.</p>
+                <div class="sa-finance-grid" id="saOfferGrid"></div>
+              </section>
+            </div>
+          </details>
+
+          <details class="jwa-collapsible">
+            <summary>Country Routes (US, UK, Canada, EU)</summary>
+            <div class="jwa-collapsible-body">
+              <section style="margin-top:6px;">
+                <h3 style="color:#fdb714;margin:0 0 6px;font-size:1.15rem;">🌍 Country Routes: US, UK, Canada, EU</h3>
+                <p style="color:#64748b;font-size:.88rem;margin-bottom:20px;">Destination-specific steps, common visa routes, and document bundles Jamaican applicants should prepare before departure.</p>
+                <div class="sa-finance-grid" id="saCountryOfferGrid"></div>
+              </section>
+            </div>
+          </details>
+
+          <details class="jwa-collapsible">
+            <summary>Immigration Barrier Pathway (Visual)</summary>
+            <div class="jwa-collapsible-body">
+              <section style="margin-top:6px;">
+                <h3 style="color:#fdb714;margin:0 0 6px;font-size:1.15rem;">🛂 Immigration Barrier Pathway (Visual)</h3>
+                <p style="color:#64748b;font-size:.88rem;margin-bottom:14px;">A simple visual flow from offer to arrival with common barriers and what to do next.</p>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px;">
+                  <div>
+                    <label for="saImmigRegion" style="display:block;color:#94a3b8;font-size:.82rem;margin-bottom:6px;">Destination</label>
+                    <select id="saImmigRegion" style="background:#1e293b;color:#f1f5f9;border:1.5px solid #334155;padding:9px 12px;border-radius:8px;min-width:180px;">
+                      <option value="United States (US)">United States (US)</option>
+                      <option value="United Kingdom (UK)">United Kingdom (UK)</option>
+                      <option value="Canada">Canada</option>
+                      <option value="European Union (EU)">European Union (EU)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label for="saImmigPathType" style="display:block;color:#94a3b8;font-size:.82rem;margin-bottom:6px;">Pathway type</label>
+                    <select id="saImmigPathType" style="background:#1e293b;color:#f1f5f9;border:1.5px solid #334155;padding:9px 12px;border-radius:8px;min-width:220px;">
+                      <option value="Work Offer Route">Work Offer Route</option>
+                      <option value="Academic Scholarship Route">Academic Scholarship Route</option>
+                      <option value="Athletic Scholarship Route">Athletic Scholarship Route</option>
+                    </select>
+                  </div>
+                  <button id="saPrintChecklistBtn" class="jwa-download-btn" style="padding:10px 18px;font-size:.9rem;">Generate One-Page Checklist</button>
+                </div>
+                <div class="sa-immig-flow" id="saImmigrationPathway"></div>
+              </section>
+            </div>
+          </details>
 
         </div><!-- /tab 5 -->
 
@@ -843,6 +936,6 @@
   <script src="js/auth-storage.js"></script>
   <script src="js/nav-plan-sync.js"></script>
   <script src="js/return-navigation.js"></script>
-  <script src="js/jamaica-workforce-accelerator.js?v=20260421f"></script>
+  <script src="js/jamaica-workforce-accelerator.js?v=20260421i"></script>
 </body>
 </html>

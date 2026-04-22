@@ -98,7 +98,7 @@
           <h3 class="jwa-industry-title" style="color:${data.color};">${esc(industry)}</h3>
           <div class="jwa-role-grid">
             ${data.roles.map(r => `
-              <a class="jwa-role-card" href="job-search.html?q=${encodeURIComponent(r.title)}&industry=${encodeURIComponent(industry)}" style="display:block;text-decoration:none;cursor:pointer;">
+              <a class="jwa-role-card" data-job-query="${esc(r.title)}" href="job-search.html?q=${encodeURIComponent(r.title)}&industry=${encodeURIComponent(industry)}" style="display:block;text-decoration:none;cursor:pointer;">
                 <strong>${esc(r.title)}</strong>
                 <span class="jwa-salary">${esc(r.range)}</span>
                 <span class="jwa-demand-badge" style="background:${DEMAND_COLOR[r.demand] || '#64748b'};">${esc(r.demand)} Demand</span>
@@ -110,6 +110,19 @@
       `;
     }
     container.innerHTML = html || '<p class="jwa-empty">No industries match your filter.</p>';
+
+    // Fallback click routing: ensures navigation works even if anchor default is interfered with.
+    if (!container.dataset.boundClicks) {
+      container.dataset.boundClicks = '1';
+      container.addEventListener('click', function (event) {
+        const card = event.target.closest('.jwa-role-card[data-job-query]');
+        if (!card) return;
+        const query = String(card.getAttribute('data-job-query') || '').trim();
+        if (!query) return;
+        event.preventDefault();
+        window.location.href = `job-search.html?q=${encodeURIComponent(query)}`;
+      });
+    }
   }
 
   /* ── 2. Diaspora Connection Pipeline ───────────────────────────────────── */
@@ -241,6 +254,15 @@
       careers: ['healthcare', 'engineering'],
       description: 'Valuable for medicine, pharmacy, engineering, lab science, and any path that needs strong science progression.',
       outcomes: ['Strengthen scientific reasoning and lab readiness.', 'Support entry into health and technical degrees.', 'Improve competitiveness for science scholarships.']
+    },
+    {
+      topic: 'CAPE Mathematics',
+      title: 'CAPE Mathematics',
+      track: 'CAPE',
+      focus: 'Advanced Quantitative Skills',
+      careers: ['engineering', 'software', 'finance'],
+      description: 'Core progression subject for engineering, computing, data, economics, and other high-quantitative pathways.',
+      outcomes: ['Build advanced algebra and function fluency.', 'Develop calculus and probability skills for tertiary STEM.', 'Strengthen readiness for analytics and engineering programmes.']
     },
     {
       topic: 'CAPE Accounting',
@@ -642,6 +664,37 @@
     });
     document.querySelectorAll('.jwa-tab-panel').forEach(panel => {
       panel.hidden = panel.id !== tabId;
+    });
+  }
+
+  function initCollapsiblePersistence() {
+    const sections = Array.from(document.querySelectorAll('details.jwa-collapsible'));
+    if (!sections.length) return;
+
+    sections.forEach((section, index) => {
+      const panelId = String(section.closest('.jwa-tab-panel')?.id || 'global');
+      const summaryText = String(section.querySelector('summary')?.textContent || `section-${index + 1}`)
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+      const key = `jwa:collapse:${panelId}:${summaryText || `section-${index + 1}`}`;
+
+      try {
+        const stored = localStorage.getItem(key);
+        if (stored === 'open') section.open = true;
+        if (stored === 'closed') section.open = false;
+      } catch (error) {
+        // Ignore storage errors in restricted browser modes.
+      }
+
+      section.addEventListener('toggle', function () {
+        try {
+          localStorage.setItem(key, section.open ? 'open' : 'closed');
+        } catch (error) {
+          // Ignore storage errors in restricted browser modes.
+        }
+      });
     });
   }
 
@@ -1802,6 +1855,7 @@
 
   /* ── Init ───────────────────────────────────────────────────────────────── */
   document.addEventListener('DOMContentLoaded', function () {
+    initCollapsiblePersistence();
     renderMarketRadar();
     renderDiasporaPipeline();
     renderSkillsGapChart();
