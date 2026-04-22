@@ -79,6 +79,84 @@
         { title: 'Healthcare Administrator', range: 'JMD 1.4M–2.2M/yr', demand: 'Moderate', remote: false },
         { title: 'Community Health Worker', range: 'JMD 700k–1.1M/yr', demand: 'High', remote: false },
       ]
+    },
+    'Engineering & Construction': {
+      color: '#f97316',
+      roles: [
+        { title: 'Civil Engineer', range: 'JMD 2.5M–4.5M/yr', demand: 'High', remote: false },
+        { title: 'Electrical Engineer', range: 'JMD 2.2M–4.0M/yr', demand: 'High', remote: false },
+        { title: 'Quantity Surveyor', range: 'JMD 2.0M–3.5M/yr', demand: 'Moderate', remote: false },
+        { title: 'Site / Construction Manager', range: 'JMD 2.4M–4.2M/yr', demand: 'High', remote: false },
+        { title: 'Mechanical Engineer', range: 'JMD 2.2M–3.8M/yr', demand: 'Moderate', remote: false },
+      ]
+    },
+    'Aviation & Transport': {
+      color: '#38bdf8',
+      roles: [
+        { title: 'Commercial Pilot (ATPL)', range: 'JMD 5M–12M/yr', demand: 'High', remote: false },
+        { title: 'Aircraft Maintenance Engineer (AME)', range: 'JMD 3.0M–5.5M/yr', demand: 'High', remote: false },
+        { title: 'Air Traffic Controller', range: 'JMD 4.0M–7.0M/yr', demand: 'Moderate', remote: false },
+        { title: 'Airport Operations Officer', range: 'JMD 1.5M–2.8M/yr', demand: 'Moderate', remote: false },
+        { title: 'Logistics & Fleet Manager', range: 'JMD 1.8M–3.2M/yr', demand: 'High', remote: false },
+      ]
+    },
+    'Agriculture & Agribusiness': {
+      color: '#84cc16',
+      roles: [
+        { title: 'Agricultural Extension Officer', range: 'JMD 1.2M–2.0M/yr', demand: 'High', remote: false },
+        { title: 'Agribusiness Manager', range: 'JMD 2.0M–3.5M/yr', demand: 'Moderate', remote: false },
+        { title: 'Food Scientist / Quality Assurance', range: 'JMD 1.8M–3.0M/yr', demand: 'High', remote: false },
+        { title: 'Farm / Plantation Supervisor', range: 'JMD 1.0M–1.8M/yr', demand: 'High', remote: false },
+        { title: 'Agri-Tech & Precision Farming Specialist', range: 'JMD 2.2M–3.8M/yr', demand: 'Moderate', remote: false },
+      ]
+    },
+    'Education & Training': {
+      color: '#e879f9',
+      roles: [
+        { title: 'Secondary School Teacher (STEM)', range: 'JMD 1.2M–2.0M/yr', demand: 'Critical', remote: false },
+        { title: 'Early Childhood Educator', range: 'JMD 700k–1.2M/yr', demand: 'High', remote: false },
+        { title: 'Corporate Trainer / L&D Specialist', range: 'JMD 1.5M–2.8M/yr', demand: 'Moderate', remote: true },
+        { title: 'Guidance Counsellor', range: 'JMD 1.1M–1.9M/yr', demand: 'High', remote: false },
+        { title: 'TVET / Vocational Instructor', range: 'JMD 1.0M–1.7M/yr', demand: 'High', remote: false },
+      ]
+    },
+    'Legal & Professional Services': {
+      color: '#818cf8',
+      roles: [
+        { title: 'Attorney-at-Law', range: 'JMD 2.5M–6.0M/yr', demand: 'Moderate', remote: false },
+        { title: 'Paralegal / Legal Officer', range: 'JMD 1.2M–2.2M/yr', demand: 'Moderate', remote: false },
+        { title: 'Human Resource Manager', range: 'JMD 1.8M–3.2M/yr', demand: 'High', remote: false },
+        { title: 'Compliance & Risk Officer', range: 'JMD 2.0M–3.5M/yr', demand: 'High', remote: false },
+        { title: 'Management Consultant', range: 'JMD 2.5M–5.0M/yr', demand: 'Moderate', remote: true },
+      ]
+    },
+    'Creative Industries': {
+      color: '#fb7185',
+      roles: [
+        { title: 'Music Producer / Sound Engineer', range: 'JMD 1.2M–3.5M/yr', demand: 'Moderate', remote: true },
+        { title: 'Film / Video Director', range: 'JMD 1.5M–4.0M/yr', demand: 'Moderate', remote: false },
+        { title: 'Graphic Designer / Art Director', range: 'JMD 1.0M–2.5M/yr', demand: 'High', remote: true },
+        { title: 'Content Creator / Influencer Strategist', range: 'JMD 800k–3.0M/yr', demand: 'High', remote: true },
+        { title: 'Animator / Motion Graphics Artist', range: 'JMD 1.2M–2.8M/yr', demand: 'Moderate', remote: true },
+      ]
+    },
+    'Energy & Utilities': {
+      color: '#fcd34d',
+      roles: [
+        { title: 'Renewable Energy Engineer', range: 'JMD 2.8M–5.0M/yr', demand: 'High', remote: false },
+        { title: 'Solar PV Technician', range: 'JMD 1.5M–2.8M/yr', demand: 'Very High', remote: false },
+        { title: 'Utilities Operations Manager', range: 'JMD 2.5M–4.5M/yr', demand: 'Moderate', remote: false },
+        { title: 'Environmental / Sustainability Officer', range: 'JMD 1.8M–3.2M/yr', demand: 'High', remote: false },
+      ]
+    },
+    'Real Estate & Property': {
+      color: '#2dd4bf',
+      roles: [
+        { title: 'Real Estate Salesperson / Broker', range: 'JMD 1.5M–4.5M/yr', demand: 'High', remote: false },
+        { title: 'Property Manager', range: 'JMD 1.4M–2.8M/yr', demand: 'Moderate', remote: false },
+        { title: 'Valuator / Property Appraiser', range: 'JMD 2.0M–3.5M/yr', demand: 'Moderate', remote: false },
+        { title: 'Mortgage & Housing Finance Officer', range: 'JMD 1.6M–2.8M/yr', demand: 'High', remote: false },
+      ]
     }
   };
 
@@ -1799,7 +1877,17 @@
     const type = typeSelect ? typeSelect.value : 'Work Offer Route';
     renderImmigrationPathway(region, type);
 
-    const preferredKey = options.resetYear ? 'y1' : timelineState.activeYearKey;
+    const lifeStage = document.getElementById('cpLifeStage')?.value || 'secondary';
+    const STAGE_TO_YEAR = {
+      'secondary':       'y1',
+      'sixthform':       'y2',
+      'university-early':'y3',
+      'university-final':'y4',
+      'working':         'y5',
+      'change':          'y5',
+    };
+    const stageKey = STAGE_TO_YEAR[lifeStage] || 'y1';
+    const preferredKey = options.resetYear ? stageKey : timelineState.activeYearKey;
     timelineState.activeYearKey = renderYearTabs(pathway, preferredKey);
     renderCareerYear(pathway, timelineState.activeYearKey);
   }
@@ -1809,6 +1897,13 @@
     if (select) {
       select.addEventListener('change', function () {
         loadCareer(this.value, { resetYear: true });
+      });
+    }
+
+    const lifeStageSelect = document.getElementById('cpLifeStage');
+    if (lifeStageSelect) {
+      lifeStageSelect.addEventListener('change', function () {
+        loadCareer(timelineState.career, { resetYear: true });
       });
     }
 

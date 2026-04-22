@@ -26,12 +26,12 @@ document.addEventListener('DOMContentLoaded', function () {
     const indeedUrl = `https://jm.indeed.com/jobs?q=${encoded}`;
 
     results.innerHTML = `
-      <div style="margin-bottom:8px;font-weight:700;">${query ? `<strong>${query}</strong>` : 'This search'} has no current match in the internal partner board.</div>
-      <div style="color:#475569;font-size:.95rem;line-height:1.6;">${fromMarket ? 'Live external matches are ready below:' : 'Live external matches are available below:'}</div>
-      <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;">
-        <a href="${linkedInUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border-radius:10px;background:#0ea5e9;color:#fff;text-decoration:none;font-weight:700;">Open LinkedIn Matches</a>
-        <a href="${googleUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border-radius:10px;background:#2563eb;color:#fff;text-decoration:none;font-weight:700;">Open Google Jobs Matches</a>
-        <a href="${indeedUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border-radius:10px;background:#0f766e;color:#fff;text-decoration:none;font-weight:700;">Open Indeed Matches</a>
+      <div style="margin-bottom:8px;font-weight:700;">${fromMarket ? `Find <strong>${query}</strong> jobs now:` : `${query ? `<strong>${query}</strong>` : 'This search'} has no current match in the internal partner board.`}</div>
+      <div style="color:#475569;font-size:.95rem;line-height:1.6;margin-bottom:10px;">Choose a platform below to search live listings — links open the search pre-filled:</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <a href="${linkedInUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border-radius:10px;background:#0ea5e9;color:#fff;text-decoration:none;font-weight:700;">🔵 LinkedIn Jobs</a>
+        <a href="${googleUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border-radius:10px;background:#2563eb;color:#fff;text-decoration:none;font-weight:700;">🔍 Google Jobs</a>
+        <a href="${indeedUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border-radius:10px;background:#0f766e;color:#fff;text-decoration:none;font-weight:700;">🟢 Indeed Jamaica</a>
       </div>
     `;
 
@@ -48,6 +48,14 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     if (queryInput) queryInput.value = query;
+
+    // When arriving from a market job card, skip the internal board and show
+    // live external search links immediately — the internal board has no listings yet.
+    if (options.fromMarket) {
+      renderJobs([], query, options);
+      return;
+    }
+
     results.innerHTML = 'Searching live jobs...';
 
     try {
