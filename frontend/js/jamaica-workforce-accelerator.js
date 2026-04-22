@@ -162,6 +162,32 @@
 
   const DEMAND_COLOR = { 'Critical': '#dc2626', 'Very High': '#ea580c', 'High': '#ca8a04', 'Moderate': '#16a34a' };
 
+  function isAbsoluteHttpUrl(value) {
+    return /^https?:\/\//i.test(String(value || ''));
+  }
+
+  async function findLiveJobSourceUrl(title, industry) {
+    const query = String(title || '').trim();
+    if (!query) return '';
+
+    try {
+      const params = new URLSearchParams({
+        title: query,
+        location: 'Jamaica',
+        preferences: String(industry || '').trim(),
+        limit: '1'
+      });
+      const res = await fetch(`/api/jobs/scout?${params.toString()}`);
+      if (!res.ok) return '';
+      const payload = await res.json();
+      const firstJob = Array.isArray(payload?.jobs) ? payload.jobs[0] : null;
+      const sourceLink = String(firstJob?.link || '').trim();
+      return isAbsoluteHttpUrl(sourceLink) ? sourceLink : '';
+    } catch (_err) {
+      return '';
+    }
+  }
+
   function renderMarketRadar() {
     const container = document.getElementById('jwaMarketRadar');
     if (!container) return;
@@ -176,7 +202,13 @@
           <h3 class="jwa-industry-title" style="color:${data.color};">${esc(industry)}</h3>
           <div class="jwa-role-grid">
             ${data.roles.map(r => `
-              <a class="jwa-role-card" href="https://jm.indeed.com/jobs?q=${encodeURIComponent(r.title)}" target="_blank" rel="noopener noreferrer" style="display:block;text-decoration:none;cursor:pointer;">
+              <a
+                class="jwa-role-card"
+                data-job-query="${esc(r.title)}"
+                data-job-industry="${esc(industry)}"
+                href="https://jm.indeed.com/jobs?q=${encodeURIComponent(r.title)}"
+                style="display:block;text-decoration:none;cursor:pointer;"
+              >
                 <strong>${esc(r.title)}</strong>
                 <span class="jwa-salary">${esc(r.range)}</span>
                 <span class="jwa-demand-badge" style="background:${DEMAND_COLOR[r.demand] || '#64748b'};">${esc(r.demand)} Demand</span>
@@ -189,6 +221,22 @@
       `;
     }
     container.innerHTML = html || '<p class="jwa-empty">No industries match your filter.</p>';
+
+    if (!container.dataset.boundLiveSource) {
+      container.dataset.boundLiveSource = '1';
+      container.addEventListener('click', async function (event) {
+        const card = event.target.closest('.jwa-role-card[data-job-query]');
+        if (!card) return;
+
+        event.preventDefault();
+        const title = String(card.getAttribute('data-job-query') || '').trim();
+        const industry = String(card.getAttribute('data-job-industry') || '').trim();
+        const fallbackHref = String(card.getAttribute('href') || '').trim();
+
+        const liveSourceUrl = await findLiveJobSourceUrl(title, industry);
+        window.location.href = liveSourceUrl || fallbackHref;
+      });
+    }
   }
 
   /* ── 2. Diaspora Connection Pipeline ───────────────────────────────────── */

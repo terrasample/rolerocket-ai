@@ -49,8 +49,24 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (queryInput) queryInput.value = query;
 
-    // Legacy market links should jump directly to the source (Indeed Jamaica).
+    // Legacy market links should jump directly to a live source listing.
     if (options.fromMarket) {
+      try {
+        const params = new URLSearchParams({ title: query, location: 'Jamaica', limit: '1' });
+        const res = await fetch(`/api/jobs/scout?${params.toString()}`);
+        if (res.ok) {
+          const payload = await res.json();
+          const first = Array.isArray(payload?.jobs) ? payload.jobs[0] : null;
+          const sourceLink = String(first?.link || '').trim();
+          if (/^https?:\/\//i.test(sourceLink)) {
+            window.location.href = sourceLink;
+            return;
+          }
+        }
+      } catch (_err) {
+        // Fall back below if live source lookup fails.
+      }
+
       const encoded = encodeURIComponent(query);
       window.location.href = `https://jm.indeed.com/jobs?q=${encoded}`;
       return;
