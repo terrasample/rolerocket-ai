@@ -192,6 +192,115 @@
     .jwa-download-btn:hover { opacity: .85; }
     .jwa-download-btn:disabled { opacity: .5; cursor: not-allowed; }
 
+    /* ── Student Athlete PM Pathway ────────────────────────────────────── */
+    .sa-hero {
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #14532d 100%);
+      border-radius: 16px; padding: 32px 28px; margin-bottom: 28px;
+      border: 1px solid rgba(253,183,20,.25); text-align: center;
+    }
+    .sa-hero h2 { color: #fdb714; font-size: clamp(1.3rem,3vw,1.9rem); margin: 0 0 10px; }
+    .sa-hero p  { color: #94a3b8; font-size: .95rem; max-width: 680px; margin: 0 auto 20px; }
+    .sa-hero-pills { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+    .sa-hero-pill {
+      background: rgba(253,183,20,.12); border: 1px solid rgba(253,183,20,.3);
+      color: #fdb714; border-radius: 50px; padding: 6px 16px; font-size: .82rem; font-weight: 600;
+    }
+
+    /* Year selector strip */
+    .sa-year-strip {
+      display: flex; gap: 0; margin-bottom: 28px; border-radius: 12px; overflow: hidden;
+      border: 1px solid #334155;
+    }
+    .sa-year-btn {
+      flex: 1; padding: 12px 6px; border: none; background: #1e293b; color: #64748b;
+      cursor: pointer; font-size: .85rem; font-weight: 600; transition: all .2s;
+      border-right: 1px solid #334155; text-align: center;
+    }
+    .sa-year-btn:last-child { border-right: none; }
+    .sa-year-btn:hover { background: #334155; color: #fff; }
+    .sa-year-btn.sa-year-active { background: linear-gradient(135deg,#007847,#fdb714); color: #000; }
+
+    /* Year panel */
+    .sa-year-panel { display: none; }
+    .sa-year-panel.sa-year-visible { display: block; }
+    .sa-year-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap: 18px; margin-bottom: 24px; }
+    .sa-block {
+      background: #1e293b; border-radius: 14px; padding: 20px 22px;
+      border: 1px solid rgba(255,255,255,.07);
+    }
+    .sa-block-title {
+      display: flex; align-items: center; gap: 10px; font-size: 1rem; font-weight: 700;
+      color: #e2e8f0; margin: 0 0 14px; padding-bottom: 10px; border-bottom: 1px solid #334155;
+    }
+    .sa-block-icon { font-size: 1.3rem; flex-shrink: 0; }
+    .sa-block ul { margin: 0; padding-left: 18px; }
+    .sa-block li { color: #94a3b8; font-size: .88rem; line-height: 1.65; margin-bottom: 4px; }
+    .sa-block li strong { color: #e2e8f0; }
+    .sa-milestone {
+      background: linear-gradient(135deg, rgba(0,120,71,.12), rgba(253,183,20,.08));
+      border: 1px solid rgba(253,183,20,.2); border-radius: 10px;
+      padding: 14px 18px; margin-top: 8px; color: #fde68a; font-size: .88rem;
+      font-weight: 600;
+    }
+    .sa-milestone::before { content: '🏁 End-of-Year Goal: '; }
+
+    /* Balance meter */
+    .sa-balance-row { margin-bottom: 10px; }
+    .sa-balance-label { display: flex; justify-content: space-between; color: #94a3b8; font-size: .82rem; margin-bottom: 4px; }
+    .sa-balance-track { background: #0f172a; border-radius: 20px; height: 10px; overflow: hidden; }
+    .sa-balance-fill  { height: 100%; border-radius: 20px; background: linear-gradient(90deg,#007847,#fdb714); }
+
+    /* Financing section */
+    .sa-finance-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px,1fr)); gap: 18px; }
+    .sa-finance-card {
+      background: #1e293b; border-radius: 14px; padding: 20px 22px;
+      border-left: 4px solid; border-top: 1px solid rgba(255,255,255,.06);
+      border-right: 1px solid rgba(255,255,255,.06); border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .sa-finance-card h4 { margin: 0 0 6px; font-size: 1rem; }
+    .sa-finance-card .sa-fc-country { color: #64748b; font-size: .8rem; margin-bottom: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; }
+    .sa-finance-card ul { margin: 0; padding-left: 18px; }
+    .sa-finance-card li { color: #94a3b8; font-size: .87rem; line-height: 1.6; margin-bottom: 5px; }
+    .sa-finance-card li strong { color: #e2e8f0; }
+    .sa-finance-card li a { color: #60a5fa; text-decoration: none; }
+    .sa-finance-card li a:hover { text-decoration: underline; }
+    .sa-finance-tip {
+      background: rgba(37,99,235,.1); border: 1px solid rgba(37,99,235,.3);
+      border-radius: 10px; padding: 12px 16px; margin-top: 20px;
+      color: #93c5fd; font-size: .88rem; line-height: 1.6;
+    }
+    .sa-finance-tip::before { content: '💡 Pro tip: '; font-weight: 700; }
+
+    /* Core lessons */
+    .sa-lessons-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px,1fr)); gap: 16px; }
+    .sa-lesson-card {
+      background: #1e293b; border-radius: 14px; padding: 18px 20px;
+      border: 1px solid rgba(255,255,255,.07);
+    }
+    .sa-lesson-num {
+      width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg,#007847,#fdb714);
+      color: #000; font-weight: 800; font-size: .85rem; display: flex; align-items: center; justify-content: center;
+      margin-bottom: 10px; flex-shrink: 0;
+    }
+    .sa-lesson-card h4 { color: #fdb714; margin: 0 0 8px; font-size: .95rem; }
+    .sa-lesson-card p  { color: #94a3b8; font-size: .85rem; line-height: 1.6; margin: 0 0 8px; }
+    .sa-lesson-sport { color: #4ade80; font-size: .8rem; font-style: italic; }
+    .sa-lesson-sport::before { content: '⚽ Sports parallel: '; }
+
+    /* Day 1 checklist */
+    .sa-checklist { list-style: none; padding: 0; margin: 0; }
+    .sa-checklist li {
+      display: flex; gap: 12px; align-items: flex-start;
+      padding: 12px 16px; border-radius: 10px; margin-bottom: 8px;
+      background: #1e293b; border: 1px solid rgba(255,255,255,.07); color: #94a3b8; font-size: .9rem;
+    }
+    .sa-checklist li .sa-check-num {
+      width: 26px; height: 26px; border-radius: 50%;
+      background: linear-gradient(135deg,#007847,#fdb714); color: #000;
+      font-weight: 800; font-size: .78rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px;
+    }
+    .sa-checklist li strong { color: #e2e8f0; display: block; margin-bottom: 2px; }
+
     /* ── General utils ─────────────────────────────────────────────────── */
     .jwa-section-label {
       color: #94a3b8; font-size: .8rem; text-transform: uppercase;
@@ -247,6 +356,7 @@
           <button class="jwa-tab-btn" role="tab" data-tab="jwaTabDiaspora" aria-selected="false">🌍 Diaspora Pipeline</button>
           <button class="jwa-tab-btn" role="tab" data-tab="jwaTabResume" aria-selected="false">📄 Resume Localization</button>
           <button class="jwa-tab-btn" role="tab" data-tab="jwaTabGap" aria-selected="false">📊 Skills Gap Report</button>
+          <button class="jwa-tab-btn" role="tab" data-tab="jwaTabAthlete" aria-selected="false">🏆 Student Athlete PM Path</button>
         </div>
 
         <!-- Tab 1: Jamaica Job Market Radar -->
@@ -338,6 +448,51 @@
         </div>
 
       </div><!-- /padding wrapper -->
+
+        <!-- Tab 5: Student Athlete PM Pathway -->
+        <div id="jwaTabAthlete" class="jwa-tab-panel" role="tabpanel" hidden style="padding:0 28px 40px;">
+
+          <div class="sa-hero">
+            <h2>🏆 Student Athlete → Project Manager</h2>
+            <p>A complete 4-year roadmap from high school to Day 1 on the job. Built for Jamaican student athletes who want to compete in the classroom and the boardroom.</p>
+            <div class="sa-hero-pills">
+              <span class="sa-hero-pill">🎓 High School → University</span>
+              <span class="sa-hero-pill">💼 PM Certifications</span>
+              <span class="sa-hero-pill">💰 Financing Your Education</span>
+              <span class="sa-hero-pill">⚖️ Work/Life Balance</span>
+              <span class="sa-hero-pill">📋 Day 1 Ready</span>
+            </div>
+          </div>
+
+          <!-- Year selector -->
+          <div class="sa-year-strip" role="tablist" aria-label="Select your year">
+            <button class="sa-year-btn sa-year-active" data-year="y1">Year 1<br><small>6th Form / Grade 11</small></button>
+            <button class="sa-year-btn" data-year="y2">Year 2<br><small>6th Form / Grade 12</small></button>
+            <button class="sa-year-btn" data-year="y3">Year 3<br><small>1st Year University</small></button>
+            <button class="sa-year-btn" data-year="y4">Year 4<br><small>Final Year + PM Cert</small></button>
+            <button class="sa-year-btn" data-year="y5">Day 1<br><small>First PM Role</small></button>
+          </div>
+
+          <!-- Year panels rendered by JS -->
+          <div id="saYearContent"></div>
+
+          <!-- Core PM Lessons (always visible) -->
+          <section style="margin-top:40px;">
+            <h3 style="color:#fdb714;margin:0 0 6px;font-size:1.15rem;">📚 8 Core PM Lessons Every Student Athlete Must Learn</h3>
+            <p style="color:#64748b;font-size:.88rem;margin-bottom:20px;">These are not just classroom concepts — they are the same skills you already practise on the field. The sport parallel shows you why you are further ahead than you think.</p>
+            <div class="sa-lessons-grid" id="saLessonsGrid"></div>
+          </section>
+
+          <!-- Financing -->
+          <section style="margin-top:40px;">
+            <h3 style="color:#fdb714;margin:0 0 6px;font-size:1.15rem;">💰 How to Finance Your Education</h3>
+            <p style="color:#64748b;font-size:.88rem;margin-bottom:20px;">Whether you stay in Jamaica or go overseas, there are real funding pathways available. Apply early — most deadlines are 12–18 months before the programme starts.</p>
+            <div class="sa-finance-grid" id="saFinanceGrid"></div>
+          </section>
+
+        </div><!-- /tab 5 -->
+
+      </div><!-- /padding wrapper REAL END -->
     </main>
   </div>
 
@@ -345,6 +500,6 @@
   <script src="js/auth-storage.js"></script>
   <script src="js/nav-plan-sync.js"></script>
   <script src="js/return-navigation.js"></script>
-  <script src="js/jamaica-workforce-accelerator.js?v=20260421a"></script>
+  <script src="js/jamaica-workforce-accelerator.js?v=20260421b"></script>
 </body>
 </html>
