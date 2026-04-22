@@ -168,6 +168,7 @@
       label: 'Jamaican Jobs',
       icon: '🇯🇲',
       locationQuery: 'Jamaica',
+      lockLabel: 'Location lock: Jamaica only',
       matchHints: ['jamaica', 'kingston', 'montego bay', 'st. andrew', 'st andrew', 'ocho rios', 'spanish town']
     },
     {
@@ -175,6 +176,7 @@
       label: 'US Jobs',
       icon: '🇺🇸',
       locationQuery: 'United States',
+      lockLabel: 'Location lock: United States only',
       matchHints: ['united states', 'usa', 'us', 'new york', 'texas', 'florida', 'california', 'atlanta', 'miami']
     },
     {
@@ -182,6 +184,7 @@
       label: 'UK Jobs',
       icon: '🇬🇧',
       locationQuery: 'United Kingdom',
+      lockLabel: 'Location lock: United Kingdom only',
       matchHints: ['united kingdom', 'uk', 'england', 'london', 'birmingham', 'manchester', 'scotland', 'wales']
     },
     {
@@ -189,6 +192,7 @@
       label: 'Canada Jobs',
       icon: '🇨🇦',
       locationQuery: 'Canada',
+      lockLabel: 'Location lock: Canada only',
       matchHints: ['canada', 'toronto', 'ontario', 'vancouver', 'alberta', 'montreal', 'calgary']
     },
     {
@@ -196,6 +200,7 @@
       label: 'EU Jobs',
       icon: '🇪🇺',
       locationQuery: 'European Union',
+      lockLabel: 'Location lock: Europe only',
       matchHints: ['europe', 'eu', 'germany', 'france', 'netherlands', 'spain', 'ireland', 'italy', 'poland']
     },
     {
@@ -203,6 +208,7 @@
       label: 'Caribbean Jobs',
       icon: '🌴',
       locationQuery: 'Caribbean',
+      lockLabel: 'Location lock: Caribbean only',
       matchHints: ['caribbean', 'trinidad', 'barbados', 'bahamas', 'st lucia', 'guyana', 'jamaica']
     }
   ];
@@ -224,6 +230,23 @@
     return d.toLocaleDateString('en-JM', { day: 'numeric', month: 'short', year: 'numeric' });
   }
 
+  function scoreJamaicaSourcePreference(job) {
+    const link = String(job?.link || '').toLowerCase();
+    const source = String(job?.source || '').toLowerCase();
+    const location = String(job?.location || '').toLowerCase();
+
+    let score = 0;
+    if (link.includes('jm.indeed.com')) score += 50;
+    if (link.includes('caribbeanjobs.com')) score += 40;
+    if (link.includes('.jm')) score += 30;
+    if (source.includes('adzuna')) score -= 10;
+    if (source.includes('usajobs')) score -= 15;
+    if (location.includes('jamaica')) score += 20;
+    if (location.includes('kingston') || location.includes('montego bay')) score += 10;
+
+    return score;
+  }
+
   async function fetchRegionalJobs(title, market, limit = 6) {
     try {
       const params = new URLSearchParams({
@@ -239,10 +262,9 @@
       const payload = await res.json();
       const jobs = Array.isArray(payload?.jobs) ? payload.jobs : [];
 
-      return jobs
+      const filtered = jobs
         .filter((job) => isAbsoluteHttpUrl(job?.link))
         .filter((job) => matchesMarketLocation(job?.location, market))
-        .slice(0, limit)
         .map((job) => ({
           title: String(job.title || 'Untitled Role').trim(),
           company: String(job.company || 'Unknown Company').trim(),
@@ -251,6 +273,12 @@
           postedAt: job.postedAt || job.created || '',
           link: String(job.link || '').trim()
         }));
+
+      if (market.id === 'jamaica') {
+        filtered.sort((a, b) => scoreJamaicaSourcePreference(b) - scoreJamaicaSourcePreference(a));
+      }
+
+      return filtered.slice(0, limit);
     } catch (_error) {
       return [];
     }
@@ -267,6 +295,9 @@
       <details class="jwa-collapsible" ${idx === 0 ? 'open' : ''} id="jwaMarket-${market.id}">
         <summary>${market.icon} ${esc(market.label)} <span style="color:#94a3b8;font-weight:500;">(${esc(roleKeyword)})</span></summary>
         <div class="jwa-collapsible-body">
+          <div style="display:inline-flex;align-items:center;gap:8px;background:#0f172a;border:1px solid #334155;color:#93c5fd;border-radius:999px;padding:6px 12px;font-size:.78rem;font-weight:700;margin-bottom:12px;">
+            🔒 ${esc(market.lockLabel || `Location lock: ${market.locationQuery} only`)}
+          </div>
           <div id="jwaMarketBody-${market.id}">
             <p class="jwa-empty">Loading ${esc(market.label.toLowerCase())}...</p>
           </div>
