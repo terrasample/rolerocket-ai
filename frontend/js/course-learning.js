@@ -347,43 +347,51 @@ document.addEventListener('DOMContentLoaded', function () {
   function buildFromScratchScaffold(focus) {
     const topicLabel = String(focus || 'subject');
 
+    const refresherByFocus = {
+      mathematics: {
+        title: 'Formula and Method Refresher',
+        objective: 'Refresh core formulas and solution habits before starting full modules.',
+        lesson: 'Review the formulas you will repeatedly use: linear equations, factorization patterns, triangle angle sum, area formulas, Pythagoras theorem, and basic probability. Focus on when to use each formula, not just memorizing it.',
+        workedExample: 'Refresher workflow: identify question type -> choose formula -> substitute values -> compute -> verify with a quick check.',
+        workedExampleSteps: [
+          'Formula 1: Linear equation form ax + b = c. Method: isolate x using inverse operations.',
+          'Formula 2: Difference of squares a^2 - b^2 = (a - b)(a + b).',
+          'Formula 3: Triangle interior angle sum = 180 deg.',
+          'Formula 4: Rectangle area A = l x w and circle area A = pi r^2.',
+          'Formula 5: Pythagoras theorem c^2 = a^2 + b^2 for right triangles.',
+          'Formula 6: Probability P(event) = favorable outcomes / total outcomes.',
+          'Tip: Always include units, show all steps, and do one reasonableness check at the end.'
+        ],
+        commonMistake: 'Memorizing formulas without recognizing which question type they fit.',
+        practiceTask: 'Create a one-page formula sheet and solve one example per formula from memory.',
+        progressCheckQuestion: 'Before solving, what should you do first?',
+        progressCheckOptions: ['Guess the final answer', 'Identify the question type and choose the matching formula', 'Skip writing steps', 'Use every formula at once'],
+        correctOptionIndex: 1,
+        progressCheckExplanation: 'Correct method selection comes before substitution and calculation.'
+      }
+    };
+
+    const refresher = refresherByFocus[topicLabel] || {
+      title: `Core Concept and Method Refresher for ${topicLabel}`,
+      objective: `Refresh the key terms, methods, and patterns used across ${topicLabel}.`,
+      lesson: `Before full lessons, quickly revisit the most important structures and methods so you can recognize question types faster and avoid basic errors.`,
+      workedExample: `Refresher workflow: identify task type, select method, execute with structure, then verify your output.`,
+      workedExampleSteps: [
+        'Step 1: List the top 5 recurring concepts in this course.',
+        'Step 2: Pair each concept with the method/framework you should use.',
+        'Step 3: Solve one short example for each concept with full steps shown.',
+        'Step 4: Write one error-prevention tip for each concept.'
+      ],
+      commonMistake: 'Starting advanced modules without a refreshed concept-method map.',
+      practiceTask: 'Build a quick-reference refresher sheet and test yourself on all listed concepts.',
+      progressCheckQuestion: 'What is the purpose of the refresher module?',
+      progressCheckOptions: ['Skip fundamentals', 'Refresh key methods before deeper modules', 'Replace full lessons', 'Avoid practice'],
+      correctOptionIndex: 1,
+      progressCheckExplanation: 'A refresher improves readiness and reduces avoidable errors in later modules.'
+    };
+
     return {
-      diagnostic: {
-        title: `Baseline Diagnostic for ${topicLabel}`,
-        objective: `Measure your starting point before formal ${topicLabel} instruction.`,
-        lesson: `Start with a short diagnostic to identify strengths, weak areas, and confidence gaps. This helps personalize your learning path and prevents skipping essential basics.`,
-        workedExample: `Diagnostic method: answer a short mixed set, classify errors by topic, then prioritize the highest-impact weak areas first.`,
-        workedExampleSteps: [
-          `Step 1: Attempt a short mixed diagnostic without help to capture true baseline ability in ${topicLabel}.`,
-          `Step 2: Mark each response as correct or incorrect and tag errors by skill area.`,
-          'Step 3: Rank weak areas by impact and frequency.',
-          'Step 4: Build a weekly study plan that starts with the top two weak areas before moving ahead.'
-        ],
-        commonMistake: 'Skipping diagnostics and jumping straight into advanced material.',
-        practiceTask: `Complete a 10-question baseline check and list your top 3 ${topicLabel} improvement targets.`,
-        progressCheckQuestion: 'What should happen before starting full course content?',
-        progressCheckOptions: ['Skip to final assessment', 'Run a baseline diagnostic', 'Only watch videos', 'Memorize answers'],
-        correctOptionIndex: 1,
-        progressCheckExplanation: 'Diagnostic-first learning prevents hidden gaps from blocking later progress.'
-      },
-      foundation: {
-        title: `Foundations of ${topicLabel}`,
-        objective: `Build core language, symbols, and methods used throughout ${topicLabel}.`,
-        lesson: `Strong execution begins with fundamentals. Learn the terms, structures, and core operations that every later module assumes you already understand.`,
-        workedExample: `Foundation workflow: identify the concept, choose the right method, apply it carefully, and check your result.`,
-        workedExampleSteps: [
-          `Step 1: Name the core concept being tested in ${topicLabel}.`,
-          'Step 2: Select the best method or framework for that concept.',
-          'Step 3: Execute each step in order, showing your full working.',
-          'Step 4: Verify your result using a quick check or alternate method.'
-        ],
-        commonMistake: 'Trying advanced tasks without mastering basic terminology and method selection.',
-        practiceTask: `Create a one-page foundation sheet with the most important terms and methods in ${topicLabel}.`,
-        progressCheckQuestion: 'Why are foundations important?',
-        progressCheckOptions: ['They are optional', 'They make advanced modules easier and more accurate', 'They only help with memorization', 'They replace all practice'],
-        correctOptionIndex: 1,
-        progressCheckExplanation: 'Foundations improve comprehension, speed, and accuracy in later modules.'
-      },
+      refresher,
       checkpoint: {
         title: `Spiral Review and Mastery Checkpoint`,
         objective: 'Consolidate earlier modules before final assessment.',
@@ -410,17 +418,16 @@ document.addEventListener('DOMContentLoaded', function () {
     const existingModules = asArray(baseCourse.modules);
     if (!existingModules.length) return baseCourse;
 
-    const alreadyScaffolded = existingModules.some((moduleItem) => /baseline diagnostic|foundations of|mastery checkpoint/i.test(String(moduleItem?.title || '')));
+    const alreadyScaffolded = existingModules.some((moduleItem) => /refresher|mastery checkpoint/i.test(String(moduleItem?.title || '')));
     if (alreadyScaffolded) return baseCourse;
 
     const focus = inferCourseFocus(baseCourse.courseTitle, fallbackTopic);
     const scaffold = buildFromScratchScaffold(focus);
-    const modules = [scaffold.diagnostic, scaffold.foundation].concat(existingModules).concat([scaffold.checkpoint]);
+    const modules = [scaffold.refresher].concat(existingModules).concat([scaffold.checkpoint]);
 
     const outcomes = asArray(baseCourse.learningOutcomes);
     const mergedOutcomes = outcomes.concat([
-      'Establish baseline proficiency before module progression.',
-      'Build fundamentals first, then advance to applied concepts.',
+      'Refresh key formulas, methods, and concepts before deep modules.',
       'Pass a mastery checkpoint before final assessment.'
     ]).filter(Boolean);
 
@@ -429,6 +436,23 @@ document.addEventListener('DOMContentLoaded', function () {
       modules,
       learningOutcomes: mergedOutcomes
     };
+  }
+
+  function normalizeCompletedSequence(values, totalModules) {
+    const total = Number(totalModules || 0);
+    const safeTotal = Number.isInteger(total) && total > 0 ? total : 0;
+    if (!safeTotal) return [];
+
+    const set = new Set(asArray(values)
+      .map((n) => Number(n))
+      .filter((n) => Number.isInteger(n) && n >= 0 && n < safeTotal));
+
+    const contiguous = [];
+    for (let idx = 0; idx < safeTotal; idx += 1) {
+      if (!set.has(idx)) break;
+      contiguous.push(idx);
+    }
+    return contiguous;
   }
 
   function buildSubjectTemplateCourse(topicName) {
@@ -1198,10 +1222,11 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     normalized.sort((a, b) => a - b);
+    const contiguous = normalizeCompletedSequence(normalized, moduleCount);
 
     progressState.pendingAdvance = null;
-    progressState.completedModules = new Set(normalized);
-    normalized.forEach((completedIdx) => setPassedModuleUi(completedIdx, completedIdx === freshIdx ? 'fresh' : 'restored'));
+    progressState.completedModules = new Set(contiguous);
+    contiguous.forEach((completedIdx) => setPassedModuleUi(completedIdx, completedIdx === freshIdx ? 'fresh' : 'restored'));
     updateProgressUi();
     renderProgressiveContent();
     updateProgressiveSections();
@@ -1371,6 +1396,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
   async function loadProgress() {
     const token = getToken();
+    if (String(progressState.sessionToken || '').startsWith('local-')) {
+      updateProgressUi();
+      return;
+    }
     if (!token || !topic || progressState.totalModules <= 0) {
       updateProgressUi();
       return;
@@ -1401,7 +1430,8 @@ document.addEventListener('DOMContentLoaded', function () {
         .filter((n) => Number.isInteger(n) && n >= 0 && n < progressState.totalModules)
         .sort((a, b) => a - b);
 
-      progressState.completedModules = new Set(mergedCompleted);
+      const contiguous = normalizeCompletedSequence(mergedCompleted, progressState.totalModules);
+      progressState.completedModules = new Set(contiguous);
 
       document.querySelectorAll('[data-module-status-indicator]').forEach((indicator) => {
         const idx = Number(indicator.getAttribute('data-module-status-indicator'));
@@ -1414,7 +1444,7 @@ document.addEventListener('DOMContentLoaded', function () {
           : '';
       });
 
-      mergedCompleted.forEach((idx) => setPassedModuleUi(idx, 'restored'));
+      contiguous.forEach((idx) => setPassedModuleUi(idx, 'restored'));
 
       updateProgressUi();
       renderProgressiveContent();
