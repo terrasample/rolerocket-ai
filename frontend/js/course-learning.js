@@ -34,6 +34,7 @@ document.addEventListener('DOMContentLoaded', function () {
     answerKey: [],
     answerExplanations: [],
     assessmentCompleted: false,
+    assessmentScore: null,
     lastProgressFeedback: null,
     pendingAdvance: null
   };
@@ -49,6 +50,519 @@ document.addEventListener('DOMContentLoaded', function () {
     selectedVoice: ''
   };
   const AUDIO_VOICE_PREF_KEY = 'courseAudioVoicePreference';
+
+  const LOCAL_CURRICULUM_COURSES = [
+    {
+      match: [/^csec mathematics$/i, /^csec math$/i],
+      course: {
+        courseTitle: 'CSEC Mathematics',
+        subtitle: 'Algebra, geometry, trigonometry, and statistics with graded checks.',
+        difficulty: 'Intermediate',
+        estimatedDuration: '8 weeks',
+        marketDemand: 'Required for many CAPE, tertiary, and career pathways.',
+        overview: 'This course teaches CSEC Mathematics through concept-first lessons, worked examples, and tested practice.',
+        learningOutcomes: [
+          'Solve algebraic equations and factorization questions.',
+          'Apply geometry and mensuration rules correctly.',
+          'Use Pythagoras and trig ratios in right-triangle problems.',
+          'Interpret data and calculate basic probability.'
+        ],
+        modules: [
+          {
+            title: 'Algebra Foundations',
+            objective: 'Simplify expressions and solve linear equations.',
+            lesson: 'Collect like terms, use inverse operations, and check your final answer by substitution.',
+            workedExample: '2x + 7 = 19 gives 2x = 12, so x = 6.',
+            commonMistake: 'Applying operations to only one side of an equation.',
+            practiceTask: 'Solve: 3x - 5 = 16.',
+            progressCheckQuestion: 'Solve 4x + 3 = 19.',
+            progressCheckOptions: ['x = 4', 'x = 5', 'x = 6', 'x = 7'],
+            correctOptionIndex: 0,
+            progressCheckExplanation: 'Subtract 3 to get 4x = 16, then divide by 4.'
+          },
+          {
+            title: 'Factorization and Quadratic Setup',
+            objective: 'Factorize common quadratic expressions.',
+            lesson: 'For x^2 + bx + c, find two numbers that add to b and multiply to c.',
+            workedExample: 'x^2 + 5x + 6 = (x + 2)(x + 3).',
+            commonMistake: 'Choosing numbers that multiply to c but do not add to b.',
+            practiceTask: 'Factorize: x^2 + 7x + 12.',
+            progressCheckQuestion: 'Factorize x^2 - 9.',
+            progressCheckOptions: ['(x - 9)(x + 1)', '(x - 3)(x + 3)', '(x - 3)^2', '(x + 9)(x - 1)'],
+            correctOptionIndex: 1,
+            progressCheckExplanation: 'Use difference of squares: a^2 - b^2 = (a-b)(a+b).'
+          },
+          {
+            title: 'Geometry and Mensuration',
+            objective: 'Use angle facts and area formulas in exam questions.',
+            lesson: 'Angles in a triangle sum to 180 deg. Area of rectangle = l x w. Area of circle = pi r^2.',
+            workedExample: 'Triangle angles 50 deg and 60 deg leave 70 deg for the third angle.',
+            commonMistake: 'Confusing perimeter formulas with area formulas.',
+            practiceTask: 'Find area of a rectangle with l = 9 cm and w = 4 cm.',
+            progressCheckQuestion: 'What is the sum of interior angles in a triangle?',
+            progressCheckOptions: ['90 deg', '180 deg', '270 deg', '360 deg'],
+            correctOptionIndex: 1,
+            progressCheckExplanation: 'The interior angle sum of every triangle is 180 deg.'
+          },
+          {
+            title: 'Trigonometry and Pythagoras',
+            objective: 'Solve right-triangle questions with Pythagoras and SOH-CAH-TOA.',
+            lesson: 'Use a^2 + b^2 = c^2 for side lengths and trig ratios for unknown angles or sides.',
+            workedExample: 'A right triangle with sides 6 and 8 has hypotenuse 10.',
+            commonMistake: 'Mixing opposite and adjacent sides when choosing trig ratios.',
+            practiceTask: 'Find tan(theta) if opposite = 4 and adjacent = 3.',
+            progressCheckQuestion: 'A die is rolled once. What is P(even)?',
+            progressCheckOptions: ['1/6', '1/3', '1/2', '2/3'],
+            correctOptionIndex: 2,
+            progressCheckExplanation: 'Even outcomes are 2, 4, and 6: 3 out of 6, so 1/2.'
+          }
+        ],
+        finalAssessment: [
+          {
+            question: 'Solve 3x + 4 = 19.',
+            options: ['x = 3', 'x = 4', 'x = 5', 'x = 6'],
+            correctOptionIndex: 2,
+            explanation: 'Subtract 4 to get 3x = 15, then divide by 3.'
+          },
+          {
+            question: 'Factorize x^2 + 7x + 12.',
+            options: ['(x + 3)(x + 4)', '(x + 2)(x + 6)', '(x + 1)(x + 12)', '(x - 3)(x - 4)'],
+            correctOptionIndex: 0,
+            explanation: '3 and 4 add to 7 and multiply to 12.'
+          },
+          {
+            question: 'Find the third angle of a triangle with angles 45 deg and 65 deg.',
+            options: ['60 deg', '70 deg', '80 deg', '90 deg'],
+            correctOptionIndex: 1,
+            explanation: '180 - 45 - 65 = 70.'
+          },
+          {
+            question: 'A right triangle has legs 6 and 8. Find the hypotenuse.',
+            options: ['10', '11', '12', '14'],
+            correctOptionIndex: 0,
+            explanation: 'sqrt(6^2 + 8^2) = sqrt(100) = 10.'
+          }
+        ]
+      }
+    },
+    {
+      match: [/^cape mathematics$/i, /^cape pure mathematics$/i, /^cape applied mathematics$/i],
+      course: {
+        courseTitle: 'CAPE Mathematics',
+        subtitle: 'Functions, calculus, vectors, and probability with graded checks.',
+        difficulty: 'Advanced',
+        estimatedDuration: '10 weeks',
+        marketDemand: 'High-value subject for STEM, engineering, and analytics pathways.',
+        overview: 'This CAPE course teaches advanced math concepts and validates mastery using objective tests.',
+        modules: [
+          {
+            title: 'Functions and Graphs',
+            objective: 'Interpret function notation and graph transformations.',
+            lesson: 'In y = f(x-a), the graph shifts right by a units.',
+            workedExample: 'y = (x-2)^2 shifts y = x^2 right by 2.',
+            commonMistake: 'Treating x-a as a left shift.',
+            practiceTask: 'Describe the shift in y = (x+3)^2.',
+            progressCheckQuestion: 'What does y = f(x-4) do?',
+            progressCheckOptions: ['Left 4', 'Right 4', 'Up 4', 'Down 4'],
+            correctOptionIndex: 1,
+            progressCheckExplanation: 'x-a shifts the graph right by a.'
+          },
+          {
+            title: 'Differentiation and Integration',
+            objective: 'Differentiate and integrate polynomial functions.',
+            lesson: 'Use the power rule for derivatives and reverse power rule for integrals.',
+            workedExample: 'd/dx (5x^3) = 15x^2, integral 9x^2 dx = 3x^3 + C.',
+            commonMistake: 'Forgetting + C after integration.',
+            practiceTask: 'Differentiate 4x^4 and integrate 8x^3.',
+            progressCheckQuestion: 'Differentiate y = x^4.',
+            progressCheckOptions: ['x^3', '4x^3', 'x^5', '4x^5'],
+            correctOptionIndex: 1,
+            progressCheckExplanation: 'Power rule: n*x^(n-1).'
+          },
+          {
+            title: 'Vectors',
+            objective: 'Add vectors and interpret vector magnitude.',
+            lesson: 'Add vectors component-wise and use magnitude formula sqrt(x^2 + y^2).',
+            workedExample: '(2,-1) + (4,3) = (6,2).',
+            commonMistake: 'Combining x and y components incorrectly.',
+            practiceTask: 'Find |(6,8)|.',
+            progressCheckQuestion: 'What is (1,2) + (3,5)?',
+            progressCheckOptions: ['(4,7)', '(3,7)', '(4,8)', '(5,7)'],
+            correctOptionIndex: 0,
+            progressCheckExplanation: 'Add x-values and y-values separately.'
+          },
+          {
+            title: 'Probability',
+            objective: 'Apply probability rules in discrete scenarios.',
+            lesson: 'For independent events, multiply probabilities.',
+            workedExample: 'If P(A)=0.4 and P(B)=0.5, P(A and B)=0.2.',
+            commonMistake: 'Adding when multiplication is required for independent events.',
+            practiceTask: 'Find P(A and B) for independent events 0.3 and 0.2.',
+            progressCheckQuestion: 'If P(A)=0.2 and P(B)=0.5 independent, what is P(A and B)?',
+            progressCheckOptions: ['0.1', '0.2', '0.3', '0.7'],
+            correctOptionIndex: 0,
+            progressCheckExplanation: 'Multiply 0.2 by 0.5.'
+          }
+        ],
+        finalAssessment: [
+          {
+            question: 'Differentiate y = 5x^3.',
+            options: ['5x^2', '10x^2', '15x^2', '15x^3'],
+            correctOptionIndex: 2,
+            explanation: '5*3x^2 = 15x^2.'
+          },
+          {
+            question: 'Integrate 9x^2 dx.',
+            options: ['3x^3 + C', '9x^3 + C', '18x + C', 'x^9 + C'],
+            correctOptionIndex: 0,
+            explanation: 'Integral of 9x^2 is 3x^3 + C.'
+          },
+          {
+            question: 'For independent events P(A)=0.4 and P(B)=0.5, find P(A and B).',
+            options: ['0.9', '0.45', '0.2', '0.1'],
+            correctOptionIndex: 2,
+            explanation: 'Multiply: 0.4 x 0.5 = 0.2.'
+          }
+        ]
+      }
+    }
+  ];
+
+  function normalizeTopic(topicName) {
+    return String(topicName || '').trim().toLowerCase();
+  }
+
+  function buildSubjectTemplateCourse(topicName) {
+    const name = normalizeTopic(topicName);
+    if (!name) return null;
+
+    const buildCourse = (spec) => ({
+      courseTitle: spec.courseTitle,
+      subtitle: spec.subtitle,
+      difficulty: spec.difficulty || 'Intermediate',
+      estimatedDuration: spec.estimatedDuration || '6-8 weeks',
+      marketDemand: spec.marketDemand,
+      overview: spec.overview,
+      learningOutcomes: asArray(spec.learningOutcomes),
+      resumeSignals: asArray(spec.resumeSignals),
+      modules: asArray(spec.modules),
+      finalAssessment: asArray(spec.finalAssessment),
+      interviewPrep: asArray(spec.interviewPrep)
+    });
+
+    if (name === 'csec english a') {
+      return buildCourse({
+        courseTitle: 'CSEC English A',
+        subtitle: 'Comprehension, grammar, and essay writing with practical testing.',
+        marketDemand: 'Strong English performance supports scholarships, interviews, and almost every profession.',
+        overview: 'This course teaches CSEC English A as a skill course: read critically, write clearly, and revise effectively.',
+        learningOutcomes: [
+          'Answer comprehension questions with evidence from passages.',
+          'Use grammar and punctuation accurately in formal writing.',
+          'Structure expository and argumentative essays effectively.',
+          'Edit and improve weak writing under timed conditions.'
+        ],
+        modules: [
+          {
+            title: 'Reading Comprehension Strategies',
+            objective: 'Find main idea, tone, and supporting evidence in passages.',
+            lesson: 'Annotate key phrases, identify author intent, and quote directly to support answers.',
+            workedExample: 'If a question asks for evidence, include a short quote and explain its meaning.',
+            commonMistake: 'Answering from memory instead of referencing the passage.',
+            practiceTask: 'Read one short passage and write two evidence-based responses.',
+            progressCheckQuestion: 'What should you include in a strong comprehension answer?',
+            progressCheckOptions: ['Only your opinion', 'A quote or detail from the passage', 'A longer question', 'A list of synonyms'],
+            correctOptionIndex: 1,
+            progressCheckExplanation: 'Strong answers reference and explain passage evidence.'
+          },
+          {
+            title: 'Grammar and Sentence Control',
+            objective: 'Apply subject-verb agreement, tense consistency, and punctuation correctly.',
+            lesson: 'Check each sentence for one clear subject, correct tense, and punctuation that clarifies meaning.',
+            workedExample: 'He go to school daily should be He goes to school daily.',
+            commonMistake: 'Mixing past and present tenses in the same paragraph.',
+            practiceTask: 'Rewrite five incorrect sentences into correct standard English.',
+            progressCheckQuestion: 'Choose the correct sentence.',
+            progressCheckOptions: ['She walk to class every day.', 'She walks to class every day.', 'She walking to class every day.', 'She walked to class every day now.'],
+            correctOptionIndex: 1,
+            progressCheckExplanation: 'Singular subject she takes singular present verb walks.'
+          },
+          {
+            title: 'Essay Structure and Development',
+            objective: 'Write clear introductions, body paragraphs, and conclusions.',
+            lesson: 'Use one main idea per paragraph and support it with explanation and examples.',
+            workedExample: 'A strong paragraph starts with a topic sentence, then evidence, then analysis.',
+            commonMistake: 'Listing points without explaining why they matter.',
+            practiceTask: 'Draft a five-paragraph essay outline on a school-related topic.',
+            progressCheckQuestion: 'What is the main role of a topic sentence?',
+            progressCheckOptions: ['To end the essay', 'To introduce the paragraph main idea', 'To add quotations only', 'To repeat the question'],
+            correctOptionIndex: 1,
+            progressCheckExplanation: 'The topic sentence guides the focus of that paragraph.'
+          },
+          {
+            title: 'Editing and Timed Writing',
+            objective: 'Improve writing quality under exam time constraints.',
+            lesson: 'Reserve final minutes to edit for clarity, grammar, and repetition.',
+            workedExample: 'Replace weak words like nice with specific descriptive vocabulary.',
+            commonMistake: 'Submitting first draft without proofreading.',
+            practiceTask: 'Write a timed 25-minute response and spend 5 minutes editing.',
+            progressCheckQuestion: 'What is the best final step before submitting an essay?',
+            progressCheckOptions: ['Add more random adjectives', 'Check grammar, clarity, and structure', 'Delete the conclusion', 'Rewrite the question'],
+            correctOptionIndex: 1,
+            progressCheckExplanation: 'Editing catches avoidable errors and improves marks.'
+          }
+        ],
+        finalAssessment: [
+          { question: 'Best evidence in comprehension should come from:', options: ['Your memory', 'The passage text', 'A different article', 'Class notes only'], correctOptionIndex: 1, explanation: 'Use direct evidence from the passage.' },
+          { question: 'Choose the correct sentence.', options: ['They was late.', 'They were late.', 'They is late.', 'They be late.'], correctOptionIndex: 1, explanation: 'Plural subject takes were.' },
+          { question: 'A body paragraph should include:', options: ['Only one sentence', 'Topic sentence and support', 'Only a quote', 'Only conclusion'], correctOptionIndex: 1, explanation: 'Good paragraphs include claim and support.' },
+          { question: 'What improves exam writing most at the end?', options: ['Ignoring punctuation', 'Quick proofreading', 'Changing topic', 'Removing introduction'], correctOptionIndex: 1, explanation: 'Proofreading improves correctness and clarity.' }
+        ]
+      });
+    }
+
+    if (name === 'csec information technology') {
+      return buildCourse({
+        courseTitle: 'CSEC Information Technology',
+        subtitle: 'Digital systems, productivity tools, and applied IT problem-solving.',
+        marketDemand: 'IT competence is foundational for modern office, technical, and remote roles.',
+        overview: 'This course teaches practical CSEC IT skills through hands-on concepts and checks.',
+        modules: [
+          { title: 'Computer Systems and Components', objective: 'Identify hardware, software, and system roles.', lesson: 'Understand input, process, output, and storage in real workflows.', workedExample: 'Keyboard is input, CPU processes, monitor outputs, SSD stores.', commonMistake: 'Confusing system software and application software.', practiceTask: 'Classify 10 common devices as input/output/storage/processing.', progressCheckQuestion: 'Which is an example of system software?', progressCheckOptions: ['Word processor', 'Operating system', 'Spreadsheet', 'Presentation app'], correctOptionIndex: 1, progressCheckExplanation: 'Operating systems manage hardware and software resources.' },
+          { title: 'Spreadsheets and Data Handling', objective: 'Use formulas and basic analysis functions.', lesson: 'Use SUM, AVERAGE, IF, and sorting for structured data decisions.', workedExample: 'SUM(B2:B10) totals a sales column quickly and accurately.', commonMistake: 'Typing results manually instead of using formulas.', practiceTask: 'Build a grade sheet with averages and pass/fail logic.', progressCheckQuestion: 'Which formula calculates the average in cells C1 to C5?', progressCheckOptions: ['=TOTAL(C1:C5)', '=AVG(C1:C5)', '=AVERAGE(C1:C5)', '=MEAN(C1:C5)'], correctOptionIndex: 2, progressCheckExplanation: 'AVERAGE is the standard spreadsheet function.' },
+          { title: 'Networking and Cyber Safety', objective: 'Understand network types and safe digital practices.', lesson: 'Know LAN/WAN basics and apply password, phishing, and data safety habits.', workedExample: 'A school lab network is usually LAN; internet is WAN.', commonMistake: 'Reusing weak passwords across platforms.', practiceTask: 'Create a cyber-safety checklist for students.', progressCheckQuestion: 'Which is the safest password practice?', progressCheckOptions: ['Use birthday only', 'Use one password everywhere', 'Use long unique passwords', 'Share password with friends'], correctOptionIndex: 2, progressCheckExplanation: 'Unique long passwords reduce breach risk.' },
+          { title: 'Problem Solving and Algorithm Basics', objective: 'Break tasks into step-by-step logic.', lesson: 'Use flowchart-style thinking: input, process, output, decision.', workedExample: 'Student grade program: input marks, compute average, output grade.', commonMistake: 'Skipping edge-case checks before final output.', practiceTask: 'Write pseudocode to classify scores as pass/fail.', progressCheckQuestion: 'An algorithm is best described as:', progressCheckOptions: ['A random guess', 'A step-by-step procedure', 'A hardware device', 'A network cable'], correctOptionIndex: 1, progressCheckExplanation: 'Algorithms are ordered procedures for solving problems.' }
+        ],
+        finalAssessment: [
+          { question: 'Which item is an output device?', options: ['Keyboard', 'Scanner', 'Monitor', 'Microphone'], correctOptionIndex: 2, explanation: 'Monitor displays output.' },
+          { question: 'Which function returns an average?', options: ['=SUM()', '=AVERAGE()', '=COUNT()', '=IF()'], correctOptionIndex: 1, explanation: 'AVERAGE computes mean value.' },
+          { question: 'LAN stands for:', options: ['Long Access Node', 'Local Area Network', 'Linked Application Network', 'Logical Array Network'], correctOptionIndex: 1, explanation: 'LAN means Local Area Network.' },
+          { question: 'A strong password is:', options: ['Short and simple', 'Same on all sites', 'Unique and complex', 'Shared with team'], correctOptionIndex: 2, explanation: 'Unique complexity improves security.' }
+        ]
+      });
+    }
+
+    if (name === 'csec principles of accounts' || name === 'cape accounting') {
+      const isCape = name.includes('cape');
+      return buildCourse({
+        courseTitle: isCape ? 'CAPE Accounting' : 'CSEC Principles of Accounts',
+        subtitle: isCape ? 'Financial statements, controls, and analysis for advanced accounting.' : 'Double entry, ledgers, and financial statement basics.',
+        difficulty: isCape ? 'Advanced' : 'Intermediate',
+        marketDemand: 'Accounting skills are in demand across business, finance, and entrepreneurship.',
+        overview: 'This course teaches accounting through transactions, controls, and reporting decisions.',
+        modules: [
+          { title: 'Double Entry Principles', objective: 'Record transactions with correct debit/credit logic.', lesson: 'Every transaction affects at least two accounts while keeping records balanced.', workedExample: 'Cash sale increases Cash (Dr) and Sales (Cr).', commonMistake: 'Posting both sides of entry to the same direction.', practiceTask: 'Journalize five simple business transactions.', progressCheckQuestion: 'In double entry, each transaction must:', progressCheckOptions: ['Affect one account only', 'Balance debits and credits', 'Use cash account only', 'Avoid ledger posting'], correctOptionIndex: 1, progressCheckExplanation: 'Debits must equal credits for each transaction.' },
+          { title: 'Ledgers and Trial Balance', objective: 'Post journal entries and prepare trial balance.', lesson: 'Transfer entries to ledger accounts and verify arithmetic accuracy with trial balance.', workedExample: 'Ledger posting groups transactions by account before statement preparation.', commonMistake: 'Using wrong account titles or mismatched balances.', practiceTask: 'Post a short journal set to ledgers and extract trial balance.', progressCheckQuestion: 'Main purpose of trial balance is to:', progressCheckOptions: ['Calculate tax only', 'Check debit-credit equality', 'Replace financial statements', 'Record inventory counts'], correctOptionIndex: 1, progressCheckExplanation: 'Trial balance checks arithmetic consistency of postings.' },
+          { title: isCape ? 'Financial Reporting and Adjustments' : 'Income Statement and Balance Sheet', objective: isCape ? 'Apply accruals, depreciation, and adjustments.' : 'Prepare basic end-of-period statements.', lesson: isCape ? 'Adjustments ensure statements reflect true period performance and position.' : 'Summarize income, expenses, assets, liabilities, and equity correctly.', workedExample: isCape ? 'Prepaid expense adjustment reduces current period expense.' : 'Profit equals revenue minus expenses.', commonMistake: 'Mixing capital and revenue items.', practiceTask: isCape ? 'Prepare adjusted entries for depreciation and accruals.' : 'Prepare simple income statement from trial balance.', progressCheckQuestion: 'Profit is calculated as:', progressCheckOptions: ['Assets - liabilities', 'Revenue - expenses', 'Cash - drawings', 'Sales + expenses'], correctOptionIndex: 1, progressCheckExplanation: 'Profit measures net operating result of the period.' },
+          { title: 'Controls and Decision Use', objective: 'Use accounting records to support business decisions.', lesson: 'Interpret ratios and trends to evaluate performance and risk.', workedExample: 'Gross profit margin helps compare efficiency across periods.', commonMistake: 'Relying on one metric without context.', practiceTask: 'Compute and interpret gross profit margin from sample data.', progressCheckQuestion: 'Accounting information is most useful when it is:', progressCheckOptions: ['Late and incomplete', 'Accurate and timely', 'Unverified and informal', 'Hidden from managers'], correctOptionIndex: 1, progressCheckExplanation: 'Decision-making needs accurate and timely information.' }
+        ],
+        finalAssessment: [
+          { question: 'In double entry, total debits must:', options: ['Exceed credits', 'Equal credits', 'Ignore credits', 'Be posted yearly only'], correctOptionIndex: 1, explanation: 'Balance is a core accounting rule.' },
+          { question: 'Trial balance helps detect:', options: ['All fraud automatically', 'Debit-credit imbalances', 'Cash theft only', 'Inventory quality'], correctOptionIndex: 1, explanation: 'It checks arithmetic posting equality.' },
+          { question: 'Profit equals:', options: ['Revenue - expenses', 'Assets - liabilities', 'Capital + drawings', 'Expenses - revenue'], correctOptionIndex: 0, explanation: 'Net profit is revenue less expenses.' },
+          { question: 'Best quality of financial info is:', options: ['Vague and delayed', 'Accurate and timely', 'Unstructured', 'Private to one person'], correctOptionIndex: 1, explanation: 'Useful information must be accurate and timely.' }
+        ]
+      });
+    }
+
+    if (name === 'cape biology' || name === 'cape chemistry' || name === 'cape economics' || name === 'communication studies') {
+      if (name === 'cape biology') {
+        return buildCourse({
+          courseTitle: 'CAPE Biology',
+          subtitle: 'Cells, genetics, physiology, and ecology for advanced science readiness.',
+          marketDemand: 'Biology supports nursing, medicine, laboratory science, and public health pathways.',
+          overview: 'This course teaches CAPE Biology through concept links, examples, and objective checks.',
+          modules: [
+            { title: 'Cell Structure and Function', objective: 'Explain organelles and transport processes.', lesson: 'Connect each organelle to its role in cellular survival and efficiency.', workedExample: 'Mitochondria support ATP production for active transport.', commonMistake: 'Listing organelles without function relationships.', practiceTask: 'Match five organelles to key functions.', progressCheckQuestion: 'Which organelle is primarily responsible for ATP production?', progressCheckOptions: ['Nucleus', 'Mitochondrion', 'Ribosome', 'Golgi body'], correctOptionIndex: 1, progressCheckExplanation: 'Mitochondria produce ATP in aerobic respiration.' },
+            { title: 'Genetics and Inheritance', objective: 'Apply genotype-phenotype and inheritance patterns.', lesson: 'Use Punnett squares to model probability of offspring traits.', workedExample: 'Hh x Hh gives 1 HH : 2 Hh : 1 hh genotype ratio.', commonMistake: 'Confusing dominant trait frequency with genotype frequency.', practiceTask: 'Complete one monohybrid cross and explain probabilities.', progressCheckQuestion: 'A heterozygous cross Hh x Hh yields what chance of hh?', progressCheckOptions: ['0%', '25%', '50%', '75%'], correctOptionIndex: 1, progressCheckExplanation: 'One of four outcomes is hh in monohybrid cross.' },
+            { title: 'Human Physiology', objective: 'Explain homeostasis and system interactions.', lesson: 'Understand how nervous, endocrine, respiratory, and circulatory systems coordinate.', workedExample: 'During exercise, breathing and heart rate increase to meet oxygen demand.', commonMistake: 'Treating systems as isolated rather than interdependent.', practiceTask: 'Trace oxygen pathway from inhalation to cellular use.', progressCheckQuestion: 'Homeostasis means:', progressCheckOptions: ['Permanent body temperature rise', 'Stable internal conditions', 'Only digestion', 'Only blood pressure control'], correctOptionIndex: 1, progressCheckExplanation: 'Homeostasis maintains internal balance.' },
+            { title: 'Ecology and Sustainability', objective: 'Analyze ecosystems, energy flow, and human impact.', lesson: 'Use food chains/webs and population interactions to explain ecosystem changes.', workedExample: 'Removing a predator can increase prey population and destabilize vegetation.', commonMistake: 'Ignoring indirect effects in ecosystem change.', practiceTask: 'Draw a local food web and identify two human-impact risks.', progressCheckQuestion: 'Primary producers in ecosystems are usually:', progressCheckOptions: ['Carnivores', 'Plants and algae', 'Top predators', 'Decomposers only'], correctOptionIndex: 1, progressCheckExplanation: 'Producers convert light to chemical energy.' }
+          ],
+          finalAssessment: [
+            { question: 'ATP is mainly produced in:', options: ['Nucleus', 'Mitochondria', 'Lysosome', 'Chloroplast'], correctOptionIndex: 1, explanation: 'Mitochondria are ATP production sites.' },
+            { question: 'Hh x Hh gives hh probability of:', options: ['25%', '50%', '75%', '100%'], correctOptionIndex: 0, explanation: 'One of four genotype outcomes is hh.' },
+            { question: 'Homeostasis refers to:', options: ['Growth only', 'Stable internal conditions', 'Genetic mutation', 'Protein synthesis only'], correctOptionIndex: 1, explanation: 'Homeostasis keeps internal conditions stable.' },
+            { question: 'Producers are:', options: ['Predators', 'Plants/algae', 'Decomposers only', 'Scavengers'], correctOptionIndex: 1, explanation: 'Producers form ecosystem energy base.' }
+          ]
+        });
+      }
+
+      if (name === 'cape chemistry') {
+        return buildCourse({
+          courseTitle: 'CAPE Chemistry',
+          subtitle: 'Atomic structure, bonding, calculations, and reaction analysis.',
+          marketDemand: 'Chemistry supports medicine, pharmacy, engineering, and lab-science tracks.',
+          overview: 'This course teaches CAPE Chemistry with exam-style methods and checks.',
+          modules: [
+            { title: 'Atomic Structure and Periodicity', objective: 'Relate electron arrangement to chemical behavior.', lesson: 'Use periodic trends to predict reactivity and bonding tendencies.', workedExample: 'Group I metals lose one electron easily and are highly reactive.', commonMistake: 'Confusing atomic number with mass number.', practiceTask: 'Compare periodic trends for radius and ionization energy.', progressCheckQuestion: 'Atomic number equals the number of:', progressCheckOptions: ['Neutrons', 'Protons', 'Electrons plus neutrons', 'Nucleons only'], correctOptionIndex: 1, progressCheckExplanation: 'Atomic number is defined by proton count.' },
+            { title: 'Bonding and Structure', objective: 'Distinguish ionic, covalent, and metallic bonding.', lesson: 'Identify bond type from element properties and electronegativity differences.', workedExample: 'NaCl forms ionic bonds through electron transfer.', commonMistake: 'Classifying all compounds with nonmetals as ionic.', practiceTask: 'Classify ten compounds by dominant bond type.', progressCheckQuestion: 'Which compound is mainly ionic?', progressCheckOptions: ['H2O', 'CO2', 'NaCl', 'CH4'], correctOptionIndex: 2, progressCheckExplanation: 'NaCl is ionic due to metal-nonmetal electron transfer.' },
+            { title: 'Stoichiometry', objective: 'Use mole relationships in balanced equations.', lesson: 'Convert between mass, moles, and particles to solve reaction quantities.', workedExample: 'Moles = mass / molar mass.', commonMistake: 'Using unbalanced equations for mole ratio problems.', practiceTask: 'Calculate moles in 18 g of water.', progressCheckQuestion: 'Molar mass of H2O is:', progressCheckOptions: ['16 g/mol', '18 g/mol', '20 g/mol', '2 g/mol'], correctOptionIndex: 1, progressCheckExplanation: '2(1) + 16 = 18 g/mol.' },
+            { title: 'Acids, Bases, and Titration', objective: 'Interpret pH and neutralization calculations.', lesson: 'Acids donate H+, bases accept H+ or produce OH- in aqueous solutions.', workedExample: 'Strong acid plus strong base can produce salt and water.', commonMistake: 'Assuming all acids are equally strong.', practiceTask: 'Solve one neutralization calculation from sample titration data.', progressCheckQuestion: 'pH values below 7 are:', progressCheckOptions: ['Basic', 'Neutral', 'Acidic', 'Always strong only'], correctOptionIndex: 2, progressCheckExplanation: 'pH below 7 indicates acidic solution.' }
+          ],
+          finalAssessment: [
+            { question: 'Atomic number represents:', options: ['Neutron count', 'Proton count', 'Mass number', 'Electron shells'], correctOptionIndex: 1, explanation: 'Proton count defines element identity.' },
+            { question: 'NaCl bonding is mainly:', options: ['Covalent', 'Metallic', 'Ionic', 'Hydrogen'], correctOptionIndex: 2, explanation: 'Electron transfer gives ionic bond.' },
+            { question: 'Molar mass of H2O is:', options: ['16', '18', '20', '2'], correctOptionIndex: 1, explanation: 'Water molar mass is 18 g/mol.' },
+            { question: 'A solution with pH 3 is:', options: ['Neutral', 'Basic', 'Acidic', 'Buffer only'], correctOptionIndex: 2, explanation: 'pH less than 7 is acidic.' }
+          ]
+        });
+      }
+
+      if (name === 'cape economics') {
+        return buildCourse({
+          courseTitle: 'CAPE Economics',
+          subtitle: 'Micro and macro concepts for policy and business decisions.',
+          marketDemand: 'Economics supports strategy, policy, business, and finance pathways.',
+          overview: 'This course teaches CAPE Economics with practical decision-focused examples and tests.',
+          modules: [
+            { title: 'Demand, Supply, and Equilibrium', objective: 'Model price/quantity behavior in markets.', lesson: 'Demand slopes downward, supply slopes upward; intersection gives equilibrium.', workedExample: 'If demand rises and supply is fixed, price tends to increase.', commonMistake: 'Confusing movement along curve with curve shift.', practiceTask: 'Draw demand/supply shifts for two market scenarios.', progressCheckQuestion: 'A rightward shift in demand usually causes:', progressCheckOptions: ['Lower price', 'Higher equilibrium price', 'No change', 'Immediate shortage of money'], correctOptionIndex: 1, progressCheckExplanation: 'Higher demand increases equilibrium price ceteris paribus.' },
+            { title: 'Elasticity', objective: 'Calculate and interpret elasticity values.', lesson: 'Elasticity measures responsiveness of quantity to price or income changes.', workedExample: 'If quantity changes a lot from small price change, demand is elastic.', commonMistake: 'Using absolute change instead of percentage change.', practiceTask: 'Classify elasticity from sample percentage data.', progressCheckQuestion: 'Price elasticity greater than 1 means:', progressCheckOptions: ['Inelastic demand', 'Unit elastic demand', 'Elastic demand', 'No relationship'], correctOptionIndex: 2, progressCheckExplanation: 'Values above 1 indicate elastic demand.' },
+            { title: 'Macroeconomic Indicators', objective: 'Interpret GDP, inflation, and unemployment trends.', lesson: 'Use indicators together to evaluate economic performance, not in isolation.', workedExample: 'High inflation with low growth can reduce purchasing power.', commonMistake: 'Treating GDP growth alone as complete welfare measure.', practiceTask: 'Review a data table and identify major macro risks.', progressCheckQuestion: 'Inflation primarily tracks:', progressCheckOptions: ['Employment count', 'General price level change', 'Export quantity only', 'Interest payments only'], correctOptionIndex: 1, progressCheckExplanation: 'Inflation is change in general price level.' },
+            { title: 'Fiscal and Monetary Policy', objective: 'Evaluate policy tools and expected effects.', lesson: 'Governments use fiscal policy; central banks use monetary policy to stabilize economy.', workedExample: 'Higher interest rates can reduce borrowing-driven demand.', commonMistake: 'Assuming one policy tool solves every macro problem quickly.', practiceTask: 'Propose one fiscal and one monetary response for high inflation.', progressCheckQuestion: 'Who usually controls monetary policy?', progressCheckOptions: ['Schools', 'Central bank', 'Private firms', 'Tourism board'], correctOptionIndex: 1, progressCheckExplanation: 'Central banks set key monetary tools.' }
+          ],
+          finalAssessment: [
+            { question: 'Demand and supply intersection gives:', options: ['Elasticity point', 'Equilibrium', 'GDP', 'Inflation rate'], correctOptionIndex: 1, explanation: 'Intersection determines equilibrium.' },
+            { question: 'Elasticity > 1 implies:', options: ['Inelastic', 'Elastic', 'Unitary only', 'No demand'], correctOptionIndex: 1, explanation: 'Above 1 means elastic response.' },
+            { question: 'Inflation measures:', options: ['Job quality', 'General price level changes', 'Population growth', 'Interest income'], correctOptionIndex: 1, explanation: 'Inflation tracks price level movement.' },
+            { question: 'Monetary policy is typically managed by:', options: ['Parliament only', 'Central bank', 'Private NGOs', 'Courts'], correctOptionIndex: 1, explanation: 'Central bank controls key monetary levers.' }
+          ]
+        });
+      }
+
+      return buildCourse({
+        courseTitle: 'Communication Studies',
+        subtitle: 'Audience analysis, message design, and effective delivery.',
+        marketDemand: 'Communication skills are critical in leadership, business, media, and service roles.',
+        overview: 'This course teaches communication as a practical performance skill with assessments.',
+        modules: [
+          { title: 'Audience and Purpose', objective: 'Adapt message to audience needs and context.', lesson: 'Define who you are speaking to and what action you want from them.', workedExample: 'A formal presentation needs different language than peer discussion.', commonMistake: 'Using same tone for all audiences.', practiceTask: 'Rewrite one message for teacher, peer, and employer audiences.', progressCheckQuestion: 'Best first step before preparing a speech is:', progressCheckOptions: ['Choose fancy words', 'Identify audience and purpose', 'Memorize random facts', 'Design slides first'], correctOptionIndex: 1, progressCheckExplanation: 'Audience and purpose guide all message choices.' },
+          { title: 'Structure and Clarity', objective: 'Organize openings, body points, and closing effectively.', lesson: 'Use clear transitions and one key message per section.', workedExample: 'Tell them what you will say, say it, then summarize.', commonMistake: 'Jumping between points without transitions.', practiceTask: 'Create a 3-point speaking outline for a social issue.', progressCheckQuestion: 'A clear closing should:', progressCheckOptions: ['Introduce new major ideas', 'Summarize key message and call to action', 'Ignore audience', 'Repeat opening only'], correctOptionIndex: 1, progressCheckExplanation: 'Strong closings reinforce purpose and action.' },
+          { title: 'Verbal and Non-Verbal Delivery', objective: 'Improve voice, pacing, and body language.', lesson: 'Control pace, eye contact, posture, and emphasis for confidence and clarity.', workedExample: 'Pausing briefly after key points improves listener retention.', commonMistake: 'Speaking too fast and avoiding eye contact.', practiceTask: 'Record a 2-minute presentation and self-evaluate delivery.', progressCheckQuestion: 'Effective pacing helps because it:', progressCheckOptions: ['Confuses listeners', 'Improves understanding', 'Removes key points', 'Eliminates need for structure'], correctOptionIndex: 1, progressCheckExplanation: 'Clear pacing helps audience follow ideas.' },
+          { title: 'Critical Media and Argumentation', objective: 'Evaluate claims and evidence in public communication.', lesson: 'Differentiate facts, opinions, and weak reasoning patterns.', workedExample: 'A claim without verifiable evidence should be questioned.', commonMistake: 'Accepting persuasive tone as proof.', practiceTask: 'Analyze one article and identify claim, evidence, and assumptions.', progressCheckQuestion: 'A strong argument needs:', progressCheckOptions: ['Only emotion', 'Clear claim with evidence', 'Loud delivery', 'Complex vocabulary only'], correctOptionIndex: 1, progressCheckExplanation: 'Evidence-backed claims are core to strong argumentation.' }
+        ],
+        finalAssessment: [
+          { question: 'Before writing a speech, identify:', options: ['Slide colors', 'Audience and purpose', 'Quotes only', 'Background music'], correctOptionIndex: 1, explanation: 'Audience and purpose determine strategy.' },
+          { question: 'A strong conclusion should:', options: ['Add unrelated ideas', 'Summarize and call to action', 'End abruptly', 'Repeat every sentence'], correctOptionIndex: 1, explanation: 'Conclusions reinforce key message.' },
+          { question: 'Good pacing in speaking:', options: ['Reduces comprehension', 'Improves comprehension', 'Removes confidence', 'Increases confusion'], correctOptionIndex: 1, explanation: 'Pacing supports audience processing.' },
+          { question: 'Strong arguments require:', options: ['Evidence', 'Only emotion', 'Only speed', 'Only visuals'], correctOptionIndex: 0, explanation: 'Evidence supports validity of claims.' }
+        ]
+      });
+    }
+
+    if (name === 'heart customer service' || name === 'heart practical nursing support' || name === 'nvq-j electrical installation' || name === 'nvq-j welding and fabrication') {
+      if (name === 'heart customer service') {
+        return buildCourse({
+          courseTitle: 'HEART Customer Service',
+          subtitle: 'Service standards, communication, and issue resolution skills.',
+          marketDemand: 'Customer service competence supports BPO, hospitality, retail, and front-office work.',
+          overview: 'This course trains practical customer-facing behaviors and quality outcomes.',
+          modules: [
+            { title: 'Service Fundamentals', objective: 'Apply professional service standards consistently.', lesson: 'Use greeting, listening, clarity, and closure structure in every interaction.', workedExample: 'Confirm the customer issue before proposing a solution.', commonMistake: 'Responding before fully understanding customer concern.', practiceTask: 'Role-play three customer interaction openings.', progressCheckQuestion: 'Best first service behavior is to:', progressCheckOptions: ['Interrupt quickly', 'Listen and confirm issue', 'Transfer immediately', 'Use scripted apology only'], correctOptionIndex: 1, progressCheckExplanation: 'Listening and confirmation prevent misunderstanding.' },
+            { title: 'Complaint Handling and Recovery', objective: 'De-escalate issues and resolve professionally.', lesson: 'Use empathy, clear next steps, and time expectations to rebuild trust.', workedExample: 'A calm acknowledgment plus timeline lowers frustration quickly.', commonMistake: 'Defensive language that blames the customer.', practiceTask: 'Write a 5-step recovery response for delayed service.', progressCheckQuestion: 'In complaint recovery, you should first:', progressCheckOptions: ['Blame policy', 'Acknowledge concern', 'End the call', 'Ignore emotion'], correctOptionIndex: 1, progressCheckExplanation: 'Acknowledgment opens the path to resolution.' },
+            { title: 'Professional Communication', objective: 'Use clear, respectful, and concise language.', lesson: 'Short, specific messages reduce errors and improve customer confidence.', workedExample: 'State what will happen, by when, and who is responsible.', commonMistake: 'Using vague timelines like soon with no date/time.', practiceTask: 'Rewrite three unclear messages into clear service updates.', progressCheckQuestion: 'A clear service update should include:', progressCheckOptions: ['No timeline', 'Action and timeline', 'Only apology', 'Only customer name'], correctOptionIndex: 1, progressCheckExplanation: 'Action + timeline creates confidence.' },
+            { title: 'Quality and Performance', objective: 'Track service quality using measurable indicators.', lesson: 'Use first-response time, resolution rate, and customer satisfaction to improve performance.', workedExample: 'Weekly review of repeat complaints can reveal process gaps.', commonMistake: 'Focusing only on speed while ignoring resolution quality.', practiceTask: 'Create a mini quality dashboard with three KPIs.', progressCheckQuestion: 'Which metric best reflects solved issues?', progressCheckOptions: ['Call volume only', 'Resolution rate', 'Shift length', 'Email count only'], correctOptionIndex: 1, progressCheckExplanation: 'Resolution rate reflects outcome quality.' }
+          ],
+          finalAssessment: [
+            { question: 'Best first step in service call is:', options: ['Argue quickly', 'Listen and confirm need', 'Transfer immediately', 'Ignore tone'], correctOptionIndex: 1, explanation: 'Understanding first improves resolution quality.' },
+            { question: 'Complaint handling starts with:', options: ['Defending policy', 'Acknowledgment and empathy', 'Closing call', 'Escalation always'], correctOptionIndex: 1, explanation: 'Empathy and acknowledgment de-escalate conflict.' },
+            { question: 'Clear update should include:', options: ['No action', 'Action and timeline', 'Only apology', 'Only greeting'], correctOptionIndex: 1, explanation: 'Customers need concrete next steps.' },
+            { question: 'Resolution quality is best tracked by:', options: ['Shift hours', 'Resolution rate', 'Desk location', 'Login time'], correctOptionIndex: 1, explanation: 'Resolution rate captures solved outcomes.' }
+          ]
+        });
+      }
+
+      if (name === 'heart practical nursing support') {
+        return buildCourse({
+          courseTitle: 'HEART Practical Nursing Support',
+          subtitle: 'Patient care basics, safety, communication, and documentation.',
+          marketDemand: 'Practical nursing support skills are needed in clinics, care homes, and hospitals.',
+          overview: 'This course teaches safe and professional patient-support fundamentals.',
+          modules: [
+            { title: 'Infection Prevention and Hygiene', objective: 'Apply basic infection control procedures.', lesson: 'Hand hygiene, PPE use, and clean technique reduce transmission risk.', workedExample: 'Handwashing before and after each patient contact is mandatory.', commonMistake: 'Touching clean surfaces with contaminated gloves.', practiceTask: 'List and practice 6 hand hygiene moments.', progressCheckQuestion: 'Most effective routine infection control action is:', progressCheckOptions: ['Skipping gloves', 'Frequent hand hygiene', 'Reusing masks all week', 'Avoiding documentation'], correctOptionIndex: 1, progressCheckExplanation: 'Hand hygiene is core infection prevention practice.' },
+            { title: 'Basic Patient Observation', objective: 'Observe and report patient condition changes accurately.', lesson: 'Record vital signs and escalate unusual findings promptly.', workedExample: 'A sudden breathing change should be reported immediately.', commonMistake: 'Delaying escalation when signs are abnormal.', practiceTask: 'Practice recording and reporting a mock vital-sign chart.', progressCheckQuestion: 'If a patient shows sudden distress, you should:', progressCheckOptions: ['Wait until shift ends', 'Report immediately to supervisor', 'Ignore and continue routine', 'Only write it later'], correctOptionIndex: 1, progressCheckExplanation: 'Rapid escalation protects patient safety.' },
+            { title: 'Patient Communication and Dignity', objective: 'Communicate respectfully and protect patient dignity.', lesson: 'Use clear explanations, consent language, and privacy-centered behavior.', workedExample: 'Explain each care step before performing it.', commonMistake: 'Discussing patient details in public spaces.', practiceTask: 'Role-play respectful communication in two care scenarios.', progressCheckQuestion: 'Good patient communication should be:', progressCheckOptions: ['Rushed and unclear', 'Clear and respectful', 'Only technical', 'Non-verbal only'], correctOptionIndex: 1, progressCheckExplanation: 'Patients need clarity and respect for trust and safety.' },
+            { title: 'Documentation and Handover', objective: 'Record care actions clearly for continuity.', lesson: 'Accurate notes and concise handovers reduce treatment errors.', workedExample: 'Document time, observation, action, and who was informed.', commonMistake: 'Using vague notes without times or actions.', practiceTask: 'Complete one structured handover note from a sample case.', progressCheckQuestion: 'Strong handover notes should include:', progressCheckOptions: ['Guesswork only', 'Clear observations and actions', 'No timing', 'Only personal opinions'], correctOptionIndex: 1, progressCheckExplanation: 'Clear factual records support continuity of care.' }
+          ],
+          finalAssessment: [
+            { question: 'Key infection prevention routine is:', options: ['Skipping PPE', 'Regular hand hygiene', 'Avoiding cleaning', 'Sharing gloves'], correctOptionIndex: 1, explanation: 'Hand hygiene is essential.' },
+            { question: 'Sudden patient distress requires:', options: ['Delayed reporting', 'Immediate escalation', 'No action', 'Shift-end note only'], correctOptionIndex: 1, explanation: 'Immediate escalation protects patient.' },
+            { question: 'Respectful care communication is:', options: ['Clear and respectful', 'Fast and vague', 'Silent only', 'Technical jargon only'], correctOptionIndex: 0, explanation: 'Patients need understandable respectful communication.' },
+            { question: 'Good documentation should be:', options: ['Vague', 'Timed and factual', 'Opinion-only', 'Optional'], correctOptionIndex: 1, explanation: 'Factual timed notes improve continuity.' }
+          ]
+        });
+      }
+
+      if (name === 'nvq-j electrical installation') {
+        return buildCourse({
+          courseTitle: 'NVQ-J Electrical Installation',
+          subtitle: 'Safety, circuit fundamentals, wiring practice, and testing.',
+          marketDemand: 'Electrical installation skills support construction, facilities, and technical migration pathways.',
+          overview: 'This course teaches practical electrical installation foundations with trade-safe discipline.',
+          modules: [
+            { title: 'Electrical Safety and Regulations', objective: 'Apply foundational safety procedures consistently.', lesson: 'Lockout/tagout, insulation checks, and PPE use prevent severe accidents.', workedExample: 'Always isolate supply before touching conductors.', commonMistake: 'Testing live circuits without proper isolation protocol.', practiceTask: 'Create a pre-work safety checklist for a simple installation task.', progressCheckQuestion: 'First step before electrical work is to:', progressCheckOptions: ['Start wiring immediately', 'Isolate and verify supply is off', 'Measure current with bare hands', 'Skip PPE'], correctOptionIndex: 1, progressCheckExplanation: 'Isolation and verification are mandatory before work.' },
+            { title: 'Circuit Fundamentals', objective: 'Understand current, voltage, resistance, and simple circuits.', lesson: 'Use Ohm law relationships and component roles to troubleshoot basic systems.', workedExample: 'V = I x R links voltage, current, and resistance.', commonMistake: 'Confusing series and parallel behavior.', practiceTask: 'Solve three basic Ohm law calculation problems.', progressCheckQuestion: 'Ohm law is:', progressCheckOptions: ['P = IV', 'V = IR', 'E = mc^2', 'F = ma'], correctOptionIndex: 1, progressCheckExplanation: 'V = IR is the core Ohm law formula.' },
+            { title: 'Wiring and Installation Practice', objective: 'Execute basic domestic wiring correctly.', lesson: 'Follow wiring diagrams and maintain neat, secure terminations.', workedExample: 'Proper color coding supports safe maintenance and fault tracing.', commonMistake: 'Loose terminations causing overheating risk.', practiceTask: 'Draft a wiring plan for one light and one socket circuit.', progressCheckQuestion: 'A poor connection commonly causes:', progressCheckOptions: ['Better efficiency', 'Overheating', 'Lower resistance always', 'No effect'], correctOptionIndex: 1, progressCheckExplanation: 'Loose/poor connections can overheat and fail.' },
+            { title: 'Testing and Fault Finding', objective: 'Use basic test procedures for continuity and safety.', lesson: 'Test continuity, insulation, and polarity before handover.', workedExample: 'Continuity confirms complete path in intended conductors.', commonMistake: 'Skipping tests after installation work.', practiceTask: 'Prepare a test report template for simple circuit checks.', progressCheckQuestion: 'Testing should be done:', progressCheckOptions: ['Only if fault appears', 'Before handover every time', 'Never on small jobs', 'Only by customer'], correctOptionIndex: 1, progressCheckExplanation: 'Testing is mandatory before commissioning/handover.' }
+          ],
+          finalAssessment: [
+            { question: 'Before electrical work, first action is:', options: ['Begin wiring', 'Isolate and verify supply', 'Skip PPE', 'Touch conductors'], correctOptionIndex: 1, explanation: 'Isolation and verification first.' },
+            { question: 'Ohm law is:', options: ['V=IR', 'P=IV only', 'Q=mcΔT', 'F=ma'], correctOptionIndex: 0, explanation: 'V=IR relates voltage, current, resistance.' },
+            { question: 'Loose terminations often cause:', options: ['Cooling', 'Overheating', 'No effect', 'Automatic grounding'], correctOptionIndex: 1, explanation: 'Poor contact increases heat risk.' },
+            { question: 'Circuit testing should occur:', options: ['Before handover', 'Only if asked', 'Never', 'After payment only'], correctOptionIndex: 0, explanation: 'Test before handover to ensure safety.' }
+          ]
+        });
+      }
+
+      return buildCourse({
+        courseTitle: 'NVQ-J Welding and Fabrication',
+        subtitle: 'Safety, welding process control, joint prep, and quality inspection.',
+        marketDemand: 'Welding and fabrication skills support construction, manufacturing, and industrial maintenance roles.',
+        overview: 'This course teaches practical welding/fabrication fundamentals with quality-focused testing.',
+        modules: [
+          { title: 'Workshop Safety and Setup', objective: 'Apply PPE and workshop safety standards.', lesson: 'Control sparks, fumes, heat, and workspace hazards before work begins.', workedExample: 'Face shield, gloves, and proper ventilation are baseline requirements.', commonMistake: 'Ignoring ventilation and fume management.', practiceTask: 'Perform a complete pre-weld safety setup checklist.', progressCheckQuestion: 'Essential welding PPE includes:', progressCheckOptions: ['Open shoes', 'Face shield and gloves', 'No eye protection', 'Short sleeves only'], correctOptionIndex: 1, progressCheckExplanation: 'Face and hand protection are essential.' },
+          { title: 'Joint Preparation and Fit-up', objective: 'Prepare clean, accurate joints before welding.', lesson: 'Good fit-up and material prep determine weld quality before arc starts.', workedExample: 'Remove rust/oil to avoid weak contaminated welds.', commonMistake: 'Welding over dirty metal surfaces.', practiceTask: 'Prepare and align two sample joints for butt and fillet welds.', progressCheckQuestion: 'Clean metal surfaces are important because they:', progressCheckOptions: ['Reduce weld quality', 'Improve weld integrity', 'Increase contamination', 'Have no impact'], correctOptionIndex: 1, progressCheckExplanation: 'Clean prep improves penetration and strength.' },
+          { title: 'Welding Technique and Control', objective: 'Control angle, speed, and heat input for consistent welds.', lesson: 'Maintain correct torch/electrode angle and travel speed for bead quality.', workedExample: 'Too slow travel can overheat and deform material.', commonMistake: 'Inconsistent speed producing uneven bead shape.', practiceTask: 'Run three practice beads while adjusting speed and angle.', progressCheckQuestion: 'Excessively slow travel speed can cause:', progressCheckOptions: ['Cooler weld only', 'Overheating and distortion', 'No change', 'Automatic perfect bead'], correctOptionIndex: 1, progressCheckExplanation: 'Slow travel increases heat input and distortion risk.' },
+          { title: 'Inspection and Rework', objective: 'Identify weld defects and apply corrective steps.', lesson: 'Inspect for porosity, undercut, cracks, and incomplete fusion.', workedExample: 'Visible porosity often indicates shielding or contamination issues.', commonMistake: 'Accepting cosmetic bead appearance without structural inspection.', practiceTask: 'Inspect sample welds and document at least three defects and corrections.', progressCheckQuestion: 'A key quality step after welding is:', progressCheckOptions: ['Skip inspection', 'Inspect and document defects', 'Paint immediately only', 'Store tools only'], correctOptionIndex: 1, progressCheckExplanation: 'Inspection validates quality and safety before release.' }
+        ],
+        finalAssessment: [
+          { question: 'Core welding PPE is:', options: ['Face shield and gloves', 'No eye protection', 'Open shoes', 'Short sleeves only'], correctOptionIndex: 0, explanation: 'Proper PPE is mandatory for safety.' },
+          { question: 'Clean joint surfaces generally:', options: ['Reduce weld quality', 'Improve weld quality', 'Cause defects', 'Do nothing'], correctOptionIndex: 1, explanation: 'Clean prep improves bond quality.' },
+          { question: 'Very slow travel speed can lead to:', options: ['Better cooling', 'Overheating/distortion', 'No effect', 'Perfect weld always'], correctOptionIndex: 1, explanation: 'Slow speed increases heat input.' },
+          { question: 'After welding, you should:', options: ['Skip checks', 'Inspect for defects', 'Ignore porosity', 'Only paint'], correctOptionIndex: 1, explanation: 'Inspection ensures structural quality.' }
+        ]
+      });
+    }
+
+    return null;
+  }
+
+  function getLocalCurriculumCourse(topicName) {
+    const name = String(topicName || '').trim();
+    if (!name) return null;
+
+    for (const pack of LOCAL_CURRICULUM_COURSES) {
+      const patterns = asArray(pack?.match);
+      if (patterns.some((pattern) => pattern instanceof RegExp && pattern.test(name))) {
+        return pack.course ? JSON.parse(JSON.stringify(pack.course)) : null;
+      }
+    }
+    return buildSubjectTemplateCourse(name);
+  }
+
+  function applyLocalCurriculumOverrides(remoteCourse, topicName) {
+    const curated = getLocalCurriculumCourse(topicName)
+      || getLocalCurriculumCourse(remoteCourse?.courseTitle)
+      || getLocalCurriculumCourse(remoteCourse?.topic);
+
+    if (!curated) return remoteCourse;
+
+    return {
+      ...(remoteCourse || {}),
+      ...curated,
+      modules: asArray(curated.modules).length ? curated.modules : asArray(remoteCourse?.modules),
+      finalAssessment: asArray(curated.finalAssessment).length ? curated.finalAssessment : asArray(remoteCourse?.finalAssessment)
+    };
+  }
 
   function apiPath(path) {
     return typeof apiUrl === 'function' ? apiUrl(path) : path;
@@ -758,13 +1272,29 @@ document.addEventListener('DOMContentLoaded', function () {
         const submitBtn = event.target.closest('#submitAssessmentBtn');
         if (!submitBtn) return;
 
-        const answers = new Array(progressState.assessmentItems.length).fill('');
+        const answers = new Array(progressState.assessmentItems.length).fill(null);
+        let hasObjectiveQuestions = false;
+
+        document.querySelectorAll('[data-assessment-choice]').forEach((input) => {
+          if (!input.checked) return;
+          const idx = Number(input.getAttribute('data-assessment-choice'));
+          const optionIndex = Number(input.value);
+          if (Number.isInteger(idx) && idx >= 0) answers[idx] = optionIndex;
+        });
+
         document.querySelectorAll('[data-assessment-answer]').forEach((textarea) => {
           const idx = Number(textarea.getAttribute('data-assessment-answer'));
           answers[idx] = String(textarea.value || '').trim();
         });
 
-        const allAnswered = answers.every(a => a.length > 0);
+        const allAnswered = progressState.assessmentItems.every((item, idx) => {
+          const options = asArray(item?.options);
+          if (options.length >= 2) {
+            hasObjectiveQuestions = true;
+            return Number.isInteger(answers[idx]);
+          }
+          return String(answers[idx] || '').trim().length > 0;
+        });
         const resultDiv = document.getElementById('assessmentResult');
         if (!resultDiv) return;
 
@@ -780,13 +1310,64 @@ document.addEventListener('DOMContentLoaded', function () {
         resultDiv.innerHTML = '<span style="color:#93c5fd;">Processing assessment...</span>';
 
         setTimeout(() => {
-          progressState.assessmentCompleted = true;
+          const objectiveRows = [];
+          let objectiveCorrect = 0;
+          let objectiveTotal = 0;
+
+          progressState.assessmentItems.forEach((item, index) => {
+            const options = asArray(item?.options);
+            if (options.length < 2) return;
+
+            const selectedIndex = Number(answers[index]);
+            const correctIndex = Number(item?.correctOptionIndex);
+            const selectedText = String(options[selectedIndex] || 'No answer selected');
+            const correctText = String(options[correctIndex] || 'N/A');
+            const isCorrect = selectedIndex === correctIndex;
+
+            objectiveTotal += 1;
+            if (isCorrect) objectiveCorrect += 1;
+
+            objectiveRows.push(`
+              <div style="margin-bottom:10px;padding:10px;border-radius:8px;border:1px solid ${isCorrect ? '#14532d' : '#7f1d1d'};background:${isCorrect ? '#052e16' : '#2f1313'};">
+                <div style="font-weight:700;color:${isCorrect ? '#86efac' : '#fda4af'};margin-bottom:4px;">Question ${index + 1}: ${isCorrect ? 'Correct' : 'Incorrect'}</div>
+                <div style="color:#d0d9e7;"><strong>Your answer:</strong> ${escapeHtml(selectedText)}</div>
+                ${isCorrect ? '' : `<div style="color:#bfdbfe;"><strong>Correct answer:</strong> ${escapeHtml(correctText)}</div>`}
+                ${item?.explanation ? `<div style="color:#cbd5e1;"><strong>Why:</strong> ${escapeHtml(String(item.explanation))}</div>` : ''}
+              </div>
+            `);
+          });
+
+          const score = objectiveTotal > 0 ? Math.round((objectiveCorrect / objectiveTotal) * 100) : 100;
+          const passMark = 70;
+          const passed = !hasObjectiveQuestions || score >= passMark;
+
+          progressState.assessmentScore = score;
+          progressState.assessmentCompleted = passed;
+
+          if (!passed) {
+            resultDiv.innerHTML = `
+              <div style="color:#fda4af;line-height:1.8;">
+                <strong>Assessment Result: ${score}% (Pass mark: ${passMark}%)</strong>
+                <p style="margin:8px 0 10px;">You did not pass yet. Review the feedback below, revisit your weak modules, then retry.</p>
+                ${objectiveRows.join('')}
+              </div>
+            `;
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Retry Assessment';
+            updateProgressiveSections();
+            renderInterviewPrep(progressState.interviewPrepItems);
+            return;
+          }
+
           resultDiv.innerHTML = `
             <div style="color:#86efac;line-height:1.8;">
               <strong>✓ Assessment Complete!</strong>
-              <p style="margin:8px 0 0;">You have successfully completed all course materials. Scroll down to view your interview preparation resources.</p>
+              <p style="margin:8px 0 0;">Score: ${score}%${hasObjectiveQuestions ? ` (Pass mark: ${passMark}%)` : ''}. You have successfully completed all course materials. Scroll down to view your interview preparation resources.</p>
             </div>
           `;
+          if (objectiveRows.length) {
+            resultDiv.innerHTML += `<div style="margin-top:10px;">${objectiveRows.join('')}</div>`;
+          }
           submitBtn.style.display = 'none';
           updateProgressiveSections();
           renderInterviewPrep(progressState.interviewPrepItems);
@@ -799,7 +1380,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!interviewPrep) return;
 
     const isAllModuleComplete = progressState.totalModules > 0 && progressState.completedModules.size >= progressState.totalModules;
-    const isAssessmentComplete = progressState.assessmentAnswers && progressState.assessmentAnswers.every(a => a && String(a).trim());
+    const isAssessmentComplete = progressState.assessmentCompleted === true;
 
     if (!isAllModuleComplete) {
       interviewPrep.innerHTML = '<li style="color:#9fb0c7;">Complete the course and final assessment to unlock interview prep.</li>';
@@ -807,7 +1388,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     if (!isAssessmentComplete) {
-      interviewPrep.innerHTML = '<li style="color:#9fb0c7;">Submit the final assessment to unlock interview prep.</li>';
+      interviewPrep.innerHTML = '<li style="color:#9fb0c7;">Pass the final assessment to unlock interview prep.</li>';
       return;
     }
 
@@ -835,6 +1416,7 @@ document.addEventListener('DOMContentLoaded', function () {
     progressState.answerKey = list.map((moduleItem) => Number(moduleItem?.correctOptionIndex));
     progressState.answerExplanations = list.map((moduleItem, index) => String(moduleItem?.progressCheckExplanation || getModuleReasoningFromAssessment(index) || '').trim());
     progressState.assessmentCompleted = false;
+    progressState.assessmentScore = null;
     progressState.lastProgressFeedback = null;
     progressState.moduleNarration = list.map((moduleItem, index) => {
       const options = asArray(moduleItem?.progressCheckOptions)
@@ -977,22 +1559,36 @@ document.addEventListener('DOMContentLoaded', function () {
     progressState.assessmentItems = items;
     if (!progressState.assessmentCompleted) {
       progressState.assessmentAnswers = new Array(items.length).fill(null);
+      progressState.assessmentScore = null;
     }
+
+    const hasObjectiveItems = items.some((item) => asArray(item?.options).length >= 2);
 
     assessment.innerHTML = `
       <div style="padding:14px;border-radius:10px;background:#0d2438;border:1px solid #0ea5e9;color:#7dd3fc;margin-bottom:16px;font-size:0.9rem;">
-        <strong>Final Assessment:</strong> Answer all questions to complete the course and unlock interview prep.
+        <strong>Final Assessment:</strong> ${hasObjectiveItems
+          ? 'Pass with at least 70% to unlock interview prep.'
+          : 'Answer all questions to complete the course and unlock interview prep.'}
       </div>
       ${items.map((item, i) => {
         const question = String(item?.question || '');
+        const options = asArray(item?.options);
+        const optionMarkup = options.map((option, optionIndex) => `
+          <label style="display:grid;grid-template-columns:18px minmax(0,1fr);align-items:flex-start;column-gap:10px;width:100%;box-sizing:border-box;padding:10px 12px;border-radius:8px;background:#111c31;border:1px solid #2a3954;cursor:pointer;color:#d0d9e7;overflow:hidden;margin-bottom:8px;">
+            <input type="radio" name="assessment-question-${i}" data-assessment-choice="${i}" value="${optionIndex}" style="margin-top:3px;accent-color:#10b981;" />
+            <span style="line-height:1.5;word-break:break-word;overflow-wrap:anywhere;white-space:normal;min-width:0;max-width:100%;flex:1 1 auto;display:block;">${escapeHtml(String(option))}</span>
+          </label>
+        `).join('');
         return `
           <div class="module-item" style="margin-bottom:12px;">
             <p style="margin-bottom:8px;"><strong style="color:#c4b5fd;">Question ${i + 1}:</strong> ${escapeHtml(question)}</p>
-            <textarea 
-              data-assessment-answer="${i}"
-              placeholder="Type your answer here..."
-              style="width:100%;min-height:80px;padding:10px;background:#111c31;border:1px solid #2a3954;border-radius:8px;color:#d0d9e7;font-family:inherit;font-size:0.9rem;resize:vertical;"
-            ></textarea>
+            ${options.length >= 2
+              ? `<div style="display:grid;gap:6px;">${optionMarkup}</div>`
+              : `<textarea 
+                  data-assessment-answer="${i}"
+                  placeholder="Type your answer here..."
+                  style="width:100%;min-height:80px;padding:10px;background:#111c31;border:1px solid #2a3954;border-radius:8px;color:#d0d9e7;font-family:inherit;font-size:0.9rem;resize:vertical;"
+                ></textarea>`}
           </div>
         `;
       }).join('')}
@@ -1151,6 +1747,20 @@ document.addEventListener('DOMContentLoaded', function () {
     if (outcomes) outcomes.innerHTML = '';
     if (resumeSignals) resumeSignals.innerHTML = '';
 
+    // Local curriculum packs take priority for known CSEC/CAPE/HEART/NVQ topics.
+    const localCourse = getLocalCurriculumCourse(topic);
+    if (localCourse) {
+      try {
+        progressState.sessionToken = `local-${normalizeTopic(topic)}`;
+        renderCourse(localCourse);
+        bindProgressHandlers();
+        await loadProgress();
+      } finally {
+        setCourseLoadingState(false);
+      }
+      return;
+    }
+
     try {
       const response = await fetch(apiPath('/api/learning/course-content'), {
         method: 'POST',
@@ -1167,7 +1777,8 @@ document.addEventListener('DOMContentLoaded', function () {
       }
 
       progressState.sessionToken = String(payload?.sessionToken || '').trim();
-      renderCourse(payload.course);
+      const resolvedCourse = applyLocalCurriculumOverrides(payload.course, topic);
+      renderCourse(resolvedCourse);
       bindProgressHandlers();
       await loadProgress();
     } catch (error) {

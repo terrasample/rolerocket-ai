@@ -5,7 +5,9 @@ document.addEventListener('DOMContentLoaded', function () {
   const results = document.getElementById('searchResults');
   const queryInput = document.getElementById('searchQuery');
 
-  function renderJobs(jobs, query) {
+  function renderJobs(jobs, query, options = {}) {
+    const fromMarket = options.fromMarket === true;
+
     if (Array.isArray(jobs) && jobs.length > 0) {
       results.innerHTML = jobs.map(job =>
         `<div class='mini-job-card' style='margin-bottom:12px;'>
@@ -18,10 +20,27 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
 
-    results.innerHTML = `<div>No live jobs found for ${query ? `<strong>${query}</strong>` : 'your search'}.</div>`;
+    const encoded = encodeURIComponent(String(query || '').trim());
+    const linkedInUrl = `https://www.linkedin.com/jobs/search/?keywords=${encoded}`;
+    const googleUrl = `https://www.google.com/search?q=${encoded}+jobs+Jamaica`;
+    const indeedUrl = `https://jm.indeed.com/jobs?q=${encoded}`;
+
+    results.innerHTML = `
+      <div style="margin-bottom:8px;font-weight:700;">No live jobs found for ${query ? `<strong>${query}</strong>` : 'your search'} in the internal board yet.</div>
+      <div style="color:#475569;font-size:.95rem;line-height:1.6;">${fromMarket ? 'Open live external matches now:' : 'Try these external searches:'}</div>
+      <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;">
+        <a href="${linkedInUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border-radius:10px;background:#0ea5e9;color:#fff;text-decoration:none;font-weight:700;">Open LinkedIn Matches</a>
+        <a href="${googleUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border-radius:10px;background:#2563eb;color:#fff;text-decoration:none;font-weight:700;">Open Google Jobs Matches</a>
+        <a href="${indeedUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border-radius:10px;background:#0f766e;color:#fff;text-decoration:none;font-weight:700;">Open Indeed Matches</a>
+      </div>
+    `;
+
+    if (fromMarket) {
+      results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   }
 
-  async function runSearch(explicitQuery) {
+  async function runSearch(explicitQuery, options = {}) {
     const query = String(explicitQuery || queryInput?.value || '').trim();
     if (!query) {
       results.innerHTML = '<div style="color:#dc2626;">Please enter a search term.</div>';
@@ -34,7 +53,7 @@ document.addEventListener('DOMContentLoaded', function () {
     try {
       const res = await fetch(`/api/jobs/board?q=${encodeURIComponent(query)}&limit=20`);
       const data = await res.json();
-      renderJobs(Array.isArray(data.jobs) ? data.jobs : [], query);
+      renderJobs(Array.isArray(data.jobs) ? data.jobs : [], query, options);
     } catch (err) {
       results.innerHTML = '<div style="color:#dc2626;">Error searching for jobs.</div>';
     }
@@ -50,5 +69,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
   const params = new URLSearchParams(window.location.search);
   const initialQuery = params.get('q');
-  if (initialQuery) runSearch(initialQuery);
+  const source = String(params.get('source') || '').trim().toLowerCase();
+  if (initialQuery) runSearch(initialQuery, { fromMarket: source === 'market' });
 });
