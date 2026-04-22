@@ -192,7 +192,7 @@
     .jwa-download-btn:hover { opacity: .85; }
     .jwa-download-btn:disabled { opacity: .5; cursor: not-allowed; }
 
-    /* ── Student Athlete PM Pathway ────────────────────────────────────── */
+    /* ── Career Pathway Builder ─────────────────────────────────────────── */
     .sa-hero {
       background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #14532d 100%);
       border-radius: 16px; padding: 32px 28px; margin-bottom: 28px;
@@ -270,6 +270,40 @@
       color: #93c5fd; font-size: .88rem; line-height: 1.6;
     }
     .sa-finance-tip::before { content: '💡 Pro tip: '; font-weight: 700; }
+
+    .sa-immig-flow {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+      gap: 14px;
+      margin-top: 10px;
+    }
+    .sa-immig-step {
+      background: #1e293b;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.07);
+      padding: 16px;
+      position: relative;
+    }
+    .sa-immig-step h4 { margin: 0 0 6px; color: #fdb714; font-size: .95rem; }
+    .sa-immig-step p { margin: 0 0 8px; color: #94a3b8; font-size: .84rem; line-height: 1.5; }
+    .sa-immig-risk {
+      margin-top: 10px;
+      background: rgba(239,68,68,.1);
+      border: 1px solid rgba(239,68,68,.28);
+      color: #fca5a5;
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: .8rem;
+    }
+    .sa-immig-fix {
+      margin-top: 8px;
+      background: rgba(22,163,74,.1);
+      border: 1px solid rgba(22,163,74,.28);
+      color: #86efac;
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: .8rem;
+    }
 
     /* Core lessons */
     .sa-lessons-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px,1fr)); gap: 16px; }
@@ -464,7 +498,13 @@
                 <option value="marketing-manager">📢  Marketing &amp; Brand Manager</option>
                 <option value="accountant">📊  Accountant / Finance Professional</option>
                 <option value="entrepreneur">🚀  Entrepreneur / Business Owner</option>
+                <option value="custom-any">🌍  Any Career (Custom)</option>
               </select>
+            </div>
+            <div id="cpCustomCareerWrap" style="display:none;margin:6px 0 14px;">
+              <label for="cpCustomCareerInput" style="color:#94a3b8;font-size:.88rem;display:block;margin-bottom:8px;">Type any career (example: Singer, Actor, Plumber, Pilot, Chef):</label>
+              <input id="cpCustomCareerInput" type="text" maxlength="80" placeholder="Enter your career goal" style="background:#1e293b;color:#f1f5f9;border:1.5px solid #334155;padding:10px 14px;border-radius:8px;font-size:1rem;min-width:300px;max-width:100%;width:420px;" />
+              <p style="margin:8px 0 0;color:#94a3b8;font-size:.82rem;">Your custom pathway will be generated instantly with Year 1 to Day 1 guidance.</p>
             </div>
             <div class="sa-hero-pills" id="cpPills">
               <span class="sa-hero-pill">🎓 High School → University</span>
@@ -475,13 +515,14 @@
             </div>
           </div>
 
-          <!-- Year selector -->
-          <div class="sa-year-strip" role="tablist" aria-label="Select your year">
-            <button class="sa-year-btn sa-year-active" data-year="y1">Year 1<br><small id="saY1Sub">Grade 11</small></button>
-            <button class="sa-year-btn" data-year="y2">Year 2<br><small id="saY2Sub">Grade 12</small></button>
-            <button class="sa-year-btn" data-year="y3">Year 3<br><small id="saY3Sub">1st Year Uni</small></button>
-            <button class="sa-year-btn" data-year="y4">Year 4<br><small id="saY4Sub">Final Year</small></button>
-            <button class="sa-year-btn" data-year="y5">Day 1<br><small id="saY5Sub">First Role</small></button>
+          <!-- Timeline selector -->
+          <div class="sa-year-strip" aria-label="Select your timeline">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <label for="cpTimelineYears" style="color:#cbd5e1;font-size:.88rem;">Timeline length:</label>
+              <input id="cpTimelineYears" type="number" min="1" step="1" value="5" style="width:90px;background:#1e293b;color:#f1f5f9;border:1.5px solid #334155;padding:8px 10px;border-radius:8px;font-size:.95rem;" />
+              <span style="color:#94a3b8;font-size:.82rem;">years (choose any path length)</span>
+            </div>
+            <div id="saYearTabs" role="tablist" aria-label="Select your year" style="display:flex;gap:10px;flex-wrap:wrap;"></div>
           </div>
 
           <!-- Year panels rendered by JS -->
@@ -501,6 +542,44 @@
             <div class="sa-finance-grid" id="saFinanceGrid"></div>
           </section>
 
+          <section style="margin-top:40px;">
+            <h3 style="color:#fdb714;margin:0 0 6px;font-size:1.15rem;">🧭 Offer Pathways: What Happens After You Get In</h3>
+            <p style="color:#64748b;font-size:.88rem;margin-bottom:20px;">If you receive a job offer, academic scholarship, or athletic scholarship, follow these practical steps so your transition from Jamaica to your destination is smooth and compliant.</p>
+            <div class="sa-finance-grid" id="saOfferGrid"></div>
+          </section>
+
+          <section style="margin-top:28px;">
+            <h3 style="color:#fdb714;margin:0 0 6px;font-size:1.15rem;">🌍 Country Routes: US, UK, Canada, EU</h3>
+            <p style="color:#64748b;font-size:.88rem;margin-bottom:20px;">Destination-specific steps, common visa routes, and document bundles Jamaican applicants should prepare before departure.</p>
+            <div class="sa-finance-grid" id="saCountryOfferGrid"></div>
+          </section>
+
+          <section style="margin-top:28px;">
+            <h3 style="color:#fdb714;margin:0 0 6px;font-size:1.15rem;">🛂 Immigration Barrier Pathway (Visual)</h3>
+            <p style="color:#64748b;font-size:.88rem;margin-bottom:14px;">A simple visual flow from offer to arrival with common barriers and what to do next.</p>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px;">
+              <div>
+                <label for="saImmigRegion" style="display:block;color:#94a3b8;font-size:.82rem;margin-bottom:6px;">Destination</label>
+                <select id="saImmigRegion" style="background:#1e293b;color:#f1f5f9;border:1.5px solid #334155;padding:9px 12px;border-radius:8px;min-width:180px;">
+                  <option value="United States (US)">United States (US)</option>
+                  <option value="United Kingdom (UK)">United Kingdom (UK)</option>
+                  <option value="Canada">Canada</option>
+                  <option value="European Union (EU)">European Union (EU)</option>
+                </select>
+              </div>
+              <div>
+                <label for="saImmigPathType" style="display:block;color:#94a3b8;font-size:.82rem;margin-bottom:6px;">Pathway type</label>
+                <select id="saImmigPathType" style="background:#1e293b;color:#f1f5f9;border:1.5px solid #334155;padding:9px 12px;border-radius:8px;min-width:220px;">
+                  <option value="Work Offer Route">Work Offer Route</option>
+                  <option value="Academic Scholarship Route">Academic Scholarship Route</option>
+                  <option value="Athletic Scholarship Route">Athletic Scholarship Route</option>
+                </select>
+              </div>
+              <button id="saPrintChecklistBtn" class="jwa-download-btn" style="padding:10px 18px;font-size:.9rem;">Generate One-Page Checklist</button>
+            </div>
+            <div class="sa-immig-flow" id="saImmigrationPathway"></div>
+          </section>
+
         </div><!-- /tab 5 -->
 
       </div><!-- /padding wrapper REAL END -->
@@ -511,6 +590,6 @@
   <script src="js/auth-storage.js"></script>
   <script src="js/nav-plan-sync.js"></script>
   <script src="js/return-navigation.js"></script>
-  <script src="js/jamaica-workforce-accelerator.js?v=20260421b"></script>
+  <script src="js/jamaica-workforce-accelerator.js?v=20260421f"></script>
 </body>
 </html>
