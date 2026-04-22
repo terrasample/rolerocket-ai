@@ -217,10 +217,34 @@
     return /^https?:\/\//i.test(String(value || ''));
   }
 
+  function getScoutApiUrl(params) {
+    const path = `/api/jobs/scout?${params.toString()}`;
+    if (typeof apiUrl === 'function') return apiUrl(path);
+    return path;
+  }
+
   function matchesMarketLocation(jobLocation, market) {
     const text = String(jobLocation || '').toLowerCase();
     if (!text) return false;
     return market.matchHints.some((hint) => text.includes(hint));
+  }
+
+  function matchesMarketBySignals(job, market) {
+    const locationText = String(job?.location || '').toLowerCase();
+    const sourceText = String(job?.source || '').toLowerCase();
+    const linkText = String(job?.link || '').toLowerCase();
+    const combined = `${locationText} ${sourceText} ${linkText}`;
+
+    if (market.matchHints.some((hint) => combined.includes(hint))) return true;
+
+    if (market.id === 'uk') return /\.co\.uk|uk\.indeed|reed\.co\.uk|totaljobs/i.test(linkText);
+    if (market.id === 'canada') return /\.ca\b|ca\.indeed|jobbank\.gc\.ca/i.test(linkText);
+    if (market.id === 'jamaica') return /\.jm\b|jm\.indeed|caribbeanjobs/i.test(linkText);
+    if (market.id === 'us') return /usa|united\s*states|\.gov\b|usajobs|ziprecruiter|monster/i.test(combined);
+    if (market.id === 'eu') return /eu|europe|european|europa|eures/i.test(combined);
+    if (market.id === 'caribbean') return /caribbean|trinidad|barbados|bahamas|guyana|st\s*lucia/i.test(combined);
+
+    return false;
   }
 
   function formatPostedDate(iso) {
@@ -256,15 +280,30 @@
         limit: String(Math.max(6, limit * 2))
       });
 
-      const res = await fetch(`/api/jobs/scout?${params.toString()}`);
+      const res = await fetch(getScoutApiUrl(params));
       if (!res.ok) return [];
 
       const payload = await res.json();
-      const jobs = Array.isArray(payload?.jobs) ? payload.jobs : [];
+      let jobs = Array.isArray(payload?.jobs) ? payload.jobs : [];
 
-      const filtered = jobs
+      // Some upstream sources under-return when location is too strict; retry once with remote/global.
+      if (!jobs.length) {
+        const fallbackParams = new URLSearchParams({
+          title: String(title || '').trim() || 'Customer Service Representative',
+          location: 'remote',
+          preferences: `${market.label} jobs`,
+          limit: String(Math.max(8, limit * 3))
+        });
+
+        const fallbackRes = await fetch(getScoutApiUrl(fallbackParams));
+        if (fallbackRes.ok) {
+          const fallbackPayload = await fallbackRes.json();
+          jobs = Array.isArray(fallbackPayload?.jobs) ? fallbackPayload.jobs : [];
+        }
+      }
+
+      const normalized = jobs
         .filter((job) => isAbsoluteHttpUrl(job?.link))
-        .filter((job) => matchesMarketLocation(job?.location, market))
         .map((job) => ({
           title: String(job.title || 'Untitled Role').trim(),
           company: String(job.company || 'Unknown Company').trim(),
@@ -273,6 +312,19 @@
           postedAt: job.postedAt || job.created || '',
           link: String(job.link || '').trim()
         }));
+
+      const strict = normalized.filter((job) => matchesMarketLocation(job.location, market));
+      const signalMatched = normalized.filter((job) => matchesMarketBySignals(job, market));
+
+      const deduped = [];
+      const seen = new Set();
+      [...strict, ...signalMatched].forEach((job) => {
+        if (!job.link || seen.has(job.link)) return;
+        seen.add(job.link);
+        deduped.push(job);
+      });
+
+      const filtered = deduped.length ? deduped : normalized.slice(0, limit);
 
       if (market.id === 'jamaica') {
         filtered.sort((a, b) => scoreJamaicaSourcePreference(b) - scoreJamaicaSourcePreference(a));
