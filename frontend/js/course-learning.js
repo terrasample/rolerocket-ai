@@ -364,10 +364,10 @@ document.addEventListener('DOMContentLoaded', function () {
         ],
         commonMistake: 'Memorizing formulas without recognizing which question type they fit.',
         practiceTask: 'Create a one-page formula sheet and solve one example per formula from memory.',
-        progressCheckQuestion: 'Before solving, what should you do first?',
-        progressCheckOptions: ['Guess the final answer', 'Identify the question type and choose the matching formula', 'Skip writing steps', 'Use every formula at once'],
+        progressCheckQuestion: 'Solve for x: 2x + 7 = 19',
+        progressCheckOptions: ['x = 4', 'x = 6', 'x = 7', 'x = 5'],
         correctOptionIndex: 1,
-        progressCheckExplanation: 'Correct method selection comes before substitution and calculation.'
+        progressCheckExplanation: '2x = 19 - 7 = 12, so x = 6. Check: 2(6) + 7 = 19.'
       }
     };
 

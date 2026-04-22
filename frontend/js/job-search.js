@@ -26,8 +26,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const indeedUrl = `https://jm.indeed.com/jobs?q=${encoded}`;
 
     results.innerHTML = `
-      <div style="margin-bottom:8px;font-weight:700;">No live jobs found for ${query ? `<strong>${query}</strong>` : 'your search'} in the internal board yet.</div>
-      <div style="color:#475569;font-size:.95rem;line-height:1.6;">${fromMarket ? 'Open live external matches now:' : 'Try these external searches:'}</div>
+      <div style="margin-bottom:8px;font-weight:700;">${query ? `<strong>${query}</strong>` : 'This search'} has no current match in the internal partner board.</div>
+      <div style="color:#475569;font-size:.95rem;line-height:1.6;">${fromMarket ? 'Live external matches are ready below:' : 'Live external matches are available below:'}</div>
       <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;">
         <a href="${linkedInUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border-radius:10px;background:#0ea5e9;color:#fff;text-decoration:none;font-weight:700;">Open LinkedIn Matches</a>
         <a href="${googleUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border-radius:10px;background:#2563eb;color:#fff;text-decoration:none;font-weight:700;">Open Google Jobs Matches</a>

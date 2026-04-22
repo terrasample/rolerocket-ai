@@ -103,6 +103,7 @@
                 <span class="jwa-salary">${esc(r.range)}</span>
                 <span class="jwa-demand-badge" style="background:${DEMAND_COLOR[r.demand] || '#64748b'};">${esc(r.demand)} Demand</span>
                 ${r.remote ? '<span class="jwa-remote-tag">Remote Eligible</span>' : ''}
+                <span style="color:#64748b;font-size:.74rem;line-height:1.3;">Market intelligence estimate (not a guaranteed posted salary)</span>
               </a>
             `).join('')}
           </div>
