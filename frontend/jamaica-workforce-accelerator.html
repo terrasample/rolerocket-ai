@@ -271,6 +271,67 @@
     }
     .sa-finance-tip::before { content: '💡 Pro tip: '; font-weight: 700; }
 
+    .sa-guide-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+      margin: 0 0 22px;
+    }
+    .sa-guide-card {
+      background: #1e293b;
+      border: 1px solid rgba(255,255,255,.07);
+      border-radius: 14px;
+      padding: 16px 18px;
+    }
+    .sa-guide-card h4 {
+      margin: 0 0 8px;
+      color: #f8fafc;
+      font-size: .96rem;
+    }
+    .sa-guide-card p {
+      margin: 0;
+      color: #94a3b8;
+      font-size: .86rem;
+      line-height: 1.6;
+    }
+    .sa-employer-callout {
+      background: linear-gradient(135deg, rgba(15,23,42,.96), rgba(30,41,59,.98));
+      border: 1px solid rgba(37,99,235,.28);
+      border-radius: 16px;
+      padding: 20px 22px;
+      margin: 0 0 22px;
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .sa-employer-callout h3 {
+      margin: 0 0 6px;
+      color: #f8fafc;
+      font-size: 1rem;
+    }
+    .sa-employer-callout p {
+      margin: 0;
+      color: #94a3b8;
+      font-size: .88rem;
+      line-height: 1.6;
+      max-width: 760px;
+    }
+    .sa-employer-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      background: #2563eb;
+      color: #fff;
+      font-weight: 700;
+      border-radius: 10px;
+      padding: 12px 16px;
+      white-space: nowrap;
+    }
+    .sa-employer-link:hover { background: #1d4ed8; }
+
     .sa-immig-flow {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
@@ -678,6 +739,33 @@
               <span class="sa-hero-pill">⚖️ Work / Life Balance</span>
               <span class="sa-hero-pill">📋 Day 1 Ready</span>
             </div>
+          </div>
+
+          <div class="sa-guide-grid">
+            <div class="sa-guide-card">
+              <h4>1. Pick the career you want</h4>
+              <p>Start by choosing a career from the list, or type your own. You do not need to have everything figured out. You just need a direction.</p>
+            </div>
+            <div class="sa-guide-card">
+              <h4>2. Choose your timeline</h4>
+              <p>If your path is short, use 2 years. If your path is long, use 7 years or more. The builder adjusts the roadmap to fit the time you need.</p>
+            </div>
+            <div class="sa-guide-card">
+              <h4>3. Read each stage like a plan</h4>
+              <p>Each stage shows you what to focus on academically, what experience to build, which certifications matter, how to manage your time, and what money or scholarship issues to think about.</p>
+            </div>
+            <div class="sa-guide-card">
+              <h4>4. Use it like a decision tool</h4>
+              <p>If you are unsure what to do next, ask: “What is the next action in this stage that I can do this month?” Then do that one thing first.</p>
+            </div>
+          </div>
+
+          <div class="sa-employer-callout">
+            <div>
+              <h3>Are you an employer or school partner?</h3>
+              <p>If you are a Jamaican company, recruiter, school, or training partner and you want to post jobs or opportunities for students and professionals, use the employer portal to register your organization and publish openings.</p>
+            </div>
+            <a class="sa-employer-link" href="employer-portal.html">Open Employer Portal</a>
           </div>
 
           <!-- Timeline selector -->
