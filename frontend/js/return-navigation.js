@@ -3,17 +3,6 @@
   const PENDING_RESTORE_KEY = 'rr:pending:restore:url';
   const SCROLL_PREFIX = 'rr:scroll:';
 
-  function normalizeAcceleratorLabels() {
-    const nodes = document.querySelectorAll('a, button, span, div');
-    nodes.forEach((node) => {
-      const text = String(node.textContent || '').replace(/\s+/g, ' ').trim();
-      if (!text) return;
-      if (/jamaica\s+accelerator/i.test(text) && !/jamaica\s+workforce\s+accelerator/i.test(text)) {
-        node.textContent = text.replace(/jamaica\s+accelerator/ig, 'Jamaica Workforce Accelerator');
-      }
-    });
-  }
-
   function toSameOriginUrl(raw) {
     if (!raw) return null;
     try {
@@ -162,7 +151,6 @@
   }
 
   restoreScrollIfRequested();
-  normalizeAcceleratorLabels();
   saveCurrentScrollState();
   window.addEventListener('scroll', saveCurrentScrollState, { passive: true });
   const primaryScrollContainer = getPrimaryScrollContainer();
@@ -184,7 +172,5 @@
     if (looksLikeNavigatingButton(button)) {
       setReturnTargetToCurrentPage();
     }
-
-    setTimeout(normalizeAcceleratorLabels, 0);
   }, true);
 })();

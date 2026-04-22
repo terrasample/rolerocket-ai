@@ -126,12 +126,16 @@ document.addEventListener('DOMContentLoaded', function () {
             title: 'Algebra Foundations',
             objective: 'Simplify expressions and solve linear equations.',
             lesson: 'Collect like terms, use inverse operations, and check your final answer by substitution.',
-            workedExample: '2x + 7 = 19 => 2x = 12 => x = 6; check: 2(6) + 7 = 19.',
+            workedExample: '2x + 7 = 19 gives 2x = 12, so x = 6.',
             workedExampleSteps: [
-              '2x + 7 = 19 => 2x = 12 => x = 6.',
-              'Check: 2(6) + 7 = 19.',
-              '3x - 5 = 16 => 3x = 21 => x = 7.',
-              'Check: 3(7) - 5 = 16.'
+              'Example A: Solve 2x + 7 = 19.',
+              'Step 1: Subtract 7 from both sides to keep the equation balanced: 2x = 12.',
+              'Step 2: Divide both sides by 2: x = 6.',
+              'Step 3: Check by substitution: 2(6) + 7 = 12 + 7 = 19, so the solution is correct.',
+              'Example B: Solve 3x - 5 = 16.',
+              'Step 1: Add 5 to both sides: 3x = 21.',
+              'Step 2: Divide both sides by 3: x = 7.',
+              'Step 3: Check: 3(7) - 5 = 21 - 5 = 16.'
             ],
             commonMistake: 'Applying operations to only one side of an equation.',
             practiceTask: 'Solve: 3x - 5 = 16.',
@@ -146,9 +150,14 @@ document.addEventListener('DOMContentLoaded', function () {
             lesson: 'For x^2 + bx + c, find two numbers that add to b and multiply to c.',
             workedExample: 'x^2 + 5x + 6 = (x + 2)(x + 3).',
             workedExampleSteps: [
-              'x^2 + 5x + 6: b = 5, c = 6, m+n = 5, mn = 6 => m=2, n=3 => (x + 2)(x + 3).',
-              'x^2 + 7x + 12: b = 7, c = 12, m+n = 7, mn = 12 => m=3, n=4 => (x + 3)(x + 4).',
-              'x^2 - 9 = x^2 - 3^2 => (x - 3)(x + 3).'
+              'Example A: Factorize x^2 + 5x + 6.',
+              'Step 1: Identify b = 5 and c = 6.',
+              'Step 2: Find two numbers that multiply to 6 and add to 5: 2 and 3.',
+              'Step 3: Write factors: (x + 2)(x + 3).',
+              'Example B: Factorize x^2 + 7x + 12.',
+              'Step 1: Identify b = 7 and c = 12.',
+              'Step 2: Find two numbers that multiply to 12 and add to 7: 3 and 4.',
+              'Step 3: Final factors: (x + 3)(x + 4).'
             ],
             commonMistake: 'Choosing numbers that multiply to c but do not add to b.',
             practiceTask: 'Factorize: x^2 + 7x + 12.',
@@ -161,11 +170,16 @@ document.addEventListener('DOMContentLoaded', function () {
             title: 'Geometry and Mensuration',
             objective: 'Use angle facts and area formulas in exam questions.',
             lesson: 'Angles in a triangle sum to 180 deg. Area of rectangle = l x w. Area of circle = pi r^2.',
-            workedExample: 'x + 50 + 60 = 180 => x = 70 deg; A = l x w = 9 x 4 = 36 cm^2.',
+            workedExample: 'Triangle angles 50 deg and 60 deg leave 70 deg for the third angle.',
             workedExampleSteps: [
-              'x + 50 + 60 = 180 => x = 70 deg.',
-              'A = l x w = 9 x 4 = 36 cm^2.',
-              'A = pi r^2 = pi(5)^2 = 25pi cm^2.'
+              'Example A: Triangle angle problem with angles 50 deg and 60 deg.',
+              'Step 1: Use triangle rule: sum of interior angles = 180 deg.',
+              'Step 2: Add known angles: 50 + 60 = 110 deg.',
+              'Step 3: Subtract from 180 deg: 180 - 110 = 70 deg.',
+              'Example B: Area of rectangle where l = 9 cm and w = 4 cm.',
+              'Step 1: Use formula A = l x w.',
+              'Step 2: Substitute values: A = 9 x 4.',
+              'Step 3: Compute area: A = 36 cm^2.'
             ],
             commonMistake: 'Confusing perimeter formulas with area formulas.',
             practiceTask: 'Find area of a rectangle with l = 9 cm and w = 4 cm.',
@@ -178,11 +192,16 @@ document.addEventListener('DOMContentLoaded', function () {
             title: 'Trigonometry and Pythagoras',
             objective: 'Solve right-triangle questions with Pythagoras and SOH-CAH-TOA.',
             lesson: 'Use a^2 + b^2 = c^2 for side lengths and trig ratios for unknown angles or sides.',
-            workedExample: 'c^2 = 6^2 + 8^2 = 100 => c = 10; tan(theta) = 4/3.',
+            workedExample: 'A right triangle with sides 6 and 8 has hypotenuse 10.',
             workedExampleSteps: [
-              'c^2 = a^2 + b^2 = 6^2 + 8^2 = 36 + 64 = 100 => c = sqrt(100) = 10.',
-              'tan(theta) = opposite/adjacent = 4/3.',
-              'sin(theta) = opposite/hypotenuse, cos(theta) = adjacent/hypotenuse.'
+              'Example A: Right triangle with legs 6 and 8.',
+              'Step 1: Use Pythagoras: c^2 = a^2 + b^2.',
+              'Step 2: Substitute: c^2 = 6^2 + 8^2 = 36 + 64 = 100.',
+              'Step 3: Take square root: c = sqrt(100) = 10.',
+              'Example B: Find tan(theta) if opposite = 4 and adjacent = 3.',
+              'Step 1: Use tangent rule: tan(theta) = opposite/adjacent.',
+              'Step 2: Substitute values: tan(theta) = 4/3.',
+              'Step 3: Keep ratio exact or convert to decimal if required by question.'
             ],
             commonMistake: 'Mixing opposite and adjacent sides when choosing trig ratios.',
             practiceTask: 'Find tan(theta) if opposite = 4 and adjacent = 3.',
@@ -235,11 +254,6 @@ document.addEventListener('DOMContentLoaded', function () {
             objective: 'Interpret function notation and graph transformations.',
             lesson: 'In y = f(x-a), the graph shifts right by a units.',
             workedExample: 'y = (x-2)^2 shifts y = x^2 right by 2.',
-            workedExampleSteps: [
-              'y = f(x-4) => shift right by 4.',
-              'y = f(x+3) => shift left by 3.',
-              'y = (x-2)^2 => vertex (2, 0).'
-            ],
             commonMistake: 'Treating x-a as a left shift.',
             practiceTask: 'Describe the shift in y = (x+3)^2.',
             progressCheckQuestion: 'What does y = f(x-4) do?',
@@ -252,11 +266,6 @@ document.addEventListener('DOMContentLoaded', function () {
             objective: 'Differentiate and integrate polynomial functions.',
             lesson: 'Use the power rule for derivatives and reverse power rule for integrals.',
             workedExample: 'd/dx (5x^3) = 15x^2, integral 9x^2 dx = 3x^3 + C.',
-            workedExampleSteps: [
-              'd/dx(5x^3) = 5*3x^(3-1) = 15x^2.',
-              'd/dx(x^4) = 4x^3.',
-              'integral 9x^2 dx = 9*(x^3/3) + C = 3x^3 + C.'
-            ],
             commonMistake: 'Forgetting + C after integration.',
             practiceTask: 'Differentiate 4x^4 and integrate 8x^3.',
             progressCheckQuestion: 'Differentiate y = x^4.',
@@ -269,11 +278,6 @@ document.addEventListener('DOMContentLoaded', function () {
             objective: 'Add vectors and interpret vector magnitude.',
             lesson: 'Add vectors component-wise and use magnitude formula sqrt(x^2 + y^2).',
             workedExample: '(2,-1) + (4,3) = (6,2).',
-            workedExampleSteps: [
-              '(2,-1) + (4,3) = (2+4, -1+3) = (6,2).',
-              '|(6,8)| = sqrt(6^2 + 8^2) = sqrt(36 + 64) = 10.',
-              'k(2,3) where k=2 => (4,6).'
-            ],
             commonMistake: 'Combining x and y components incorrectly.',
             practiceTask: 'Find |(6,8)|.',
             progressCheckQuestion: 'What is (1,2) + (3,5)?',
@@ -286,11 +290,6 @@ document.addEventListener('DOMContentLoaded', function () {
             objective: 'Apply probability rules in discrete scenarios.',
             lesson: 'For independent events, multiply probabilities.',
             workedExample: 'If P(A)=0.4 and P(B)=0.5, P(A and B)=0.2.',
-            workedExampleSteps: [
-              'P(A and B) = P(A)*P(B) = 0.4*0.5 = 0.2.',
-              'P(even on die) = 3/6 = 1/2.',
-              'P(not A) = 1 - P(A).'
-            ],
             commonMistake: 'Adding when multiplication is required for independent events.',
             practiceTask: 'Find P(A and B) for independent events 0.3 and 0.2.',
             progressCheckQuestion: 'If P(A)=0.2 and P(B)=0.5 independent, what is P(A and B)?',
@@ -353,15 +352,15 @@ document.addEventListener('DOMContentLoaded', function () {
         title: 'Formula and Method Refresher',
         objective: 'Refresh core formulas and solution habits before starting full modules.',
         lesson: 'Review the formulas you will repeatedly use: linear equations, factorization patterns, triangle angle sum, area formulas, Pythagoras theorem, and basic probability. Focus on when to use each formula, not just memorizing it.',
-        workedExample: 'ax + b = c -> x = (c - b)/a; then verify by substitution.',
+        workedExample: 'Refresher workflow: identify question type -> choose formula -> substitute values -> compute -> verify with a quick check.',
         workedExampleSteps: [
-          '1) 2x + 7 = 19 => 2x = 12 => x = 6; check: 2(6) + 7 = 19.',
-          '2) x^2 - 9 = x^2 - 3^2 = (x - 3)(x + 3).',
-          '3) x + 50 + 60 = 180 => x = 70 deg.',
-          '4) A = l x w = 9 x 4 = 36 cm^2; A = pi r^2 = pi(5)^2 = 25pi cm^2.',
-          '5) c^2 = a^2 + b^2 = 6^2 + 8^2 = 36 + 64 = 100 => c = 10.',
-          '6) P(even) = favorable/total = 3/6 = 1/2.',
-          '7) Verification rule: substitute answer and confirm LHS = RHS.'
+          'Formula 1: Linear equation form ax + b = c. Method: isolate x using inverse operations.',
+          'Formula 2: Difference of squares a^2 - b^2 = (a - b)(a + b).',
+          'Formula 3: Triangle interior angle sum = 180 deg.',
+          'Formula 4: Rectangle area A = l x w and circle area A = pi r^2.',
+          'Formula 5: Pythagoras theorem c^2 = a^2 + b^2 for right triangles.',
+          'Formula 6: Probability P(event) = favorable outcomes / total outcomes.',
+          'Tip: Always include units, show all steps, and do one reasonableness check at the end.'
         ],
         commonMistake: 'Memorizing formulas without recognizing which question type they fit.',
         practiceTask: 'Create a one-page formula sheet and solve one example per formula from memory.',
@@ -798,16 +797,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function asArray(value) {
     return Array.isArray(value) ? value.filter(Boolean) : [];
-  }
-
-  function normalizeAcceleratorTabLabel() {
-    const links = document.querySelectorAll('a.sidebar-link-btn[href="jamaica-workforce-accelerator.html"]');
-    links.forEach((link) => {
-      const current = String(link.textContent || '').replace(/\s+/g, ' ').trim();
-      if (/jamaica\s+accelerator/i.test(current) && !/workforce/i.test(current)) {
-        link.textContent = '🇯🇲 Jamaica Workforce Accelerator';
-      }
-    });
   }
 
   function renderList(target, items) {
@@ -2068,8 +2057,6 @@ document.addEventListener('DOMContentLoaded', function () {
     populateVoiceOptions();
     window.speechSynthesis.onvoiceschanged = populateVoiceOptions;
   }
-
-  normalizeAcceleratorTabLabel();
 
   certificateBtn?.addEventListener('click', downloadCertificate);
   refreshCourseBtn?.addEventListener('click', function () {
