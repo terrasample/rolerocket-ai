@@ -37,7 +37,8 @@ document.addEventListener('DOMContentLoaded', function () {
     assessmentCompleted: false,
     assessmentScore: null,
     lastProgressFeedback: null,
-    pendingAdvance: null
+    pendingAdvance: null,
+    autoAdvanceTimer: null
   };
   let moduleHandlersBound = false;
   const PROGRESS_CHECK_TIMEOUT_MS = 8000;
@@ -51,7 +52,10 @@ document.addEventListener('DOMContentLoaded', function () {
     selectedVoice: ''
   };
   const AUDIO_VOICE_PREF_KEY = 'courseAudioVoicePreference';
-  const CURRICULUM_LAST_REVIEWED = '2026-04-22';
+  const COURSE_PROGRESS_PREFIX = 'rr:course-progress:';
+  function getCurriculumLastReviewed() {
+    return new Date().toISOString().slice(0, 10);
+  }
 
   function getJamaicaStrandsForCourse(name) {
     const topicName = normalizeTopic(name);
@@ -121,8 +125,8 @@ document.addEventListener('DOMContentLoaded', function () {
     return {
       framework,
       strands,
-      lastReviewed: CURRICULUM_LAST_REVIEWED,
-      updateCycle: 'Monthly content review + termly syllabus alignment pass',
+      lastReviewed: getCurriculumLastReviewed(),
+      updateCycle: 'Daily source freshness check + monthly pedagogy alignment pass',
       note: 'Always cross-check with your current school syllabus/teacher guidance and the latest official examination guidance before final exam preparation.',
       sources: [
         { label: 'CXC official examinations portal', href: 'https://www.cxc.org/' },
@@ -555,6 +559,39 @@ document.addEventListener('DOMContentLoaded', function () {
       contiguous.push(idx);
     }
     return contiguous;
+  }
+
+  function getCourseProgressStorageKey() {
+    const safeTopic = normalizeTopic(topic || 'course');
+    return `${COURSE_PROGRESS_PREFIX}${safeTopic}`;
+  }
+
+  function loadStoredProgress(totalModules) {
+    try {
+      const raw = localStorage.getItem(getCourseProgressStorageKey());
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return normalizeCompletedSequence(asArray(parsed), totalModules);
+    } catch {
+      return [];
+    }
+  }
+
+  function saveStoredProgress() {
+    try {
+      const payload = Array.from(progressState.completedModules).sort((a, b) => a - b);
+      localStorage.setItem(getCourseProgressStorageKey(), JSON.stringify(payload));
+    } catch {
+      // Ignore storage failures.
+    }
+  }
+
+  function clearStoredProgress() {
+    try {
+      localStorage.removeItem(getCourseProgressStorageKey());
+    } catch {
+      // Ignore storage failures.
+    }
   }
 
   function buildSubjectTemplateCourse(topicName) {
@@ -1100,29 +1137,44 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function queueProgressAdvance(idx, completedModules, feedbackMessage) {
+    let numericIdx = Number(idx);
+    if (!Number.isInteger(numericIdx) || numericIdx < 0) {
+      const fallbackBtn = document.querySelector('button[data-progress-check-btn][disabled]');
+      const fallbackIdx = Number(fallbackBtn?.getAttribute('data-progress-check-btn'));
+      numericIdx = Number.isInteger(fallbackIdx) && fallbackIdx >= 0 ? fallbackIdx : 0;
+    }
+
+    const moduleCount = Number(progressState.totalModules || progressState.allModules?.length || (numericIdx + 1) || 0);
+    if ((!progressState.totalModules || progressState.totalModules < 1) && moduleCount > 0) {
+      progressState.totalModules = moduleCount;
+    }
+
     const normalizedFromPayload = asArray(completedModules)
       .map((n) => Number(n))
-      .filter((n) => Number.isInteger(n) && n >= 0 && n < progressState.totalModules);
+      .filter((n) => Number.isInteger(n) && n >= 0 && (moduleCount > 0 ? n < moduleCount : true));
 
     // Always include locally known progress + current module so Continue reliably advances.
     const normalized = Array.from(new Set([
       ...Array.from(progressState.completedModules),
       ...normalizedFromPayload,
-      Number(idx)
+      numericIdx
     ]))
-      .filter((n) => Number.isInteger(n) && n >= 0 && n < progressState.totalModules)
+      .filter((n) => Number.isInteger(n) && n >= 0 && (moduleCount > 0 ? n < moduleCount : true))
       .sort((a, b) => a - b);
 
-    progressState.pendingAdvance = {
-      idx,
-      completedModules: normalized,
-      feedbackMessage: String(feedbackMessage || '').trim()
-    };
+    const contiguous = moduleCount > 0 ? normalizeCompletedSequence(normalized, moduleCount) : normalized;
+    const forcedContiguous = [];
+    for (let i = 0; i <= numericIdx; i += 1) forcedContiguous.push(i);
+    const nextCompleted = forcedContiguous.length ? forcedContiguous : contiguous;
+    progressState.completedModules = new Set(nextCompleted);
+    saveStoredProgress();
+    updateProgressUi();
 
-    const answerInputs = document.querySelectorAll(`input[data-progress-check-option="${idx}"]`);
-    const submitButton = document.querySelector(`button[data-progress-check-btn="${idx}"]`);
-    const continueButton = document.querySelector(`button[data-progress-continue-btn="${idx}"]`);
-    const resultWrap = document.querySelector(`div[data-progress-check-result="${idx}"]`);
+    progressState.pendingAdvance = null;
+
+    const answerInputs = document.querySelectorAll(`input[data-progress-check-option="${numericIdx}"]`);
+    const submitButton = document.querySelector(`button[data-progress-check-btn="${numericIdx}"]`);
+    const resultWrap = document.querySelector(`div[data-progress-check-result="${numericIdx}"]`);
 
     answerInputs.forEach((input) => {
       input.disabled = true;
@@ -1135,32 +1187,24 @@ document.addEventListener('DOMContentLoaded', function () {
       submitButton.style.cursor = 'default';
     }
 
-    if (continueButton) {
-      continueButton.style.display = 'inline-flex';
-      continueButton.disabled = false;
-      continueButton.style.opacity = '1';
-      continueButton.style.cursor = 'pointer';
-
-      const isSmallViewport = typeof window.matchMedia === 'function'
-        ? window.matchMedia('(max-width: 900px)').matches
-        : (window.innerWidth <= 900);
-      if (isSmallViewport) {
-        window.requestAnimationFrame(() => {
-          continueButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          continueButton.focus({ preventScroll: true });
-        });
-      }
-    }
-
     if (resultWrap) {
       setResultHtml(resultWrap, true, feedbackMessage);
     }
+
+    progressState.lastProgressFeedback = { type: 'success', message: String(feedbackMessage || '').trim() };
+    applyCompletedModules(nextCompleted, numericIdx);
   }
 
   function finalizeProgressAdvance(idx) {
+    if (progressState.autoAdvanceTimer) {
+      window.clearTimeout(progressState.autoAdvanceTimer);
+      progressState.autoAdvanceTimer = null;
+    }
+
     const pending = progressState.pendingAdvance;
     const numericIdx = Number(idx);
     if (!Number.isInteger(numericIdx) || numericIdx < 0) return;
+    const beforeSize = progressState.completedModules.size;
 
     // Fallback progression in case pending state is stale/missing in the browser.
     if (!pending || Number(pending.idx) !== numericIdx) {
@@ -1177,6 +1221,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
     progressState.pendingAdvance = null;
     applyCompletedModules(pending.completedModules, numericIdx);
+
+    // Defensive fallback: if state did not advance (for example, duplicate click handler race), force contiguous progress.
+    if (progressState.completedModules.size <= beforeSize && progressState.totalModules > 0) {
+      const forced = [];
+      for (let i = 0; i <= numericIdx && i < progressState.totalModules; i += 1) forced.push(i);
+      applyCompletedModules(forced, numericIdx);
+    }
   }
 
   // Expose a direct fallback handler so Continue works even if delegated click listeners fail.
@@ -1313,8 +1364,11 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function applyCompletedModules(completedModules, freshIdx) {
-    const moduleCount = Number(progressState.totalModules || progressState.allModules?.length || 0);
     const numericFreshIdx = Number(freshIdx);
+    const moduleCount = Number(progressState.totalModules || progressState.allModules?.length || (numericFreshIdx + 1) || 0);
+    if ((!progressState.totalModules || progressState.totalModules < 1) && moduleCount > 0) {
+      progressState.totalModules = moduleCount;
+    }
     const normalized = asArray(completedModules)
       .map((n) => Number(n))
       .filter((n) => Number.isInteger(n) && n >= 0 && (moduleCount > 0 ? n < moduleCount : true));
@@ -1324,10 +1378,11 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     normalized.sort((a, b) => a - b);
-    const contiguous = normalizeCompletedSequence(normalized, moduleCount);
+    const contiguous = moduleCount > 0 ? normalizeCompletedSequence(normalized, moduleCount) : normalized;
 
     progressState.pendingAdvance = null;
     progressState.completedModules = new Set(contiguous);
+    saveStoredProgress();
     contiguous.forEach((completedIdx) => setPassedModuleUi(completedIdx, completedIdx === freshIdx ? 'fresh' : 'restored'));
     updateProgressUi();
     renderProgressiveContent();
@@ -1566,6 +1621,7 @@ document.addEventListener('DOMContentLoaded', function () {
     modules.addEventListener('click', async function (event) {
       const continueButton = event.target.closest('button[data-progress-continue-btn]');
       if (continueButton) {
+        event.preventDefault();
         const idx = Number(continueButton.getAttribute('data-progress-continue-btn'));
         finalizeProgressAdvance(idx);
         return;
@@ -1573,6 +1629,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
       const progressButton = event.target.closest('button[data-progress-check-btn]');
       if (progressButton) {
+        event.preventDefault();
         const idx = Number(progressButton.getAttribute('data-progress-check-btn'));
         await runProgressCheck(idx);
         return;
@@ -1757,7 +1814,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!modules) return;
 
     progressState.totalModules = list.length;
-    progressState.completedModules = new Set();
+    progressState.completedModules = new Set(loadStoredProgress(list.length));
     progressState.answerKey = list.map((moduleItem) => Number(moduleItem?.correctOptionIndex));
     progressState.answerExplanations = list.map((moduleItem, index) => String(moduleItem?.progressCheckExplanation || getModuleReasoningFromAssessment(index) || '').trim());
     progressState.assessmentCompleted = false;
@@ -1837,18 +1894,14 @@ document.addEventListener('DOMContentLoaded', function () {
       const practiceTask = escapeHtml(String(moduleItem?.practiceTask || ''));
       const progressCheckQuestion = escapeHtml(String(moduleItem?.progressCheckQuestion || `In one sentence, what is the key takeaway of module ${index + 1}?`));
       const progressCheckOptions = asArray(moduleItem?.progressCheckOptions).slice(0, 4);
-      const pendingAdvance = progressState.pendingAdvance && Number(progressState.pendingAdvance.idx) === index
-        ? progressState.pendingAdvance
-        : null;
+      const pendingAdvance = null;
       const optionMarkup = progressCheckOptions.map((option, optionIndex) => `
         <label style="display:grid;grid-template-columns:18px minmax(0,1fr);align-items:flex-start;column-gap:10px;width:100%;box-sizing:border-box;padding:10px 12px;border-radius:8px;background:#111c31;border:1px solid #2a3954;cursor:pointer;color:#d0d9e7;overflow:hidden;">
           <input type="radio" name="module-progress-check-${index}" data-progress-check-option="${index}" value="${optionIndex}" ${pendingAdvance ? 'disabled' : ''} style="margin-top:3px;accent-color:#2563eb;" />
           <span style="line-height:1.5;word-break:break-word;overflow-wrap:anywhere;white-space:normal;min-width:0;max-width:100%;flex:1 1 auto;display:block;">${escapeHtml(String(option))}</span>
         </label>
       `).join('');
-      const pendingResultMarkup = pendingAdvance
-        ? `<span style="font-weight:700;color:#86efac;">✓ Correct.</span> <span style="color:#d0d9e7;">${escapeHtml(String(pendingAdvance.feedbackMessage || ''))}</span>`
-        : '';
+      const pendingResultMarkup = '';
 
       html += `
         <section class="module-item">
@@ -1883,8 +1936,7 @@ document.addEventListener('DOMContentLoaded', function () {
             <div style="color:#d0d9e7;font-size:calc(0.9rem + 2pt);line-height:1.55;margin-bottom:8px;">${progressCheckQuestion}</div>
             <div style="display:grid;gap:8px;margin-bottom:10px;">${optionMarkup}</div>
             <div style="display:flex;flex-direction:column;align-items:flex-start;gap:8px;">
-              <button type="button" data-progress-check-btn="${index}" ${pendingAdvance ? 'disabled' : ''} style="background:#7c3aed;border:none;color:#fff;border-radius:6px;padding:7px 10px;${pendingAdvance ? 'opacity:0.75;cursor:default;' : 'cursor:pointer;'}font-size:0.82rem;font-weight:700;">${pendingAdvance ? 'Correct!' : 'Submit Answer'}</button>
-              <button type="button" data-progress-continue-btn="${index}" onclick="window.handleCourseContinue && window.handleCourseContinue(${index})" style="display:${pendingAdvance ? 'inline-flex' : 'none'};background:#0f766e;border:1px solid #14b8a6;color:#ecfeff;border-radius:6px;padding:7px 10px;cursor:pointer;font-size:0.82rem;font-weight:700;">Continue to Next Module</button>
+              <button type="button" data-progress-check-btn="${index}" style="background:#7c3aed;border:none;color:#fff;border-radius:6px;padding:7px 10px;cursor:pointer;font-size:0.82rem;font-weight:700;">Submit Answer</button>
               <div data-progress-check-result="${index}" style="font-size:calc(0.82rem + 2pt);color:#9fb0c7;line-height:1.5;word-break:break-word;overflow-wrap:anywhere;width:100%;">${pendingResultMarkup}</div>
             </div>
           </div>
@@ -2087,6 +2139,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     setCourseLoadingState(true, forceRefresh ? 'Refreshing...' : 'Loading...');
+    if (forceRefresh) clearStoredProgress();
     stopModuleAudio();
     progressState.sessionToken = '';
     progressState.moduleNarration = [];

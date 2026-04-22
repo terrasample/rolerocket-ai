@@ -273,14 +273,16 @@
 
   async function fetchRegionalJobs(title, market, limit = 6) {
     try {
+      const dailyKey = new Date().toISOString().slice(0, 10);
       const params = new URLSearchParams({
         title: String(title || '').trim() || 'Customer Service Representative',
         location: market.locationQuery,
         preferences: `${market.label} jobs only`,
-        limit: String(Math.max(6, limit * 2))
+        limit: String(Math.max(6, limit * 2)),
+        day: dailyKey
       });
 
-      const res = await fetch(getScoutApiUrl(params));
+      const res = await fetch(getScoutApiUrl(params), { cache: 'no-store' });
       if (!res.ok) return [];
 
       const payload = await res.json();
@@ -292,10 +294,11 @@
           title: String(title || '').trim() || 'Customer Service Representative',
           location: 'remote',
           preferences: `${market.label} jobs`,
-          limit: String(Math.max(8, limit * 3))
+          limit: String(Math.max(8, limit * 3)),
+          day: dailyKey
         });
 
-        const fallbackRes = await fetch(getScoutApiUrl(fallbackParams));
+        const fallbackRes = await fetch(getScoutApiUrl(fallbackParams), { cache: 'no-store' });
         if (fallbackRes.ok) {
           const fallbackPayload = await fallbackRes.json();
           jobs = Array.isArray(fallbackPayload?.jobs) ? fallbackPayload.jobs : [];
