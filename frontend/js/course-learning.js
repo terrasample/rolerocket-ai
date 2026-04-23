@@ -1134,11 +1134,15 @@ document.addEventListener('DOMContentLoaded', function () {
     return [answerLine, detailedExplanation].filter(Boolean).join(' ');
   }
 
-  function setResultHtml(resultWrap, isCorrect, message) {
+  function setResultHtml(resultWrap, isCorrect, message, idx) {
     const color = isCorrect ? '#86efac' : '#fda4af';
     const icon = isCorrect ? '✓' : '✗';
     const label = isCorrect ? 'Correct' : 'Not quite';
     resultWrap.innerHTML = `<span style="font-weight:700;color:${color};">${icon} ${escapeHtml(label)}.</span> <span style="color:#d0d9e7;">${escapeHtml(message)}</span>`;
+    if (!isCorrect && idx !== undefined) {
+      const continueBtn = document.querySelector(`button[data-progress-continue-btn="${idx}"]`);
+      if (continueBtn) continueBtn.style.display = 'inline-flex';
+    }
   }
 
   function queueProgressAdvance(idx, completedModules, feedbackMessage) {
@@ -1433,7 +1437,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (selectedOptionIndex !== correctOptionIndex) {
       progressState.lastProgressFeedback = null;
-      setResultHtml(resultWrap, false, formatProgressCheckFeedback(false, correctAnswer, explanation));
+      setResultHtml(resultWrap, false, formatProgressCheckFeedback(false, correctAnswer, explanation), idx);
       return false;
     }
 
@@ -1547,7 +1551,7 @@ document.addEventListener('DOMContentLoaded', function () {
           String(payload?.correctOptionText || fallbackCorrectAnswer).trim(),
           String(payload?.explanation || fallbackExplanation).trim()
         );
-        setResultHtml(resultWrap, false, wrongMsg);
+        setResultHtml(resultWrap, false, wrongMsg, idx);
       }
     } catch (error) {
       const usedLocalFallback = applyLocalProgressCheck(idx, selectedOptionIndex, resultWrap);
@@ -1641,17 +1645,6 @@ document.addEventListener('DOMContentLoaded', function () {
     moduleHandlersBound = true;
 
     modules.addEventListener('click', async function (event) {
-      const startPracticeButton = event.target.closest('button[data-start-practice-btn]');
-      if (startPracticeButton) {
-        event.preventDefault();
-        const idx = Number(startPracticeButton.getAttribute('data-start-practice-btn'));
-        if (Number.isInteger(idx) && idx >= 0) {
-          progressState.practiceUnlockedModules.add(idx);
-          renderProgressiveContent();
-        }
-        return;
-      }
-
       const continueButton = event.target.closest('button[data-progress-continue-btn]');
       if (continueButton) {
         event.preventDefault();
@@ -1941,12 +1934,9 @@ document.addEventListener('DOMContentLoaded', function () {
       const pendingAdvance = progressState.pendingAdvance && Number(progressState.pendingAdvance.idx) === index
         ? progressState.pendingAdvance
         : null;
-      const isPracticeUnlocked = progressState.practiceUnlockedModules.has(index)
-        || progressState.completedModules.has(index)
-        || Boolean(pendingAdvance);
       const optionMarkup = progressCheckOptions.map((option, optionIndex) => `
         <label style="display:grid;grid-template-columns:18px minmax(0,1fr);align-items:flex-start;column-gap:10px;width:100%;box-sizing:border-box;padding:10px 12px;border-radius:8px;background:#111c31;border:1px solid #2a3954;cursor:pointer;color:#d0d9e7;overflow:hidden;">
-          <input type="radio" name="module-progress-check-${index}" data-progress-check-option="${index}" value="${optionIndex}" ${pendingAdvance || !isPracticeUnlocked ? 'disabled' : ''} style="margin-top:3px;accent-color:#2563eb;" />
+          <input type="radio" name="module-progress-check-${index}" data-progress-check-option="${index}" value="${optionIndex}" ${pendingAdvance ? 'disabled' : ''} style="margin-top:3px;accent-color:#2563eb;" />
           <span style="line-height:1.5;word-break:break-word;overflow-wrap:anywhere;white-space:normal;min-width:0;max-width:100%;flex:1 1 auto;display:block;">${escapeHtml(String(option))}</span>
         </label>
       `).join('');
@@ -1984,14 +1974,10 @@ document.addEventListener('DOMContentLoaded', function () {
           </div>
           <div style="margin-top:12px;padding:10px;border-radius:8px;background:#0b1220;border:1px solid #273449;">
             <div style="font-size:0.82rem;color:#c4b5fd;font-weight:700;margin-bottom:6px;">End-of-Module Practice</div>
-            <div style="color:#9fb0c7;font-size:0.82rem;line-height:1.5;margin-bottom:8px;">Complete the lesson first, then start this practice check.</div>
-            ${isPracticeUnlocked
-              ? ''
-              : `<button type="button" data-start-practice-btn="${index}" style="background:#1d4ed8;border:1px solid #60a5fa;color:#dbeafe;border-radius:6px;padding:7px 10px;cursor:pointer;font-size:0.82rem;font-weight:700;margin-bottom:10px;">Start End-of-Module Practice</button>`}
             <div style="color:#d0d9e7;font-size:calc(0.9rem + 2pt);line-height:1.55;margin-bottom:8px;">${progressCheckQuestion}</div>
             <div style="display:grid;gap:8px;margin-bottom:10px;">${optionMarkup}</div>
             <div style="display:flex;flex-direction:column;align-items:flex-start;gap:8px;">
-              <button type="button" data-progress-check-btn="${index}" ${pendingAdvance || !isPracticeUnlocked ? 'disabled' : ''} style="background:#7c3aed;border:none;color:#fff;border-radius:6px;padding:7px 10px;${pendingAdvance || !isPracticeUnlocked ? 'opacity:0.75;cursor:default;' : 'cursor:pointer;'}font-size:0.82rem;font-weight:700;">${pendingAdvance ? 'Correct!' : 'Submit Answer'}</button>
+              <button type="button" data-progress-check-btn="${index}" ${pendingAdvance ? 'disabled' : ''} style="background:#7c3aed;border:none;color:#fff;border-radius:6px;padding:7px 10px;${pendingAdvance ? 'opacity:0.75;cursor:default;' : 'cursor:pointer;'}font-size:0.82rem;font-weight:700;">${pendingAdvance ? 'Correct!' : 'Submit Answer'}</button>
               <button type="button" data-progress-continue-btn="${index}" style="display:${pendingAdvance ? 'inline-flex' : 'none'};background:#0f766e;border:1px solid #14b8a6;color:#ecfeff;border-radius:6px;padding:7px 10px;cursor:pointer;font-size:0.82rem;font-weight:700;">Continue to Next Module</button>
               <div data-progress-check-result="${index}" style="font-size:calc(0.82rem + 2pt);color:#9fb0c7;line-height:1.5;word-break:break-word;overflow-wrap:anywhere;width:100%;">${pendingResultMarkup}</div>
             </div>

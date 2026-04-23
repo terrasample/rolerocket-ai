@@ -1536,11 +1536,11 @@ function getBPOCompanyJobs(title, location, resume) {
 
   const bpoCompanies = [
     { name: 'Alorica', baseUrl: 'https://www.alorica.com/careers', roles: ['customer service', 'tech support', 'quality'] },
-    { name: 'Conduent', baseUrl: 'https://www.conduent.com/careers', roles: ['customer service', 'data entry', 'tech support'] },
-    { name: 'Convergys', baseUrl: 'https://www.convergys.com/careers', roles: ['customer service', 'sales', 'tech support'] },
-    { name: 'Teletech', baseUrl: 'https://www.ttec.com/careers', roles: ['customer service', 'tech support', 'qa'] },
-    { name: 'Sykes', baseUrl: 'https://www.sykes.com/careers', roles: ['customer service', 'tech support', 'back office'] },
-    { name: 'APAC Customer Services', baseUrl: 'https://www.apaccustomerservices.com/careers', roles: ['customer service', 'tech support'] }
+    { name: 'Conduent', baseUrl: 'https://careers.conduent.com', roles: ['customer service', 'data entry', 'tech support'] },
+    { name: 'Concentrix', baseUrl: 'https://careers.concentrix.com', roles: ['customer service', 'sales', 'tech support'] },
+    { name: 'TTEC', baseUrl: 'https://www.ttec.com/find-a-job', roles: ['customer service', 'tech support', 'qa'] },
+    { name: 'Foundever', baseUrl: 'https://jobs.foundever.com', roles: ['customer service', 'tech support', 'back office'] },
+    { name: 'TaskUs', baseUrl: 'https://www.taskus.com/careers', roles: ['customer service', 'tech support'] }
   ];
 
   const matchedTitle = String(title || '').toLowerCase();
@@ -1554,7 +1554,7 @@ function getBPOCompanyJobs(title, location, resume) {
           title: `${role.charAt(0).toUpperCase() + role.slice(1)} Representative`,
           company: company.name,
           location: location || 'Jamaica / Remote',
-          link: `${company.baseUrl}/${role.replace(/\s+/g, '-')}`,
+          link: company.baseUrl,
           description: `${company.name} is hiring ${role} professionals. Join our team and help customers worldwide. Remote or on-site positions available in Jamaica.`,
           postedAt: new Date().toISOString(),
           matchScore: 75 + Math.random() * 20,
