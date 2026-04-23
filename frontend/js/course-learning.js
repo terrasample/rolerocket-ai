@@ -1142,6 +1142,27 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!isCorrect && idx !== undefined) {
       const continueBtn = document.querySelector(`button[data-progress-continue-btn="${idx}"]`);
       if (continueBtn) continueBtn.style.display = 'inline-flex';
+      const correctIndex = progressState.answerKey[idx];
+      const selectedInput = document.querySelector(`input[name="module-progress-check-${idx}"]:checked`);
+      if (selectedInput) {
+        const selectedLabel = selectedInput.closest('label');
+        if (selectedLabel) {
+          selectedLabel.style.background = '#3b0a0a';
+          selectedLabel.style.borderColor = '#ef4444';
+          selectedLabel.style.color = '#fca5a5';
+        }
+      }
+      if (Number.isInteger(correctIndex)) {
+        const correctInput = document.querySelector(`input[name="module-progress-check-${idx}"][value="${correctIndex}"]`);
+        if (correctInput) {
+          const correctLabel = correctInput.closest('label');
+          if (correctLabel) {
+            correctLabel.style.background = '#052e16';
+            correctLabel.style.borderColor = '#22c55e';
+            correctLabel.style.color = '#86efac';
+          }
+        }
+      }
     }
   }
 
