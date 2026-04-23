@@ -38,10 +38,12 @@ document.addEventListener('DOMContentLoaded', function () {
     assessmentCompleted: false,
     assessmentScore: null,
     assessmentGrade: null,
+    assessmentCurrentPage: 1,
     lastProgressFeedback: null,
     pendingAdvance: null,
     autoAdvanceTimer: null,
-    practiceUnlockedModules: new Set()
+    practiceUnlockedModules: new Set(),
+    preferLocalProgressCheck: false
   };
   let moduleHandlersBound = false;
   const PROGRESS_CHECK_TIMEOUT_MS = 8000;
@@ -56,8 +58,14 @@ document.addEventListener('DOMContentLoaded', function () {
   };
   const AUDIO_VOICE_PREF_KEY = 'courseAudioVoicePreference';
   const COURSE_PROGRESS_PREFIX = 'rr:course-progress:cert-v2:';
-  const PMP_STYLE_MIN_MODULES = 12;
-  const PMP_STYLE_FINAL_QUESTION_COUNT = 60;
+  const COVERAGE_DEFAULT_MIN_MODULES = 10;
+  const COVERAGE_DEFAULT_FINAL_QUESTION_COUNT = 40;
+  const COVERAGE_AI_ML_MIN_MODULES = 18;
+  const COVERAGE_AI_ML_FINAL_QUESTION_COUNT = 120;
+  const COVERAGE_STEM_MIN_MODULES = 14;
+  const COVERAGE_STEM_FINAL_QUESTION_COUNT = 80;
+  const COVERAGE_BUSINESS_MIN_MODULES = 12;
+  const COVERAGE_BUSINESS_FINAL_QUESTION_COUNT = 60;
   function getCurriculumLastReviewed() {
     return new Date().toISOString().slice(0, 10);
   }
@@ -594,13 +602,46 @@ document.addEventListener('DOMContentLoaded', function () {
     };
   }
 
-  function ensurePmpStyleModules(modules, fallbackTopic) {
+  function getCourseCoverageTargets(topicLabel) {
+    const normalizedTopic = normalizeTopic(topicLabel || '');
+    if (/ai|machine learning|ml|deep learning|data science|artificial intelligence/i.test(normalizedTopic)) {
+      return {
+        minModules: COVERAGE_AI_ML_MIN_MODULES,
+        finalQuestionCount: COVERAGE_AI_ML_FINAL_QUESTION_COUNT,
+        estimatedDuration: '18-24 weeks'
+      };
+    }
+
+    if (/engineering|chemistry|physics|biology|mathematics|statistics|quantum|electrical|mechanical|robotics|computer science|cyber/i.test(normalizedTopic)) {
+      return {
+        minModules: COVERAGE_STEM_MIN_MODULES,
+        finalQuestionCount: COVERAGE_STEM_FINAL_QUESTION_COUNT,
+        estimatedDuration: '14-20 weeks'
+      };
+    }
+
+    if (/project management|accounting|finance|economics|marketing|operations|supply chain|business/i.test(normalizedTopic)) {
+      return {
+        minModules: COVERAGE_BUSINESS_MIN_MODULES,
+        finalQuestionCount: COVERAGE_BUSINESS_FINAL_QUESTION_COUNT,
+        estimatedDuration: '12-16 weeks'
+      };
+    }
+
+    return {
+      minModules: COVERAGE_DEFAULT_MIN_MODULES,
+      finalQuestionCount: COVERAGE_DEFAULT_FINAL_QUESTION_COUNT,
+      estimatedDuration: '10-14 weeks'
+    };
+  }
+
+  function ensureCourseCoverageModules(modules, fallbackTopic, minModules) {
     const baseModules = asArray(modules);
     if (!baseModules.length) return [];
 
     const normalized = baseModules.map((moduleItem) => ({ ...moduleItem }));
     const seed = normalized.slice();
-    while (normalized.length < PMP_STYLE_MIN_MODULES) {
+    while (normalized.length < minModules) {
       const source = seed[normalized.length % seed.length] || seed[0];
       const synthetic = buildSyntheticCertificationModule(source, normalized.length - seed.length + 1, fallbackTopic);
       normalized.push(synthetic);
@@ -651,7 +692,7 @@ document.addEventListener('DOMContentLoaded', function () {
     return generated;
   }
 
-  function ensurePmpStyleAssessment(finalAssessment, modules, fallbackTopic) {
+  function ensureCourseCoverageAssessment(finalAssessment, modules, fallbackTopic, finalQuestionCount) {
     const normalizedSeed = asArray(finalAssessment)
       .map((item, idx) => normalizeObjectiveAssessmentItem(item, `Question ${idx + 1}`, fallbackTopic));
     const generated = buildGeneratedAssessmentFromModules(modules, fallbackTopic);
@@ -672,7 +713,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     const expanded = bank.slice();
-    while (expanded.length < PMP_STYLE_FINAL_QUESTION_COUNT) {
+    while (expanded.length < finalQuestionCount) {
       const source = expanded[expanded.length % bank.length];
       expanded.push({
         ...source,
@@ -680,18 +721,19 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     }
 
-    return expanded.slice(0, PMP_STYLE_FINAL_QUESTION_COUNT);
+    return expanded.slice(0, finalQuestionCount);
   }
 
-  function applyPmpStyleNormalization(course, fallbackTopic) {
+  function applyCourseCoverageNormalization(course, fallbackTopic) {
     const baseCourse = course || {};
-    const baseModules = ensurePmpStyleModules(baseCourse.modules, fallbackTopic);
+    const targets = getCourseCoverageTargets(baseCourse.courseTitle || fallbackTopic);
+    const baseModules = ensureCourseCoverageModules(baseCourse.modules, fallbackTopic, targets.minModules);
     if (!baseModules.length) return baseCourse;
 
-    const finalAssessment = ensurePmpStyleAssessment(baseCourse.finalAssessment, baseModules, fallbackTopic);
+    const finalAssessment = ensureCourseCoverageAssessment(baseCourse.finalAssessment, baseModules, fallbackTopic, targets.finalQuestionCount);
     const outcomes = asArray(baseCourse.learningOutcomes).concat([
-      `Complete a PMP-style certification pathway with ${PMP_STYLE_MIN_MODULES}+ modules.`,
-      `Pass a comprehensive ${PMP_STYLE_FINAL_QUESTION_COUNT}-question multiple-choice certification exam.`
+      `Complete a full coverage pathway with ${targets.minModules}+ modules.`,
+      `Pass a comprehensive ${targets.finalQuestionCount}-question multiple-choice certification exam.`
     ]).filter(Boolean);
 
     const uniqueOutcomes = [];
@@ -702,10 +744,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
     return {
       ...baseCourse,
-      estimatedDuration: String(baseCourse.estimatedDuration || '10-14 weeks'),
+      estimatedDuration: String(baseCourse.estimatedDuration || targets.estimatedDuration),
       modules: baseModules,
       finalAssessment,
-      learningOutcomes: uniqueOutcomes
+      learningOutcomes: uniqueOutcomes,
+      progressCheckMode: 'local'
     };
   }
 
@@ -1669,8 +1712,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const fallbackCorrectAnswer = String(progressState.allModules?.[idx]?.progressCheckOptions?.[Number(progressState.answerKey[idx])] || '').trim();
     const fallbackExplanation = getProgressCheckExplanation(idx);
 
-    // Local curriculum packs validate in-browser and do not depend on API session tokens.
-    if (String(progressState.sessionToken || '').startsWith('local-')) {
+    // Local/normalized curriculum packs validate in-browser and do not depend on API session tokens.
+    if (progressState.preferLocalProgressCheck || String(progressState.sessionToken || '').startsWith('local-')) {
       const usedLocalFallback = applyLocalProgressCheck(idx, selectedOptionIndex, resultWrap);
       if (usedLocalFallback) {
         setResultHtml(resultWrap, true, formatProgressCheckFeedback(true, fallbackCorrectAnswer, fallbackExplanation));
@@ -1766,7 +1809,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   async function loadProgress() {
     const token = getToken();
-    if (String(progressState.sessionToken || '').startsWith('local-')) {
+    if (progressState.preferLocalProgressCheck || String(progressState.sessionToken || '').startsWith('local-')) {
       updateProgressUi();
       return;
     }
@@ -2201,44 +2244,85 @@ document.addEventListener('DOMContentLoaded', function () {
       progressState.assessmentScore = null;
     }
 
+    // Pagination support for large exam sets
+    const questionsPerPage = 10;
+    const totalPages = Math.ceil(items.length / questionsPerPage);
+    const currentPage = Math.max(1, Math.min(Number(progressState.assessmentCurrentPage || 1), totalPages));
+    const startIdx = (currentPage - 1) * questionsPerPage;
+    const endIdx = Math.min(startIdx + questionsPerPage, items.length);
+    const pageItems = items.slice(startIdx, endIdx);
+
     const hasObjectiveItems = items.some((item) => asArray(item?.options).length >= 2);
+    const paginationHtml = totalPages > 1 ? `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;border-radius:8px;background:#0d2438;border:1px solid #0ea5e9;margin-bottom:16px;gap:12px;flex-wrap:wrap;">
+        <button type="button" data-assessment-prev-page style="background:#3b82f6;border:none;color:#fff;border-radius:6px;padding:8px 12px;cursor:pointer;font-size:0.85rem;font-weight:700;${currentPage <= 1 ? 'opacity:0.5;cursor:not-allowed;' : ''}">← Previous</button>
+        <span style="color:#93c5fd;font-size:0.9rem;font-weight:700;">Question ${startIdx + 1}–${endIdx} of ${items.length} (Page ${currentPage}/${totalPages})</span>
+        <button type="button" data-assessment-next-page style="background:#3b82f6;border:none;color:#fff;border-radius:6px;padding:8px 12px;cursor:pointer;font-size:0.85rem;font-weight:700;${currentPage >= totalPages ? 'opacity:0.5;cursor:not-allowed;' : ''}">Next →</button>
+      </div>
+    ` : '';
 
     assessment.innerHTML = `
       <div style="padding:14px;border-radius:10px;background:#0d2438;border:1px solid #0ea5e9;color:#7dd3fc;margin-bottom:16px;font-size:0.9rem;">
         <strong>Final Assessment:</strong> ${hasObjectiveItems
-          ? 'This certification exam uses multiple-choice questions across the full course. You will receive an A-F grade, and a passing grade is C or higher (70%+).'
+          ? `This certification exam has ${items.length} multiple-choice questions across the full course. You will receive an A-F grade, and a passing grade is C or higher (70%+).`
           : 'Answer all questions to complete the course and unlock interview prep.'}
       </div>
-      ${items.map((item, i) => {
+      ${paginationHtml}
+      ${pageItems.map((item, pageIdx) => {
+        const globalIdx = startIdx + pageIdx;
         const question = String(item?.question || '');
         const options = asArray(item?.options);
         const optionMarkup = options.map((option, optionIndex) => `
           <label style="display:grid;grid-template-columns:18px minmax(0,1fr);align-items:flex-start;column-gap:10px;width:100%;box-sizing:border-box;padding:10px 12px;border-radius:8px;background:#111c31;border:1px solid #2a3954;cursor:pointer;color:#d0d9e7;overflow:hidden;margin-bottom:8px;">
-            <input type="radio" name="assessment-question-${i}" data-assessment-choice="${i}" value="${optionIndex}" style="margin-top:3px;accent-color:#10b981;" />
+            <input type="radio" name="assessment-question-${globalIdx}" data-assessment-choice="${globalIdx}" value="${optionIndex}" style="margin-top:3px;accent-color:#10b981;" />
             <span style="line-height:1.5;word-break:break-word;overflow-wrap:anywhere;white-space:normal;min-width:0;max-width:100%;flex:1 1 auto;display:block;">${escapeHtml(String(option))}</span>
           </label>
         `).join('');
         return `
           <div class="module-item" style="margin-bottom:12px;">
-            <p style="margin-bottom:8px;"><strong style="color:#c4b5fd;">Question ${i + 1}:</strong> ${escapeHtml(question)}</p>
+            <p style="margin-bottom:8px;"><strong style="color:#c4b5fd;">Question ${globalIdx + 1}:</strong> ${escapeHtml(question)}</p>
             ${options.length >= 2
               ? `<div style="display:grid;gap:6px;">${optionMarkup}</div>`
               : `<textarea 
-                  data-assessment-answer="${i}"
+                  data-assessment-answer="${globalIdx}"
                   placeholder="Type your answer here..."
                   style="width:100%;min-height:80px;padding:10px;background:#111c31;border:1px solid #2a3954;border-radius:8px;color:#d0d9e7;font-family:inherit;font-size:0.9rem;resize:vertical;"
                 ></textarea>`}
           </div>
         `;
       }).join('')}
-      <button type="button" id="submitAssessmentBtn" style="background:#10b981;border:none;color:#fff;border-radius:6px;padding:10px 16px;cursor:pointer;font-size:0.9rem;font-weight:700;margin-top:16px;">Submit Assessment</button>
+      ${paginationHtml}
+      <button type="button" id="submitAssessmentBtn" style="background:#10b981;border:none;color:#fff;border-radius:6px;padding:10px 16px;cursor:pointer;font-size:0.9rem;font-weight:700;margin-top:16px;width:100%;">Submit Assessment (${items.length} Questions)</button>
       <div id="assessmentResult" style="margin-top:12px;font-size:0.9rem;color:#9fb0c7;line-height:1.6;"></div>
     `;
+
+    // Pagination event handlers
+    if (totalPages > 1) {
+      document.querySelectorAll('[data-assessment-prev-page]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (currentPage > 1) {
+            progressState.assessmentCurrentPage = currentPage - 1;
+            renderAssessment(items);
+            assessment.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        });
+      });
+      document.querySelectorAll('[data-assessment-next-page]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (currentPage < totalPages) {
+            progressState.assessmentCurrentPage = currentPage + 1;
+            renderAssessment(items);
+            assessment.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        });
+      });
+    }
   }
 
   function renderCourse(course) {
     const scaffoldedCourse = applyFromScratchCourseScaffold(course, topic);
-    const normalizedCourse = applyPmpStyleNormalization(scaffoldedCourse, topic);
+    const normalizedCourse = applyCourseCoverageNormalization(scaffoldedCourse, topic);
+    progressState.preferLocalProgressCheck = String(normalizedCourse?.progressCheckMode || '').toLowerCase() === 'local';
     const courseTitle = String(normalizedCourse?.courseTitle || topic || 'Course');
     titleMain.textContent = courseTitle;
     titleSide.textContent = courseTitle;

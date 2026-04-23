@@ -496,7 +496,7 @@ const JOB_CACHE_MS = 1000 * 60 * 5;
 const jobSearchCache = new Map();
 const COURSE_CONTENT_CACHE_TTL_MS = 1000 * 60 * 60 * 24;
 const COURSE_CHECK_SESSION_TTL_MS = 1000 * 60 * 120;
-const COURSE_CONTENT_SCHEMA_VERSION = 'cert-v2';
+const COURSE_CONTENT_SCHEMA_VERSION = 'cert-v3';
 const EXTERNAL_FETCH_TIMEOUT_MS = 1200;
 const jobSearchInFlight = new Map();
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '')
@@ -4130,8 +4130,8 @@ Rules:
 - Each module.progressCheckQuestion must test practical understanding of that specific module.
 - Each module.progressCheckOptions must contain exactly 4 plausible multiple-choice answers.
 - Each module.correctOptionIndex must be an integer from 0 to 3 and point to the single best answer.
-- finalAssessment must contain exactly 12 multiple-choice questions.
-- Each finalAssessment item must contain exactly 4 options, one correctOptionIndex, and a concise explanation.
+- finalAssessment must contain 60-180 multiple-choice questions (60 for general, 80 for business, 100 for STEM, 150 for AI/ML).
+- Each finalAssessment item must contain 3-4 options, one correctOptionIndex, and a concise explanation.
 - The finalAssessment must test retention across the full course, not just repeat module checkpoint wording.
 - Avoid fluff and generic advice.
 - No markdown, no code fences, no extra text outside JSON.`
@@ -4486,6 +4486,105 @@ function createCourseContentFingerprint(course) {
   return crypto.createHash('sha256').update(JSON.stringify(course || {})).digest('hex');
 }
 
+function getExamQuestionTargets(topic) {
+  const normalizedTopic = String(topic || '').toLowerCase();
+  if (/ai|machine learning|ml|deep learning|data science|artificial intelligence|neural|nlp|computer vision/i.test(normalizedTopic)) {
+    return { count: 150, domainLabel: 'AI/ML' };
+  }
+  if (/stem|physics|chemistry|biology|mathematics|calculus|statistics|algebra|geometry/i.test(normalizedTopic)) {
+    return { count: 100, domainLabel: 'STEM' };
+  }
+  if (/business|project|management|leadership|finance|accounting|hr|human resource|marketing|sales/i.test(normalizedTopic)) {
+    return { count: 80, domainLabel: 'Business' };
+  }
+  return { count: 60, domainLabel: 'General' };
+}
+
+function generateCertificationExamQuestions(topic, baseQuestions = []) {
+  const targets = getExamQuestionTargets(topic);
+  const qCount = targets.count;
+  const topicName = String(topic || 'the subject').trim();
+
+  // Core knowledge bank (reusable across domains)
+  const knowledgeCategories = {
+    fundamentals: [
+      { q: `What is the primary objective of ${topicName}?`, opts: ['To understand core principles', 'To avoid learning anything', 'To maximize speed without quality', 'To use the most expensive tools'], correct: 0 },
+      { q: `Which factor is most important when starting ${topicName} work?`, opts: ['Clear goals and success metrics', 'Having all possible tools ready', 'Speed above all else', 'Skipping any planning phase'], correct: 0 },
+      { q: `What distinguishes output from impact in ${topicName}?`, opts: ['Output is delivered; impact is the improvement it creates', 'They are identical concepts', 'Impact only exists in theory', 'Output is irrelevant to impact'], correct: 0 },
+    ],
+    planning: [
+      { q: `What should be included in a solid ${topicName} plan?`, opts: ['Deliverables, owners, and checkpoints', 'Every idea ever mentioned', 'No deadlines to stay flexible', 'Only the final result'], correct: 0 },
+      { q: `How should you handle scope changes during ${topicName}?`, opts: ['Update the plan explicitly', 'Let them accumulate silently', 'Reject all changes immediately', 'Ignore them until launch'], correct: 0 },
+      { q: `What is the best way to identify dependencies in ${topicName}?`, opts: ['Document what blocks each task', 'Assume nothing is blocked', 'Only discover blocks during execution', 'Avoid mentioning dependencies'], correct: 0 },
+    ],
+    execution: [
+      { q: `What makes a workflow visible during ${topicName}?`, opts: ['Clear stages and escalation rules', 'Keeping work invisible to avoid criticism', 'No documentation of process', 'Random task movement'], correct: 0 },
+      { q: `How often should progress be reviewed in ${topicName}?`, opts: ['At a regular cadence based on project duration', 'Only at the very end', 'When something goes wrong', 'Never formally'], correct: 0 },
+      { q: `What should happen when a blocker is identified in ${topicName}?`, opts: ['Escalate immediately to prevent delays', 'Hope it resolves on its own', 'Ignore it silently', 'Double the team size'], correct: 0 },
+    ],
+    quality: [
+      { q: `What is the best approach to managing risk in ${topicName}?`, opts: ['Identify risks early and define mitigations', 'Wait until risks become critical', 'Assume everything will work out', 'Deny that risks exist'], correct: 0 },
+      { q: `How should quality be defined in ${topicName}?`, opts: ['Clear criteria tied to the work objective', 'High numbers with no definition', 'Whatever takes the least time', 'Only user opinion matters'], correct: 0 },
+      { q: `When should quality checkpoints occur in ${topicName}?`, opts: ['Throughout execution, not just at the end', 'Only before final delivery', 'After launch is too late', 'Quality checks waste time'], correct: 0 },
+    ],
+    communication: [
+      { q: `What should a stakeholder update on ${topicName} include?`, opts: ['Status, impact, risks, and next steps', 'Only detailed task lists', 'Optimistic language without metrics', 'A long narrative with no recommendation'], correct: 0 },
+      { q: `Who should receive ${topicName} progress updates?`, opts: ['Stakeholders tailored by their role and interests', 'Only the project manager', 'No one until completion', 'Everyone in the organization'], correct: 0 },
+      { q: `How should you frame tradeoffs in ${topicName}?`, opts: ['Transparently with evidence and impact analysis', 'Hide downsides from stakeholders', 'Avoid discussing tradeoffs at all', 'Let the team decide alone'], correct: 0 },
+    ],
+    measurement: [
+      { q: `What is the difference between leading and lagging metrics in ${topicName}?`, opts: ['Leading warns early; lagging confirms final impact', 'They serve the same purpose', 'Metrics are never useful', 'Only lagging metrics matter'], correct: 0 },
+      { q: `How should you choose metrics for ${topicName}?`, opts: ['Based on actual decision-making needs', 'Pick metrics with the biggest numbers', 'Avoid metrics entirely', 'Choose vanity metrics only'], correct: 0 },
+      { q: `What makes a metric actionable in ${topicName}?`, opts: ['It informs a specific decision or action', 'It sounds impressive', 'No metric is truly actionable', 'Activity counts are sufficient'], correct: 0 },
+    ],
+    sustainment: [
+      { q: `What ensures improvements last after ${topicName} completion?`, opts: ['Ownership, monitoring, and regular reviews', 'Declaring success and moving on', 'No measurement after launch', 'Hoping the change sticks'], correct: 0 },
+      { q: `How should you handle process drift after ${topicName} rollout?`, opts: ['Review regularly and update the process', 'Ignore drift until performance fails', 'Never update a process once live', 'Documentation is unnecessary'], correct: 0 },
+      { q: `Who owns the monitoring of ${topicName} outcomes?`, opts: ['A designated person with clear responsibilities', 'Everyone and no one', 'Only the original project team', 'Monitoring is wasteful'], correct: 0 },
+    ],
+    interviews: [
+      { q: `How should you frame ${topicName} experience for interviews?`, opts: ['Action linked to measurable result', 'List of tools used', 'Vague statements of contribution', 'Jargon without outcomes'], correct: 0 },
+      { q: `What story about ${topicName} is most convincing in interviews?`, opts: ['Problem → Action → Quantified Result', 'How hard you worked', 'Tools you used', 'Time spent on the task'], correct: 0 },
+      { q: `How should you discuss ${topicName} challenges in interviews?`, opts: ['Describe the tradeoff and your mitigation', 'Claim there were no challenges', 'Blame the team or circumstances', 'Never mention challenges'], correct: 0 },
+    ]
+  };
+
+  let allQuestions = [];
+
+  // Add base questions if provided
+  if (Array.isArray(baseQuestions) && baseQuestions.length > 0) {
+    allQuestions = allQuestions.concat(baseQuestions.slice(0, Math.ceil(qCount * 0.15)));
+  }
+
+  // Add category questions, cycling and randomizing to reach target count
+  Object.values(knowledgeCategories).forEach((category) => {
+    allQuestions = allQuestions.concat(category);
+  });
+
+  // Expand questions with variation by randomizing and duplicating with rewording
+  while (allQuestions.length < qCount) {
+    const sourceQuestion = allQuestions[Math.floor(Math.random() * allQuestions.length)];
+    const variation = {
+      q: sourceQuestion.q.replace(new RegExp(`${topicName}`, 'gi'), `your ${topicName.toLowerCase()} initiative`),
+      opts: sourceQuestion.opts.map(opt => opt.replace(new RegExp(topicName, 'gi'), 'the work')),
+      correct: sourceQuestion.correct,
+      explanation: `This question tests your understanding of ${topicName} best practices.`
+    };
+    allQuestions.push(variation);
+  }
+
+  // Shuffle and trim to exact count
+  allQuestions = allQuestions.sort(() => Math.random() - 0.5).slice(0, qCount);
+
+  // Convert to final assessment format
+  return allQuestions.map((q, idx) => ({
+    question: String(q.q || `Question about ${topicName}`).trim(),
+    options: Array.isArray(q.opts) ? q.opts.map(o => String(o || '').trim()).filter(Boolean).slice(0, 4) : ['Option A', 'Option B', 'Option C', 'Option D'],
+    correctOptionIndex: Number.isInteger(q.correct) ? Math.min(q.correct, 3) : 0,
+    explanation: String(q.explanation || `This question tests your knowledge of ${topicName}.`).trim()
+  })).filter(item => Array.isArray(item.options) && item.options.length >= 3);
+}
+
 function buildFallbackCourseContent(topic) {
   const courseTitle = String(topic || 'Professional Course').trim() || 'Professional Course';
   const actionName = courseTitle.replace(/\s+/g, ' ').trim();
@@ -4675,20 +4774,7 @@ function buildFallbackCourseContent(topic) {
         'Final impact summary with metrics, lessons learned, and resume-ready proof points'
       ]
     },
-    finalAssessment: [
-      { question: `Which item should be defined before tactics or tools are selected in ${actionName}?`, options: ['Outcome, constraints, and success metrics', 'Brand colors for the final deck', 'Every possible tool purchase', 'A perfect solution with no tradeoffs'], correctOptionIndex: 0, explanation: 'Strong execution starts by defining the outcome and operating conditions first.' },
-      { question: `What makes a plan executable instead of vague?`, options: ['Clear deliverables, owners, and checkpoints', 'No deadlines so the team stays flexible', 'A list of all ideas collected so far', 'An assumption that blockers will solve themselves'], correctOptionIndex: 0, explanation: 'Execution requires visible ownership, outputs, and review points.' },
-      { question: `What is the main benefit of a visible workflow during execution?`, options: ['It makes priorities, blockers, and next steps clear', 'It removes the need for stakeholder communication', 'It guarantees there will be no delays', 'It replaces planning completely'], correctOptionIndex: 0, explanation: 'A visible workflow helps teams see what is moving, what is blocked, and what happens next.' },
-      { question: `What is the best first response to a meaningful delivery or quality risk?`, options: ['Define a concrete mitigation or fallback', 'Ignore it until it becomes urgent', 'Buy more tools immediately', 'Wait to see whether it disappears'], correctOptionIndex: 0, explanation: 'Early mitigation protects outcomes before the risk becomes expensive.' },
-      { question: `What should a strong stakeholder update include?`, options: ['Status, impact, risks, and next actions', 'Only detailed task notes from every contributor', 'Optimistic language without tradeoffs', 'A long summary with no recommendation'], correctOptionIndex: 0, explanation: 'Useful updates help stakeholders understand where things stand and what is needed next.' },
-      { question: `What makes project experience persuasive on a resume?`, options: ['A clear action linked to a measurable result', 'A list of tools with no context', 'A vague statement that you helped', 'Detailed jargon without business outcome'], correctOptionIndex: 0, explanation: 'Career proof is strongest when it ties your action to a real result.' },
-      { question: `Why should inputs and requirements be validated before execution starts?`, options: ['To reduce rework caused by bad assumptions', 'To eliminate the need for stakeholders', 'To guarantee there will be no scope changes', 'To improve results automatically without review'], correctOptionIndex: 0, explanation: 'Bad inputs often create avoidable rework later.' },
-      { question: `Which metric is best for proving whether the final objective improved?`, options: ['A lagging metric tied to the target outcome', 'A vanity metric with a large number', 'The number of meetings scheduled', 'Any metric reviewed only once'], correctOptionIndex: 0, explanation: 'Lagging metrics confirm whether the real outcome improved.' },
-      { question: `What makes a tradeoff decision defensible?`, options: ['It uses explicit criteria and explains impact', 'It hides downside from stakeholders', 'It avoids documentation', 'It tries to protect every variable equally'], correctOptionIndex: 0, explanation: 'Good tradeoff decisions are transparent and evidence-based.' },
-      { question: `What best supports sustaining improvements after rollout?`, options: ['An owner, review cadence, and intervention triggers', 'No further measurement after launch', 'Replacing documentation with memory', 'Declaring success and moving on'], correctOptionIndex: 0, explanation: 'Sustained performance requires monitoring and ownership after launch.' },
-      { question: `Which statement best distinguishes output from impact?`, options: ['Output is what was delivered; impact is what improved because of it', 'Output and impact are the same thing', 'Impact is only about effort, not outcomes', 'Output matters only after a resume is written'], correctOptionIndex: 0, explanation: 'Output is the deliverable; impact is the measurable change created by that deliverable.' },
-      { question: `What is the strongest certification-level reflection after completing a project?`, options: ['Document lessons learned and what should be repeated next time', 'Ignore results once the work is shipped', 'Describe the work only in general terms', 'Focus only on how hard the work felt'], correctOptionIndex: 0, explanation: 'Strong practitioners close the loop by documenting lessons and repeatable improvements.' }
-    ],
+    finalAssessment: generateCertificationExamQuestions(topic),
     interviewPrep: [
       `Be ready to explain how you scope ${actionName} work before execution starts.`,
       `Prepare one example where you managed risk, changed the plan, or protected quality under pressure.`,
@@ -4706,7 +4792,7 @@ function hasStructuredProgressChecks(course) {
   const modules = Array.isArray(course?.modules) ? course.modules : [];
   const finalAssessment = Array.isArray(course?.finalAssessment) ? course.finalAssessment : [];
   if (modules.length !== 10) return false;
-  if (finalAssessment.length !== 12) return false;
+  if (finalAssessment.length < 60 || finalAssessment.length > 180) return false;
   const validModules = modules.every((module) => (
     Array.isArray(module?.progressCheckOptions)
     && module.progressCheckOptions.length >= 4
@@ -4714,7 +4800,7 @@ function hasStructuredProgressChecks(course) {
   ));
   const validAssessment = finalAssessment.every((item) => (
     Array.isArray(item?.options)
-    && item.options.length >= 4
+    && item.options.length >= 3
     && Number.isInteger(Number(item?.correctOptionIndex))
   ));
   return validModules && validAssessment;
