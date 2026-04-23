@@ -496,7 +496,7 @@ const JOB_CACHE_MS = 1000 * 60 * 5;
 const jobSearchCache = new Map();
 const COURSE_CONTENT_CACHE_TTL_MS = 1000 * 60 * 60 * 24;
 const COURSE_CHECK_SESSION_TTL_MS = 1000 * 60 * 120;
-const COURSE_CONTENT_SCHEMA_VERSION = 'cert-v3';
+const COURSE_CONTENT_SCHEMA_VERSION = 'cert-v4';
 const EXTERNAL_FETCH_TIMEOUT_MS = 1200;
 const jobSearchInFlight = new Map();
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '')
@@ -4111,12 +4111,52 @@ Return ONLY a JSON object with this exact shape and key names:
     "scenario": "string",
     "deliverables": ["string", "string", "string"]
   },
+  "practiceBank": [
+    {
+      "question": "string",
+      "options": ["string", "string", "string", "string"],
+      "correctOptionIndex": 0,
+      "explanation": "string",
+      "domainKey": "string",
+      "domainLabel": "string"
+    }
+  ],
   "finalAssessment": [
     {
       "question": "string",
       "options": ["string", "string", "string", "string"],
       "correctOptionIndex": 0,
-      "explanation": "string"
+      "explanation": "string",
+      "domainKey": "string",
+      "domainLabel": "string"
+    }
+  ],
+  "mockExams": [
+    {
+      "title": "string",
+      "description": "string",
+      "timeLimitMinutes": 60,
+      "questions": [
+        {
+          "question": "string",
+          "options": ["string", "string", "string", "string"],
+          "correctOptionIndex": 0,
+          "explanation": "string",
+          "domainKey": "string",
+          "domainLabel": "string"
+        }
+      ]
+    }
+  ],
+  "certificationPlan": {
+    "trackLabel": "string",
+    "overallPassMark": 75,
+    "domainPassMark": 70,
+    "practiceQuestionCount": 300,
+    "finalQuestionCount": 120,
+    "mockExamCount": 2,
+    "mockQuestionCount": 60,
+    "domains": [{ "key": "string", "label": "string" }]
     }
   ],
   "interviewPrep": ["string", "string", "string"],
@@ -4130,8 +4170,11 @@ Rules:
 - Each module.progressCheckQuestion must test practical understanding of that specific module.
 - Each module.progressCheckOptions must contain exactly 4 plausible multiple-choice answers.
 - Each module.correctOptionIndex must be an integer from 0 to 3 and point to the single best answer.
+- practiceBank must contain at least 180 questions for general topics and 300+ for advanced topics like AI/ML.
 - finalAssessment must contain 60-180 multiple-choice questions (60 for general, 80 for business, 100 for STEM, 150 for AI/ML).
-- Each finalAssessment item must contain 3-4 options, one correctOptionIndex, and a concise explanation.
+- mockExams must contain at least 2 timed mock exams with different question sets.
+- certificationPlan must include overallPassMark, domainPassMark, and certification domains.
+- Each practiceBank, finalAssessment, and mockExams question must contain exactly 4 options, one correctOptionIndex, a concise explanation, and domain labels.
 - The finalAssessment must test retention across the full course, not just repeat module checkpoint wording.
 - Avoid fluff and generic advice.
 - No markdown, no code fences, no extra text outside JSON.`
@@ -4486,22 +4529,94 @@ function createCourseContentFingerprint(course) {
   return crypto.createHash('sha256').update(JSON.stringify(course || {})).digest('hex');
 }
 
-function getExamQuestionTargets(topic) {
+function getCertificationTargets(topic) {
   const normalizedTopic = String(topic || '').toLowerCase();
   if (/ai|machine learning|ml|deep learning|data science|artificial intelligence|neural|nlp|computer vision/i.test(normalizedTopic)) {
-    return { count: 150, domainLabel: 'AI/ML' };
+    return {
+      count: 150,
+      domainLabel: 'AI/ML',
+      practiceQuestionCount: 320,
+      mockQuestionCount: 75,
+      mockExamCount: 2,
+      overallPassMark: 80,
+      domainPassMark: 75
+    };
   }
   if (/stem|physics|chemistry|biology|mathematics|calculus|statistics|algebra|geometry/i.test(normalizedTopic)) {
-    return { count: 100, domainLabel: 'STEM' };
+    return {
+      count: 100,
+      domainLabel: 'STEM',
+      practiceQuestionCount: 240,
+      mockQuestionCount: 50,
+      mockExamCount: 2,
+      overallPassMark: 75,
+      domainPassMark: 70
+    };
   }
   if (/business|project|management|leadership|finance|accounting|hr|human resource|marketing|sales/i.test(normalizedTopic)) {
-    return { count: 80, domainLabel: 'Business' };
+    return {
+      count: 80,
+      domainLabel: 'Business',
+      practiceQuestionCount: 220,
+      mockQuestionCount: 40,
+      mockExamCount: 2,
+      overallPassMark: 72,
+      domainPassMark: 68
+    };
   }
-  return { count: 60, domainLabel: 'General' };
+  return {
+    count: 60,
+    domainLabel: 'General',
+    practiceQuestionCount: 180,
+    mockQuestionCount: 30,
+    mockExamCount: 2,
+    overallPassMark: 70,
+    domainPassMark: 65
+  };
+}
+
+function getCertificationDomains() {
+  return [
+    { key: 'foundations', label: 'Foundations & Planning' },
+    { key: 'execution', label: 'Execution & Quality' },
+    { key: 'communication', label: 'Communication & Measurement' },
+    { key: 'improvement', label: 'Improvement & Career Readiness' }
+  ];
+}
+
+function getQuestionDomain(categoryKey) {
+  if (categoryKey === 'fundamentals' || categoryKey === 'planning') {
+    return { domainKey: 'foundations', domainLabel: 'Foundations & Planning' };
+  }
+  if (categoryKey === 'execution' || categoryKey === 'quality') {
+    return { domainKey: 'execution', domainLabel: 'Execution & Quality' };
+  }
+  if (categoryKey === 'communication' || categoryKey === 'measurement') {
+    return { domainKey: 'communication', domainLabel: 'Communication & Measurement' };
+  }
+  return { domainKey: 'improvement', domainLabel: 'Improvement & Career Readiness' };
+}
+
+function normalizeCertificationQuestion(item, fallbackTopic, fallbackDomain) {
+  const optionsSource = Array.isArray(item?.opts) ? item.opts : item?.options;
+  const options = Array.isArray(optionsSource)
+    ? optionsSource.map((option) => String(option || '').trim()).filter(Boolean).slice(0, 4)
+    : [];
+  while (options.length < 4) options.push(`Option ${options.length + 1}`);
+  return {
+    question: String(item?.q || item?.question || `Question about ${String(fallbackTopic || 'this course')}`).trim(),
+    options: options.slice(0, 4),
+    correctOptionIndex: Number.isInteger(item?.correct)
+      ? Math.max(0, Math.min(Number(item.correct), 3))
+      : Math.max(0, Math.min(Number(item?.correctOptionIndex || 0), 3)),
+    explanation: String(item?.explanation || `This question tests your knowledge of ${String(fallbackTopic || 'this course')}.`).trim(),
+    domainKey: String(item?.domainKey || fallbackDomain?.domainKey || 'foundations').trim(),
+    domainLabel: String(item?.domainLabel || fallbackDomain?.domainLabel || 'Foundations & Planning').trim()
+  };
 }
 
 function generateCertificationExamQuestions(topic, baseQuestions = []) {
-  const targets = getExamQuestionTargets(topic);
+  const targets = getCertificationTargets(topic);
   const qCount = targets.count;
   const topicName = String(topic || 'the subject').trim();
 
@@ -4553,12 +4668,18 @@ function generateCertificationExamQuestions(topic, baseQuestions = []) {
 
   // Add base questions if provided
   if (Array.isArray(baseQuestions) && baseQuestions.length > 0) {
-    allQuestions = allQuestions.concat(baseQuestions.slice(0, Math.ceil(qCount * 0.15)));
+    allQuestions = allQuestions.concat(baseQuestions.slice(0, Math.ceil(qCount * 0.15)).map((item) => normalizeCertificationQuestion(item, topicName, null)));
   }
 
   // Add category questions, cycling and randomizing to reach target count
-  Object.values(knowledgeCategories).forEach((category) => {
-    allQuestions = allQuestions.concat(category);
+  Object.entries(knowledgeCategories).forEach(([categoryKey, category]) => {
+    const domainMeta = getQuestionDomain(categoryKey);
+    allQuestions = allQuestions.concat(category.map((item) => ({
+      ...item,
+      domainKey: domainMeta.domainKey,
+      domainLabel: domainMeta.domainLabel,
+      explanation: `This question tests your understanding of ${domainMeta.domainLabel.toLowerCase()} in ${topicName}.`
+    })));
   });
 
   // Expand questions with variation by randomizing and duplicating with rewording
@@ -4568,7 +4689,9 @@ function generateCertificationExamQuestions(topic, baseQuestions = []) {
       q: sourceQuestion.q.replace(new RegExp(`${topicName}`, 'gi'), `your ${topicName.toLowerCase()} initiative`),
       opts: sourceQuestion.opts.map(opt => opt.replace(new RegExp(topicName, 'gi'), 'the work')),
       correct: sourceQuestion.correct,
-      explanation: `This question tests your understanding of ${topicName} best practices.`
+      explanation: `This question tests your understanding of ${topicName} best practices.`,
+      domainKey: sourceQuestion.domainKey,
+      domainLabel: sourceQuestion.domainLabel
     };
     allQuestions.push(variation);
   }
@@ -4577,17 +4700,87 @@ function generateCertificationExamQuestions(topic, baseQuestions = []) {
   allQuestions = allQuestions.sort(() => Math.random() - 0.5).slice(0, qCount);
 
   // Convert to final assessment format
-  return allQuestions.map((q, idx) => ({
-    question: String(q.q || `Question about ${topicName}`).trim(),
-    options: Array.isArray(q.opts) ? q.opts.map(o => String(o || '').trim()).filter(Boolean).slice(0, 4) : ['Option A', 'Option B', 'Option C', 'Option D'],
-    correctOptionIndex: Number.isInteger(q.correct) ? Math.min(q.correct, 3) : 0,
-    explanation: String(q.explanation || `This question tests your knowledge of ${topicName}.`).trim()
-  })).filter(item => Array.isArray(item.options) && item.options.length >= 3);
+  return allQuestions
+    .map((item) => normalizeCertificationQuestion(item, topicName, getQuestionDomain('fundamentals')))
+    .filter((item) => Array.isArray(item.options) && item.options.length >= 4);
+}
+
+function buildPracticeQuestionBank(topic, assessmentQuestions = [], targets = getCertificationTargets(topic)) {
+  const normalizedAssessment = Array.isArray(assessmentQuestions)
+    ? assessmentQuestions.map((item) => normalizeCertificationQuestion(item, topic, null))
+    : [];
+  const bank = normalizedAssessment.slice();
+  while (bank.length < targets.practiceQuestionCount) {
+    const source = normalizedAssessment[bank.length % Math.max(normalizedAssessment.length, 1)]
+      || normalizeCertificationQuestion({
+        question: `Practice question about ${topic}`,
+        options: [
+          'Use a structured, evidence-based approach.',
+          'Skip planning and improvise.',
+          'Avoid documenting tradeoffs.',
+          'Ignore stakeholder impact.'
+        ],
+        correctOptionIndex: 0,
+        explanation: `This practice question reinforces the strongest applied approach for ${topic}.`
+      }, topic, getQuestionDomain('fundamentals'));
+    bank.push({
+      ...source,
+      question: `${source.question} (Practice Bank ${bank.length + 1})`
+    });
+  }
+  return bank.slice(0, targets.practiceQuestionCount);
+}
+
+function buildMockExams(topic, practiceQuestionBank = [], targets = getCertificationTargets(topic)) {
+  const sourceBank = Array.isArray(practiceQuestionBank)
+    ? practiceQuestionBank.map((item) => normalizeCertificationQuestion(item, topic, null))
+    : [];
+  const mockExams = [];
+
+  for (let mockIndex = 0; mockIndex < targets.mockExamCount; mockIndex += 1) {
+    const questions = [];
+    for (let questionIndex = 0; questionIndex < targets.mockQuestionCount; questionIndex += 1) {
+      const sourceIndex = (mockIndex * targets.mockQuestionCount + questionIndex) % Math.max(sourceBank.length, 1);
+      const baseQuestion = sourceBank[sourceIndex]
+        || normalizeCertificationQuestion(null, topic, getQuestionDomain('fundamentals'));
+      questions.push({
+        ...baseQuestion,
+        question: `${baseQuestion.question} (Mock ${mockIndex + 1} - Q${questionIndex + 1})`
+      });
+    }
+
+    mockExams.push({
+      title: `${targets.domainLabel} Timed Mock ${mockIndex + 1}`,
+      description: `Timed readiness check for ${topic} with rotating questions across the main certification domains.`,
+      timeLimitMinutes: Math.max(45, targets.mockQuestionCount),
+      questions
+    });
+  }
+
+  return mockExams;
+}
+
+function buildCertificationPlan(topic) {
+  const targets = getCertificationTargets(topic);
+  return {
+    trackLabel: `${targets.domainLabel} certification pathway`,
+    overallPassMark: targets.overallPassMark,
+    domainPassMark: targets.domainPassMark,
+    practiceQuestionCount: targets.practiceQuestionCount,
+    finalQuestionCount: targets.count,
+    mockExamCount: targets.mockExamCount,
+    mockQuestionCount: targets.mockQuestionCount,
+    domains: getCertificationDomains()
+  };
 }
 
 function buildFallbackCourseContent(topic) {
   const courseTitle = String(topic || 'Professional Course').trim() || 'Professional Course';
   const actionName = courseTitle.replace(/\s+/g, ' ').trim();
+  const certificationPlan = buildCertificationPlan(actionName);
+  const finalAssessment = generateCertificationExamQuestions(topic);
+  const practiceBank = buildPracticeQuestionBank(topic, finalAssessment, getCertificationTargets(topic));
+  const mockExams = buildMockExams(topic, practiceBank, getCertificationTargets(topic));
 
   return {
     courseTitle: actionName,
@@ -4774,7 +4967,10 @@ function buildFallbackCourseContent(topic) {
         'Final impact summary with metrics, lessons learned, and resume-ready proof points'
       ]
     },
-    finalAssessment: generateCertificationExamQuestions(topic),
+    practiceBank,
+    finalAssessment,
+    mockExams,
+    certificationPlan,
     interviewPrep: [
       `Be ready to explain how you scope ${actionName} work before execution starts.`,
       `Prepare one example where you managed risk, changed the plan, or protected quality under pressure.`,

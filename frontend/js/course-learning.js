@@ -13,10 +13,14 @@ document.addEventListener('DOMContentLoaded', function () {
   const outcomes = document.getElementById('courseOutcomeList');
   const resumeSignals = document.getElementById('courseResumeSignals');
   const modules = document.getElementById('courseModules');
+  const practiceBank = document.getElementById('coursePracticeBank');
   const capstone = document.getElementById('courseCapstone');
+  const mockExams = document.getElementById('courseMockExams');
   const assessment = document.getElementById('courseAssessment');
   const interviewPrep = document.getElementById('courseInterviewPrep');
+  const practiceSection = document.getElementById('coursePracticeSection');
   const capstoneSection = document.getElementById('courseCapstoneSection');
+  const mockExamsSection = document.getElementById('courseMockExamsSection');
   const assessmentSection = document.getElementById('courseAssessmentSection');
   const interviewPrepSection = document.getElementById('courseInterviewPrepSection');
   const progressSummary = document.getElementById('courseProgressSummary');
@@ -36,9 +40,19 @@ document.addEventListener('DOMContentLoaded', function () {
     answerKey: [],
     answerExplanations: [],
     assessmentCompleted: false,
+    assessmentAnswers: [],
+    assessmentItems: [],
     assessmentScore: null,
     assessmentGrade: null,
     assessmentCurrentPage: 1,
+    practiceBankItems: [],
+    practiceBankPage: 1,
+    practiceRevealState: {},
+    mockExams: [],
+    activeMockExam: null,
+    mockExamResults: {},
+    mockExamTimerId: null,
+    certificationPlan: null,
     lastProgressFeedback: null,
     pendingAdvance: null,
     autoAdvanceTimer: null,
@@ -57,15 +71,38 @@ document.addEventListener('DOMContentLoaded', function () {
     selectedVoice: ''
   };
   const AUDIO_VOICE_PREF_KEY = 'courseAudioVoicePreference';
-  const COURSE_PROGRESS_PREFIX = 'rr:course-progress:cert-v2:';
+  const COURSE_PROGRESS_PREFIX = 'rr:course-progress:cert-v4:';
   const COVERAGE_DEFAULT_MIN_MODULES = 10;
-  const COVERAGE_DEFAULT_FINAL_QUESTION_COUNT = 40;
+  const COVERAGE_DEFAULT_FINAL_QUESTION_COUNT = 60;
+  const COVERAGE_DEFAULT_PRACTICE_QUESTION_COUNT = 180;
+  const COVERAGE_DEFAULT_MOCK_QUESTION_COUNT = 30;
+  const COVERAGE_DEFAULT_OVERALL_PASS_MARK = 70;
+  const COVERAGE_DEFAULT_DOMAIN_PASS_MARK = 65;
   const COVERAGE_AI_ML_MIN_MODULES = 18;
-  const COVERAGE_AI_ML_FINAL_QUESTION_COUNT = 120;
+  const COVERAGE_AI_ML_FINAL_QUESTION_COUNT = 150;
+  const COVERAGE_AI_ML_PRACTICE_QUESTION_COUNT = 320;
+  const COVERAGE_AI_ML_MOCK_QUESTION_COUNT = 75;
+  const COVERAGE_AI_ML_OVERALL_PASS_MARK = 80;
+  const COVERAGE_AI_ML_DOMAIN_PASS_MARK = 75;
   const COVERAGE_STEM_MIN_MODULES = 14;
-  const COVERAGE_STEM_FINAL_QUESTION_COUNT = 80;
+  const COVERAGE_STEM_FINAL_QUESTION_COUNT = 100;
+  const COVERAGE_STEM_PRACTICE_QUESTION_COUNT = 240;
+  const COVERAGE_STEM_MOCK_QUESTION_COUNT = 50;
+  const COVERAGE_STEM_OVERALL_PASS_MARK = 75;
+  const COVERAGE_STEM_DOMAIN_PASS_MARK = 70;
   const COVERAGE_BUSINESS_MIN_MODULES = 12;
-  const COVERAGE_BUSINESS_FINAL_QUESTION_COUNT = 60;
+  const COVERAGE_BUSINESS_FINAL_QUESTION_COUNT = 80;
+  const COVERAGE_BUSINESS_PRACTICE_QUESTION_COUNT = 220;
+  const COVERAGE_BUSINESS_MOCK_QUESTION_COUNT = 40;
+  const COVERAGE_BUSINESS_OVERALL_PASS_MARK = 72;
+  const COVERAGE_BUSINESS_DOMAIN_PASS_MARK = 68;
+  const COVERAGE_MOCK_EXAM_COUNT = 2;
+  const CERTIFICATION_DOMAINS = [
+    { key: 'foundations', label: 'Foundations & Planning' },
+    { key: 'execution', label: 'Execution & Quality' },
+    { key: 'communication', label: 'Communication & Measurement' },
+    { key: 'improvement', label: 'Improvement & Career Readiness' }
+  ];
   function getCurriculumLastReviewed() {
     return new Date().toISOString().slice(0, 10);
   }
@@ -608,6 +645,10 @@ document.addEventListener('DOMContentLoaded', function () {
       return {
         minModules: COVERAGE_AI_ML_MIN_MODULES,
         finalQuestionCount: COVERAGE_AI_ML_FINAL_QUESTION_COUNT,
+        practiceQuestionCount: COVERAGE_AI_ML_PRACTICE_QUESTION_COUNT,
+        mockQuestionCount: COVERAGE_AI_ML_MOCK_QUESTION_COUNT,
+        overallPassMark: COVERAGE_AI_ML_OVERALL_PASS_MARK,
+        domainPassMark: COVERAGE_AI_ML_DOMAIN_PASS_MARK,
         estimatedDuration: '18-24 weeks'
       };
     }
@@ -616,6 +657,10 @@ document.addEventListener('DOMContentLoaded', function () {
       return {
         minModules: COVERAGE_STEM_MIN_MODULES,
         finalQuestionCount: COVERAGE_STEM_FINAL_QUESTION_COUNT,
+        practiceQuestionCount: COVERAGE_STEM_PRACTICE_QUESTION_COUNT,
+        mockQuestionCount: COVERAGE_STEM_MOCK_QUESTION_COUNT,
+        overallPassMark: COVERAGE_STEM_OVERALL_PASS_MARK,
+        domainPassMark: COVERAGE_STEM_DOMAIN_PASS_MARK,
         estimatedDuration: '14-20 weeks'
       };
     }
@@ -624,6 +669,10 @@ document.addEventListener('DOMContentLoaded', function () {
       return {
         minModules: COVERAGE_BUSINESS_MIN_MODULES,
         finalQuestionCount: COVERAGE_BUSINESS_FINAL_QUESTION_COUNT,
+        practiceQuestionCount: COVERAGE_BUSINESS_PRACTICE_QUESTION_COUNT,
+        mockQuestionCount: COVERAGE_BUSINESS_MOCK_QUESTION_COUNT,
+        overallPassMark: COVERAGE_BUSINESS_OVERALL_PASS_MARK,
+        domainPassMark: COVERAGE_BUSINESS_DOMAIN_PASS_MARK,
         estimatedDuration: '12-16 weeks'
       };
     }
@@ -631,7 +680,35 @@ document.addEventListener('DOMContentLoaded', function () {
     return {
       minModules: COVERAGE_DEFAULT_MIN_MODULES,
       finalQuestionCount: COVERAGE_DEFAULT_FINAL_QUESTION_COUNT,
+      practiceQuestionCount: COVERAGE_DEFAULT_PRACTICE_QUESTION_COUNT,
+      mockQuestionCount: COVERAGE_DEFAULT_MOCK_QUESTION_COUNT,
+      overallPassMark: COVERAGE_DEFAULT_OVERALL_PASS_MARK,
+      domainPassMark: COVERAGE_DEFAULT_DOMAIN_PASS_MARK,
       estimatedDuration: '10-14 weeks'
+    };
+  }
+
+  function getDomainMetaByIndex(index) {
+    const safeIndex = Math.max(0, Number(index || 0));
+    return CERTIFICATION_DOMAINS[safeIndex % CERTIFICATION_DOMAINS.length] || CERTIFICATION_DOMAINS[0];
+  }
+
+  function createCertificationPlan(targets, basePlan) {
+    const providedDomains = asArray(basePlan?.domains)
+      .map((domain, index) => ({
+        key: String(domain?.key || getDomainMetaByIndex(index).key).trim(),
+        label: String(domain?.label || getDomainMetaByIndex(index).label).trim()
+      }))
+      .filter((domain) => domain.key && domain.label);
+    return {
+      trackLabel: String(basePlan?.trackLabel || 'Certification pathway').trim(),
+      overallPassMark: Number(basePlan?.overallPassMark || targets.overallPassMark),
+      domainPassMark: Number(basePlan?.domainPassMark || targets.domainPassMark),
+      practiceQuestionCount: Number(basePlan?.practiceQuestionCount || targets.practiceQuestionCount),
+      finalQuestionCount: Number(basePlan?.finalQuestionCount || targets.finalQuestionCount),
+      mockExamCount: Number(basePlan?.mockExamCount || COVERAGE_MOCK_EXAM_COUNT),
+      mockQuestionCount: Number(basePlan?.mockQuestionCount || targets.mockQuestionCount),
+      domains: providedDomains.length ? providedDomains : CERTIFICATION_DOMAINS.slice()
     };
   }
 
@@ -649,7 +726,7 @@ document.addEventListener('DOMContentLoaded', function () {
     return normalized;
   }
 
-  function normalizeObjectiveAssessmentItem(item, fallbackQuestion, fallbackTopic) {
+  function normalizeObjectiveAssessmentItem(item, fallbackQuestion, fallbackTopic, fallbackDomainIndex) {
     const question = String(item?.question || fallbackQuestion || `What is the best next action for ${String(fallbackTopic || 'this module')}?`).trim();
     const rawOptions = asArray(item?.options);
     const numericCorrect = Number(item?.correctOptionIndex);
@@ -657,11 +734,14 @@ document.addEventListener('DOMContentLoaded', function () {
     const options = normalizeAssessmentOptions(rawOptions, rawOptions[safeCorrect]);
     const matched = options.indexOf(String(rawOptions[safeCorrect] || '').trim());
     const correctOptionIndex = matched >= 0 ? matched : 0;
+    const domainMeta = getDomainMetaByIndex(fallbackDomainIndex);
     return {
       question,
       options,
       correctOptionIndex,
-      explanation: String(item?.explanation || 'Choose the option that best protects delivery outcomes, quality, and stakeholder expectations.').trim()
+      explanation: String(item?.explanation || 'Choose the option that best protects delivery outcomes, quality, and stakeholder expectations.').trim(),
+      domainKey: String(item?.domainKey || domainMeta.key).trim(),
+      domainLabel: String(item?.domainLabel || domainMeta.label).trim()
     };
   }
 
@@ -674,27 +754,32 @@ document.addEventListener('DOMContentLoaded', function () {
       const options = normalizeAssessmentOptions(moduleItem?.progressCheckOptions, asArray(moduleItem?.progressCheckOptions)[Number(moduleItem?.correctOptionIndex) || 0]);
       const correctText = String(asArray(moduleItem?.progressCheckOptions)[Number(moduleItem?.correctOptionIndex) || 0] || options[0]).trim();
       const correctOptionIndex = Math.max(0, options.indexOf(correctText));
+      const domainMeta = getDomainMetaByIndex(moduleIndex);
 
       generated.push(normalizeObjectiveAssessmentItem({
         question: question || `Which action best demonstrates mastery of ${moduleTitle}?`,
         options,
         correctOptionIndex,
-        explanation: String(moduleItem?.progressCheckExplanation || 'This choice aligns with the strongest execution approach for the module objective.').trim()
-      }, question, topicLabel));
+        explanation: String(moduleItem?.progressCheckExplanation || 'This choice aligns with the strongest execution approach for the module objective.').trim(),
+        domainKey: domainMeta.key,
+        domainLabel: domainMeta.label
+      }, question, topicLabel, moduleIndex));
 
       generated.push(normalizeObjectiveAssessmentItem({
         question: `A project scenario from ${moduleTitle} introduces time pressure and stakeholder constraints. What is the best first response?`,
         options,
         correctOptionIndex,
-        explanation: `Use the same decision logic from ${moduleTitle}: protect the objective, evaluate tradeoffs, and choose the most defensible action.`
-      }, question, topicLabel));
+        explanation: `Use the same decision logic from ${moduleTitle}: protect the objective, evaluate tradeoffs, and choose the most defensible action.`,
+        domainKey: domainMeta.key,
+        domainLabel: domainMeta.label
+      }, question, topicLabel, moduleIndex));
     });
     return generated;
   }
 
   function ensureCourseCoverageAssessment(finalAssessment, modules, fallbackTopic, finalQuestionCount) {
     const normalizedSeed = asArray(finalAssessment)
-      .map((item, idx) => normalizeObjectiveAssessmentItem(item, `Question ${idx + 1}`, fallbackTopic));
+      .map((item, idx) => normalizeObjectiveAssessmentItem(item, `Question ${idx + 1}`, fallbackTopic, idx));
     const generated = buildGeneratedAssessmentFromModules(modules, fallbackTopic);
     const bank = normalizedSeed.concat(generated).filter((item) => asArray(item?.options).length >= 4);
 
@@ -709,7 +794,7 @@ document.addEventListener('DOMContentLoaded', function () {
         ],
         correctOptionIndex: 0,
         explanation: 'Certification-level performance requires structured, outcome-focused execution.'
-      }, 'Certification question', fallbackTopic));
+      }, 'Certification question', fallbackTopic, 0));
     }
 
     const expanded = bank.slice();
@@ -724,6 +809,67 @@ document.addEventListener('DOMContentLoaded', function () {
     return expanded.slice(0, finalQuestionCount);
   }
 
+  function ensurePracticeQuestionBank(practiceBankRows, finalAssessment, modules, fallbackTopic, practiceQuestionCount) {
+    const seed = asArray(practiceBankRows)
+      .map((item, idx) => normalizeObjectiveAssessmentItem(item, `Practice Question ${idx + 1}`, fallbackTopic, idx));
+    const assessmentSeed = asArray(finalAssessment)
+      .map((item, idx) => normalizeObjectiveAssessmentItem(item, `Assessment Question ${idx + 1}`, fallbackTopic, idx));
+    const moduleSeed = buildGeneratedAssessmentFromModules(modules, fallbackTopic);
+    const bank = seed.concat(assessmentSeed).concat(moduleSeed).filter((item) => asArray(item?.options).length >= 4);
+
+    if (!bank.length) return [];
+
+    const expanded = bank.slice();
+    while (expanded.length < practiceQuestionCount) {
+      const source = expanded[expanded.length % bank.length];
+      expanded.push({
+        ...source,
+        question: `${source.question} (Practice Variant ${expanded.length + 1})`
+      });
+    }
+
+    return expanded.slice(0, practiceQuestionCount);
+  }
+
+  function ensureTimedMockExams(mockExamRows, questionBank, fallbackTopic, certificationPlan) {
+    const requestedCount = Math.max(2, Number(certificationPlan?.mockExamCount || COVERAGE_MOCK_EXAM_COUNT));
+    const questionCount = Math.max(20, Number(certificationPlan?.mockQuestionCount || 30));
+    const sourceBank = asArray(questionBank)
+      .map((item, idx) => normalizeObjectiveAssessmentItem(item, `Mock Question ${idx + 1}`, fallbackTopic, idx));
+    const normalizedSeed = asArray(mockExamRows).map((exam, examIndex) => {
+      const examQuestions = asArray(exam?.questions)
+        .map((item, idx) => normalizeObjectiveAssessmentItem(item, `Mock ${examIndex + 1} Question ${idx + 1}`, fallbackTopic, idx));
+      return {
+        title: String(exam?.title || `Timed Mock ${examIndex + 1}`).trim(),
+        description: String(exam?.description || 'Timed readiness check with rotating questions.').trim(),
+        timeLimitMinutes: Math.max(30, Number(exam?.timeLimitMinutes || questionCount)),
+        questions: examQuestions
+      };
+    }).filter((exam) => exam.questions.length);
+
+    const mockExams = normalizedSeed.slice();
+    while (mockExams.length < requestedCount) {
+      const examIndex = mockExams.length;
+      const questions = [];
+      for (let idx = 0; idx < questionCount; idx += 1) {
+        const source = sourceBank[(examIndex * questionCount + idx) % Math.max(sourceBank.length, 1)] || null;
+        if (!source) continue;
+        questions.push({
+          ...source,
+          question: `${source.question} (Mock ${examIndex + 1} - ${idx + 1})`
+        });
+      }
+      mockExams.push({
+        title: `Timed Mock ${examIndex + 1}`,
+        description: 'Timed readiness check with rotating questions across certification domains.',
+        timeLimitMinutes: Math.max(30, questionCount),
+        questions
+      });
+    }
+
+    return mockExams.slice(0, requestedCount);
+  }
+
   function applyCourseCoverageNormalization(course, fallbackTopic) {
     const baseCourse = course || {};
     const targets = getCourseCoverageTargets(baseCourse.courseTitle || fallbackTopic);
@@ -731,9 +877,14 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!baseModules.length) return baseCourse;
 
     const finalAssessment = ensureCourseCoverageAssessment(baseCourse.finalAssessment, baseModules, fallbackTopic, targets.finalQuestionCount);
+    const certificationPlan = createCertificationPlan(targets, baseCourse.certificationPlan);
+    const practiceQuestionBank = ensurePracticeQuestionBank(baseCourse.practiceBank, finalAssessment, baseModules, fallbackTopic, certificationPlan.practiceQuestionCount);
+    const mockExamSet = ensureTimedMockExams(baseCourse.mockExams, practiceQuestionBank, fallbackTopic, certificationPlan);
     const outcomes = asArray(baseCourse.learningOutcomes).concat([
       `Complete a full coverage pathway with ${targets.minModules}+ modules.`,
-      `Pass a comprehensive ${targets.finalQuestionCount}-question multiple-choice certification exam.`
+      `Work through a ${certificationPlan.practiceQuestionCount}+ question practice bank with answer rationales.`,
+      `Pass ${certificationPlan.mockExamCount} timed mock exams with rotating question sets.`,
+      `Pass a comprehensive ${targets.finalQuestionCount}-question multiple-choice certification exam with domain thresholds.`
     ]).filter(Boolean);
 
     const uniqueOutcomes = [];
@@ -746,7 +897,10 @@ document.addEventListener('DOMContentLoaded', function () {
       ...baseCourse,
       estimatedDuration: String(baseCourse.estimatedDuration || targets.estimatedDuration),
       modules: baseModules,
+      practiceBank: practiceQuestionBank,
       finalAssessment,
+      mockExams: mockExamSet,
+      certificationPlan,
       learningOutcomes: uniqueOutcomes,
       progressCheckMode: 'local'
     };
@@ -1267,7 +1421,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const allModulesComplete = hasModules && progressState.completedModules.size >= progressState.totalModules;
     const assessmentComplete = progressState.assessmentCompleted === true;
 
+    if (practiceSection) practiceSection.hidden = !hasModules;
     if (capstoneSection) capstoneSection.hidden = !allModulesComplete;
+    if (mockExamsSection) mockExamsSection.hidden = !allModulesComplete;
     if (assessmentSection) assessmentSection.hidden = !allModulesComplete;
     if (interviewPrepSection) interviewPrepSection.hidden = !(allModulesComplete && assessmentComplete);
   }
@@ -1864,6 +2020,7 @@ document.addEventListener('DOMContentLoaded', function () {
       renderProgressiveContent();
       updateProgressiveSections();
       if (progressState.completedModules.size >= progressState.totalModules) {
+        renderMockExams(progressState.mockExams || []);
         renderAssessment(progressState.assessmentItems || []);
       }
     } catch (error) {
@@ -1928,23 +2085,32 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (assessment) {
       assessment.addEventListener('click', async function (event) {
+        const prevBtn = event.target.closest('[data-assessment-prev-page]');
+        if (prevBtn) {
+          if (progressState.assessmentCurrentPage > 1) {
+            progressState.assessmentCurrentPage -= 1;
+            renderAssessment(progressState.assessmentItems || []);
+            assessment.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+          return;
+        }
+
+        const nextBtn = event.target.closest('[data-assessment-next-page]');
+        if (nextBtn) {
+          const totalPages = Math.ceil(asArray(progressState.assessmentItems).length / 10);
+          if (progressState.assessmentCurrentPage < totalPages) {
+            progressState.assessmentCurrentPage += 1;
+            renderAssessment(progressState.assessmentItems || []);
+            assessment.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+          return;
+        }
+
         const submitBtn = event.target.closest('#submitAssessmentBtn');
         if (!submitBtn) return;
 
-        const answers = new Array(progressState.assessmentItems.length).fill(null);
+        const answers = progressState.assessmentAnswers.slice();
         let hasObjectiveQuestions = false;
-
-        document.querySelectorAll('[data-assessment-choice]').forEach((input) => {
-          if (!input.checked) return;
-          const idx = Number(input.getAttribute('data-assessment-choice'));
-          const optionIndex = Number(input.value);
-          if (Number.isInteger(idx) && idx >= 0) answers[idx] = optionIndex;
-        });
-
-        document.querySelectorAll('[data-assessment-answer]').forEach((textarea) => {
-          const idx = Number(textarea.getAttribute('data-assessment-answer'));
-          answers[idx] = String(textarea.value || '').trim();
-        });
 
         const allAnswered = progressState.assessmentItems.every((item, idx) => {
           const options = asArray(item?.options);
@@ -1969,53 +2135,20 @@ document.addEventListener('DOMContentLoaded', function () {
         resultDiv.innerHTML = '<span style="color:#93c5fd;">Processing assessment...</span>';
 
         setTimeout(() => {
-          const objectiveRows = [];
-          let objectiveCorrect = 0;
-          let objectiveTotal = 0;
+          const outcome = calculateCertificationOutcome(progressState.assessmentItems, answers, progressState.certificationPlan);
 
-          progressState.assessmentItems.forEach((item, index) => {
-            const options = asArray(item?.options);
-            if (options.length < 2) return;
+          progressState.assessmentScore = outcome.score;
+          progressState.assessmentGrade = outcome.letterGrade;
+          progressState.assessmentCompleted = !hasObjectiveQuestions || outcome.passed;
 
-            const selectedIndex = Number(answers[index]);
-            const correctIndex = Number(item?.correctOptionIndex);
-            const selectedText = String(options[selectedIndex] || 'No answer selected');
-            const correctText = String(options[correctIndex] || 'N/A');
-            const isCorrect = selectedIndex === correctIndex;
-
-            objectiveTotal += 1;
-            if (isCorrect) objectiveCorrect += 1;
-
-            objectiveRows.push(`
-              <div style="margin-bottom:10px;padding:10px;border-radius:8px;border:1px solid ${isCorrect ? '#14532d' : '#7f1d1d'};background:${isCorrect ? '#052e16' : '#2f1313'};">
-                <div style="font-weight:700;color:${isCorrect ? '#86efac' : '#fda4af'};margin-bottom:4px;">Question ${index + 1}: ${isCorrect ? 'Correct' : 'Incorrect'}</div>
-                <div style="color:#d0d9e7;"><strong>Your answer:</strong> ${escapeHtml(selectedText)}</div>
-                ${isCorrect ? '' : `<div style="color:#bfdbfe;"><strong>Correct answer:</strong> ${escapeHtml(correctText)}</div>`}
-                ${item?.explanation ? `<div style="color:#cbd5e1;"><strong>Why:</strong> ${escapeHtml(String(item.explanation))}</div>` : ''}
-              </div>
-            `);
-          });
-
-          const score = objectiveTotal > 0 ? Math.round((objectiveCorrect / objectiveTotal) * 100) : 100;
-          const letterGrade = score >= 90 ? 'A'
-            : score >= 80 ? 'B'
-              : score >= 70 ? 'C'
-                : score >= 60 ? 'D'
-                  : 'F';
-          const passMark = 70;
-          const passed = !hasObjectiveQuestions || score >= passMark;
-
-          progressState.assessmentScore = score;
-          progressState.assessmentGrade = letterGrade;
-          progressState.assessmentCompleted = passed;
-
-          if (!passed) {
+          if (!progressState.assessmentCompleted) {
             resultDiv.innerHTML = `
               <div style="color:#fda4af;line-height:1.8;">
-                <strong>Assessment Result: ${score}% (${letterGrade})</strong>
+                <strong>Assessment Result: ${outcome.score}% (${outcome.letterGrade})</strong>
                 <p style="margin:8px 0 0;">Grading scale: A (90-100), B (80-89), C (70-79), D (60-69), F (&lt;60).</p>
-                <p style="margin:8px 0 10px;">You did not pass yet. Certification requires a grade of C or higher. Review the feedback below, revisit your weak modules, then retry.</p>
-                ${objectiveRows.join('')}
+                <p style="margin:8px 0 10px;">You did not pass yet. Certification requires an overall score of ${outcome.overallPassMark}% and ${outcome.domainPassMark}% in each domain. Review the feedback below, revisit your weak modules, then retry.</p>
+                ${renderDomainBreakdown(outcome.domainBreakdown, outcome.domainPassMark)}
+                ${outcome.reviewRows.length ? `<div style="margin-top:12px;">${outcome.reviewRows.join('')}</div>` : ''}
               </div>
             `;
             submitBtn.disabled = false;
@@ -2029,18 +2162,114 @@ document.addEventListener('DOMContentLoaded', function () {
           resultDiv.innerHTML = `
             <div style="color:#86efac;line-height:1.8;">
               <strong>✓ Assessment Complete!</strong>
-              <p style="margin:8px 0 0;">Score: ${score}% (${letterGrade})${hasObjectiveQuestions ? ` (Pass mark: ${passMark}% / grade C)` : ''}. You have passed the final certification assessment. Your RoleRocket AI Certificate of Completion is now unlocked.</p>
+              <p style="margin:8px 0 0;">Score: ${outcome.score}% (${outcome.letterGrade}). You met the overall pass mark of ${outcome.overallPassMark}% and the domain threshold of ${outcome.domainPassMark}% across the certification domains.</p>
               <p style="margin:8px 0 0;">Grading scale: A (90-100), B (80-89), C (70-79), D (60-69), F (&lt;60).</p>
+              ${renderDomainBreakdown(outcome.domainBreakdown, outcome.domainPassMark)}
             </div>
           `;
-          if (objectiveRows.length) {
-            resultDiv.innerHTML += `<div style="margin-top:10px;">${objectiveRows.join('')}</div>`;
+          if (outcome.reviewRows.length) {
+            resultDiv.innerHTML += `<div style="margin-top:10px;">${outcome.reviewRows.join('')}</div>`;
           }
           submitBtn.style.display = 'none';
           updateProgressUi();
           updateProgressiveSections();
           renderInterviewPrep(progressState.interviewPrepItems);
         }, 1200);
+      });
+
+      assessment.addEventListener('change', function (event) {
+        const choice = event.target.closest('[data-assessment-choice]');
+        if (choice) {
+          const idx = Number(choice.getAttribute('data-assessment-choice'));
+          const optionIndex = Number(choice.value);
+          if (Number.isInteger(idx) && idx >= 0) {
+            progressState.assessmentAnswers[idx] = optionIndex;
+          }
+          return;
+        }
+
+        const answer = event.target.closest('[data-assessment-answer]');
+        if (answer) {
+          const idx = Number(answer.getAttribute('data-assessment-answer'));
+          if (Number.isInteger(idx) && idx >= 0) {
+            progressState.assessmentAnswers[idx] = String(answer.value || '').trim();
+          }
+        }
+      });
+    }
+
+    if (practiceBank) {
+      practiceBank.addEventListener('click', function (event) {
+        const revealBtn = event.target.closest('[data-practice-toggle-answer]');
+        if (revealBtn) {
+          const idx = String(revealBtn.getAttribute('data-practice-toggle-answer') || '');
+          progressState.practiceRevealState[idx] = !progressState.practiceRevealState[idx];
+          renderPracticeBank(progressState.practiceBankItems || []);
+          return;
+        }
+
+        if (event.target.closest('[data-practice-prev-page]')) {
+          if (progressState.practiceBankPage > 1) {
+            progressState.practiceBankPage -= 1;
+            renderPracticeBank(progressState.practiceBankItems || []);
+            practiceBank.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+          return;
+        }
+
+        if (event.target.closest('[data-practice-next-page]')) {
+          const totalPages = Math.ceil(asArray(progressState.practiceBankItems).length / 10);
+          if (progressState.practiceBankPage < totalPages) {
+            progressState.practiceBankPage += 1;
+            renderPracticeBank(progressState.practiceBankItems || []);
+            practiceBank.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }
+      });
+    }
+
+    if (mockExams) {
+      mockExams.addEventListener('click', function (event) {
+        const startBtn = event.target.closest('[data-start-mock-exam]');
+        if (startBtn) {
+          startMockExam(Number(startBtn.getAttribute('data-start-mock-exam')));
+          return;
+        }
+
+        if (event.target.closest('[data-mock-prev-page]')) {
+          if (progressState.activeMockExam && progressState.activeMockExam.currentPage > 1) {
+            progressState.activeMockExam.currentPage -= 1;
+            renderMockExams(progressState.mockExams || []);
+          }
+          return;
+        }
+
+        if (event.target.closest('[data-mock-next-page]')) {
+          const active = progressState.activeMockExam;
+          if (active) {
+            const exam = progressState.mockExams[active.examIndex];
+            const totalPages = Math.ceil(asArray(exam?.questions).length / 10);
+            if (active.currentPage < totalPages) {
+              active.currentPage += 1;
+              renderMockExams(progressState.mockExams || []);
+            }
+          }
+          return;
+        }
+
+        if (event.target.closest('[data-submit-mock-exam]')) {
+          submitActiveMockExam(false);
+        }
+      });
+
+      mockExams.addEventListener('change', function (event) {
+        const choice = event.target.closest('[data-mock-choice]');
+        if (!choice || !progressState.activeMockExam) return;
+        const idx = Number(choice.getAttribute('data-mock-choice'));
+        const optionIndex = Number(choice.value);
+        if (Number.isInteger(idx) && idx >= 0) {
+          progressState.activeMockExam.answers[idx] = optionIndex;
+        }
       });
     }
   }
@@ -2057,7 +2286,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     if (!isAssessmentComplete) {
-      interviewPrep.innerHTML = '<li style="color:#9fb0c7;">Earn a passing final certification grade (C or higher) to unlock interview prep and your certificate.</li>';
+      const plan = progressState.certificationPlan || createCertificationPlan(getCourseCoverageTargets(topic || ''), null);
+      interviewPrep.innerHTML = `<li style="color:#9fb0c7;">Earn the required certification thresholds to unlock interview prep and your certificate: ${plan.overallPassMark}% overall and ${plan.domainPassMark}% in each certification domain.</li>`;
       return;
     }
 
@@ -2086,10 +2316,15 @@ document.addEventListener('DOMContentLoaded', function () {
     progressState.answerKey = list.map((moduleItem) => Number(moduleItem?.correctOptionIndex));
     progressState.answerExplanations = list.map((moduleItem, index) => String(moduleItem?.progressCheckExplanation || getModuleReasoningFromAssessment(index) || '').trim());
     progressState.assessmentCompleted = false;
+    progressState.assessmentAnswers = [];
     progressState.assessmentScore = null;
     progressState.assessmentGrade = null;
+    progressState.assessmentCurrentPage = 1;
     progressState.lastProgressFeedback = null;
     progressState.practiceUnlockedModules = new Set(Array.from(progressState.completedModules));
+    progressState.practiceBankPage = 1;
+    progressState.practiceRevealState = {};
+    progressState.activeMockExam = null;
     progressState.moduleNarration = list.map((moduleItem, index) => {
       const options = asArray(moduleItem?.progressCheckOptions)
         .map((option, optionIndex) => `Option ${optionIndex + 1}. ${String(option)}`)
@@ -2222,6 +2457,307 @@ document.addEventListener('DOMContentLoaded', function () {
     modules.innerHTML = html;
   }
 
+  function formatCountdown(totalMs) {
+    const safeMs = Math.max(0, Number(totalMs || 0));
+    const totalSeconds = Math.ceil(safeMs / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  }
+
+  function renderDomainBreakdown(domainBreakdown, threshold) {
+    const rows = asArray(domainBreakdown);
+    if (!rows.length) return '';
+    return `
+      <div style="display:grid;gap:8px;margin-top:12px;">
+        ${rows.map((row) => {
+          const passed = Number(row?.score || 0) >= Number(threshold || 0);
+          return `<div style="padding:10px 12px;border-radius:8px;background:${passed ? '#052e16' : '#2f1313'};border:1px solid ${passed ? '#166534' : '#7f1d1d'};">
+            <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+              <strong style="color:${passed ? '#86efac' : '#fda4af'};">${escapeHtml(String(row?.label || 'Domain'))}</strong>
+              <span style="color:#d0d9e7;">${Number(row?.score || 0)}% (${Number(row?.correct || 0)}/${Number(row?.total || 0)})</span>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  function calculateCertificationOutcome(items, answers, certificationPlan) {
+    const rows = asArray(items);
+    const plan = certificationPlan || createCertificationPlan(getCourseCoverageTargets(topic || ''), null);
+    const domains = asArray(plan?.domains).length ? asArray(plan.domains) : CERTIFICATION_DOMAINS;
+    const domainMap = new Map(domains.map((domain) => [String(domain.key), {
+      key: String(domain.key),
+      label: String(domain.label),
+      correct: 0,
+      total: 0
+    }]));
+    const reviewRows = [];
+    let correct = 0;
+    let total = 0;
+
+    rows.forEach((item, index) => {
+      const options = asArray(item?.options);
+      if (options.length < 2) return;
+      const selectedIndex = Number(answers[index]);
+      const correctIndex = Number(item?.correctOptionIndex);
+      const selectedText = String(options[selectedIndex] || 'No answer selected');
+      const correctText = String(options[correctIndex] || 'N/A');
+      const isCorrect = selectedIndex === correctIndex;
+      const fallbackDomain = domains[index % domains.length] || CERTIFICATION_DOMAINS[0];
+      const domainKey = String(item?.domainKey || fallbackDomain.key);
+      const domainLabel = String(item?.domainLabel || fallbackDomain.label);
+      const existing = domainMap.get(domainKey) || { key: domainKey, label: domainLabel, correct: 0, total: 0 };
+      existing.label = domainLabel;
+      existing.total += 1;
+      if (isCorrect) {
+        existing.correct += 1;
+        correct += 1;
+      } else if (reviewRows.length < 25) {
+        reviewRows.push(`
+          <div style="margin-bottom:10px;padding:10px;border-radius:8px;border:1px solid #7f1d1d;background:#2f1313;">
+            <div style="font-weight:700;color:#fda4af;margin-bottom:4px;">Question ${index + 1}: Incorrect</div>
+            <div style="color:#d0d9e7;"><strong>Your answer:</strong> ${escapeHtml(selectedText)}</div>
+            <div style="color:#bfdbfe;"><strong>Correct answer:</strong> ${escapeHtml(correctText)}</div>
+            ${item?.explanation ? `<div style="color:#cbd5e1;"><strong>Why:</strong> ${escapeHtml(String(item.explanation))}</div>` : ''}
+          </div>
+        `);
+      }
+      total += 1;
+      domainMap.set(domainKey, existing);
+    });
+
+    const score = total > 0 ? Math.round((correct / total) * 100) : 0;
+    const letterGrade = score >= 90 ? 'A'
+      : score >= 80 ? 'B'
+        : score >= 70 ? 'C'
+          : score >= 60 ? 'D'
+            : 'F';
+    const domainBreakdown = Array.from(domainMap.values())
+      .filter((row) => row.total > 0)
+      .map((row) => ({
+        ...row,
+        score: row.total > 0 ? Math.round((row.correct / row.total) * 100) : 0
+      }));
+    const failingDomains = domainBreakdown.filter((row) => row.score < Number(plan.domainPassMark || 0));
+    const passed = score >= Number(plan.overallPassMark || 0) && failingDomains.length === 0;
+
+    return {
+      score,
+      letterGrade,
+      correct,
+      total,
+      passed,
+      overallPassMark: Number(plan.overallPassMark || 0),
+      domainPassMark: Number(plan.domainPassMark || 0),
+      domainBreakdown,
+      failingDomains,
+      reviewRows
+    };
+  }
+
+  function renderPracticeBank(rows) {
+    const items = asArray(rows);
+    if (!practiceBank) return;
+    if (!items.length) {
+      practiceBank.innerHTML = '<div class="module-item"><p>Practice questions are not available yet.</p></div>';
+      return;
+    }
+
+    progressState.practiceBankItems = items;
+    const pageSize = 10;
+    const totalPages = Math.ceil(items.length / pageSize);
+    const currentPage = Math.max(1, Math.min(Number(progressState.practiceBankPage || 1), totalPages));
+    const startIdx = (currentPage - 1) * pageSize;
+    const endIdx = Math.min(startIdx + pageSize, items.length);
+    const pageItems = items.slice(startIdx, endIdx);
+    const paginationHtml = totalPages > 1 ? `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;border-radius:8px;background:#0d2438;border:1px solid #0ea5e9;margin-bottom:16px;gap:12px;flex-wrap:wrap;">
+        <button type="button" data-practice-prev-page style="background:#3b82f6;border:none;color:#fff;border-radius:6px;padding:8px 12px;cursor:pointer;font-size:0.85rem;font-weight:700;${currentPage <= 1 ? 'opacity:0.5;cursor:not-allowed;' : ''}">← Previous</button>
+        <span style="color:#93c5fd;font-size:0.9rem;font-weight:700;">Practice ${startIdx + 1}–${endIdx} of ${items.length}</span>
+        <button type="button" data-practice-next-page style="background:#3b82f6;border:none;color:#fff;border-radius:6px;padding:8px 12px;cursor:pointer;font-size:0.85rem;font-weight:700;${currentPage >= totalPages ? 'opacity:0.5;cursor:not-allowed;' : ''}">Next →</button>
+      </div>
+    ` : '';
+
+    practiceBank.innerHTML = `
+      <div style="padding:14px;border-radius:10px;background:#0d2438;border:1px solid #0ea5e9;color:#7dd3fc;margin-bottom:16px;font-size:0.9rem;">
+        <strong>Practice Bank:</strong> Work through ${items.length} answer-rationalized questions before attempting the mocks and final exam.
+      </div>
+      ${paginationHtml}
+      ${pageItems.map((item, pageIdx) => {
+        const globalIdx = startIdx + pageIdx;
+        const options = asArray(item?.options);
+        const revealKey = String(globalIdx);
+        const isRevealed = progressState.practiceRevealState[revealKey] === true;
+        const correctIndex = Number(item?.correctOptionIndex);
+        return `
+          <div class="module-item">
+            <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:8px;">
+              <strong style="color:#c4b5fd;">Practice Question ${globalIdx + 1}</strong>
+              <span style="color:#93c5fd;font-size:0.82rem;">${escapeHtml(String(item?.domainLabel || 'Certification domain'))}</span>
+            </div>
+            <p style="margin-bottom:10px;">${escapeHtml(String(item?.question || ''))}</p>
+            <div style="display:grid;gap:8px;">
+              ${options.map((option, optionIndex) => `<div style="padding:10px 12px;border-radius:8px;background:${isRevealed && optionIndex === correctIndex ? '#052e16' : '#111c31'};border:1px solid ${isRevealed && optionIndex === correctIndex ? '#166534' : '#2a3954'};color:#d0d9e7;">${escapeHtml(String(option))}</div>`).join('')}
+            </div>
+            <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;margin-top:12px;">
+              <button type="button" data-practice-toggle-answer="${globalIdx}" style="background:#10b981;border:none;color:#fff;border-radius:6px;padding:8px 12px;cursor:pointer;font-size:0.85rem;font-weight:700;">${isRevealed ? 'Hide Answer' : 'Reveal Answer'}</button>
+              ${isRevealed ? `<div style="color:#d0d9e7;font-size:0.88rem;line-height:1.55;flex:1 1 360px;"><strong style="color:#86efac;">Best answer:</strong> ${escapeHtml(String(options[correctIndex] || ''))}<br /><strong style="color:#93c5fd;">Why:</strong> ${escapeHtml(String(item?.explanation || ''))}</div>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('')}
+      ${paginationHtml}
+    `;
+  }
+
+  function clearMockExamTimer() {
+    if (progressState.mockExamTimerId) {
+      window.clearInterval(progressState.mockExamTimerId);
+      progressState.mockExamTimerId = null;
+    }
+  }
+
+  function submitActiveMockExam(expired) {
+    const active = progressState.activeMockExam;
+    if (!active) return;
+    const exam = progressState.mockExams[active.examIndex];
+    if (!exam) return;
+
+    const outcome = calculateCertificationOutcome(exam.questions, active.answers, progressState.certificationPlan);
+    progressState.mockExamResults[String(active.examIndex)] = {
+      ...outcome,
+      expired: expired === true,
+      completedAt: new Date().toISOString()
+    };
+    progressState.activeMockExam = null;
+    clearMockExamTimer();
+    renderMockExams(progressState.mockExams);
+  }
+
+  function startMockExam(index) {
+    const exam = progressState.mockExams[index];
+    if (!exam) return;
+    clearMockExamTimer();
+    progressState.activeMockExam = {
+      examIndex: index,
+      currentPage: 1,
+      startedAt: Date.now(),
+      endsAt: Date.now() + (Math.max(1, Number(exam?.timeLimitMinutes || 60)) * 60 * 1000),
+      answers: new Array(asArray(exam?.questions).length).fill(null)
+    };
+    renderMockExams(progressState.mockExams);
+    progressState.mockExamTimerId = window.setInterval(() => {
+      const current = progressState.activeMockExam;
+      if (!current) {
+        clearMockExamTimer();
+        return;
+      }
+      const remaining = Number(current.endsAt || 0) - Date.now();
+      const timerEl = document.getElementById('activeMockExamTimer');
+      if (timerEl) timerEl.textContent = formatCountdown(remaining);
+      if (remaining <= 0) submitActiveMockExam(true);
+    }, 1000);
+  }
+
+  function renderMockExams(exams) {
+    const rows = asArray(exams);
+    if (!mockExams) return;
+
+    const isAllModuleComplete = progressState.totalModules > 0 && progressState.completedModules.size >= progressState.totalModules;
+    if (!isAllModuleComplete) {
+      mockExams.innerHTML = '<div class="module-item"><p style="color:#9fb0c7;">Complete all course modules first. Timed mock exams unlock after you finish the teaching pathway.</p></div>';
+      return;
+    }
+    if (!rows.length) {
+      mockExams.innerHTML = '<div class="module-item"><p>Timed mock exams are not available yet.</p></div>';
+      return;
+    }
+
+    const active = progressState.activeMockExam;
+    if (active && rows[active.examIndex]) {
+      const exam = rows[active.examIndex];
+      const questions = asArray(exam?.questions);
+      const pageSize = 10;
+      const totalPages = Math.ceil(questions.length / pageSize);
+      const currentPage = Math.max(1, Math.min(Number(active.currentPage || 1), totalPages));
+      const startIdx = (currentPage - 1) * pageSize;
+      const endIdx = Math.min(startIdx + pageSize, questions.length);
+      const pageItems = questions.slice(startIdx, endIdx);
+      const remaining = Number(active.endsAt || 0) - Date.now();
+      if (remaining <= 0) {
+        submitActiveMockExam(true);
+        return;
+      }
+
+      mockExams.innerHTML = `
+        <div class="module-item" style="border-color:#0ea5e9;">
+          <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:12px;">
+            <div>
+              <h4 style="margin:0 0 6px 0;">${escapeHtml(String(exam?.title || `Timed Mock ${active.examIndex + 1}`))}</h4>
+              <p style="margin:0;color:#9fb0c7;">${escapeHtml(String(exam?.description || 'Timed certification readiness check.'))}</p>
+            </div>
+            <div style="padding:10px 14px;border-radius:999px;background:#3b1d12;border:1px solid #f59e0b;color:#fde68a;font-weight:700;">Time Left: <span id="activeMockExamTimer">${formatCountdown(remaining)}</span></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;border-radius:8px;background:#0d2438;border:1px solid #0ea5e9;margin-bottom:16px;gap:12px;flex-wrap:wrap;">
+            <button type="button" data-mock-prev-page style="background:#3b82f6;border:none;color:#fff;border-radius:6px;padding:8px 12px;cursor:pointer;font-size:0.85rem;font-weight:700;${currentPage <= 1 ? 'opacity:0.5;cursor:not-allowed;' : ''}">← Previous</button>
+            <span style="color:#93c5fd;font-size:0.9rem;font-weight:700;">Mock ${startIdx + 1}–${endIdx} of ${questions.length}</span>
+            <button type="button" data-mock-next-page style="background:#3b82f6;border:none;color:#fff;border-radius:6px;padding:8px 12px;cursor:pointer;font-size:0.85rem;font-weight:700;${currentPage >= totalPages ? 'opacity:0.5;cursor:not-allowed;' : ''}">Next →</button>
+          </div>
+          ${pageItems.map((item, pageIdx) => {
+            const globalIdx = startIdx + pageIdx;
+            const options = asArray(item?.options);
+            const selected = active.answers[globalIdx];
+            return `
+              <div class="module-item" style="margin-bottom:12px;">
+                <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:8px;">
+                  <strong style="color:#c4b5fd;">Question ${globalIdx + 1}</strong>
+                  <span style="color:#93c5fd;font-size:0.82rem;">${escapeHtml(String(item?.domainLabel || 'Certification domain'))}</span>
+                </div>
+                <p style="margin-bottom:8px;">${escapeHtml(String(item?.question || ''))}</p>
+                <div style="display:grid;gap:8px;">
+                  ${options.map((option, optionIndex) => `
+                    <label style="display:grid;grid-template-columns:18px minmax(0,1fr);align-items:flex-start;column-gap:10px;width:100%;box-sizing:border-box;padding:10px 12px;border-radius:8px;background:#111c31;border:1px solid #2a3954;cursor:pointer;color:#d0d9e7;overflow:hidden;">
+                      <input type="radio" name="mock-question-${globalIdx}" data-mock-choice="${globalIdx}" value="${optionIndex}" ${selected === optionIndex ? 'checked' : ''} style="margin-top:3px;accent-color:#10b981;" />
+                      <span>${escapeHtml(String(option))}</span>
+                    </label>
+                  `).join('')}
+                </div>
+              </div>
+            `;
+          }).join('')}
+          <button type="button" data-submit-mock-exam style="background:#10b981;border:none;color:#fff;border-radius:6px;padding:10px 16px;cursor:pointer;font-size:0.9rem;font-weight:700;width:100%;">Submit Timed Mock</button>
+        </div>
+      `;
+      return;
+    }
+
+    clearMockExamTimer();
+    mockExams.innerHTML = rows.map((exam, index) => {
+      const result = progressState.mockExamResults[String(index)] || null;
+      return `
+        <div class="module-item">
+          <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start;">
+            <div>
+              <h4 style="margin:0 0 6px 0;">${escapeHtml(String(exam?.title || `Timed Mock ${index + 1}`))}</h4>
+              <p style="margin:0 0 8px 0;">${escapeHtml(String(exam?.description || 'Timed readiness check with rotating questions.'))}</p>
+              <p style="margin:0;color:#9fb0c7;">${asArray(exam?.questions).length} questions • ${Math.max(1, Number(exam?.timeLimitMinutes || 60))} minutes</p>
+            </div>
+            <button type="button" data-start-mock-exam="${index}" style="background:#2563eb;border:none;color:#fff;border-radius:6px;padding:10px 14px;cursor:pointer;font-size:0.9rem;font-weight:700;">Start Mock ${index + 1}</button>
+          </div>
+          ${result ? `
+            <div style="margin-top:12px;padding:12px;border-radius:8px;background:${result.passed ? '#052e16' : '#2f1313'};border:1px solid ${result.passed ? '#166534' : '#7f1d1d'};">
+              <div style="font-weight:700;color:${result.passed ? '#86efac' : '#fda4af'};">Latest Result: ${result.score}% (${result.letterGrade})${result.expired ? ' • Time expired' : ''}</div>
+              <div style="color:#d0d9e7;margin-top:6px;">Overall pass mark: ${result.overallPassMark}% • Domain pass mark: ${result.domainPassMark}%</div>
+              ${renderDomainBreakdown(result.domainBreakdown, result.domainPassMark)}
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }).join('');
+  }
+
   function renderAssessment(rows) {
     const items = asArray(rows);
     if (!assessment) return;
@@ -2239,10 +2775,11 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     progressState.assessmentItems = items;
-    if (!progressState.assessmentCompleted) {
+    if (!progressState.assessmentCompleted && progressState.assessmentAnswers.length !== items.length) {
       progressState.assessmentAnswers = new Array(items.length).fill(null);
       progressState.assessmentScore = null;
     }
+    const certificationPlan = progressState.certificationPlan || createCertificationPlan(getCourseCoverageTargets(topic || ''), null);
 
     // Pagination support for large exam sets
     const questionsPerPage = 10;
@@ -2264,7 +2801,7 @@ document.addEventListener('DOMContentLoaded', function () {
     assessment.innerHTML = `
       <div style="padding:14px;border-radius:10px;background:#0d2438;border:1px solid #0ea5e9;color:#7dd3fc;margin-bottom:16px;font-size:0.9rem;">
         <strong>Final Assessment:</strong> ${hasObjectiveItems
-          ? `This certification exam has ${items.length} multiple-choice questions across the full course. You will receive an A-F grade, and a passing grade is C or higher (70%+).`
+          ? `This certification exam has ${items.length} multiple-choice questions across the full course. To pass, you must meet the overall threshold of ${certificationPlan.overallPassMark}% and the domain threshold of ${certificationPlan.domainPassMark}% in each certification domain.`
           : 'Answer all questions to complete the course and unlock interview prep.'}
       </div>
       ${paginationHtml}
@@ -2272,22 +2809,24 @@ document.addEventListener('DOMContentLoaded', function () {
         const globalIdx = startIdx + pageIdx;
         const question = String(item?.question || '');
         const options = asArray(item?.options);
+        const selectedValue = progressState.assessmentAnswers[globalIdx];
         const optionMarkup = options.map((option, optionIndex) => `
           <label style="display:grid;grid-template-columns:18px minmax(0,1fr);align-items:flex-start;column-gap:10px;width:100%;box-sizing:border-box;padding:10px 12px;border-radius:8px;background:#111c31;border:1px solid #2a3954;cursor:pointer;color:#d0d9e7;overflow:hidden;margin-bottom:8px;">
-            <input type="radio" name="assessment-question-${globalIdx}" data-assessment-choice="${globalIdx}" value="${optionIndex}" style="margin-top:3px;accent-color:#10b981;" />
+            <input type="radio" name="assessment-question-${globalIdx}" data-assessment-choice="${globalIdx}" value="${optionIndex}" ${selectedValue === optionIndex ? 'checked' : ''} style="margin-top:3px;accent-color:#10b981;" />
             <span style="line-height:1.5;word-break:break-word;overflow-wrap:anywhere;white-space:normal;min-width:0;max-width:100%;flex:1 1 auto;display:block;">${escapeHtml(String(option))}</span>
           </label>
         `).join('');
         return `
           <div class="module-item" style="margin-bottom:12px;">
-            <p style="margin-bottom:8px;"><strong style="color:#c4b5fd;">Question ${globalIdx + 1}:</strong> ${escapeHtml(question)}</p>
+            <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:8px;"><strong style="color:#c4b5fd;">Question ${globalIdx + 1}:</strong><span style="color:#93c5fd;font-size:0.82rem;">${escapeHtml(String(item?.domainLabel || 'Certification domain'))}</span></div>
+            <p style="margin-bottom:8px;">${escapeHtml(question)}</p>
             ${options.length >= 2
               ? `<div style="display:grid;gap:6px;">${optionMarkup}</div>`
               : `<textarea 
                   data-assessment-answer="${globalIdx}"
                   placeholder="Type your answer here..."
                   style="width:100%;min-height:80px;padding:10px;background:#111c31;border:1px solid #2a3954;border-radius:8px;color:#d0d9e7;font-family:inherit;font-size:0.9rem;resize:vertical;"
-                ></textarea>`}
+                >${escapeHtml(String(selectedValue || ''))}</textarea>`}
           </div>
         `;
       }).join('')}
@@ -2295,28 +2834,6 @@ document.addEventListener('DOMContentLoaded', function () {
       <button type="button" id="submitAssessmentBtn" style="background:#10b981;border:none;color:#fff;border-radius:6px;padding:10px 16px;cursor:pointer;font-size:0.9rem;font-weight:700;margin-top:16px;width:100%;">Submit Assessment (${items.length} Questions)</button>
       <div id="assessmentResult" style="margin-top:12px;font-size:0.9rem;color:#9fb0c7;line-height:1.6;"></div>
     `;
-
-    // Pagination event handlers
-    if (totalPages > 1) {
-      document.querySelectorAll('[data-assessment-prev-page]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          if (currentPage > 1) {
-            progressState.assessmentCurrentPage = currentPage - 1;
-            renderAssessment(items);
-            assessment.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }
-        });
-      });
-      document.querySelectorAll('[data-assessment-next-page]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          if (currentPage < totalPages) {
-            progressState.assessmentCurrentPage = currentPage + 1;
-            renderAssessment(items);
-            assessment.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }
-        });
-      });
-    }
   }
 
   function renderCourse(course) {
@@ -2336,6 +2853,9 @@ document.addEventListener('DOMContentLoaded', function () {
     renderList(outcomes, normalizedCourse?.learningOutcomes);
     renderList(resumeSignals, normalizedCourse?.resumeSignals);
     
+    progressState.certificationPlan = normalizedCourse?.certificationPlan || createCertificationPlan(getCourseCoverageTargets(courseTitle), null);
+    progressState.practiceBankItems = asArray(normalizedCourse?.practiceBank);
+    progressState.mockExams = asArray(normalizedCourse?.mockExams);
     progressState.assessmentItems = asArray(normalizedCourse?.finalAssessment);
     progressState.interviewPrepItems = asArray(normalizedCourse?.interviewPrep);
     
@@ -2352,6 +2872,8 @@ document.addEventListener('DOMContentLoaded', function () {
       <ul style="margin:0;padding-left:18px;">${deliverables || '<li>Project plan</li><li>Execution artifact</li><li>Results summary</li>'}</ul>
     `;
 
+    renderPracticeBank(progressState.practiceBankItems);
+    renderMockExams(progressState.mockExams);
     renderAssessment(progressState.assessmentItems);
     renderInterviewPrep(progressState.interviewPrepItems);
     updateProgressiveSections();
