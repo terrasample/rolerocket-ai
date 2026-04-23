@@ -55,7 +55,9 @@ document.addEventListener('DOMContentLoaded', function () {
     selectedVoice: ''
   };
   const AUDIO_VOICE_PREF_KEY = 'courseAudioVoicePreference';
-  const COURSE_PROGRESS_PREFIX = 'rr:course-progress:';
+  const COURSE_PROGRESS_PREFIX = 'rr:course-progress:cert-v2:';
+  const PMP_STYLE_MIN_MODULES = 12;
+  const PMP_STYLE_FINAL_QUESTION_COUNT = 60;
   function getCurriculumLastReviewed() {
     return new Date().toISOString().slice(0, 10);
   }
@@ -544,6 +546,166 @@ document.addEventListener('DOMContentLoaded', function () {
       ...baseCourse,
       modules,
       learningOutcomes: mergedOutcomes
+    };
+  }
+
+  function normalizeAssessmentOptions(options, correctText) {
+    const source = asArray(options).map((option) => String(option || '').trim()).filter(Boolean);
+    const fallbackCorrect = String(correctText || 'Apply the best-practice approach taught in the module.').trim();
+    const fallbackPool = [
+      'Skip planning and move straight to execution.',
+      'Delay review until the deadline day.',
+      'Use assumptions instead of validated evidence.',
+      'Ignore tradeoffs and stakeholder impact.'
+    ];
+    const merged = source.concat(fallbackPool).filter(Boolean);
+    const unique = [];
+    merged.forEach((item) => {
+      if (!unique.includes(item)) unique.push(item);
+    });
+
+    if (!unique.includes(fallbackCorrect)) unique.unshift(fallbackCorrect);
+    while (unique.length < 4) unique.push(`Option ${unique.length + 1}`);
+    return unique.slice(0, 4);
+  }
+
+  function buildSyntheticCertificationModule(baseModule, syntheticIndex, topicLabel) {
+    const moduleTitle = String(baseModule?.title || `Module ${syntheticIndex + 1}`).trim();
+    const moduleObjective = String(baseModule?.objective || '').trim();
+    const question = String(baseModule?.progressCheckQuestion || 'What is the best next action in this scenario?').trim();
+    const rawOptions = asArray(baseModule?.progressCheckOptions);
+    const numericCorrect = Number(baseModule?.correctOptionIndex);
+    const safeCorrect = Number.isInteger(numericCorrect) && numericCorrect >= 0 && numericCorrect < rawOptions.length ? numericCorrect : 0;
+    const options = normalizeAssessmentOptions(rawOptions, rawOptions[safeCorrect]);
+    const correctedIndex = Math.max(0, options.indexOf(String(rawOptions[safeCorrect] || '').trim()));
+    const focusName = String(topicLabel || 'this course').trim();
+
+    return {
+      title: `${moduleTitle} - Applied Scenario Lab ${syntheticIndex + 1}`,
+      objective: moduleObjective || `Apply ${focusName} decisions under realistic project constraints.`,
+      lesson: `This certification scenario lab extends the core lesson into a higher-pressure context where decisions must be justified with evidence. Start by clarifying the objective, then identify the constraint that matters most (time, quality, scope, risk, or stakeholder impact). Next, compare at least two options and describe the tradeoff of each. Choose one option, explain why it best protects the intended outcome, and define what signal would tell you to adjust the plan. Finish by documenting the decision clearly enough that another team member can execute it without confusion. This approach builds the real exam skill that certification tests for: selecting the best answer among plausible choices using judgment, structure, and outcome-focused reasoning instead of guesswork.`,
+      workedExample: `A delivery team is two days behind while quality defects are rising. The lead reduces low-impact scope, adds a risk checkpoint, and publishes a revised plan with owner accountability to protect quality and final outcome reliability.`,
+      commonMistake: `Choosing the fastest option without explaining impact on quality, risk, and stakeholder trust.`,
+      practiceTask: `Write a short decision memo with objective, options considered, chosen action, tradeoff rationale, and trigger for re-evaluation.`,
+      progressCheckQuestion: question,
+      progressCheckOptions: options,
+      correctOptionIndex: correctedIndex,
+      progressCheckExplanation: String(baseModule?.progressCheckExplanation || 'The strongest answer is the one that protects the objective while managing constraints and risk.').trim()
+    };
+  }
+
+  function ensurePmpStyleModules(modules, fallbackTopic) {
+    const baseModules = asArray(modules);
+    if (!baseModules.length) return [];
+
+    const normalized = baseModules.map((moduleItem) => ({ ...moduleItem }));
+    const seed = normalized.slice();
+    while (normalized.length < PMP_STYLE_MIN_MODULES) {
+      const source = seed[normalized.length % seed.length] || seed[0];
+      const synthetic = buildSyntheticCertificationModule(source, normalized.length - seed.length + 1, fallbackTopic);
+      normalized.push(synthetic);
+    }
+    return normalized;
+  }
+
+  function normalizeObjectiveAssessmentItem(item, fallbackQuestion, fallbackTopic) {
+    const question = String(item?.question || fallbackQuestion || `What is the best next action for ${String(fallbackTopic || 'this module')}?`).trim();
+    const rawOptions = asArray(item?.options);
+    const numericCorrect = Number(item?.correctOptionIndex);
+    const safeCorrect = Number.isInteger(numericCorrect) && numericCorrect >= 0 && numericCorrect < rawOptions.length ? numericCorrect : 0;
+    const options = normalizeAssessmentOptions(rawOptions, rawOptions[safeCorrect]);
+    const matched = options.indexOf(String(rawOptions[safeCorrect] || '').trim());
+    const correctOptionIndex = matched >= 0 ? matched : 0;
+    return {
+      question,
+      options,
+      correctOptionIndex,
+      explanation: String(item?.explanation || 'Choose the option that best protects delivery outcomes, quality, and stakeholder expectations.').trim()
+    };
+  }
+
+  function buildGeneratedAssessmentFromModules(modules, topicLabel) {
+    const generated = [];
+    const rows = asArray(modules);
+    rows.forEach((moduleItem, moduleIndex) => {
+      const moduleTitle = String(moduleItem?.title || `Module ${moduleIndex + 1}`).trim();
+      const question = String(moduleItem?.progressCheckQuestion || '').trim();
+      const options = normalizeAssessmentOptions(moduleItem?.progressCheckOptions, asArray(moduleItem?.progressCheckOptions)[Number(moduleItem?.correctOptionIndex) || 0]);
+      const correctText = String(asArray(moduleItem?.progressCheckOptions)[Number(moduleItem?.correctOptionIndex) || 0] || options[0]).trim();
+      const correctOptionIndex = Math.max(0, options.indexOf(correctText));
+
+      generated.push(normalizeObjectiveAssessmentItem({
+        question: question || `Which action best demonstrates mastery of ${moduleTitle}?`,
+        options,
+        correctOptionIndex,
+        explanation: String(moduleItem?.progressCheckExplanation || 'This choice aligns with the strongest execution approach for the module objective.').trim()
+      }, question, topicLabel));
+
+      generated.push(normalizeObjectiveAssessmentItem({
+        question: `A project scenario from ${moduleTitle} introduces time pressure and stakeholder constraints. What is the best first response?`,
+        options,
+        correctOptionIndex,
+        explanation: `Use the same decision logic from ${moduleTitle}: protect the objective, evaluate tradeoffs, and choose the most defensible action.`
+      }, question, topicLabel));
+    });
+    return generated;
+  }
+
+  function ensurePmpStyleAssessment(finalAssessment, modules, fallbackTopic) {
+    const normalizedSeed = asArray(finalAssessment)
+      .map((item, idx) => normalizeObjectiveAssessmentItem(item, `Question ${idx + 1}`, fallbackTopic));
+    const generated = buildGeneratedAssessmentFromModules(modules, fallbackTopic);
+    const bank = normalizedSeed.concat(generated).filter((item) => asArray(item?.options).length >= 4);
+
+    if (!bank.length) {
+      bank.push(normalizeObjectiveAssessmentItem({
+        question: `What is the strongest certification approach for ${String(fallbackTopic || 'this course')}?`,
+        options: [
+          'Define objective, assess tradeoffs, execute with evidence, and review outcomes.',
+          'Skip planning to save time.',
+          'Delay risk checks until the end.',
+          'Focus on tools only and ignore outcomes.'
+        ],
+        correctOptionIndex: 0,
+        explanation: 'Certification-level performance requires structured, outcome-focused execution.'
+      }, 'Certification question', fallbackTopic));
+    }
+
+    const expanded = bank.slice();
+    while (expanded.length < PMP_STYLE_FINAL_QUESTION_COUNT) {
+      const source = expanded[expanded.length % bank.length];
+      expanded.push({
+        ...source,
+        question: `${source.question} (Certification Form ${expanded.length + 1})`
+      });
+    }
+
+    return expanded.slice(0, PMP_STYLE_FINAL_QUESTION_COUNT);
+  }
+
+  function applyPmpStyleNormalization(course, fallbackTopic) {
+    const baseCourse = course || {};
+    const baseModules = ensurePmpStyleModules(baseCourse.modules, fallbackTopic);
+    if (!baseModules.length) return baseCourse;
+
+    const finalAssessment = ensurePmpStyleAssessment(baseCourse.finalAssessment, baseModules, fallbackTopic);
+    const outcomes = asArray(baseCourse.learningOutcomes).concat([
+      `Complete a PMP-style certification pathway with ${PMP_STYLE_MIN_MODULES}+ modules.`,
+      `Pass a comprehensive ${PMP_STYLE_FINAL_QUESTION_COUNT}-question multiple-choice certification exam.`
+    ]).filter(Boolean);
+
+    const uniqueOutcomes = [];
+    outcomes.forEach((item) => {
+      const normalized = String(item || '').trim();
+      if (normalized && !uniqueOutcomes.includes(normalized)) uniqueOutcomes.push(normalized);
+    });
+
+    return {
+      ...baseCourse,
+      estimatedDuration: String(baseCourse.estimatedDuration || '10-14 weeks'),
+      modules: baseModules,
+      finalAssessment,
+      learningOutcomes: uniqueOutcomes
     };
   }
 
@@ -1040,6 +1202,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const total = Number(progressState.totalModules || 0);
     const completed = progressState.completedModules.size;
     const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+    const certificateUnlocked = total > 0 && completed === total && progressState.assessmentCompleted === true;
 
     if (progressSummary) {
       progressSummary.textContent = `Progress: ${completed} of ${total} modules completed`;
@@ -1052,7 +1215,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     if (certificateBtn) {
-      certificateBtn.style.display = total > 0 && completed === total ? 'inline-block' : 'none';
+      certificateBtn.style.display = certificateUnlocked ? 'inline-block' : 'none';
     }
   }
 
@@ -1796,7 +1959,7 @@ document.addEventListener('DOMContentLoaded', function () {
               : score >= 70 ? 'C'
                 : score >= 60 ? 'D'
                   : 'F';
-          const passMark = 60;
+          const passMark = 70;
           const passed = !hasObjectiveQuestions || score >= passMark;
 
           progressState.assessmentScore = score;
@@ -1808,12 +1971,13 @@ document.addEventListener('DOMContentLoaded', function () {
               <div style="color:#fda4af;line-height:1.8;">
                 <strong>Assessment Result: ${score}% (${letterGrade})</strong>
                 <p style="margin:8px 0 0;">Grading scale: A (90-100), B (80-89), C (70-79), D (60-69), F (&lt;60).</p>
-                <p style="margin:8px 0 10px;">You did not pass yet. Review the feedback below, revisit your weak modules, then retry.</p>
+                <p style="margin:8px 0 10px;">You did not pass yet. Certification requires a grade of C or higher. Review the feedback below, revisit your weak modules, then retry.</p>
                 ${objectiveRows.join('')}
               </div>
             `;
             submitBtn.disabled = false;
             submitBtn.textContent = 'Retry Assessment';
+            updateProgressUi();
             updateProgressiveSections();
             renderInterviewPrep(progressState.interviewPrepItems);
             return;
@@ -1822,7 +1986,7 @@ document.addEventListener('DOMContentLoaded', function () {
           resultDiv.innerHTML = `
             <div style="color:#86efac;line-height:1.8;">
               <strong>✓ Assessment Complete!</strong>
-              <p style="margin:8px 0 0;">Score: ${score}% (${letterGrade})${hasObjectiveQuestions ? ` (Pass mark: ${passMark}% / grade D)` : ''}. You have successfully completed all course materials. Scroll down to view your interview preparation resources.</p>
+              <p style="margin:8px 0 0;">Score: ${score}% (${letterGrade})${hasObjectiveQuestions ? ` (Pass mark: ${passMark}% / grade C)` : ''}. You have passed the final certification assessment. Your RoleRocket AI Certificate of Completion is now unlocked.</p>
               <p style="margin:8px 0 0;">Grading scale: A (90-100), B (80-89), C (70-79), D (60-69), F (&lt;60).</p>
             </div>
           `;
@@ -1830,6 +1994,7 @@ document.addEventListener('DOMContentLoaded', function () {
             resultDiv.innerHTML += `<div style="margin-top:10px;">${objectiveRows.join('')}</div>`;
           }
           submitBtn.style.display = 'none';
+          updateProgressUi();
           updateProgressiveSections();
           renderInterviewPrep(progressState.interviewPrepItems);
         }, 1200);
@@ -1849,7 +2014,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     if (!isAssessmentComplete) {
-      interviewPrep.innerHTML = '<li style="color:#9fb0c7;">Earn a passing final grade (D or higher) to unlock interview prep.</li>';
+      interviewPrep.innerHTML = '<li style="color:#9fb0c7;">Earn a passing final certification grade (C or higher) to unlock interview prep and your certificate.</li>';
       return;
     }
 
@@ -2041,7 +2206,7 @@ document.addEventListener('DOMContentLoaded', function () {
     assessment.innerHTML = `
       <div style="padding:14px;border-radius:10px;background:#0d2438;border:1px solid #0ea5e9;color:#7dd3fc;margin-bottom:16px;font-size:0.9rem;">
         <strong>Final Assessment:</strong> ${hasObjectiveItems
-          ? 'You will receive an A-F grade. A passing grade is D or higher (60%+).' 
+          ? 'This certification exam uses multiple-choice questions across the full course. You will receive an A-F grade, and a passing grade is C or higher (70%+).'
           : 'Answer all questions to complete the course and unlock interview prep.'}
       </div>
       ${items.map((item, i) => {
@@ -2073,25 +2238,26 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function renderCourse(course) {
     const scaffoldedCourse = applyFromScratchCourseScaffold(course, topic);
-    const courseTitle = String(scaffoldedCourse?.courseTitle || topic || 'Course');
+    const normalizedCourse = applyPmpStyleNormalization(scaffoldedCourse, topic);
+    const courseTitle = String(normalizedCourse?.courseTitle || topic || 'Course');
     titleMain.textContent = courseTitle;
     titleSide.textContent = courseTitle;
-    subtitleSide.textContent = String(scaffoldedCourse?.subtitle || 'Complete professional course');
-    level.textContent = String(scaffoldedCourse?.difficulty || 'Intermediate');
-    duration.textContent = String(scaffoldedCourse?.estimatedDuration || '4-6 weeks');
-    demand.textContent = String(scaffoldedCourse?.marketDemand || 'High demand in current job market.');
-    overview.textContent = String(scaffoldedCourse?.overview || 'Overview not available.');
+    subtitleSide.textContent = String(normalizedCourse?.subtitle || 'Complete professional course');
+    level.textContent = String(normalizedCourse?.difficulty || 'Intermediate');
+    duration.textContent = String(normalizedCourse?.estimatedDuration || '10-14 weeks');
+    demand.textContent = String(normalizedCourse?.marketDemand || 'High demand in current job market.');
+    overview.textContent = String(normalizedCourse?.overview || 'Overview not available.');
     renderCurriculumMetaPanel(getJamaicaCurriculumMeta(courseTitle, topic));
 
-    renderList(outcomes, scaffoldedCourse?.learningOutcomes);
-    renderList(resumeSignals, scaffoldedCourse?.resumeSignals);
+    renderList(outcomes, normalizedCourse?.learningOutcomes);
+    renderList(resumeSignals, normalizedCourse?.resumeSignals);
     
-    progressState.assessmentItems = asArray(scaffoldedCourse?.finalAssessment);
-    progressState.interviewPrepItems = asArray(scaffoldedCourse?.interviewPrep);
+    progressState.assessmentItems = asArray(normalizedCourse?.finalAssessment);
+    progressState.interviewPrepItems = asArray(normalizedCourse?.interviewPrep);
     
-    renderModules(scaffoldedCourse?.modules);
+    renderModules(normalizedCourse?.modules);
 
-    const project = scaffoldedCourse?.capstoneProject || {};
+    const project = normalizedCourse?.capstoneProject || {};
     const deliverables = asArray(project?.deliverables)
       .map((item) => `<li style="margin-bottom:6px;">${String(item)}</li>`)
       .join('');
@@ -2126,7 +2292,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!certificateBtn) return;
     const total = Number(progressState.totalModules || 0);
     const completed = progressState.completedModules.size;
-    if (!total || completed !== total) return;
+    if (!total || completed !== total || progressState.assessmentCompleted !== true) return;
 
     if (!window.jspdf || !window.jspdf.jsPDF) {
       alert('Certificate generation is unavailable right now.');
@@ -2147,7 +2313,7 @@ document.addEventListener('DOMContentLoaded', function () {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(34);
     doc.setTextColor(15, 23, 42);
-    doc.text('Certificate of Completion', width / 2, 120, { align: 'center' });
+    doc.text('RoleRocket AI Certificate of Completion', width / 2, 120, { align: 'center' });
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(16);
@@ -2173,8 +2339,10 @@ document.addEventListener('DOMContentLoaded', function () {
     doc.setFontSize(13);
     doc.setTextColor(71, 85, 105);
     doc.text(`Completed modules: ${completed}/${total}`, width / 2, 338, { align: 'center' });
-    doc.text(`Date: ${new Date().toLocaleDateString()}`, width / 2, 360, { align: 'center' });
-    doc.text('Issued by RoleRocket AI Learning', width / 2, 402, { align: 'center' });
+    doc.text(`Final grade: ${String(progressState.assessmentGrade || 'Pass')}${progressState.assessmentScore !== null ? ` (${progressState.assessmentScore}%)` : ''}`, width / 2, 360, { align: 'center' });
+    doc.text(`Date: ${new Date().toLocaleDateString()}`, width / 2, 382, { align: 'center' });
+    doc.text(`Certificate ID: RR-${String(topic || 'course').toUpperCase().replace(/[^A-Z0-9]+/g, '').slice(0, 12) || 'COURSE'}-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}`, width / 2, 404, { align: 'center' });
+    doc.text('Issued by RoleRocket AI Learning', width / 2, 426, { align: 'center' });
 
     const filename = `${String(topic || 'course').toLowerCase().replace(/[^a-z0-9]+/g, '-')}-certificate.pdf`;
     doc.save(filename);

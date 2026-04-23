@@ -496,6 +496,7 @@ const JOB_CACHE_MS = 1000 * 60 * 5;
 const jobSearchCache = new Map();
 const COURSE_CONTENT_CACHE_TTL_MS = 1000 * 60 * 60 * 24;
 const COURSE_CHECK_SESSION_TTL_MS = 1000 * 60 * 120;
+const COURSE_CONTENT_SCHEMA_VERSION = 'cert-v2';
 const EXTERNAL_FETCH_TIMEOUT_MS = 1200;
 const jobSearchInFlight = new Map();
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '')
@@ -4111,21 +4112,27 @@ Return ONLY a JSON object with this exact shape and key names:
     "deliverables": ["string", "string", "string"]
   },
   "finalAssessment": [
-    { "question": "string", "answer": "string" },
-    { "question": "string", "answer": "string" },
-    { "question": "string", "answer": "string" }
+    {
+      "question": "string",
+      "options": ["string", "string", "string", "string"],
+      "correctOptionIndex": 0,
+      "explanation": "string"
+    }
   ],
   "interviewPrep": ["string", "string", "string"],
   "resumeSignals": ["string", "string", "string"]
 }
 
 Rules:
-- Create exactly 6 modules.
-- Each module.lesson must be 120-180 words and must teach concrete how-to steps.
+- Create exactly 10 modules.
+- Each module.lesson must be 220-320 words and must teach concrete how-to steps, decision criteria, and common execution tradeoffs.
 - Each module.workedExample must include a realistic scenario with numbers, constraints, or decisions.
 - Each module.progressCheckQuestion must test practical understanding of that specific module.
 - Each module.progressCheckOptions must contain exactly 4 plausible multiple-choice answers.
 - Each module.correctOptionIndex must be an integer from 0 to 3 and point to the single best answer.
+- finalAssessment must contain exactly 12 multiple-choice questions.
+- Each finalAssessment item must contain exactly 4 options, one correctOptionIndex, and a concise explanation.
+- The finalAssessment must test retention across the full course, not just repeat module checkpoint wording.
 - Avoid fluff and generic advice.
 - No markdown, no code fences, no extra text outside JSON.`
               }
@@ -4247,10 +4254,11 @@ Rules:
 });
 
 function normalizeCourseKey(topic) {
-  return String(topic || '')
+  const baseKey = String(topic || '')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '') || 'course';
+  return `${baseKey}-${COURSE_CONTENT_SCHEMA_VERSION}`;
 }
 
 function buildCatalogItems(topics, source) {
@@ -4484,11 +4492,11 @@ function buildFallbackCourseContent(topic) {
 
   return {
     courseTitle: actionName,
-    subtitle: `Structured, step-by-step training for ${actionName}`,
+    subtitle: `RoleRocket AI certification pathway for ${actionName}`,
     difficulty: 'Intermediate',
-    estimatedDuration: '6 weeks',
+    estimatedDuration: '10-12 weeks',
     marketDemand: `${actionName} remains a practical, in-demand skill across modern teams.`,
-    overview: `This course gives you a complete working foundation in ${actionName}. You will learn how to define the goal, scope the work, execute with a clear workflow, manage risk, communicate progress, and turn outcomes into strong resume and interview proof points.`,
+    overview: `This certification-oriented course gives you a more complete working foundation in ${actionName}. You will learn how to define the goal, scope the work, collect the right inputs, execute with a clear workflow, manage risk, communicate progress, measure outcomes, and convert the work into strong interview and resume proof. The course is designed to feel closer to a real professional certification track: longer lessons, broader coverage, repeated checkpoints, a capstone, and a comprehensive final multiple-choice exam.`,
     learningOutcomes: [
       `Explain the core workflow behind ${actionName}.`,
       `Scope ${actionName} work into clear phases and deliverables.`,
@@ -4592,6 +4600,70 @@ function buildFallbackCourseContent(topic) {
           'Detailed jargon without any outcome'
         ],
         correctOptionIndex: 0
+      },
+      {
+        title: `Requirements and Input Quality for ${actionName}`,
+        objective: `Define strong inputs so execution starts from reliable assumptions and evidence.`,
+        lesson: `Many projects struggle not because the team lacks effort, but because they start from weak inputs. Strong execution begins with verified requirements, a clear source of truth, and an explicit definition of what information is missing. Before work begins, identify the decisions the course or project must support, the documents or datasets being used, who owns them, and how current they are. Separate facts from assumptions. Then define how missing information will be resolved, what happens if a key dependency is delayed, and which items are critical enough to block progression. Input quality matters because every planning choice, risk assessment, and outcome measure depends on it. Teams that start with vague requirements often spend most of their time reworking avoidable mistakes. Teams that validate inputs early move faster later because execution is built on stable ground.`,
+        workedExample: `A lead preparing a new automation workflow discovers that customer status definitions differ across two teams. Instead of building immediately, the lead resolves the mismatch, documents the approved definitions, and avoids days of rework later.`,
+        commonMistake: `Treating assumptions, old notes, and unverified requests as equally reliable inputs.`,
+        practiceTask: `List the five most important inputs for a real or simulated ${actionName} initiative and label each as verified, unverified, or missing.`,
+        progressCheckQuestion: `What is the best reason to validate inputs before execution starts?`,
+        progressCheckOptions: [
+          'It reduces avoidable rework caused by bad assumptions',
+          'It eliminates the need for stakeholder approval',
+          'It guarantees there will be no scope changes',
+          'It makes outcomes look better automatically'
+        ],
+        correctOptionIndex: 0
+      },
+      {
+        title: `Measurement Frameworks in ${actionName}`,
+        objective: `Choose metrics that actually show progress, quality, and business value.`,
+        lesson: `A certification-level practitioner needs to separate activity metrics from outcome metrics. Activity metrics show that work happened. Outcome metrics show whether the work improved anything meaningful. Start by identifying the main business goal, then choose one or two leading indicators that warn you early when execution is drifting and one or two lagging indicators that confirm the final impact. Define how each metric is calculated, how often it will be reviewed, and what threshold triggers action. Avoid vanity metrics that look impressive but do not affect decisions. Strong measurement frameworks also describe what will be compared: before versus after, target versus actual, or cohort versus cohort. If you cannot explain what a metric will change in your decision-making, it is probably not useful enough. The goal is not to collect more numbers. The goal is to connect evidence to a better operational decision.`,
+        workedExample: `A team launching a support workflow tracks backlog age as a leading metric and resolution rate as a lagging metric. Backlog age warns them early when new cases are not moving, while resolution rate confirms whether customers are actually getting helped.`,
+        commonMistake: `Reporting raw activity counts without connecting them to quality or business impact.`,
+        practiceTask: `Define one leading metric and one lagging metric for a process you want to improve, then explain what action each metric would trigger.`,
+        progressCheckQuestion: `Which metric is usually strongest for proving final impact?`,
+        progressCheckOptions: [
+          'A lagging metric tied to the target outcome',
+          'A vanity metric with large numbers',
+          'The longest status update in the meeting',
+          'Any metric collected only once at the end'
+        ],
+        correctOptionIndex: 0
+      },
+      {
+        title: `Decision-Making Under Tradeoffs in ${actionName}`,
+        objective: `Make better decisions when time, quality, budget, and scope compete with each other.`,
+        lesson: `Real certification work is not about finding perfect answers. It is about making defensible decisions under constraints. When tradeoffs appear, name them clearly. What happens if you protect speed over quality, or scope over timeline, or cost over resilience? Then decide which variable matters most for the current objective. Good decision-making uses criteria instead of impulse. Compare each option against impact, urgency, reversibility, stakeholder expectations, and operational risk. Document the decision, the reasons behind it, and the signals that would require revisiting it later. This makes the work easier to defend in stakeholder conversations and easier to explain in interviews. Strong operators are not the people who avoid hard tradeoffs. They are the people who make them transparently, with evidence, and with a clear plan for what comes next.`,
+        workedExample: `A project is one week behind and leadership asks for the full original scope. The lead reduces two low-impact features, protects quality on the core deliverable, and explains the tradeoff with a customer-impact rationale.`,
+        commonMistake: `Trying to protect every variable equally instead of deciding what matters most.`,
+        practiceTask: `Write a short decision memo for a case where you must choose between timeline and scope.`,
+        progressCheckQuestion: `What makes a tradeoff decision credible?`,
+        progressCheckOptions: [
+          'It uses explicit criteria and explains the impact of the choice',
+          'It hides the downside to keep stakeholders calm',
+          'It avoids documentation to stay flexible',
+          'It assumes every option can be equally protected'
+        ],
+        correctOptionIndex: 0
+      },
+      {
+        title: `Sustaining Improvements in ${actionName}`,
+        objective: `Keep gains from slipping after rollout or project completion.`,
+        lesson: `Certification-level work does not stop at launch. Sustainable improvement requires ownership, review cadence, and a maintenance plan. Once a workflow or initiative goes live, decide who monitors the outcome, how incidents are captured, when performance is reviewed, and what thresholds trigger retraining or redesign. Create lightweight documentation that new contributors can follow without relying on tribal knowledge. Sustainability also means checking whether the work still matches the original need. Processes drift when context changes but the operating method does not. Regular review lets you update assumptions before performance degrades. A solid sustainability plan turns one-time execution into repeatable operating capability, which is often what employers really want when they ask for experienced practitioners.`,
+        workedExample: `After a new internal process reduces turnaround time, the team assigns one owner to review metrics each Friday, logs recurring issues, and updates the checklist monthly so gains are not lost after the initial rollout.`,
+        commonMistake: `Declaring success at launch without assigning ownership for monitoring and maintenance.`,
+        practiceTask: `Create a 30-day sustainment plan with owner, review cadence, and two escalation triggers.`,
+        progressCheckQuestion: `What is the strongest sign that an improvement can last?`,
+        progressCheckOptions: [
+          'There is an owner, review rhythm, and trigger for intervention',
+          'The team stopped discussing it after launch',
+          'No one measured anything after rollout',
+          'All documentation was replaced with memory'
+        ],
+        correctOptionIndex: 0
       }
     ],
     capstoneProject: {
@@ -4604,9 +4676,18 @@ function buildFallbackCourseContent(topic) {
       ]
     },
     finalAssessment: [
-      { question: `How do you define success for a ${actionName} initiative before execution begins?`, answer: 'Define a concrete outcome, success metrics, stakeholders, and operating constraints before choosing tactics.' },
-      { question: `What should you do when a risk threatens delivery or quality?`, answer: 'Surface it early, assess impact, and apply a mitigation or fallback before it becomes costly.' },
-      { question: `How do you translate ${actionName} work into strong interview or resume proof?`, answer: 'Connect your actions to measurable results, tradeoffs, and lessons learned.' }
+      { question: `Which item should be defined before tactics or tools are selected in ${actionName}?`, options: ['Outcome, constraints, and success metrics', 'Brand colors for the final deck', 'Every possible tool purchase', 'A perfect solution with no tradeoffs'], correctOptionIndex: 0, explanation: 'Strong execution starts by defining the outcome and operating conditions first.' },
+      { question: `What makes a plan executable instead of vague?`, options: ['Clear deliverables, owners, and checkpoints', 'No deadlines so the team stays flexible', 'A list of all ideas collected so far', 'An assumption that blockers will solve themselves'], correctOptionIndex: 0, explanation: 'Execution requires visible ownership, outputs, and review points.' },
+      { question: `What is the main benefit of a visible workflow during execution?`, options: ['It makes priorities, blockers, and next steps clear', 'It removes the need for stakeholder communication', 'It guarantees there will be no delays', 'It replaces planning completely'], correctOptionIndex: 0, explanation: 'A visible workflow helps teams see what is moving, what is blocked, and what happens next.' },
+      { question: `What is the best first response to a meaningful delivery or quality risk?`, options: ['Define a concrete mitigation or fallback', 'Ignore it until it becomes urgent', 'Buy more tools immediately', 'Wait to see whether it disappears'], correctOptionIndex: 0, explanation: 'Early mitigation protects outcomes before the risk becomes expensive.' },
+      { question: `What should a strong stakeholder update include?`, options: ['Status, impact, risks, and next actions', 'Only detailed task notes from every contributor', 'Optimistic language without tradeoffs', 'A long summary with no recommendation'], correctOptionIndex: 0, explanation: 'Useful updates help stakeholders understand where things stand and what is needed next.' },
+      { question: `What makes project experience persuasive on a resume?`, options: ['A clear action linked to a measurable result', 'A list of tools with no context', 'A vague statement that you helped', 'Detailed jargon without business outcome'], correctOptionIndex: 0, explanation: 'Career proof is strongest when it ties your action to a real result.' },
+      { question: `Why should inputs and requirements be validated before execution starts?`, options: ['To reduce rework caused by bad assumptions', 'To eliminate the need for stakeholders', 'To guarantee there will be no scope changes', 'To improve results automatically without review'], correctOptionIndex: 0, explanation: 'Bad inputs often create avoidable rework later.' },
+      { question: `Which metric is best for proving whether the final objective improved?`, options: ['A lagging metric tied to the target outcome', 'A vanity metric with a large number', 'The number of meetings scheduled', 'Any metric reviewed only once'], correctOptionIndex: 0, explanation: 'Lagging metrics confirm whether the real outcome improved.' },
+      { question: `What makes a tradeoff decision defensible?`, options: ['It uses explicit criteria and explains impact', 'It hides downside from stakeholders', 'It avoids documentation', 'It tries to protect every variable equally'], correctOptionIndex: 0, explanation: 'Good tradeoff decisions are transparent and evidence-based.' },
+      { question: `What best supports sustaining improvements after rollout?`, options: ['An owner, review cadence, and intervention triggers', 'No further measurement after launch', 'Replacing documentation with memory', 'Declaring success and moving on'], correctOptionIndex: 0, explanation: 'Sustained performance requires monitoring and ownership after launch.' },
+      { question: `Which statement best distinguishes output from impact?`, options: ['Output is what was delivered; impact is what improved because of it', 'Output and impact are the same thing', 'Impact is only about effort, not outcomes', 'Output matters only after a resume is written'], correctOptionIndex: 0, explanation: 'Output is the deliverable; impact is the measurable change created by that deliverable.' },
+      { question: `What is the strongest certification-level reflection after completing a project?`, options: ['Document lessons learned and what should be repeated next time', 'Ignore results once the work is shipped', 'Describe the work only in general terms', 'Focus only on how hard the work felt'], correctOptionIndex: 0, explanation: 'Strong practitioners close the loop by documenting lessons and repeatable improvements.' }
     ],
     interviewPrep: [
       `Be ready to explain how you scope ${actionName} work before execution starts.`,
@@ -4623,12 +4704,20 @@ function buildFallbackCourseContent(topic) {
 
 function hasStructuredProgressChecks(course) {
   const modules = Array.isArray(course?.modules) ? course.modules : [];
-  if (modules.length !== 6) return false;
-  return modules.every((module) => (
+  const finalAssessment = Array.isArray(course?.finalAssessment) ? course.finalAssessment : [];
+  if (modules.length !== 10) return false;
+  if (finalAssessment.length !== 12) return false;
+  const validModules = modules.every((module) => (
     Array.isArray(module?.progressCheckOptions)
     && module.progressCheckOptions.length >= 4
     && Number.isInteger(Number(module?.correctOptionIndex))
   ));
+  const validAssessment = finalAssessment.every((item) => (
+    Array.isArray(item?.options)
+    && item.options.length >= 4
+    && Number.isInteger(Number(item?.correctOptionIndex))
+  ));
+  return validModules && validAssessment;
 }
 
 function normalizeCourseModule(module, index) {
