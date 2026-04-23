@@ -1532,12 +1532,16 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
       }
 
-      if (response.status === 409) {
+      if (response.status === 409 || response.status === 404) {
+        // 409 = session expired; 404 = scaffold module the server doesn't know about — use local answer key
         const usedLocalFallback = applyLocalProgressCheck(idx, selectedOptionIndex, resultWrap);
         if (usedLocalFallback) {
           setResultHtml(resultWrap, true, formatProgressCheckFeedback(true, fallbackCorrectAnswer, fallbackExplanation));
-        } else {
+        } else if (response.status === 409) {
           resultWrap.textContent = String(payload?.error || 'Session expired. Reload the course.');
+          resultWrap.style.color = '#fbbf24';
+        } else {
+          resultWrap.textContent = 'Answer check unavailable. Try refreshing the course.';
           resultWrap.style.color = '#fbbf24';
         }
       } else if (response.status === 400 && payload?.error) {
