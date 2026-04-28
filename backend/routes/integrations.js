@@ -1,4 +1,5 @@
 const express = require('express');
+const multer = require('multer');
 const router = express.Router();
 
 const authenticateToken = require('../middleware/auth');
@@ -15,6 +16,13 @@ const CommunityHub = require('../models/CommunityHub');
 const PlacementOutcome = require('../models/PlacementOutcome');
 const IntegrationAccess = require('../models/IntegrationAccess');
 const IntegrationAuditLog = require('../models/IntegrationAuditLog');
+const { extractTextFromPDF, extractTextFromDocx } = require('../pdfWordUtils');
+const { extractTextFromPDFWithOCR } = require('../ocrUtils');
+
+const resumeUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 8 * 1024 * 1024 }
+});
 
 const ADMIN_PLANS = new Set(['elite', 'lifetime']);
 const INTEGRATION_ADMIN_EMAILS = String(process.env.INTEGRATION_ADMIN_EMAILS || '')
@@ -321,6 +329,50 @@ async function getCachedOverview(forceRefresh) {
     }
   };
 }
+
+function toArrayBuffer(buffer) {
+  return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+}
+
+router.post('/resume/extract', resumeUpload.single('resumeFile'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No resume file uploaded' });
+
+    const mime = String(req.file.mimetype || '').toLowerCase();
+    let content = '';
+
+    if (mime === 'application/pdf') {
+      content = await extractTextFromPDF(req.file.buffer);
+      if (!String(content || '').trim()) {
+        content = await extractTextFromPDFWithOCR(toArrayBuffer(req.file.buffer));
+      }
+    } else if (mime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+      content = await extractTextFromDocx(req.file.buffer);
+    } else if (mime.startsWith('text/')) {
+      content = req.file.buffer.toString('utf8');
+    } else {
+      return res.status(400).json({ error: 'Unsupported file type. Use PDF, DOCX, or TXT.' });
+    }
+
+    if (!String(content || '').trim()) {
+      return res.status(400).json({ error: 'Could not extract text from this file. Try another file or paste text directly.' });
+    }
+
+    return res.json({
+      success: true,
+      content,
+      meta: {
+        fileName: req.file.originalname,
+        mime,
+        bytes: req.file.size,
+        chars: String(content).length
+      }
+    });
+  } catch (err) {
+    console.error('Integration resume extract error:', err);
+    return res.status(500).json({ error: 'Failed to extract resume text' });
+  }
+});
 
 router.get('/overview', async (req, res) => {
   try {

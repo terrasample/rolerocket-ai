@@ -24,6 +24,254 @@
     if (el) el.innerHTML = msg ? `<span style="color:${color || '#16a34a'}">${msg}</span>` : '';
   }
 
+  function addDaysISO(days) {
+    const d = new Date();
+    d.setDate(d.getDate() + Number(days || 0));
+    return d.toISOString();
+  }
+
+  function reminderMeta(dueAt) {
+    if (!dueAt) return { label: 'No due date', color: '#64748b', overdue: false };
+    const due = new Date(dueAt);
+    if (Number.isNaN(due.getTime())) return { label: 'No due date', color: '#64748b', overdue: false };
+    const now = new Date();
+    const msPerDay = 24 * 60 * 60 * 1000;
+    const deltaDays = Math.floor((new Date(due.getFullYear(), due.getMonth(), due.getDate()) - new Date(now.getFullYear(), now.getMonth(), now.getDate())) / msPerDay);
+    if (deltaDays < 0) return { label: `Overdue ${Math.abs(deltaDays)}d`, color: '#dc2626', overdue: true };
+    if (deltaDays === 0) return { label: 'Due today', color: '#ea580c', overdue: false };
+    if (deltaDays <= 3) return { label: `Due in ${deltaDays}d`, color: '#ca8a04', overdue: false };
+    return { label: `Due in ${deltaDays}d`, color: '#16a34a', overdue: false };
+  }
+
+  function formatDueDate(dueAt) {
+    if (!dueAt) return 'No due date';
+    const d = new Date(dueAt);
+    if (Number.isNaN(d.getTime())) return 'No due date';
+    return d.toLocaleDateString('en-JM', { year: 'numeric', month: 'short', day: 'numeric' });
+  }
+
+  function parseDeadlineToISO(deadlineText) {
+    const text = String(deadlineText || '').trim();
+    if (!text) return '';
+    const parsed = new Date(text);
+    if (!Number.isNaN(parsed.getTime())) return parsed.toISOString();
+
+    const monthMatch = text.match(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\b\s*(\d{4})?/i);
+    if (!monthMatch) return '';
+    const monthNames = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+    const monthIdx = monthNames.indexOf(String(monthMatch[1]).slice(0, 3).toLowerCase());
+    if (monthIdx < 0) return '';
+    const year = Number(monthMatch[2] || new Date().getFullYear());
+    const d = new Date(year, monthIdx, 1);
+    return Number.isNaN(d.getTime()) ? '' : d.toISOString();
+  }
+
+  const JWA_TRACKER_KEY = 'jwa:action-tracker:v1';
+
+  function emptyTrackerState() {
+    return {
+      savedJobs: [],
+      diasporaOutreach: [],
+      scholarshipTargets: [],
+      apprenticeshipTargets: [],
+      interviewPractice: [],
+      mentorRequests: []
+    };
+  }
+
+  function normalizeTrackerState(state) {
+    const src = { ...emptyTrackerState(), ...(state || {}) };
+    src.savedJobs = (src.savedJobs || []).map((row) => ({
+      ...row,
+      dueAt: row?.dueAt || (String(row?.status || '').toLowerCase() === 'applied' ? addDaysISO(14) : addDaysISO(5))
+    }));
+    src.diasporaOutreach = (src.diasporaOutreach || []).map((row) => ({ ...row, dueAt: row?.dueAt || addDaysISO(4) }));
+    src.scholarshipTargets = (src.scholarshipTargets || []).map((row) => ({ ...row, dueAt: row?.dueAt || addDaysISO(7) }));
+    src.apprenticeshipTargets = (src.apprenticeshipTargets || []).map((row) => ({ ...row, dueAt: row?.dueAt || addDaysISO(6) }));
+    src.interviewPractice = (src.interviewPractice || []).map((row) => ({ ...row, dueAt: row?.dueAt || addDaysISO(3) }));
+    src.mentorRequests = (src.mentorRequests || []).map((row) => ({ ...row, dueAt: row?.dueAt || addDaysISO(5) }));
+    return src;
+  }
+
+  function readTrackerState() {
+    try {
+      const raw = localStorage.getItem(JWA_TRACKER_KEY);
+      if (!raw) return emptyTrackerState();
+      const parsed = JSON.parse(raw);
+      return normalizeTrackerState(parsed || {});
+    } catch (_error) {
+      return emptyTrackerState();
+    }
+  }
+
+  function writeTrackerState(state) {
+    try {
+      localStorage.setItem(JWA_TRACKER_KEY, JSON.stringify(normalizeTrackerState(state || {})));
+    } catch (_error) {
+      // Ignore storage write errors.
+    }
+  }
+
+  function updateTrackerState(updater) {
+    const current = readTrackerState();
+    const next = updater({ ...current });
+    writeTrackerState(next || current);
+    renderReminderSummary();
+    return next || current;
+  }
+
+  function renderSavedJobsList() {
+    const container = document.getElementById('jwaSavedJobsList');
+    if (!container) return;
+    const state = readTrackerState();
+    const rows = Array.isArray(state.savedJobs) ? state.savedJobs : [];
+    if (!rows.length) {
+      container.innerHTML = '<p class="jwa-empty">No saved jobs yet.</p>';
+      return;
+    }
+
+    container.innerHTML = rows.map((row) => `
+      <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:10px 12px;margin-bottom:8px;">
+        <div style="color:#f8fafc;font-weight:700;font-size:.9rem;">${esc(row.title)}</div>
+        <div style="color:#94a3b8;font-size:.82rem;line-height:1.5;">${esc(row.company)} • ${esc(row.location)} • ${esc(row.status || 'saved')} • Due: ${esc(formatDueDate(row.dueAt))}</div>
+        <div style="margin-top:4px;"><span class="jwa-demand-badge" style="background:${reminderMeta(row.dueAt).color};">${esc(reminderMeta(row.dueAt).label)}</span></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+          <a href="${esc(row.link)}" target="_blank" rel="noopener noreferrer" class="jwa-submit-btn" style="padding:6px 10px;font-size:.78rem;text-decoration:none;">Open</a>
+          ${row.status !== 'applied' ? `<button type="button" class="jwa-submit-btn jwa-mark-applied-btn" data-job-link="${encodeURIComponent(row.link)}" style="padding:6px 10px;font-size:.78rem;">Mark Applied</button>` : ''}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function renderDiasporaOutreachList() {
+    const container = document.getElementById('jwaDiasporaOutreachList');
+    if (!container) return;
+    const rows = readTrackerState().diasporaOutreach || [];
+    if (!rows.length) {
+      container.innerHTML = '<p class="jwa-empty">No outreach entries yet.</p>';
+      return;
+    }
+    container.innerHTML = rows.map((row) => `
+      <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:10px 12px;margin-bottom:8px;">
+        <div style="color:#f8fafc;font-weight:700;font-size:.88rem;">${esc(row.role)} • ${esc(row.topHub || 'Unspecified hub')}</div>
+        <div style="color:#94a3b8;font-size:.82rem;line-height:1.5;">${esc(row.location || 'Any location')} | Skills: ${esc(row.skills || 'Not specified')} | Due: ${esc(formatDueDate(row.dueAt))}</div>
+      </div>
+    `).join('');
+  }
+
+  function renderScholarTargetsList() {
+    const container = document.getElementById('jwaScholarTargetsList');
+    if (!container) return;
+    const rows = readTrackerState().scholarshipTargets || [];
+    if (!rows.length) {
+      container.innerHTML = '<p class="jwa-empty">No scholarship targets added.</p>';
+      return;
+    }
+    container.innerHTML = rows.map((row) => `
+      <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:10px 12px;margin-bottom:8px;">
+        <div style="color:#f8fafc;font-weight:700;font-size:.88rem;">${esc(row.name)}</div>
+        <div style="color:#94a3b8;font-size:.82rem;line-height:1.5;">Deadline: ${esc(row.deadline)} | ${esc(row.amount)} | Due: ${esc(formatDueDate(row.dueAt))}</div>
+      </div>
+    `).join('');
+  }
+
+  function renderApprenticeTargetsList() {
+    const container = document.getElementById('jwaApprenticeTargetsList');
+    if (!container) return;
+    const rows = readTrackerState().apprenticeshipTargets || [];
+    if (!rows.length) {
+      container.innerHTML = '<p class="jwa-empty">No apprenticeship interests tracked.</p>';
+      return;
+    }
+    container.innerHTML = rows.map((row) => `
+      <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:10px 12px;margin-bottom:8px;">
+        <div style="color:#f8fafc;font-weight:700;font-size:.88rem;">${esc(row.title)}</div>
+        <div style="color:#94a3b8;font-size:.82rem;line-height:1.5;">${esc(row.intake)} | ${esc(row.duration)} | Due: ${esc(formatDueDate(row.dueAt))}</div>
+      </div>
+    `).join('');
+  }
+
+  function renderInterviewPracticeList() {
+    const container = document.getElementById('jwaInterviewPracticeList');
+    if (!container) return;
+    const rows = readTrackerState().interviewPractice || [];
+    if (!rows.length) {
+      container.innerHTML = '<p class="jwa-empty">No practice sessions logged yet.</p>';
+      return;
+    }
+    container.innerHTML = rows.map((row) => `
+      <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:10px 12px;margin-bottom:8px;">
+        <div style="color:#f8fafc;font-weight:700;font-size:.88rem;">${esc(row.role)} (${esc(row.market)})</div>
+        <div style="color:#94a3b8;font-size:.82rem;line-height:1.5;">Set: ${esc(row.type)} | Confidence: ${esc(row.confidence)} | Due: ${esc(formatDueDate(row.dueAt))}</div>
+      </div>
+    `).join('');
+  }
+
+  function renderMentorRequestList() {
+    const container = document.getElementById('jwaMentorRequestList');
+    if (!container) return;
+    const rows = readTrackerState().mentorRequests || [];
+    if (!rows.length) {
+      container.innerHTML = '<p class="jwa-empty">No mentor intro requests yet.</p>';
+      return;
+    }
+    container.innerHTML = rows.map((row) => `
+      <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:10px 12px;margin-bottom:8px;">
+        <div style="color:#f8fafc;font-weight:700;font-size:.88rem;">${esc(row.name)} • ${esc(row.title)}</div>
+        <div style="color:#94a3b8;font-size:.82rem;line-height:1.5;">${esc(row.market.toUpperCase())} | ${esc(row.org)} | Due: ${esc(formatDueDate(row.dueAt))}</div>
+      </div>
+    `).join('');
+  }
+
+  function renderReminderSummary() {
+    const target = document.getElementById('jwaReminderSummary');
+    if (!target) return;
+    const state = readTrackerState();
+    const all = [
+      ...(state.savedJobs || []),
+      ...(state.diasporaOutreach || []),
+      ...(state.scholarshipTargets || []),
+      ...(state.apprenticeshipTargets || []),
+      ...(state.interviewPractice || []),
+      ...(state.mentorRequests || [])
+    ];
+    if (!all.length) {
+      target.innerHTML = '<span style="color:#64748b;">No reminders yet.</span>';
+      return;
+    }
+    const overdue = all.filter((row) => reminderMeta(row.dueAt).overdue).length;
+    const dueSoon = all.filter((row) => {
+      const meta = reminderMeta(row.dueAt);
+      return !meta.overdue && (meta.label.startsWith('Due today') || meta.label.startsWith('Due in 1d') || meta.label.startsWith('Due in 2d') || meta.label.startsWith('Due in 3d'));
+    }).length;
+    const color = overdue > 0 ? '#dc2626' : dueSoon > 0 ? '#ca8a04' : '#16a34a';
+    target.innerHTML = `<span style="color:${color};">Reminders: ${overdue} overdue, ${dueSoon} due in 3 days, ${all.length} total tracked actions.</span>`;
+  }
+
+  function exportTrackerCsv() {
+    const state = readTrackerState();
+    const rows = [];
+
+    (state.savedJobs || []).forEach((row) => rows.push(['job', row.title, row.company, row.location, row.status || '', row.dueAt || '']));
+    (state.diasporaOutreach || []).forEach((row) => rows.push(['diaspora', row.role, row.topHub || '', row.location || '', row.skills || '', row.dueAt || '']));
+    (state.scholarshipTargets || []).forEach((row) => rows.push(['scholarship', row.name, row.amount || '', row.deadline || '', '', row.dueAt || '']));
+    (state.apprenticeshipTargets || []).forEach((row) => rows.push(['apprenticeship', row.title, row.intake || '', row.duration || '', '', row.dueAt || '']));
+    (state.interviewPractice || []).forEach((row) => rows.push(['interview', row.role, row.market || '', row.type || '', row.confidence || '', row.dueAt || '']));
+    (state.mentorRequests || []).forEach((row) => rows.push(['mentor', row.name, row.title || '', row.org || '', row.market || '', row.dueAt || '']));
+
+    const header = ['category', 'item', 'context1', 'context2', 'context3', 'dueAt'];
+    const csv = [header, ...rows].map((line) => line.map((v) => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `jwa-action-tracker-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
   const INTEGRATION_ROLE_RANK = { viewer: 1, analyst: 2, manager: 3, admin: 4 };
 
   function getIntegrationRoleRank(role) {
@@ -426,7 +674,7 @@
       body.innerHTML = `
         <div class="jwa-role-grid">
           ${jobs.map((job) => `
-            <a class="jwa-role-card" href="${esc(job.link)}" target="_blank" rel="noopener noreferrer" style="display:block;text-decoration:none;cursor:pointer;">
+            <article class="jwa-role-card" style="display:flex;gap:8px;">
               <strong>${esc(job.title)}</strong>
               <span class="jwa-salary">${esc(job.company)}</span>
               <span class="jwa-demand-badge" style="background:#1d4ed8;">${esc(job.location)}</span>
@@ -435,11 +683,42 @@
               <span class="jwa-remote-tag">${esc(job.source)}</span>
               <span style="color:#64748b;font-size:.74rem;line-height:1.3;">Posted: ${esc(formatPostedDate(job.postedAt))}</span>
               ${job.requiredCredentials && job.requiredCredentials.length ? `<span style="font-size:0.85em; color:#0284c7;">Creds: ${job.requiredCredentials.slice(0,2).join(', ')}${job.requiredCredentials.length > 2 ? '...' : ''}</span>` : ''}
-            </a>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <a class="jwa-submit-btn" href="${esc(job.link)}" target="_blank" rel="noopener noreferrer" style="padding:6px 10px;font-size:.78rem;text-decoration:none;">Open Job</a>
+                <button type="button" class="jwa-submit-btn jwa-save-job-btn" data-job-link="${encodeURIComponent(job.link)}" data-job-title="${esc(job.title)}" data-job-company="${esc(job.company)}" data-job-location="${esc(job.location)}" style="padding:6px 10px;font-size:.78rem;">Save</button>
+                <button type="button" class="jwa-download-btn jwa-apply-job-btn" data-job-link="${encodeURIComponent(job.link)}" data-job-title="${esc(job.title)}" data-job-company="${esc(job.company)}" data-job-location="${esc(job.location)}" style="padding:6px 10px;font-size:.78rem;">Mark Applied</button>
+              </div>
+            </article>
           `).join('')}
         </div>
       `;
     });
+
+    renderSavedJobsList();
+  }
+
+  function saveJobToTracker({ title, company, location, link, status }) {
+    if (!link) return;
+    updateTrackerState((state) => {
+      const rows = Array.isArray(state.savedJobs) ? state.savedJobs : [];
+      const idx = rows.findIndex((item) => String(item.link || '') === String(link));
+      const nextRow = {
+        title: String(title || 'Untitled Role'),
+        company: String(company || 'Unknown Company'),
+        location: String(location || 'Unknown Location'),
+        link: String(link),
+        status: status || 'saved',
+        dueAt: status === 'applied' ? addDaysISO(14) : addDaysISO(5)
+      };
+      if (idx >= 0) {
+        rows[idx] = { ...rows[idx], ...nextRow };
+      } else {
+        rows.unshift(nextRow);
+      }
+      state.savedJobs = rows.slice(0, 60);
+      return state;
+    });
+    renderSavedJobsList();
   }
 
   /* ── 2. Diaspora Connection Pipeline ───────────────────────────────────── */
@@ -489,6 +768,20 @@
 
     const total = matchedHubs.reduce((sum, h) => sum + h.connections, 0);
     const hub = matchedHubs[0] || DIASPORA_HUBS[0];
+
+    updateTrackerState((state) => {
+      const rows = Array.isArray(state.diasporaOutreach) ? state.diasporaOutreach : [];
+      rows.unshift({
+        role,
+        location,
+        skills,
+        topHub: hub.city,
+        dueAt: addDaysISO(4)
+      });
+      state.diasporaOutreach = rows.slice(0, 40);
+      return state;
+    });
+    renderDiasporaOutreachList();
 
     setStatus('diasporaStatus',
       `Found <strong>${total.toLocaleString()}</strong> potential diaspora connections for <strong>${esc(role)}</strong>. Top cluster: <strong>${esc(hub.city)}</strong> (${hub.sectors.slice(0,2).join(', ')} sectors). Your profile has been flagged for outreach when matching opportunities open.`,
@@ -1046,16 +1339,33 @@
     resultsEl.innerHTML = `
       <div class="jwa-role-grid">
         ${filtered.map((item) => `
-          <a class="jwa-role-card" href="${esc(item.link)}" target="_blank" rel="noopener noreferrer" style="display:block;text-decoration:none;">
+          <article class="jwa-role-card" style="display:flex;gap:8px;">
             <strong>${esc(item.name)}</strong>
             <span class="jwa-salary">${esc(item.amount)}</span>
             <span class="jwa-demand-badge" style="background:#1d4ed8;">Deadline: ${esc(item.deadline)}</span>
             <span class="jwa-remote-tag">${esc(item.level.toUpperCase())} • ${esc(item.destination.toUpperCase())}</span>
-          </a>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <a class="jwa-submit-btn" href="${esc(item.link)}" target="_blank" rel="noopener noreferrer" style="padding:6px 10px;font-size:.78rem;text-decoration:none;">Open</a>
+              <button type="button" class="jwa-submit-btn jwa-add-scholar-target-btn" data-scholar-name="${esc(item.name)}" data-scholar-amount="${esc(item.amount)}" data-scholar-deadline="${esc(item.deadline)}" style="padding:6px 10px;font-size:.78rem;">Add to Shortlist</button>
+            </div>
+          </article>
         `).join('')}
       </div>
     `;
     setStatus('jwaScholarStatus', `${filtered.length} live funding option${filtered.length === 1 ? '' : 's'} matched.`, '#16a34a');
+  }
+
+  function addScholarTarget(entry) {
+    if (!entry?.name) return;
+    updateTrackerState((state) => {
+      const rows = Array.isArray(state.scholarshipTargets) ? state.scholarshipTargets : [];
+      const exists = rows.some((item) => String(item.name) === String(entry.name));
+      const parsedDue = parseDeadlineToISO(entry?.deadline);
+      if (!exists) rows.unshift({ ...entry, dueAt: entry?.dueAt || parsedDue || addDaysISO(7) });
+      state.scholarshipTargets = rows.slice(0, 40);
+      return state;
+    });
+    renderScholarTargetsList();
   }
 
   function generateScholarChecklist() {
@@ -1105,15 +1415,31 @@
     target.innerHTML = filtered.length ? `
       <div class="jwa-role-grid">
         ${filtered.map((item) => `
-          <a class="jwa-role-card" href="${esc(item.link)}" target="_blank" rel="noopener noreferrer" style="display:block;text-decoration:none;">
+          <article class="jwa-role-card" style="display:flex;gap:8px;">
             <strong>${esc(item.title)}</strong>
             <span class="jwa-salary">Duration: ${esc(item.duration)}</span>
             <span class="jwa-demand-badge" style="background:#0f766e;">Intake: ${esc(item.intake)}</span>
             <span class="jwa-remote-tag">Apply via HEART/NSTA portal</span>
-          </a>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <a class="jwa-submit-btn" href="${esc(item.link)}" target="_blank" rel="noopener noreferrer" style="padding:6px 10px;font-size:.78rem;text-decoration:none;">Open</a>
+              <button type="button" class="jwa-submit-btn jwa-add-apprentice-target-btn" data-apprentice-title="${esc(item.title)}" data-apprentice-duration="${esc(item.duration)}" data-apprentice-intake="${esc(item.intake)}" style="padding:6px 10px;font-size:.78rem;">Track Interest</button>
+            </div>
+          </article>
         `).join('')}
       </div>
     ` : '<p class="jwa-empty">No matching apprenticeship programmes found.</p>';
+  }
+
+  function addApprenticeTarget(entry) {
+    if (!entry?.title) return;
+    updateTrackerState((state) => {
+      const rows = Array.isArray(state.apprenticeshipTargets) ? state.apprenticeshipTargets : [];
+      const exists = rows.some((item) => String(item.title) === String(entry.title));
+      if (!exists) rows.unshift({ ...entry, dueAt: entry?.dueAt || addDaysISO(6) });
+      state.apprenticeshipTargets = rows.slice(0, 40);
+      return state;
+    });
+    renderApprenticeTargetsList();
   }
 
   function analyzeContractTerms() {
@@ -1186,8 +1512,36 @@
         </div>
         <div style="color:#cbd5e1;line-height:1.6;">${esc(m.title)} • ${esc(m.org)}</div>
         <div style="margin-top:8px;color:#93c5fd;font-size:.86rem;">First meeting agenda: 1) Career direction 2) Skill gaps 3) 30-day actions 4) Referral opportunities.</div>
+        <button type="button" class="jwa-submit-btn jwa-request-mentor-btn" data-mentor-name="${esc(m.name)}" data-mentor-title="${esc(m.title)}" data-mentor-org="${esc(m.org)}" data-mentor-market="${esc(m.market)}" style="margin-top:8px;padding:6px 10px;font-size:.78rem;">Request Intro</button>
       </div>
     `).join('');
+  }
+
+  function addMentorRequest(entry) {
+    if (!entry?.name) return;
+    updateTrackerState((state) => {
+      const rows = Array.isArray(state.mentorRequests) ? state.mentorRequests : [];
+      const exists = rows.some((item) => String(item.name) === String(entry.name) && String(item.market) === String(entry.market));
+      if (!exists) rows.unshift({ ...entry, dueAt: entry?.dueAt || addDaysISO(5) });
+      state.mentorRequests = rows.slice(0, 40);
+      return state;
+    });
+    renderMentorRequestList();
+  }
+
+  function logInterviewPractice() {
+    const role = String(document.getElementById('jwaInterviewRole')?.value || '').trim() || 'General';
+    const market = String(document.getElementById('jwaInterviewMarket')?.value || 'jamaica').trim();
+    const type = String(document.getElementById('jwaInterviewType')?.value || 'behavioral').trim();
+    const confidence = String(document.getElementById('jwaInterviewConfidence')?.value || 'medium').trim();
+
+    updateTrackerState((state) => {
+      const rows = Array.isArray(state.interviewPractice) ? state.interviewPractice : [];
+      rows.unshift({ role, market, type, confidence, dueAt: addDaysISO(3) });
+      state.interviewPractice = rows.slice(0, 50);
+      return state;
+    });
+    renderInterviewPracticeList();
   }
 
   /* ── Tab switching ──────────────────────────────────────────────────────── */
@@ -1198,6 +1552,11 @@
     document.querySelectorAll('.jwa-tab-panel').forEach(panel => {
       panel.hidden = panel.id !== tabId;
     });
+    try {
+      localStorage.setItem('jwa:last-tab', tabId);
+    } catch (_error) {
+      // Ignore storage errors.
+    }
   }
 
   function initCollapsiblePersistence() {
@@ -3425,8 +3784,130 @@
     loadCommunityHubs();
     loadIntegrationOverview();
     loadIntegrationViewerContext();
+    renderSavedJobsList();
+    renderDiasporaOutreachList();
+    renderScholarTargetsList();
+    renderApprenticeTargetsList();
+    renderInterviewPracticeList();
+    renderMentorRequestList();
+    renderReminderSummary();
 
     document.getElementById('jwaRefreshRegionalJobsBtn')?.addEventListener('click', renderMarketRadar);
+    document.getElementById('jwaRefreshSavedJobsBtn')?.addEventListener('click', renderSavedJobsList);
+    document.getElementById('jwaRefreshRemindersBtn')?.addEventListener('click', renderReminderSummary);
+    document.getElementById('jwaExportTrackerCsvBtn')?.addEventListener('click', exportTrackerCsv);
+    document.getElementById('jwaClearSavedJobsBtn')?.addEventListener('click', function () {
+      updateTrackerState((state) => {
+        state.savedJobs = [];
+        return state;
+      });
+      renderSavedJobsList();
+    });
+    document.getElementById('jwaClearDiasporaOutreachBtn')?.addEventListener('click', function () {
+      updateTrackerState((state) => {
+        state.diasporaOutreach = [];
+        return state;
+      });
+      renderDiasporaOutreachList();
+    });
+    document.getElementById('jwaClearScholarTargetsBtn')?.addEventListener('click', function () {
+      updateTrackerState((state) => {
+        state.scholarshipTargets = [];
+        return state;
+      });
+      renderScholarTargetsList();
+    });
+    document.getElementById('jwaClearApprenticeTargetsBtn')?.addEventListener('click', function () {
+      updateTrackerState((state) => {
+        state.apprenticeshipTargets = [];
+        return state;
+      });
+      renderApprenticeTargetsList();
+    });
+    document.getElementById('jwaLogInterviewPracticeBtn')?.addEventListener('click', logInterviewPractice);
+    document.getElementById('jwaClearInterviewPracticeBtn')?.addEventListener('click', function () {
+      updateTrackerState((state) => {
+        state.interviewPractice = [];
+        return state;
+      });
+      renderInterviewPracticeList();
+    });
+    document.getElementById('jwaClearMentorRequestsBtn')?.addEventListener('click', function () {
+      updateTrackerState((state) => {
+        state.mentorRequests = [];
+        return state;
+      });
+      renderMentorRequestList();
+    });
+
+    document.getElementById('jwaRegionalMarkets')?.addEventListener('click', function (event) {
+      const saveBtn = event.target.closest('.jwa-save-job-btn');
+      if (saveBtn) {
+        saveJobToTracker({
+          title: String(saveBtn.getAttribute('data-job-title') || ''),
+          company: String(saveBtn.getAttribute('data-job-company') || ''),
+          location: String(saveBtn.getAttribute('data-job-location') || ''),
+          link: decodeURIComponent(String(saveBtn.getAttribute('data-job-link') || '')),
+          status: 'saved'
+        });
+        return;
+      }
+
+      const applyBtn = event.target.closest('.jwa-apply-job-btn');
+      if (applyBtn) {
+        saveJobToTracker({
+          title: String(applyBtn.getAttribute('data-job-title') || ''),
+          company: String(applyBtn.getAttribute('data-job-company') || ''),
+          location: String(applyBtn.getAttribute('data-job-location') || ''),
+          link: decodeURIComponent(String(applyBtn.getAttribute('data-job-link') || '')),
+          status: 'applied'
+        });
+      }
+    });
+
+    document.getElementById('jwaSavedJobsList')?.addEventListener('click', function (event) {
+      const btn = event.target.closest('.jwa-mark-applied-btn');
+      if (!btn) return;
+      const link = decodeURIComponent(String(btn.getAttribute('data-job-link') || ''));
+      if (!link) return;
+      updateTrackerState((state) => {
+        const rows = Array.isArray(state.savedJobs) ? state.savedJobs : [];
+        state.savedJobs = rows.map((row) => (String(row.link) === link ? { ...row, status: 'applied', dueAt: addDaysISO(14) } : row));
+        return state;
+      });
+      renderSavedJobsList();
+    });
+
+    document.getElementById('jwaScholarResults')?.addEventListener('click', function (event) {
+      const btn = event.target.closest('.jwa-add-scholar-target-btn');
+      if (!btn) return;
+      addScholarTarget({
+        name: String(btn.getAttribute('data-scholar-name') || ''),
+        amount: String(btn.getAttribute('data-scholar-amount') || ''),
+        deadline: String(btn.getAttribute('data-scholar-deadline') || '')
+      });
+    });
+
+    document.getElementById('jwaApprenticeResults')?.addEventListener('click', function (event) {
+      const btn = event.target.closest('.jwa-add-apprentice-target-btn');
+      if (!btn) return;
+      addApprenticeTarget({
+        title: String(btn.getAttribute('data-apprentice-title') || ''),
+        duration: String(btn.getAttribute('data-apprentice-duration') || ''),
+        intake: String(btn.getAttribute('data-apprentice-intake') || '')
+      });
+    });
+
+    document.getElementById('jwaMentorResults')?.addEventListener('click', function (event) {
+      const btn = event.target.closest('.jwa-request-mentor-btn');
+      if (!btn) return;
+      addMentorRequest({
+        name: String(btn.getAttribute('data-mentor-name') || ''),
+        title: String(btn.getAttribute('data-mentor-title') || ''),
+        org: String(btn.getAttribute('data-mentor-org') || ''),
+        market: String(btn.getAttribute('data-mentor-market') || '')
+      });
+    });
     document.getElementById('jwaMarketKeyword')?.addEventListener('keydown', function (event) {
       if (event.key === 'Enter') {
         event.preventDefault();
@@ -3489,6 +3970,11 @@
       btn.addEventListener('click', () => activateTab(btn.dataset.tab));
     });
 
+    const storedTab = localStorage.getItem('jwa:last-tab');
+    if (storedTab && document.getElementById(storedTab)) {
+      activateTab(storedTab);
+    }
+
     window.uploadCredential = uploadCredential;
 
     /* ── Resume File Upload Handler ─────────────────────────────────────── */
@@ -3497,8 +3983,22 @@
     const jwaResumeText = document.getElementById('jwaResumeText');
     const jwaCheckResumeBtn = document.getElementById('jwaCheckResumeBtn');
 
+    async function extractResumeFileText(file) {
+      const formData = new FormData();
+      formData.append('resumeFile', file);
+      const res = await fetch(`${getApiBase()}/api/integrations/resume/extract`, {
+        method: 'POST',
+        body: formData
+      });
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok || !payload?.content) {
+        throw new Error(payload?.error || `Could not extract text (${res.status})`);
+      }
+      return String(payload.content || '').trim();
+    }
+
     if (jwaResumeFileInput) {
-      jwaResumeFileInput.addEventListener('change', function (event) {
+      jwaResumeFileInput.addEventListener('change', async function (event) {
         const file = event.target.files?.[0];
         if (!file) return;
 
@@ -3507,65 +4007,31 @@
         if (!validTypes.includes(fileExt)) {
           if (jwaResumeFileName) {
             jwaResumeFileName.style.color = '#dc2626';
-            jwaResumeFileName.textContent = `❌ Invalid file type. Please upload PDF, Word, or TXT files only.`;
+            jwaResumeFileName.textContent = '❌ Invalid file type. Please upload PDF, Word, or TXT files only.';
           }
           return;
         }
 
         if (jwaResumeFileName) {
-          jwaResumeFileName.style.color = '#64748b';
-          jwaResumeFileName.textContent = `📄 ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+          jwaResumeFileName.style.color = '#2563eb';
+          jwaResumeFileName.textContent = `📄 ${file.name} (${(file.size / 1024).toFixed(1)} KB) - Extracting text...`;
         }
 
-        const reader = new FileReader();
-        reader.onload = function (e) {
-          const fileContent = e.target.result;
-
-          // For .txt files, extract directly
-          if (fileExt === '.txt') {
-            if (jwaResumeText) jwaResumeText.value = fileContent;
-            return;
+        try {
+          const text = await extractResumeFileText(file);
+          if (jwaResumeText) jwaResumeText.value = text;
+          if (jwaResumeFileName) {
+            jwaResumeFileName.style.color = '#16a34a';
+            jwaResumeFileName.textContent = `✅ ${file.name} extracted (${text.length.toLocaleString()} characters)`;
           }
-
-          // For .pdf files — basic text extraction (requires pdfjs in production)
-          if (fileExt === '.pdf') {
-            // Note: Full PDF text extraction requires pdfjs-dist library
-            // For MVP, show placeholder and suggest copy-paste as backup
-            if (jwaResumeFileName) {
-              jwaResumeFileName.style.color = '#0284c7';
-              jwaResumeFileName.textContent = `📄 ${file.name} - PDF detected. Text extraction requires pdfjs library.`;
-            }
-            alert('PDF support requires the pdfjs library. Please paste your resume text as an alternative or contact support.');
-            if (jwaResumeFileName) {
-              jwaResumeFileName.style.color = '#64748b';
-              jwaResumeFileName.textContent = `📄 ${file.name} - Please use paste option for PDF`;
-            }
-            return;
-          }
-
-          // For .doc and .docx files — basic text extraction (requires mammoth.js in production)
-          if (fileExt === '.doc' || fileExt === '.docx') {
-            if (jwaResumeFileName) {
-              jwaResumeFileName.style.color = '#0284c7';
-              jwaResumeFileName.textContent = `📄 ${file.name} - Word document detected. Text extraction requires mammoth.js library.`;
-            }
-            alert('Word document support requires the mammoth.js library. Please paste your resume text as an alternative or contact support.');
-            if (jwaResumeFileName) {
-              jwaResumeFileName.style.color = '#64748b';
-              jwaResumeFileName.textContent = `📄 ${file.name} - Please use paste option for Word`;
-            }
-            return;
-          }
-        };
-
-        reader.onerror = function () {
+          setStatus('jwaResumeStatus', 'Resume text extracted successfully. You can analyze it now.', '#16a34a');
+        } catch (error) {
           if (jwaResumeFileName) {
             jwaResumeFileName.style.color = '#dc2626';
-            jwaResumeFileName.textContent = '❌ Error reading file. Please try again.';
+            jwaResumeFileName.textContent = `❌ ${file.name} extraction failed. ${error.message || 'Please try another file.'}`;
           }
-        };
-
-        reader.readAsText(file);
+          setStatus('jwaResumeStatus', `Unable to extract this file automatically: ${esc(error.message || 'Unknown error')}`, '#dc2626');
+        }
       });
     }
 
@@ -3580,9 +4046,9 @@
           return;
         }
 
-        // If file is selected but text not extracted, guide user to paste option
+        // If file is selected but text not extracted yet, prompt user to wait or retry extraction.
         if (hasFile && !hasText) {
-          setStatus('jwaResumeStatus', 'File selected but text not yet extracted. Supported formats: .txt (fully automatic), or paste text for .pdf/.doc/.docx.', '#f59e0b');
+          setStatus('jwaResumeStatus', 'File selected but text is not available yet. Wait for extraction to complete or try selecting the file again.', '#f59e0b');
           return;
         }
 

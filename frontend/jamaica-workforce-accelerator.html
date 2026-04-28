@@ -635,6 +635,21 @@
             <p class="jwa-empty">Loading regional job feeds...</p>
           </div>
 
+          <details class="jwa-collapsible" style="margin-top:12px;" open>
+            <summary>My Application Tracker</summary>
+            <div class="jwa-collapsible-body">
+              <p style="color:#94a3b8;margin:0 0 10px;">Save roles and mark them as applied so opportunities do not get lost between sessions.</p>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+                <button id="jwaRefreshSavedJobsBtn" class="jwa-submit-btn" type="button">Refresh Tracker</button>
+                <button id="jwaRefreshRemindersBtn" class="jwa-submit-btn" type="button">Refresh Reminders</button>
+                <button id="jwaExportTrackerCsvBtn" class="jwa-download-btn" type="button">Export Tracker CSV</button>
+                <button id="jwaClearSavedJobsBtn" class="jwa-download-btn" type="button">Clear Tracker</button>
+              </div>
+              <div id="jwaReminderSummary" class="jwa-status" style="margin-bottom:10px;"></div>
+              <div id="jwaSavedJobsList"></div>
+            </div>
+          </details>
+
           <details class="jwa-collapsible" style="margin-top:16px;" open>
             <summary>Real-Time Earning Signals</summary>
             <div class="jwa-collapsible-body">
@@ -732,6 +747,17 @@
               <div id="diasporaEmployerRoles" style="margin-top:12px;">
                 <p class="jwa-empty">Diaspora employer roles will appear here.</p>
               </div>
+            </div>
+          </details>
+
+          <details class="jwa-collapsible" style="margin-top:12px;" open>
+            <summary>Outreach Pipeline</summary>
+            <div class="jwa-collapsible-body">
+              <p style="color:#94a3b8;margin:0 0 10px;">Every diaspora match you run is logged here so you can execute follow-ups in sequence.</p>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+                <button id="jwaClearDiasporaOutreachBtn" class="jwa-download-btn" type="button">Clear Outreach Log</button>
+              </div>
+              <div id="jwaDiasporaOutreachList"></div>
             </div>
           </details>
         </div>
@@ -1215,6 +1241,17 @@
             </div>
             <div id="jwaScholarStatus" class="jwa-status"></div>
             <div id="jwaScholarResults"></div>
+
+            <details class="jwa-collapsible" style="margin-top:12px;" open>
+              <summary>Scholarship Shortlist</summary>
+              <div class="jwa-collapsible-body">
+                <p style="color:#94a3b8;margin:0 0 10px;">Build a shortlist and keep your next deadline actions in one place.</p>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+                  <button id="jwaClearScholarTargetsBtn" class="jwa-download-btn" type="button">Clear Shortlist</button>
+                </div>
+                <div id="jwaScholarTargetsList"></div>
+              </div>
+            </details>
           </div>
         </div>
 
@@ -1248,6 +1285,17 @@
             </div>
             <button id="jwaFindApprenticeshipsBtn" class="jwa-submit-btn" type="button">Find Programmes</button>
             <div id="jwaApprenticeResults" style="margin-top:14px;"></div>
+
+            <details class="jwa-collapsible" style="margin-top:12px;" open>
+              <summary>Apprenticeship Interest List</summary>
+              <div class="jwa-collapsible-body">
+                <p style="color:#94a3b8;margin:0 0 10px;">Track programmes you are interested in before submitting applications.</p>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+                  <button id="jwaClearApprenticeTargetsBtn" class="jwa-download-btn" type="button">Clear Interest List</button>
+                </div>
+                <div id="jwaApprenticeTargetsList"></div>
+              </div>
+            </details>
           </div>
         </div>
 
@@ -1281,6 +1329,25 @@
             </div>
             <button id="jwaGenerateInterviewBtn" class="jwa-submit-btn" type="button">Generate Q&amp;A Set</button>
             <div id="jwaInterviewResults" style="margin-top:14px;"></div>
+
+            <details class="jwa-collapsible" style="margin-top:12px;" open>
+              <summary>Practice Log</summary>
+              <div class="jwa-collapsible-body">
+                <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:10px;">
+                  <div>
+                    <label for="jwaInterviewConfidence" style="color:#94a3b8;font-size:.85rem;display:block;margin-bottom:6px;">Confidence after practice</label>
+                    <select id="jwaInterviewConfidence" class="jwa-input">
+                      <option value="low">Low</option>
+                      <option value="medium" selected>Medium</option>
+                      <option value="high">High</option>
+                    </select>
+                  </div>
+                  <button id="jwaLogInterviewPracticeBtn" class="jwa-submit-btn" type="button">Log Practice Session</button>
+                  <button id="jwaClearInterviewPracticeBtn" class="jwa-download-btn" type="button">Clear Practice Log</button>
+                </div>
+                <div id="jwaInterviewPracticeList"></div>
+              </div>
+            </details>
           </div>
         </div>
 
@@ -1348,6 +1415,17 @@
             </div>
             <button id="jwaFindMentorBtn" class="jwa-submit-btn" type="button">Find Mentor Matches</button>
             <div id="jwaMentorResults" style="margin-top:14px;"></div>
+
+            <details class="jwa-collapsible" style="margin-top:12px;" open>
+              <summary>Mentor Intro Requests</summary>
+              <div class="jwa-collapsible-body">
+                <p style="color:#94a3b8;margin:0 0 10px;">Mentors you request intros with will appear here for follow-up.</p>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+                  <button id="jwaClearMentorRequestsBtn" class="jwa-download-btn" type="button">Clear Requests</button>
+                </div>
+                <div id="jwaMentorRequestList"></div>
+              </div>
+            </details>
           </div>
         </div>
 
