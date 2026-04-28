@@ -2761,6 +2761,512 @@
     }
   }
 
+  function getApiBase() {
+    return typeof window.apiUrl === 'function' ? String(window.apiUrl()).replace(/\/$/, '') : '';
+  }
+
+  function prettifyMetricKey(key) {
+    return String(key || '')
+      .replace(/([a-z])([A-Z])/g, '$1 $2')
+      .replace(/-/g, ' ')
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+  }
+
+  function renderLayerOverviewCards(layerPayload) {
+    const container = document.getElementById('jwaLayerOverviewCards');
+    if (!container) return;
+
+    if (!layerPayload || !Object.keys(layerPayload).length) {
+      container.innerHTML = '<p class="jwa-empty">No layer data available yet.</p>';
+      return;
+    }
+
+    container.innerHTML = Object.entries(layerPayload).map(([layerName, layerData]) => {
+      const score = Number(layerData?.completionScore || 0);
+      const scoreColor = score >= 90 ? '#16a34a' : score >= 70 ? '#ca8a04' : '#dc2626';
+      const metrics = Object.entries(layerData?.metrics || {})
+        .slice(0, 8)
+        .map(([metricKey, metricValue]) => `<span style="display:block;color:#94a3b8;font-size:.8rem;line-height:1.5;">${esc(prettifyMetricKey(metricKey))}: <strong style="color:#e2e8f0;">${Number(metricValue || 0).toLocaleString()}</strong></span>`)
+        .join('');
+
+      return `
+        <article class="jwa-role-card" style="min-height:180px;">
+          <strong style="font-size:1rem;">${esc(prettifyMetricKey(layerName))}</strong>
+          <span class="jwa-demand-badge" style="background:${scoreColor};">Completion: ${score}%</span>
+          <div style="margin-top:6px;">${metrics}</div>
+        </article>
+      `;
+    }).join('');
+  }
+
+  async function loadIntegrationOverview() {
+    const layer = String(document.getElementById('jwaLayerSelect')?.value || 'all');
+    setStatus('jwaLayerStatus', 'Loading layer overview...', '#2563eb');
+
+    try {
+      const endpoint = layer === 'all'
+        ? '/api/integrations/overview'
+        : `/api/integrations/overview?layer=${encodeURIComponent(layer)}`;
+      const res = await fetch(`${getApiBase()}${endpoint}`, { cache: 'no-store' });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
+
+      const payload = await res.json();
+      if (layer === 'all') {
+        renderLayerOverviewCards(payload.layers || {});
+      } else {
+        renderLayerOverviewCards({ [payload.layer || layer]: payload.data || {} });
+      }
+
+      setStatus('jwaLayerStatus', 'Layer overview loaded successfully.', '#16a34a');
+    } catch (err) {
+      console.error('Integration overview load error:', err);
+      setStatus('jwaLayerStatus', 'Failed to load integration overview. Ensure the backend route is running.', '#dc2626');
+      const container = document.getElementById('jwaLayerOverviewCards');
+      if (container) container.innerHTML = '<p class="jwa-empty">Unable to load layer metrics.</p>';
+    }
+  }
+
+  async function recordPlacementOutcome() {
+    const token = localStorage.getItem('rr_token');
+    if (!token) {
+      setStatus('jwaPlacementRecordStatus', 'Please log in to record placement outcomes.', '#dc2626');
+      return;
+    }
+
+    const roleTitle = String(document.getElementById('jwaPlacementRole')?.value || '').trim();
+    if (!roleTitle) {
+      setStatus('jwaPlacementRecordStatus', 'Role title is required.', '#dc2626');
+      return;
+    }
+
+    const payload = {
+      sourceLayer: String(document.getElementById('jwaPlacementLayer')?.value || 'self-service'),
+      institutionName: String(document.getElementById('jwaPlacementInstitution')?.value || '').trim(),
+      roleTitle,
+      status: String(document.getElementById('jwaPlacementStatus')?.value || 'applied'),
+      salaryAmount: Number(document.getElementById('jwaPlacementSalary')?.value || 0) || null,
+      salaryCurrency: String(document.getElementById('jwaPlacementCurrency')?.value || 'JMD'),
+      country: String(document.getElementById('jwaPlacementCountry')?.value || 'Jamaica').trim() || 'Jamaica'
+    };
+
+    setStatus('jwaPlacementRecordStatus', 'Recording placement outcome...', '#2563eb');
+
+    try {
+      const res = await fetch(`${getApiBase()}/api/integrations/placements/outcome`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || `Request failed (${res.status})`);
+      }
+
+      setStatus('jwaPlacementRecordStatus', 'Outcome recorded successfully.', '#16a34a');
+      loadIntegrationOverview();
+    } catch (err) {
+      console.error('Placement record error:', err);
+      setStatus('jwaPlacementRecordStatus', `Failed to record outcome: ${esc(err.message || 'Unknown error')}`, '#dc2626');
+    }
+  }
+
+  function renderInstitutionDashboard(payload) {
+    const target = document.getElementById('jwaInstitutionDashboardResults');
+    if (!target) return;
+
+    if (!payload || !payload.summary) {
+      target.innerHTML = '<p class="jwa-empty">No institution dashboard data available.</p>';
+      return;
+    }
+
+    const status = payload.summary.status || {};
+    const topRoles = Array.isArray(payload.topRoles) ? payload.topRoles : [];
+    const salaryRows = Array.isArray(payload.averageSalaries) ? payload.averageSalaries : [];
+
+    target.innerHTML = `
+      <div class="jwa-role-grid">
+        <article class="jwa-role-card">
+          <strong>${esc(payload.institutionName || 'Institution')}</strong>
+          <span class="jwa-demand-badge" style="background:#1d4ed8;">${esc(prettifyMetricKey(payload.layer || 'layer'))}</span>
+          <span style="color:#94a3b8;font-size:.82rem;">Total outcomes: <strong style="color:#e2e8f0;">${Number(payload.summary.total || 0).toLocaleString()}</strong></span>
+          <span style="color:#94a3b8;font-size:.82rem;">Hired rate: <strong style="color:#e2e8f0;">${Number(payload.summary.hiredRatePct || 0)}%</strong></span>
+          <span style="color:#94a3b8;font-size:.82rem;">Retained rate: <strong style="color:#e2e8f0;">${Number(payload.summary.retainedRatePct || 0)}%</strong></span>
+        </article>
+        <article class="jwa-role-card">
+          <strong>Pipeline Status</strong>
+          <span style="color:#94a3b8;font-size:.82rem;">Applied: <strong style="color:#e2e8f0;">${Number(status.applied || 0).toLocaleString()}</strong></span>
+          <span style="color:#94a3b8;font-size:.82rem;">Screening: <strong style="color:#e2e8f0;">${Number(status.screening || 0).toLocaleString()}</strong></span>
+          <span style="color:#94a3b8;font-size:.82rem;">Interview: <strong style="color:#e2e8f0;">${Number(status.interview || 0).toLocaleString()}</strong></span>
+          <span style="color:#94a3b8;font-size:.82rem;">Offered: <strong style="color:#e2e8f0;">${Number(status.offered || 0).toLocaleString()}</strong></span>
+          <span style="color:#94a3b8;font-size:.82rem;">Hired: <strong style="color:#e2e8f0;">${Number(status.hired || 0).toLocaleString()}</strong></span>
+          <span style="color:#94a3b8;font-size:.82rem;">Retained 90: <strong style="color:#e2e8f0;">${Number(status['retained-90'] || 0).toLocaleString()}</strong></span>
+        </article>
+      </div>
+      <div style="margin-top:10px;background:#1e293b;border-radius:10px;padding:12px 14px;">
+        <div style="color:#f8fafc;font-size:.9rem;font-weight:700;margin-bottom:8px;">Top Roles</div>
+        ${topRoles.length ? topRoles.map((r) => `<div style="color:#94a3b8;font-size:.82rem;line-height:1.6;">${esc(r.roleTitle)}: <strong style="color:#e2e8f0;">${Number(r.count || 0).toLocaleString()}</strong></div>`).join('') : '<div class="jwa-empty">No role data yet.</div>'}
+      </div>
+      <div style="margin-top:10px;background:#1e293b;border-radius:10px;padding:12px 14px;">
+        <div style="color:#f8fafc;font-size:.9rem;font-weight:700;margin-bottom:8px;">Average Salaries</div>
+        ${salaryRows.length ? salaryRows.map((s) => `<div style="color:#94a3b8;font-size:.82rem;line-height:1.6;">${esc(s._id || 'N/A')}: <strong style="color:#e2e8f0;">${Math.round(Number(s.avgSalary || 0)).toLocaleString()}</strong> (${Number(s.count || 0).toLocaleString()} records)</div>`).join('') : '<div class="jwa-empty">No salary data yet.</div>'}
+      </div>
+    `;
+  }
+
+  async function loadInstitutionDashboard() {
+    const token = localStorage.getItem('rr_token');
+    if (!token) {
+      setStatus('jwaInstitutionDashboardStatus', 'Please log in to load institution dashboards.', '#dc2626');
+      return;
+    }
+
+    const layer = String(document.getElementById('jwaInstitutionLayer')?.value || 'schools');
+    const institution = String(document.getElementById('jwaInstitutionName')?.value || '').trim();
+    const statusFilter = String(document.getElementById('jwaInstitutionFilterStatus')?.value || '').trim();
+    const countryFilter = String(document.getElementById('jwaInstitutionFilterCountry')?.value || '').trim();
+    const sortBy = String(document.getElementById('jwaInstitutionSortBy')?.value || 'createdAt').trim();
+    if (!institution) {
+      setStatus('jwaInstitutionDashboardStatus', 'Institution name is required.', '#dc2626');
+      return;
+    }
+
+    setStatus('jwaInstitutionDashboardStatus', 'Loading institution dashboard...', '#2563eb');
+    try {
+      const params = new URLSearchParams({
+        layer,
+        institution,
+        sortBy,
+        sortDir: 'desc',
+        page: '1',
+        limit: '10'
+      });
+      if (statusFilter) params.set('status', statusFilter);
+      if (countryFilter) params.set('country', countryFilter);
+
+      const res = await fetch(`${getApiBase()}/api/integrations/institutions/dashboard?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store'
+      });
+      const payload = await res.json();
+      if (!res.ok) throw new Error(payload.error || `Request failed (${res.status})`);
+      renderInstitutionDashboard(payload);
+      setStatus('jwaInstitutionDashboardStatus', 'Institution dashboard loaded.', '#16a34a');
+    } catch (err) {
+      console.error('Load institution dashboard error:', err);
+      setStatus('jwaInstitutionDashboardStatus', `Failed to load dashboard: ${esc(err.message || 'Unknown error')}`, '#dc2626');
+      const target = document.getElementById('jwaInstitutionDashboardResults');
+      if (target) target.innerHTML = '<p class="jwa-empty">Institution dashboard could not be loaded.</p>';
+    }
+  }
+
+  async function exportInstitutionCohortCsv() {
+    const token = localStorage.getItem('rr_token');
+    if (!token) {
+      setStatus('jwaInstitutionDashboardStatus', 'Please log in to export cohort data.', '#dc2626');
+      return;
+    }
+
+    const layer = String(document.getElementById('jwaInstitutionLayer')?.value || 'schools');
+    const institution = String(document.getElementById('jwaInstitutionName')?.value || '').trim();
+    const statusFilter = String(document.getElementById('jwaInstitutionFilterStatus')?.value || '').trim();
+    const countryFilter = String(document.getElementById('jwaInstitutionFilterCountry')?.value || '').trim();
+    if (!institution) {
+      setStatus('jwaInstitutionDashboardStatus', 'Institution name is required before export.', '#dc2626');
+      return;
+    }
+
+    setStatus('jwaInstitutionDashboardStatus', 'Exporting cohort CSV...', '#2563eb');
+    try {
+      const params = new URLSearchParams({ layer, institution, format: 'csv' });
+      if (statusFilter) params.set('status', statusFilter);
+      if (countryFilter) params.set('country', countryFilter);
+
+      const res = await fetch(`${getApiBase()}/api/integrations/institutions/cohort-export?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) {
+        let errorMsg = `Request failed (${res.status})`;
+        try {
+          const body = await res.json();
+          if (body?.error) errorMsg = body.error;
+        } catch (_ignore) {}
+        throw new Error(errorMsg);
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `cohort-${layer}-${institution.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+
+      setStatus('jwaInstitutionDashboardStatus', 'Cohort CSV exported successfully.', '#16a34a');
+    } catch (err) {
+      console.error('Export cohort CSV error:', err);
+      setStatus('jwaInstitutionDashboardStatus', `Failed to export CSV: ${esc(err.message || 'Unknown error')}`, '#dc2626');
+    }
+  }
+
+  async function exportIntegrationAuditCsv() {
+    const token = localStorage.getItem('rr_token');
+    if (!token) {
+      setStatus('jwaAuditStatus', 'Please log in as an integration admin.', '#dc2626');
+      return;
+    }
+
+    const q = String(document.getElementById('jwaAuditSearch')?.value || '').trim();
+    setStatus('jwaAuditStatus', 'Exporting audit CSV...', '#2563eb');
+
+    try {
+      const res = await fetch(`${getApiBase()}/api/integrations/audit/export?q=${encodeURIComponent(q)}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) {
+        let errorMsg = `Request failed (${res.status})`;
+        try {
+          const body = await res.json();
+          if (body?.error) errorMsg = body.error;
+        } catch (_ignore) {}
+        throw new Error(errorMsg);
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `integration-audit-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+
+      setStatus('jwaAuditStatus', 'Audit CSV exported successfully.', '#16a34a');
+    } catch (err) {
+      console.error('Export audit CSV error:', err);
+      setStatus('jwaAuditStatus', `Failed to export audit CSV: ${esc(err.message || 'Unknown error')}`, '#dc2626');
+    }
+  }
+
+  const pendingVerificationState = { page: 1, pages: 1, q: '' };
+
+  function renderPendingVerifications(payload) {
+    const container = document.getElementById('jwaPendingVerificationsList');
+    if (!container) return;
+
+    const list = Array.isArray(payload?.employers) ? payload.employers : [];
+    pendingVerificationState.page = Number(payload?.page || 1);
+    pendingVerificationState.pages = Number(payload?.pages || 1);
+    pendingVerificationState.q = String(payload?.q || '');
+
+    if (!Array.isArray(list) || !list.length) {
+      container.innerHTML = '<p class="jwa-empty">No pending employers for verification.</p>';
+      return;
+    }
+
+    container.innerHTML = list.map((employer) => `
+      <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:10px 12px;margin-bottom:8px;">
+        <div style="color:#f8fafc;font-weight:700;font-size:.9rem;">${esc(employer.companyName)}</div>
+        <div style="color:#94a3b8;font-size:.82rem;line-height:1.5;">ID: ${esc(employer._id)} | ${esc(employer.country)} | ${esc(employer.contactEmail)}</div>
+        <button class="jwa-submit-btn jwa-select-employer-btn" data-employer-id="${esc(employer._id)}" type="button" style="margin-top:8px;padding:6px 10px;font-size:.78rem;">Use This ID</button>
+      </div>
+    `).join('');
+  }
+
+  async function loadPendingEmployerVerifications(nextPage) {
+    const token = localStorage.getItem('rr_token');
+    if (!token) {
+      setStatus('jwaPendingVerificationsStatus', 'Please log in as an integration admin.', '#dc2626');
+      return;
+    }
+
+    const page = Number(nextPage || pendingVerificationState.page || 1);
+    const q = String(document.getElementById('jwaVerificationSearch')?.value || '').trim();
+
+    setStatus('jwaPendingVerificationsStatus', 'Loading pending employers...', '#2563eb');
+    try {
+      const res = await fetch(`${getApiBase()}/api/integrations/employers/verification/pending?page=${encodeURIComponent(page)}&limit=10&q=${encodeURIComponent(q)}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store'
+      });
+      const payload = await res.json();
+      if (!res.ok) throw new Error(payload.error || `Request failed (${res.status})`);
+
+      renderPendingVerifications(payload || {});
+      setStatus('jwaPendingVerificationsStatus', `${Number(payload.count || 0).toLocaleString()} loaded (${Number(payload.page || 1)}/${Number(payload.pages || 1)} pages, ${Number(payload.total || 0).toLocaleString()} total).`, '#16a34a');
+    } catch (err) {
+      console.error('Pending employer verification load error:', err);
+      setStatus('jwaPendingVerificationsStatus', `Failed to load pending employers: ${esc(err.message || 'Unknown error')}`, '#dc2626');
+      const container = document.getElementById('jwaPendingVerificationsList');
+      if (container) container.innerHTML = '<p class="jwa-empty">Could not load pending employers.</p>';
+    }
+  }
+
+  async function updateEmployerVerification() {
+    const token = localStorage.getItem('rr_token');
+    if (!token) {
+      setStatus('jwaUpdateEmployerVerificationStatus', 'Please log in as an integration admin.', '#dc2626');
+      return;
+    }
+
+    const employerId = String(document.getElementById('jwaVerifyEmployerId')?.value || '').trim();
+    const statusValue = String(document.getElementById('jwaVerifyEmployerStatus')?.value || 'approved').trim();
+    const approvalNotes = String(document.getElementById('jwaVerifyEmployerNotes')?.value || '').trim();
+
+    if (!employerId) {
+      setStatus('jwaUpdateEmployerVerificationStatus', 'Employer ID is required.', '#dc2626');
+      return;
+    }
+
+    setStatus('jwaUpdateEmployerVerificationStatus', 'Updating employer verification...', '#2563eb');
+    try {
+      const res = await fetch(`${getApiBase()}/api/integrations/employers/verification/${encodeURIComponent(employerId)}`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status: statusValue, approvalNotes })
+      });
+      const payload = await res.json();
+      if (!res.ok || !payload.success) throw new Error(payload.error || `Request failed (${res.status})`);
+
+      setStatus('jwaUpdateEmployerVerificationStatus', 'Employer verification updated.', '#16a34a');
+      loadPendingEmployerVerifications(1);
+      loadIntegrationOverview();
+    } catch (err) {
+      console.error('Update employer verification error:', err);
+      setStatus('jwaUpdateEmployerVerificationStatus', `Failed to update verification: ${esc(err.message || 'Unknown error')}`, '#dc2626');
+    }
+  }
+
+  function renderMyAccessList(accessRows) {
+    const container = document.getElementById('jwaMyAccessList');
+    if (!container) return;
+    if (!Array.isArray(accessRows) || !accessRows.length) {
+      container.innerHTML = '<p class="jwa-empty">No integration access records found.</p>';
+      return;
+    }
+
+    container.innerHTML = accessRows.map((row) => `
+      <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:10px 12px;margin-bottom:8px;">
+        <div style="color:#f8fafc;font-weight:700;font-size:.88rem;">${esc(row.institutionName)}</div>
+        <div style="color:#94a3b8;font-size:.82rem;line-height:1.5;">Layer: ${esc(prettifyMetricKey(row.layer))} | Role: ${esc(row.role)} | Updated: ${new Date(row.updatedAt).toLocaleDateString('en-JM')}</div>
+      </div>
+    `).join('');
+  }
+
+  async function loadMyIntegrationAccess() {
+    const token = localStorage.getItem('rr_token');
+    if (!token) {
+      setStatus('jwaGrantAccessStatus', 'Please log in to load access records.', '#dc2626');
+      return;
+    }
+
+    setStatus('jwaGrantAccessStatus', 'Loading access records...', '#2563eb');
+    try {
+      const res = await fetch(`${getApiBase()}/api/integrations/access/my`, {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store'
+      });
+      const payload = await res.json();
+      if (!res.ok) throw new Error(payload.error || `Request failed (${res.status})`);
+      renderMyAccessList(payload.access || []);
+      setStatus('jwaGrantAccessStatus', 'Access records loaded.', '#16a34a');
+    } catch (err) {
+      console.error('Load my access error:', err);
+      setStatus('jwaGrantAccessStatus', `Failed to load access: ${esc(err.message || 'Unknown error')}`, '#dc2626');
+    }
+  }
+
+  async function grantIntegrationAccess() {
+    const token = localStorage.getItem('rr_token');
+    if (!token) {
+      setStatus('jwaGrantAccessStatus', 'Please log in as an integration admin.', '#dc2626');
+      return;
+    }
+
+    const userEmail = String(document.getElementById('jwaGrantUserEmail')?.value || '').trim();
+    const layer = String(document.getElementById('jwaGrantLayer')?.value || 'schools');
+    const role = String(document.getElementById('jwaGrantRole')?.value || 'viewer');
+    const institutionName = String(document.getElementById('jwaGrantInstitution')?.value || '').trim();
+
+    if (!userEmail || !institutionName) {
+      setStatus('jwaGrantAccessStatus', 'User email and institution are required.', '#dc2626');
+      return;
+    }
+
+    setStatus('jwaGrantAccessStatus', 'Granting access...', '#2563eb');
+    try {
+      const res = await fetch(`${getApiBase()}/api/integrations/access/grant`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ userEmail, layer, role, institutionName })
+      });
+      const payload = await res.json();
+      if (!res.ok || !payload.success) throw new Error(payload.error || `Request failed (${res.status})`);
+      setStatus('jwaGrantAccessStatus', 'Access granted successfully.', '#16a34a');
+      loadMyIntegrationAccess();
+    } catch (err) {
+      console.error('Grant access error:', err);
+      setStatus('jwaGrantAccessStatus', `Failed to grant access: ${esc(err.message || 'Unknown error')}`, '#dc2626');
+    }
+  }
+
+  function renderAuditLogList(logs) {
+    const container = document.getElementById('jwaAuditLogList');
+    if (!container) return;
+    if (!Array.isArray(logs) || !logs.length) {
+      container.innerHTML = '<p class="jwa-empty">No audit records found.</p>';
+      return;
+    }
+
+    container.innerHTML = logs.map((log) => `
+      <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:10px 12px;margin-bottom:8px;">
+        <div style="color:#f8fafc;font-weight:700;font-size:.86rem;">${esc(log.action)}</div>
+        <div style="color:#94a3b8;font-size:.8rem;line-height:1.5;">${new Date(log.createdAt).toLocaleString('en-JM')} | ${esc(log.actorEmail || 'unknown')} | ${esc(log.targetType || 'n/a')} ${esc(log.targetId || '')}</div>
+        ${log.institutionName ? `<div style="color:#94a3b8;font-size:.8rem;line-height:1.5;">Institution: ${esc(log.institutionName)}</div>` : ''}
+      </div>
+    `).join('');
+  }
+
+  async function loadIntegrationAuditLog() {
+    const token = localStorage.getItem('rr_token');
+    if (!token) {
+      setStatus('jwaAuditStatus', 'Please log in as an integration admin.', '#dc2626');
+      return;
+    }
+
+    const q = String(document.getElementById('jwaAuditSearch')?.value || '').trim();
+    setStatus('jwaAuditStatus', 'Loading audit log...', '#2563eb');
+
+    try {
+      const res = await fetch(`${getApiBase()}/api/integrations/audit/recent?page=1&limit=25&q=${encodeURIComponent(q)}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store'
+      });
+      const payload = await res.json();
+      if (!res.ok) throw new Error(payload.error || `Request failed (${res.status})`);
+
+      renderAuditLogList(payload.logs || []);
+      setStatus('jwaAuditStatus', `${Number(payload.total || 0).toLocaleString()} audit records available.`, '#16a34a');
+    } catch (err) {
+      console.error('Load audit log error:', err);
+      setStatus('jwaAuditStatus', `Failed to load audit log: ${esc(err.message || 'Unknown error')}`, '#dc2626');
+      const container = document.getElementById('jwaAuditLogList');
+      if (container) container.innerHTML = '<p class="jwa-empty">Could not load audit records.</p>';
+    }
+  }
+
   /* ── Init ───────────────────────────────────────────────────────────────── */
   document.addEventListener('DOMContentLoaded', function () {
     initCollapsiblePersistence();
@@ -2772,6 +3278,7 @@
     loadDiasporaEmployerRoles();
     loadUserCredentials();
     loadCommunityHubs();
+    loadIntegrationOverview();
 
     document.getElementById('jwaRefreshRegionalJobsBtn')?.addEventListener('click', renderMarketRadar);
     document.getElementById('jwaMarketKeyword')?.addEventListener('keydown', function (event) {
@@ -2781,7 +3288,6 @@
       }
     });
     document.getElementById('jwaDiasporaMatchBtn')?.addEventListener('click', submitDiasporaMatch);
-    document.getElementById('jwaCheckResumeBtn')?.addEventListener('click', checkResumeLocalization);
     document.getElementById('jwaDownloadReportBtn')?.addEventListener('click', downloadSkillsGapReport);
 
     document.getElementById('jwaFindScholarshipsBtn')?.addEventListener('click', renderScholarshipFinder);
@@ -2791,6 +3297,39 @@
     document.getElementById('jwaAnalyzeContractBtn')?.addEventListener('click', analyzeContractTerms);
     document.getElementById('jwaGenerateBizPlanBtn')?.addEventListener('click', generateBusinessPlan);
     document.getElementById('jwaFindMentorBtn')?.addEventListener('click', findMentorMatches);
+    document.getElementById('jwaLoadLayerOverviewBtn')?.addEventListener('click', loadIntegrationOverview);
+    document.getElementById('jwaLayerSelect')?.addEventListener('change', loadIntegrationOverview);
+    document.getElementById('jwaRecordPlacementBtn')?.addEventListener('click', recordPlacementOutcome);
+    document.getElementById('jwaLoadInstitutionDashboardBtn')?.addEventListener('click', loadInstitutionDashboard);
+    document.getElementById('jwaExportInstitutionCsvBtn')?.addEventListener('click', exportInstitutionCohortCsv);
+    document.getElementById('jwaLoadPendingVerificationsBtn')?.addEventListener('click', loadPendingEmployerVerifications);
+    document.getElementById('jwaUpdateEmployerVerificationBtn')?.addEventListener('click', updateEmployerVerification);
+    document.getElementById('jwaPendingPrevBtn')?.addEventListener('click', function () {
+      const nextPage = Math.max(1, (pendingVerificationState.page || 1) - 1);
+      loadPendingEmployerVerifications(nextPage);
+    });
+    document.getElementById('jwaPendingNextBtn')?.addEventListener('click', function () {
+      const nextPage = Math.min(pendingVerificationState.pages || 1, (pendingVerificationState.page || 1) + 1);
+      loadPendingEmployerVerifications(nextPage);
+    });
+    document.getElementById('jwaPendingVerificationsList')?.addEventListener('click', function (event) {
+      const btn = event.target.closest('.jwa-select-employer-btn');
+      if (!btn) return;
+      const id = String(btn.getAttribute('data-employer-id') || '').trim();
+      if (!id) return;
+      const input = document.getElementById('jwaVerifyEmployerId');
+      if (input) input.value = id;
+    });
+    document.getElementById('jwaVerificationSearch')?.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        loadPendingEmployerVerifications(1);
+      }
+    });
+    document.getElementById('jwaGrantAccessBtn')?.addEventListener('click', grantIntegrationAccess);
+    document.getElementById('jwaLoadMyAccessBtn')?.addEventListener('click', loadMyIntegrationAccess);
+    document.getElementById('jwaLoadAuditLogBtn')?.addEventListener('click', loadIntegrationAuditLog);
+    document.getElementById('jwaExportAuditCsvBtn')?.addEventListener('click', exportIntegrationAuditCsv);
     document.getElementById('registerSMSAlertBtn')?.addEventListener('click', registerSMSAlert);
     document.getElementById('refreshCommunityHubsBtn')?.addEventListener('click', loadCommunityHubs);
     document.getElementById('refreshDiasporaEmployersBtn')?.addEventListener('click', function () {
@@ -2804,6 +3343,108 @@
     });
 
     window.uploadCredential = uploadCredential;
+
+    /* ── Resume File Upload Handler ─────────────────────────────────────── */
+    const jwaResumeFileInput = document.getElementById('jwaResumeFile');
+    const jwaResumeFileName = document.getElementById('jwaResumeFileName');
+    const jwaResumeText = document.getElementById('jwaResumeText');
+    const jwaCheckResumeBtn = document.getElementById('jwaCheckResumeBtn');
+
+    if (jwaResumeFileInput) {
+      jwaResumeFileInput.addEventListener('change', function (event) {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const validTypes = ['.pdf', '.doc', '.docx', '.txt'];
+        const fileExt = '.' + file.name.split('.').pop().toLowerCase();
+        if (!validTypes.includes(fileExt)) {
+          if (jwaResumeFileName) {
+            jwaResumeFileName.style.color = '#dc2626';
+            jwaResumeFileName.textContent = `❌ Invalid file type. Please upload PDF, Word, or TXT files only.`;
+          }
+          return;
+        }
+
+        if (jwaResumeFileName) {
+          jwaResumeFileName.style.color = '#64748b';
+          jwaResumeFileName.textContent = `📄 ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          const fileContent = e.target.result;
+
+          // For .txt files, extract directly
+          if (fileExt === '.txt') {
+            if (jwaResumeText) jwaResumeText.value = fileContent;
+            return;
+          }
+
+          // For .pdf files — basic text extraction (requires pdfjs in production)
+          if (fileExt === '.pdf') {
+            // Note: Full PDF text extraction requires pdfjs-dist library
+            // For MVP, show placeholder and suggest copy-paste as backup
+            if (jwaResumeFileName) {
+              jwaResumeFileName.style.color = '#0284c7';
+              jwaResumeFileName.textContent = `📄 ${file.name} - PDF detected. Text extraction requires pdfjs library.`;
+            }
+            alert('PDF support requires the pdfjs library. Please paste your resume text as an alternative or contact support.');
+            if (jwaResumeFileName) {
+              jwaResumeFileName.style.color = '#64748b';
+              jwaResumeFileName.textContent = `📄 ${file.name} - Please use paste option for PDF`;
+            }
+            return;
+          }
+
+          // For .doc and .docx files — basic text extraction (requires mammoth.js in production)
+          if (fileExt === '.doc' || fileExt === '.docx') {
+            if (jwaResumeFileName) {
+              jwaResumeFileName.style.color = '#0284c7';
+              jwaResumeFileName.textContent = `📄 ${file.name} - Word document detected. Text extraction requires mammoth.js library.`;
+            }
+            alert('Word document support requires the mammoth.js library. Please paste your resume text as an alternative or contact support.');
+            if (jwaResumeFileName) {
+              jwaResumeFileName.style.color = '#64748b';
+              jwaResumeFileName.textContent = `📄 ${file.name} - Please use paste option for Word`;
+            }
+            return;
+          }
+        };
+
+        reader.onerror = function () {
+          if (jwaResumeFileName) {
+            jwaResumeFileName.style.color = '#dc2626';
+            jwaResumeFileName.textContent = '❌ Error reading file. Please try again.';
+          }
+        };
+
+        reader.readAsText(file);
+      });
+    }
+
+    // Update analyze button to handle both file upload and text paste
+    if (jwaCheckResumeBtn) {
+      jwaCheckResumeBtn.addEventListener('click', function () {
+        const hasFile = jwaResumeFileInput && jwaResumeFileInput.files && jwaResumeFileInput.files.length > 0;
+        const hasText = jwaResumeText && jwaResumeText.value.trim().length > 0;
+
+        if (!hasFile && !hasText) {
+          setStatus('jwaResumeStatus', 'Please upload a resume file or paste your resume text.', '#dc2626');
+          return;
+        }
+
+        // If file is selected but text not extracted, guide user to paste option
+        if (hasFile && !hasText) {
+          setStatus('jwaResumeStatus', 'File selected but text not yet extracted. Supported formats: .txt (fully automatic), or paste text for .pdf/.doc/.docx.', '#f59e0b');
+          return;
+        }
+
+        // Proceed with text analysis
+        checkResumeLocalization();
+      });
+    }
+
+    /* ── End Resume File Upload Handler ────────────────────────────────────── */
 
     activateTab('jwaTabMarket');
   });

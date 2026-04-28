@@ -612,6 +612,7 @@
           <button class="jwa-tab-btn" role="tab" data-tab="jwaTabGap" aria-selected="false">📊 Skills Gap Report</button>
           <button class="jwa-tab-btn" role="tab" data-tab="jwaTabCourses" aria-selected="false">🎓 CSEC / CAPE Learning</button>
           <button class="jwa-tab-btn" role="tab" data-tab="jwaTabEmployer" aria-selected="false">🏢 Employer Portal</button>
+          <button class="jwa-tab-btn" role="tab" data-tab="jwaTabProgramDashboards" aria-selected="false">🏛️ Program Dashboards</button>
           <button class="jwa-tab-btn" role="tab" data-tab="jwaTabScholarships" aria-selected="false">💸 Scholarships &amp; Funding</button>
           <button class="jwa-tab-btn" role="tab" data-tab="jwaTabApprenticeships" aria-selected="false">🛠️ HEART / Apprenticeships</button>
           <button class="jwa-tab-btn" role="tab" data-tab="jwaTabInterviewPrep" aria-selected="false">🎤 Interview &amp; Assessment Prep</button>
@@ -739,7 +740,23 @@
         <div id="jwaTabResume" class="jwa-tab-panel" role="tabpanel" hidden>
           <div class="jwa-resume-box">
             <h3>Jamaica-Ready Resume Checker</h3>
-            <p style="color:#64748b;font-size:.9rem;margin-bottom:14px;">Paste your resume text below. The checker will identify CXC/CAPE/HEART credentials, flag weak language, and give you specific localization recommendations for both Jamaican employers and diaspora-connected international roles.</p>
+            <p style="color:#64748b;font-size:.9rem;margin-bottom:14px;">Upload your resume file or paste your resume text below. The checker will identify CXC/CAPE/HEART credentials, flag weak language, and give you specific localization recommendations for both Jamaican employers and diaspora-connected international roles.</p>
+            
+            <!-- File Upload Section -->
+            <div style="margin-bottom:16px;padding:16px;background:#0f172a;border:2px dashed #334155;border-radius:10px;text-align:center;">
+              <label for="jwaResumeFile" style="display:block;color:#cbd5e1;font-size:.9rem;font-weight:600;margin-bottom:12px;cursor:pointer;">
+                📄 Upload Resume (PDF, Word, or Text)
+              </label>
+              <input id="jwaResumeFile" type="file" accept=".pdf,.doc,.docx,.txt" style="display:none;" />
+              <button onclick="document.getElementById('jwaResumeFile').click()" class="jwa-submit-btn" type="button" style="margin-bottom:10px;">Choose File</button>
+              <p id="jwaResumeFileName" style="color:#64748b;font-size:.85rem;margin-top:8px;"></p>
+            </div>
+
+            <!-- Divider -->
+            <div style="text-align:center;margin:20px 0;color:#475569;font-size:.85rem;">— OR —</div>
+
+            <!-- Textarea for pasting -->
+            <label for="jwaResumeText" style="display:block;color:#cbd5e1;font-size:.9rem;font-weight:600;margin-bottom:8px;">Paste your resume text:</label>
             <textarea id="jwaResumeText" class="jwa-textarea" placeholder="Paste your full resume text here..."></textarea>
             <div style="margin-top:14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
               <button id="jwaCheckResumeBtn" class="jwa-submit-btn">Analyze Resume</button>
@@ -900,6 +917,243 @@
             <p style="margin-bottom:10px;">For now, keep all employer onboarding and posting features free so adoption can grow quickly across Jamaican companies, schools, and training partners.</p>
             <p style="margin:0;">Track usage and hiring outcomes first, then decide later if premium tiers are needed.</p>
           </div>
+        </div>
+
+        <!-- Tab 6b: Program Dashboards -->
+        <div id="jwaTabProgramDashboards" class="jwa-tab-panel" role="tabpanel" hidden>
+          <div class="jwa-report-section" style="margin-top:18px;">
+            <h3>🏛️ Schools, Universities, Government &amp; Employer Readiness</h3>
+            <p>Track implementation completion and core outcome metrics for each integration layer from one place.</p>
+
+            <div class="jwa-form-row" style="margin-bottom:12px;">
+              <div>
+                <label for="jwaLayerSelect" style="color:#94a3b8;font-size:.85rem;display:block;margin-bottom:6px;">Layer</label>
+                <select id="jwaLayerSelect" class="jwa-input">
+                  <option value="all">All Layers</option>
+                  <option value="schools">Schools</option>
+                  <option value="universities">Universities</option>
+                  <option value="government">Government / Workforce Programs</option>
+                  <option value="employers">Employers</option>
+                </select>
+              </div>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+              <button id="jwaLoadLayerOverviewBtn" class="jwa-submit-btn" type="button">Load Layer Overview</button>
+            </div>
+            <div id="jwaLayerStatus" class="jwa-status"></div>
+            <div id="jwaLayerOverviewCards" class="jwa-role-grid" style="margin-top:12px;"></div>
+          </div>
+
+          <details class="jwa-collapsible" style="margin-top:12px;" open>
+            <summary>Placement Outcome Tracker</summary>
+            <div class="jwa-collapsible-body">
+              <p style="margin:0 0 12px;color:#94a3b8;">Log outcomes across school, university, government programme, and employer channels so every layer has measurable hiring progress.</p>
+              <div class="jwa-form-row" style="margin-bottom:12px;">
+                <div>
+                  <label for="jwaPlacementLayer" style="color:#94a3b8;font-size:.85rem;display:block;margin-bottom:6px;">Source layer</label>
+                  <select id="jwaPlacementLayer" class="jwa-input">
+                    <option value="school">School</option>
+                    <option value="university">University</option>
+                    <option value="government-program">Government Program</option>
+                    <option value="employer">Employer</option>
+                    <option value="self-service" selected>Self-Service</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="jwaPlacementInstitution" style="color:#94a3b8;font-size:.85rem;display:block;margin-bottom:6px;">Institution / Program</label>
+                  <input id="jwaPlacementInstitution" class="jwa-input" type="text" placeholder="e.g. UWI Mona Career Services" />
+                </div>
+              </div>
+              <div class="jwa-form-row" style="margin-bottom:12px;">
+                <div>
+                  <label for="jwaPlacementRole" style="color:#94a3b8;font-size:.85rem;display:block;margin-bottom:6px;">Role title</label>
+                  <input id="jwaPlacementRole" class="jwa-input" type="text" placeholder="e.g. Junior Software Developer" />
+                </div>
+                <div>
+                  <label for="jwaPlacementStatus" style="color:#94a3b8;font-size:.85rem;display:block;margin-bottom:6px;">Status</label>
+                  <select id="jwaPlacementStatus" class="jwa-input">
+                    <option value="applied">Applied</option>
+                    <option value="screening">Screening</option>
+                    <option value="interview">Interview</option>
+                    <option value="offered">Offered</option>
+                    <option value="hired">Hired</option>
+                    <option value="retained-90">Retained 90 days</option>
+                  </select>
+                </div>
+              </div>
+              <div class="jwa-form-row" style="margin-bottom:12px;">
+                <div>
+                  <label for="jwaPlacementSalary" style="color:#94a3b8;font-size:.85rem;display:block;margin-bottom:6px;">Salary amount (optional)</label>
+                  <input id="jwaPlacementSalary" class="jwa-input" type="number" min="0" step="1" placeholder="1800000" />
+                </div>
+                <div>
+                  <label for="jwaPlacementCurrency" style="color:#94a3b8;font-size:.85rem;display:block;margin-bottom:6px;">Currency</label>
+                  <select id="jwaPlacementCurrency" class="jwa-input">
+                    <option value="JMD">JMD</option>
+                    <option value="USD">USD</option>
+                    <option value="CAD">CAD</option>
+                    <option value="GBP">GBP</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="jwaPlacementCountry" style="color:#94a3b8;font-size:.85rem;display:block;margin-bottom:6px;">Country</label>
+                  <input id="jwaPlacementCountry" class="jwa-input" type="text" placeholder="Jamaica" value="Jamaica" />
+                </div>
+              </div>
+              <button id="jwaRecordPlacementBtn" class="jwa-submit-btn" type="button">Record Outcome</button>
+              <div id="jwaPlacementRecordStatus" class="jwa-status"></div>
+            </div>
+          </details>
+
+          <details class="jwa-collapsible" style="margin-top:12px;" open>
+            <summary>Institution Dashboard &amp; Cohort Export</summary>
+            <div class="jwa-collapsible-body">
+              <div class="jwa-form-row" style="margin-bottom:12px;">
+                <div>
+                  <label for="jwaInstitutionLayer" style="color:#94a3b8;font-size:.85rem;display:block;margin-bottom:6px;">Layer</label>
+                  <select id="jwaInstitutionLayer" class="jwa-input">
+                    <option value="schools">Schools</option>
+                    <option value="universities">Universities</option>
+                    <option value="government">Government / Workforce Programs</option>
+                    <option value="employers">Employers</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="jwaInstitutionName" style="color:#94a3b8;font-size:.85rem;display:block;margin-bottom:6px;">Institution name</label>
+                  <input id="jwaInstitutionName" class="jwa-input" type="text" placeholder="e.g. UWI Mona Career Services" />
+                </div>
+              </div>
+              <div class="jwa-form-row" style="margin-bottom:12px;">
+                <div>
+                  <label for="jwaInstitutionFilterStatus" style="color:#94a3b8;font-size:.85rem;display:block;margin-bottom:6px;">Status filter</label>
+                  <select id="jwaInstitutionFilterStatus" class="jwa-input">
+                    <option value="">All statuses</option>
+                    <option value="applied">Applied</option>
+                    <option value="screening">Screening</option>
+                    <option value="interview">Interview</option>
+                    <option value="offered">Offered</option>
+                    <option value="hired">Hired</option>
+                    <option value="retained-90">Retained 90 days</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="jwaInstitutionFilterCountry" style="color:#94a3b8;font-size:.85rem;display:block;margin-bottom:6px;">Country filter</label>
+                  <input id="jwaInstitutionFilterCountry" class="jwa-input" type="text" placeholder="e.g. Jamaica" />
+                </div>
+                <div>
+                  <label for="jwaInstitutionSortBy" style="color:#94a3b8;font-size:.85rem;display:block;margin-bottom:6px;">Sort by</label>
+                  <select id="jwaInstitutionSortBy" class="jwa-input">
+                    <option value="createdAt">Newest</option>
+                    <option value="salary">Salary</option>
+                    <option value="status">Status</option>
+                    <option value="role">Role</option>
+                  </select>
+                </div>
+              </div>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+                <button id="jwaLoadInstitutionDashboardBtn" class="jwa-submit-btn" type="button">Load Institution Dashboard</button>
+                <button id="jwaExportInstitutionCsvBtn" class="jwa-download-btn" type="button">Export Cohort CSV</button>
+              </div>
+              <div id="jwaInstitutionDashboardStatus" class="jwa-status"></div>
+              <div id="jwaInstitutionDashboardResults" style="margin-top:12px;"></div>
+            </div>
+          </details>
+
+          <details class="jwa-collapsible" style="margin-top:12px;" open>
+            <summary>Employer Verification Workflow</summary>
+            <div class="jwa-collapsible-body">
+              <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px;">
+                <div style="min-width:260px;flex:1;">
+                  <label for="jwaVerificationSearch" style="color:#94a3b8;font-size:.85rem;display:block;margin-bottom:6px;">Search pending employers</label>
+                  <input id="jwaVerificationSearch" class="jwa-input" type="text" placeholder="Company, email, country, industry" />
+                </div>
+                <button id="jwaLoadPendingVerificationsBtn" class="jwa-submit-btn" type="button">Load Pending Employers</button>
+              </div>
+              <div id="jwaPendingVerificationsStatus" class="jwa-status"></div>
+              <div id="jwaPendingVerificationsList" style="margin-top:10px;"></div>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;">
+                <button id="jwaPendingPrevBtn" class="jwa-download-btn" type="button">Previous</button>
+                <button id="jwaPendingNextBtn" class="jwa-download-btn" type="button">Next</button>
+              </div>
+
+              <div class="jwa-form-row" style="margin-top:14px;">
+                <div>
+                  <label for="jwaVerifyEmployerId" style="color:#94a3b8;font-size:.85rem;display:block;margin-bottom:6px;">Employer ID</label>
+                  <input id="jwaVerifyEmployerId" class="jwa-input" type="text" placeholder="Paste employer ID" />
+                </div>
+                <div>
+                  <label for="jwaVerifyEmployerStatus" style="color:#94a3b8;font-size:.85rem;display:block;margin-bottom:6px;">Verification status</label>
+                  <select id="jwaVerifyEmployerStatus" class="jwa-input">
+                    <option value="approved">Approve</option>
+                    <option value="rejected">Reject</option>
+                    <option value="pending">Mark Pending</option>
+                  </select>
+                </div>
+              </div>
+              <div style="margin-bottom:12px;">
+                <label for="jwaVerifyEmployerNotes" style="color:#94a3b8;font-size:.85rem;display:block;margin-bottom:6px;">Approval notes (optional)</label>
+                <textarea id="jwaVerifyEmployerNotes" class="jwa-textarea" placeholder="Reason for approval or rejection" style="min-height:90px;"></textarea>
+              </div>
+              <button id="jwaUpdateEmployerVerificationBtn" class="jwa-submit-btn" type="button">Update Verification</button>
+              <div id="jwaUpdateEmployerVerificationStatus" class="jwa-status"></div>
+            </div>
+          </details>
+
+          <details class="jwa-collapsible" style="margin-top:12px;" open>
+            <summary>Access Grant Management</summary>
+            <div class="jwa-collapsible-body">
+              <div class="jwa-form-row" style="margin-bottom:12px;">
+                <div>
+                  <label for="jwaGrantUserEmail" style="color:#94a3b8;font-size:.85rem;display:block;margin-bottom:6px;">User email</label>
+                  <input id="jwaGrantUserEmail" class="jwa-input" type="email" placeholder="advisor@school.edu.jm" />
+                </div>
+                <div>
+                  <label for="jwaGrantLayer" style="color:#94a3b8;font-size:.85rem;display:block;margin-bottom:6px;">Layer</label>
+                  <select id="jwaGrantLayer" class="jwa-input">
+                    <option value="schools">Schools</option>
+                    <option value="universities">Universities</option>
+                    <option value="government">Government / Workforce Programs</option>
+                    <option value="employers">Employers</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="jwaGrantRole" style="color:#94a3b8;font-size:.85rem;display:block;margin-bottom:6px;">Role</label>
+                  <select id="jwaGrantRole" class="jwa-input">
+                    <option value="viewer">Viewer</option>
+                    <option value="analyst">Analyst</option>
+                    <option value="manager">Manager</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+              </div>
+              <div style="margin-bottom:12px;">
+                <label for="jwaGrantInstitution" style="color:#94a3b8;font-size:.85rem;display:block;margin-bottom:6px;">Institution / program</label>
+                <input id="jwaGrantInstitution" class="jwa-input" type="text" placeholder="e.g. UWI Mona Career Services" />
+              </div>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                <button id="jwaGrantAccessBtn" class="jwa-submit-btn" type="button">Grant Access</button>
+                <button id="jwaLoadMyAccessBtn" class="jwa-download-btn" type="button">Load My Access</button>
+              </div>
+              <div id="jwaGrantAccessStatus" class="jwa-status"></div>
+              <div id="jwaMyAccessList" style="margin-top:10px;"></div>
+            </div>
+          </details>
+
+          <details class="jwa-collapsible" style="margin-top:12px;" open>
+            <summary>Integration Audit Log</summary>
+            <div class="jwa-collapsible-body">
+              <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:10px;">
+                <div style="min-width:260px;flex:1;">
+                  <label for="jwaAuditSearch" style="color:#94a3b8;font-size:.85rem;display:block;margin-bottom:6px;">Audit search</label>
+                  <input id="jwaAuditSearch" class="jwa-input" type="text" placeholder="action, institution, target, actor" />
+                </div>
+                <button id="jwaLoadAuditLogBtn" class="jwa-submit-btn" type="button">Load Audit Log</button>
+                <button id="jwaExportAuditCsvBtn" class="jwa-download-btn" type="button">Export Audit CSV</button>
+              </div>
+              <div id="jwaAuditStatus" class="jwa-status"></div>
+              <div id="jwaAuditLogList" style="margin-top:10px;"></div>
+            </div>
+          </details>
         </div>
 
         <!-- Tab 7: Scholarships & Funding -->

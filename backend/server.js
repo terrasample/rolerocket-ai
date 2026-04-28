@@ -120,6 +120,8 @@ app.get('/api/me', async (req, res) => {
 app.use('/api/ats', require('./routes/ats'));
 // Register Cover Letter API route
 app.use('/api/cover-letter', require('./routes/coverLetter'));
+// Register school/university/government/employer integration APIs
+app.use('/api/integrations', require('./routes/integrations'));
 
 // Register plan-based access control middleware and feature routes
 const planAccess = require('./middleware/planAccess');
