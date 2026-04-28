@@ -1041,6 +1041,14 @@
                   <input id="jwaInstitutionFilterCountry" class="jwa-input" type="text" placeholder="e.g. Jamaica" />
                 </div>
                 <div>
+                  <label for="jwaInstitutionFilterDateFrom" style="color:#94a3b8;font-size:.85rem;display:block;margin-bottom:6px;">Date from</label>
+                  <input id="jwaInstitutionFilterDateFrom" class="jwa-input" type="date" />
+                </div>
+                <div>
+                  <label for="jwaInstitutionFilterDateTo" style="color:#94a3b8;font-size:.85rem;display:block;margin-bottom:6px;">Date to</label>
+                  <input id="jwaInstitutionFilterDateTo" class="jwa-input" type="date" />
+                </div>
+                <div>
                   <label for="jwaInstitutionSortBy" style="color:#94a3b8;font-size:.85rem;display:block;margin-bottom:6px;">Sort by</label>
                   <select id="jwaInstitutionSortBy" class="jwa-input">
                     <option value="createdAt">Newest</option>
@@ -1052,7 +1060,7 @@
               </div>
               <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
                 <button id="jwaLoadInstitutionDashboardBtn" class="jwa-submit-btn" type="button">Load Institution Dashboard</button>
-                <button id="jwaExportInstitutionCsvBtn" class="jwa-download-btn" type="button">Export Cohort CSV</button>
+                <button id="jwaExportInstitutionCsvBtn" class="jwa-download-btn" type="button" data-min-role="analyst">Export Cohort CSV</button>
               </div>
               <div id="jwaInstitutionDashboardStatus" class="jwa-status"></div>
               <div id="jwaInstitutionDashboardResults" style="margin-top:12px;"></div>
@@ -1067,13 +1075,13 @@
                   <label for="jwaVerificationSearch" style="color:#94a3b8;font-size:.85rem;display:block;margin-bottom:6px;">Search pending employers</label>
                   <input id="jwaVerificationSearch" class="jwa-input" type="text" placeholder="Company, email, country, industry" />
                 </div>
-                <button id="jwaLoadPendingVerificationsBtn" class="jwa-submit-btn" type="button">Load Pending Employers</button>
+                <button id="jwaLoadPendingVerificationsBtn" class="jwa-submit-btn" type="button" data-integration-admin="true">Load Pending Employers</button>
               </div>
               <div id="jwaPendingVerificationsStatus" class="jwa-status"></div>
               <div id="jwaPendingVerificationsList" style="margin-top:10px;"></div>
               <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;">
-                <button id="jwaPendingPrevBtn" class="jwa-download-btn" type="button">Previous</button>
-                <button id="jwaPendingNextBtn" class="jwa-download-btn" type="button">Next</button>
+                <button id="jwaPendingPrevBtn" class="jwa-download-btn" type="button" data-integration-admin="true">Previous</button>
+                <button id="jwaPendingNextBtn" class="jwa-download-btn" type="button" data-integration-admin="true">Next</button>
               </div>
 
               <div class="jwa-form-row" style="margin-top:14px;">
@@ -1094,7 +1102,7 @@
                 <label for="jwaVerifyEmployerNotes" style="color:#94a3b8;font-size:.85rem;display:block;margin-bottom:6px;">Approval notes (optional)</label>
                 <textarea id="jwaVerifyEmployerNotes" class="jwa-textarea" placeholder="Reason for approval or rejection" style="min-height:90px;"></textarea>
               </div>
-              <button id="jwaUpdateEmployerVerificationBtn" class="jwa-submit-btn" type="button">Update Verification</button>
+              <button id="jwaUpdateEmployerVerificationBtn" class="jwa-submit-btn" type="button" data-integration-admin="true">Update Verification</button>
               <div id="jwaUpdateEmployerVerificationStatus" class="jwa-status"></div>
             </div>
           </details>
@@ -1131,8 +1139,14 @@
                 <input id="jwaGrantInstitution" class="jwa-input" type="text" placeholder="e.g. UWI Mona Career Services" />
               </div>
               <div style="display:flex;gap:10px;flex-wrap:wrap;">
-                <button id="jwaGrantAccessBtn" class="jwa-submit-btn" type="button">Grant Access</button>
+                <button id="jwaGrantAccessBtn" class="jwa-submit-btn" type="button" data-integration-admin="true">Grant Access</button>
                 <button id="jwaLoadMyAccessBtn" class="jwa-download-btn" type="button">Load My Access</button>
+              </div>
+              <div style="margin-top:12px;padding:10px;border:1px solid #334155;border-radius:10px;background:#0f172a;">
+                <label for="jwaGrantBulkFile" style="color:#94a3b8;font-size:.85rem;display:block;margin-bottom:6px;">Bulk grant CSV</label>
+                <input id="jwaGrantBulkFile" class="jwa-input" type="file" accept=".csv,text/csv" data-integration-admin="true" />
+                <p style="margin:8px 0 10px;color:#94a3b8;font-size:.8rem;line-height:1.4;">Columns: userEmail, layer, institutionName, role</p>
+                <button id="jwaGrantBulkAccessBtn" class="jwa-submit-btn" type="button" data-integration-admin="true">Import Bulk Access CSV</button>
               </div>
               <div id="jwaGrantAccessStatus" class="jwa-status"></div>
               <div id="jwaMyAccessList" style="margin-top:10px;"></div>
@@ -1147,8 +1161,16 @@
                   <label for="jwaAuditSearch" style="color:#94a3b8;font-size:.85rem;display:block;margin-bottom:6px;">Audit search</label>
                   <input id="jwaAuditSearch" class="jwa-input" type="text" placeholder="action, institution, target, actor" />
                 </div>
-                <button id="jwaLoadAuditLogBtn" class="jwa-submit-btn" type="button">Load Audit Log</button>
-                <button id="jwaExportAuditCsvBtn" class="jwa-download-btn" type="button">Export Audit CSV</button>
+                <div>
+                  <label for="jwaAuditDateFrom" style="color:#94a3b8;font-size:.85rem;display:block;margin-bottom:6px;">Date from</label>
+                  <input id="jwaAuditDateFrom" class="jwa-input" type="date" />
+                </div>
+                <div>
+                  <label for="jwaAuditDateTo" style="color:#94a3b8;font-size:.85rem;display:block;margin-bottom:6px;">Date to</label>
+                  <input id="jwaAuditDateTo" class="jwa-input" type="date" />
+                </div>
+                <button id="jwaLoadAuditLogBtn" class="jwa-submit-btn" type="button" data-integration-admin="true">Load Audit Log</button>
+                <button id="jwaExportAuditCsvBtn" class="jwa-download-btn" type="button" data-integration-admin="true">Export Audit CSV</button>
               </div>
               <div id="jwaAuditStatus" class="jwa-status"></div>
               <div id="jwaAuditLogList" style="margin-top:10px;"></div>

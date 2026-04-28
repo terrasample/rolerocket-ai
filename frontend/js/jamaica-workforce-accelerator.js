@@ -24,6 +24,57 @@
     if (el) el.innerHTML = msg ? `<span style="color:${color || '#16a34a'}">${msg}</span>` : '';
   }
 
+  const INTEGRATION_ROLE_RANK = { viewer: 1, analyst: 2, manager: 3, admin: 4 };
+
+  function getIntegrationRoleRank(role) {
+    return INTEGRATION_ROLE_RANK[String(role || 'viewer').toLowerCase()] || 0;
+  }
+
+  function applyIntegrationControlVisibility(context) {
+    const ctx = context || { isIntegrationAdmin: false, highestRole: 'viewer', isAuthenticated: false };
+    const highestRank = getIntegrationRoleRank(ctx.highestRole);
+
+    document.querySelectorAll('[data-integration-admin="true"]').forEach((el) => {
+      const allowed = Boolean(ctx.isIntegrationAdmin);
+      el.disabled = !allowed;
+      el.hidden = !allowed;
+    });
+
+    document.querySelectorAll('[data-min-role]').forEach((el) => {
+      const requiredRole = String(el.getAttribute('data-min-role') || 'viewer').toLowerCase();
+      const requiredRank = getIntegrationRoleRank(requiredRole);
+      const allowed = Boolean(ctx.isIntegrationAdmin) || highestRank >= requiredRank;
+      el.disabled = !allowed;
+      el.hidden = !allowed;
+    });
+  }
+
+  async function loadIntegrationViewerContext() {
+    const token = localStorage.getItem('rr_token');
+    if (!token) {
+      applyIntegrationControlVisibility({ isIntegrationAdmin: false, highestRole: 'viewer', isAuthenticated: false });
+      return;
+    }
+
+    try {
+      const res = await fetch(`${getApiBase()}/api/integrations/me/permissions`, {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store'
+      });
+      const payload = await res.json();
+      if (!res.ok) throw new Error(payload.error || `Request failed (${res.status})`);
+
+      applyIntegrationControlVisibility({
+        isIntegrationAdmin: Boolean(payload.isIntegrationAdmin),
+        highestRole: String(payload?.accessSummary?.highestRole || 'viewer'),
+        isAuthenticated: true
+      });
+    } catch (error) {
+      console.error('Integration permission context error:', error);
+      applyIntegrationControlVisibility({ isIntegrationAdmin: false, highestRole: 'viewer', isAuthenticated: true });
+    }
+  }
+
   /* ── 1. Jamaica Job Market Radar ───────────────────────────────────────── */
   const JAMAICA_MARKET = {
     'Business Process Outsourcing (BPO)': {
@@ -2817,7 +2868,9 @@
         renderLayerOverviewCards({ [payload.layer || layer]: payload.data || {} });
       }
 
-      setStatus('jwaLayerStatus', 'Layer overview loaded successfully.', '#16a34a');
+      const cache = payload?.cache || {};
+      const cacheLabel = cache.hit ? 'cached' : 'fresh';
+      setStatus('jwaLayerStatus', `Layer overview loaded successfully (${cacheLabel} data).`, '#16a34a');
     } catch (err) {
       console.error('Integration overview load error:', err);
       setStatus('jwaLayerStatus', 'Failed to load integration overview. Ensure the backend route is running.', '#dc2626');
@@ -2928,6 +2981,8 @@
     const institution = String(document.getElementById('jwaInstitutionName')?.value || '').trim();
     const statusFilter = String(document.getElementById('jwaInstitutionFilterStatus')?.value || '').trim();
     const countryFilter = String(document.getElementById('jwaInstitutionFilterCountry')?.value || '').trim();
+    const dateFrom = String(document.getElementById('jwaInstitutionFilterDateFrom')?.value || '').trim();
+    const dateTo = String(document.getElementById('jwaInstitutionFilterDateTo')?.value || '').trim();
     const sortBy = String(document.getElementById('jwaInstitutionSortBy')?.value || 'createdAt').trim();
     if (!institution) {
       setStatus('jwaInstitutionDashboardStatus', 'Institution name is required.', '#dc2626');
@@ -2946,6 +3001,8 @@
       });
       if (statusFilter) params.set('status', statusFilter);
       if (countryFilter) params.set('country', countryFilter);
+      if (dateFrom) params.set('dateFrom', dateFrom);
+      if (dateTo) params.set('dateTo', dateTo);
 
       const res = await fetch(`${getApiBase()}/api/integrations/institutions/dashboard?${params.toString()}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -2974,6 +3031,8 @@
     const institution = String(document.getElementById('jwaInstitutionName')?.value || '').trim();
     const statusFilter = String(document.getElementById('jwaInstitutionFilterStatus')?.value || '').trim();
     const countryFilter = String(document.getElementById('jwaInstitutionFilterCountry')?.value || '').trim();
+    const dateFrom = String(document.getElementById('jwaInstitutionFilterDateFrom')?.value || '').trim();
+    const dateTo = String(document.getElementById('jwaInstitutionFilterDateTo')?.value || '').trim();
     if (!institution) {
       setStatus('jwaInstitutionDashboardStatus', 'Institution name is required before export.', '#dc2626');
       return;
@@ -2984,6 +3043,8 @@
       const params = new URLSearchParams({ layer, institution, format: 'csv' });
       if (statusFilter) params.set('status', statusFilter);
       if (countryFilter) params.set('country', countryFilter);
+      if (dateFrom) params.set('dateFrom', dateFrom);
+      if (dateTo) params.set('dateTo', dateTo);
 
       const res = await fetch(`${getApiBase()}/api/integrations/institutions/cohort-export?${params.toString()}`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -3022,10 +3083,15 @@
     }
 
     const q = String(document.getElementById('jwaAuditSearch')?.value || '').trim();
+    const dateFrom = String(document.getElementById('jwaAuditDateFrom')?.value || '').trim();
+    const dateTo = String(document.getElementById('jwaAuditDateTo')?.value || '').trim();
     setStatus('jwaAuditStatus', 'Exporting audit CSV...', '#2563eb');
 
     try {
-      const res = await fetch(`${getApiBase()}/api/integrations/audit/export?q=${encodeURIComponent(q)}`, {
+      const params = new URLSearchParams({ q });
+      if (dateFrom) params.set('dateFrom', dateFrom);
+      if (dateTo) params.set('dateTo', dateTo);
+      const res = await fetch(`${getApiBase()}/api/integrations/audit/export?${params.toString()}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (!res.ok) {
@@ -3222,6 +3288,80 @@
     }
   }
 
+  function parseBulkAccessCsv(text) {
+    const rows = [];
+    const rawLines = String(text || '').split(/\r?\n/).filter((line) => String(line || '').trim());
+    if (!rawLines.length) return rows;
+
+    const headerCells = rawLines[0].split(',').map((cell) => String(cell || '').trim().replace(/^"|"$/g, '').toLowerCase());
+    const idxEmail = headerCells.indexOf('useremail');
+    const idxLayer = headerCells.indexOf('layer');
+    const idxInstitution = headerCells.indexOf('institutionname');
+    const idxRole = headerCells.indexOf('role');
+
+    for (let i = 1; i < rawLines.length; i += 1) {
+      const cols = rawLines[i].split(',').map((cell) => String(cell || '').trim().replace(/^"|"$/g, ''));
+      const row = {
+        userEmail: idxEmail >= 0 ? String(cols[idxEmail] || '').trim() : '',
+        layer: idxLayer >= 0 ? String(cols[idxLayer] || '').trim() : '',
+        institutionName: idxInstitution >= 0 ? String(cols[idxInstitution] || '').trim() : '',
+        role: idxRole >= 0 ? String(cols[idxRole] || '').trim().toLowerCase() : 'viewer'
+      };
+      if (row.userEmail || row.institutionName) rows.push(row);
+    }
+
+    return rows;
+  }
+
+  async function grantIntegrationAccessBulkCsv() {
+    const token = localStorage.getItem('rr_token');
+    if (!token) {
+      setStatus('jwaGrantAccessStatus', 'Please log in as an integration admin.', '#dc2626');
+      return;
+    }
+
+    const fileInput = document.getElementById('jwaGrantBulkFile');
+    const file = fileInput?.files?.[0];
+    if (!file) {
+      setStatus('jwaGrantAccessStatus', 'Select a CSV file first.', '#dc2626');
+      return;
+    }
+
+    setStatus('jwaGrantAccessStatus', 'Parsing CSV and submitting bulk access grants...', '#2563eb');
+
+    try {
+      const csvText = await file.text();
+      const rows = parseBulkAccessCsv(csvText);
+      if (!rows.length) {
+        throw new Error('CSV has no valid rows. Expected headers: userEmail, layer, institutionName, role');
+      }
+
+      const res = await fetch(`${getApiBase()}/api/integrations/access/grant-bulk`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ rows })
+      });
+      const payload = await res.json();
+      if (!res.ok) throw new Error(payload.error || `Request failed (${res.status})`);
+
+      const successCount = Number(payload.successCount || 0);
+      const failedCount = Number(payload.failedCount || 0);
+      const failPreview = Array.isArray(payload.results)
+        ? payload.results.filter((r) => !r.success).slice(0, 3).map((r) => `row ${r.row}: ${r.error}`).join('; ')
+        : '';
+      const suffix = failPreview ? ` Issues: ${failPreview}` : '';
+
+      setStatus('jwaGrantAccessStatus', `Bulk import complete. ${successCount} succeeded, ${failedCount} failed.${suffix}`, failedCount ? '#ca8a04' : '#16a34a');
+      loadMyIntegrationAccess();
+    } catch (err) {
+      console.error('Bulk grant access error:', err);
+      setStatus('jwaGrantAccessStatus', `Bulk import failed: ${esc(err.message || 'Unknown error')}`, '#dc2626');
+    }
+  }
+
   function renderAuditLogList(logs) {
     const container = document.getElementById('jwaAuditLogList');
     if (!container) return;
@@ -3247,10 +3387,15 @@
     }
 
     const q = String(document.getElementById('jwaAuditSearch')?.value || '').trim();
+    const dateFrom = String(document.getElementById('jwaAuditDateFrom')?.value || '').trim();
+    const dateTo = String(document.getElementById('jwaAuditDateTo')?.value || '').trim();
     setStatus('jwaAuditStatus', 'Loading audit log...', '#2563eb');
 
     try {
-      const res = await fetch(`${getApiBase()}/api/integrations/audit/recent?page=1&limit=25&q=${encodeURIComponent(q)}`, {
+      const params = new URLSearchParams({ page: '1', limit: '25', q });
+      if (dateFrom) params.set('dateFrom', dateFrom);
+      if (dateTo) params.set('dateTo', dateTo);
+      const res = await fetch(`${getApiBase()}/api/integrations/audit/recent?${params.toString()}`, {
         headers: { Authorization: `Bearer ${token}` },
         cache: 'no-store'
       });
@@ -3279,6 +3424,7 @@
     loadUserCredentials();
     loadCommunityHubs();
     loadIntegrationOverview();
+    loadIntegrationViewerContext();
 
     document.getElementById('jwaRefreshRegionalJobsBtn')?.addEventListener('click', renderMarketRadar);
     document.getElementById('jwaMarketKeyword')?.addEventListener('keydown', function (event) {
@@ -3327,6 +3473,7 @@
       }
     });
     document.getElementById('jwaGrantAccessBtn')?.addEventListener('click', grantIntegrationAccess);
+    document.getElementById('jwaGrantBulkAccessBtn')?.addEventListener('click', grantIntegrationAccessBulkCsv);
     document.getElementById('jwaLoadMyAccessBtn')?.addEventListener('click', loadMyIntegrationAccess);
     document.getElementById('jwaLoadAuditLogBtn')?.addEventListener('click', loadIntegrationAuditLog);
     document.getElementById('jwaExportAuditCsvBtn')?.addEventListener('click', exportIntegrationAuditCsv);

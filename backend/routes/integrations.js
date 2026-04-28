@@ -21,6 +21,14 @@ const INTEGRATION_ADMIN_EMAILS = String(process.env.INTEGRATION_ADMIN_EMAILS || 
   .split(',')
   .map((x) => x.trim().toLowerCase())
   .filter(Boolean);
+const INTEGRATION_ROLE_RANK = { viewer: 1, analyst: 2, manager: 3, admin: 4 };
+const OVERVIEW_CACHE_TTL_MS = Math.max(0, Number(process.env.INTEGRATION_OVERVIEW_CACHE_TTL_MS || 5 * 60 * 1000) || 0);
+
+const overviewCacheState = {
+  value: null,
+  expiresAt: 0,
+  inflight: null
+};
 
 function toCompletionScore(checks) {
   if (!Array.isArray(checks) || !checks.length) return 0;
@@ -88,8 +96,19 @@ async function getInstitutionAccessRecord(userId, layer, institutionName) {
 }
 
 function hasRequiredInstitutionRole(role, requiredRole) {
-  const rank = { viewer: 1, analyst: 2, manager: 3, admin: 4 };
-  return (rank[String(role || 'viewer')] || 0) >= (rank[String(requiredRole || 'viewer')] || 1);
+  return (INTEGRATION_ROLE_RANK[String(role || 'viewer')] || 0) >= (INTEGRATION_ROLE_RANK[String(requiredRole || 'viewer')] || 1);
+}
+
+function invalidateOverviewCache() {
+  overviewCacheState.value = null;
+  overviewCacheState.expiresAt = 0;
+}
+
+function rankToRole(rank) {
+  if (rank >= INTEGRATION_ROLE_RANK.admin) return 'admin';
+  if (rank >= INTEGRATION_ROLE_RANK.manager) return 'manager';
+  if (rank >= INTEGRATION_ROLE_RANK.analyst) return 'analyst';
+  return 'viewer';
 }
 
 async function assertInstitutionAccess({ req, actor, layer, institutionName, requiredRole = 'viewer' }) {
@@ -258,19 +277,66 @@ async function buildOverview() {
   };
 }
 
+async function getCachedOverview(forceRefresh) {
+  const now = Date.now();
+  const refreshRequested = Boolean(forceRefresh);
+
+  if (!refreshRequested && OVERVIEW_CACHE_TTL_MS > 0 && overviewCacheState.value && now < overviewCacheState.expiresAt) {
+    return {
+      data: overviewCacheState.value,
+      cache: {
+        hit: true,
+        ttlMsRemaining: Math.max(0, overviewCacheState.expiresAt - now)
+      }
+    };
+  }
+
+  if (overviewCacheState.inflight && !refreshRequested) {
+    const data = await overviewCacheState.inflight;
+    return {
+      data,
+      cache: {
+        hit: true,
+        ttlMsRemaining: Math.max(0, overviewCacheState.expiresAt - Date.now())
+      }
+    };
+  }
+
+  overviewCacheState.inflight = buildOverview()
+    .then((data) => {
+      overviewCacheState.value = data;
+      overviewCacheState.expiresAt = Date.now() + OVERVIEW_CACHE_TTL_MS;
+      return data;
+    })
+    .finally(() => {
+      overviewCacheState.inflight = null;
+    });
+
+  const data = await overviewCacheState.inflight;
+  return {
+    data,
+    cache: {
+      hit: false,
+      ttlMsRemaining: Math.max(0, overviewCacheState.expiresAt - Date.now())
+    }
+  };
+}
+
 router.get('/overview', async (req, res) => {
   try {
+    const refresh = String(req.query.refresh || '').trim() === '1';
     const layer = normalizeLayerName(req.query.layer);
-    const overview = await buildOverview();
+    const overviewResult = await getCachedOverview(refresh);
+    const overview = overviewResult.data;
 
     if (layer !== 'all') {
       if (!overview.layers[layer]) {
         return res.status(400).json({ error: 'Unknown layer. Use schools, universities, government, employers, or all.' });
       }
-      return res.json({ generatedAt: overview.generatedAt, layer, data: overview.layers[layer] });
+      return res.json({ generatedAt: overview.generatedAt, layer, data: overview.layers[layer], cache: overviewResult.cache });
     }
 
-    return res.json(overview);
+    return res.json({ ...overview, cache: overviewResult.cache });
   } catch (err) {
     console.error('Integration overview error:', err);
     return res.status(500).json({ error: 'Failed to load integration overview' });
@@ -279,8 +345,10 @@ router.get('/overview', async (req, res) => {
 
 router.get('/schools/overview', async (req, res) => {
   try {
-    const overview = await buildOverview();
-    return res.json({ generatedAt: overview.generatedAt, layer: 'schools', data: overview.layers.schools });
+    const refresh = String(req.query.refresh || '').trim() === '1';
+    const overviewResult = await getCachedOverview(refresh);
+    const overview = overviewResult.data;
+    return res.json({ generatedAt: overview.generatedAt, layer: 'schools', data: overview.layers.schools, cache: overviewResult.cache });
   } catch (err) {
     console.error('Schools overview error:', err);
     return res.status(500).json({ error: 'Failed to load schools overview' });
@@ -289,8 +357,10 @@ router.get('/schools/overview', async (req, res) => {
 
 router.get('/universities/overview', async (req, res) => {
   try {
-    const overview = await buildOverview();
-    return res.json({ generatedAt: overview.generatedAt, layer: 'universities', data: overview.layers.universities });
+    const refresh = String(req.query.refresh || '').trim() === '1';
+    const overviewResult = await getCachedOverview(refresh);
+    const overview = overviewResult.data;
+    return res.json({ generatedAt: overview.generatedAt, layer: 'universities', data: overview.layers.universities, cache: overviewResult.cache });
   } catch (err) {
     console.error('Universities overview error:', err);
     return res.status(500).json({ error: 'Failed to load universities overview' });
@@ -299,8 +369,10 @@ router.get('/universities/overview', async (req, res) => {
 
 router.get('/government/overview', async (req, res) => {
   try {
-    const overview = await buildOverview();
-    return res.json({ generatedAt: overview.generatedAt, layer: 'government', data: overview.layers.government });
+    const refresh = String(req.query.refresh || '').trim() === '1';
+    const overviewResult = await getCachedOverview(refresh);
+    const overview = overviewResult.data;
+    return res.json({ generatedAt: overview.generatedAt, layer: 'government', data: overview.layers.government, cache: overviewResult.cache });
   } catch (err) {
     console.error('Government overview error:', err);
     return res.status(500).json({ error: 'Failed to load government overview' });
@@ -309,8 +381,10 @@ router.get('/government/overview', async (req, res) => {
 
 router.get('/employers/overview', async (req, res) => {
   try {
-    const overview = await buildOverview();
-    return res.json({ generatedAt: overview.generatedAt, layer: 'employers', data: overview.layers.employers });
+    const refresh = String(req.query.refresh || '').trim() === '1';
+    const overviewResult = await getCachedOverview(refresh);
+    const overview = overviewResult.data;
+    return res.json({ generatedAt: overview.generatedAt, layer: 'employers', data: overview.layers.employers, cache: overviewResult.cache });
   } catch (err) {
     console.error('Employers overview error:', err);
     return res.status(500).json({ error: 'Failed to load employers overview' });
@@ -352,6 +426,45 @@ router.get('/access/my', authenticateToken, async (req, res) => {
   } catch (err) {
     console.error('My integration access error:', err);
     return res.status(500).json({ error: 'Failed to load access list' });
+  }
+});
+
+router.get('/me/permissions', authenticateToken, async (req, res) => {
+  try {
+    const actor = await getAuthUser(req);
+    if (!actor) return res.status(404).json({ error: 'Authenticated user not found' });
+
+    const rows = await IntegrationAccess.find({ userId: req.user.userId }).lean();
+    const highestRank = rows.reduce((max, row) => {
+      const rank = INTEGRATION_ROLE_RANK[String(row?.role || 'viewer')] || 0;
+      return rank > max ? rank : max;
+    }, 0);
+
+    const layerRoleMap = rows.reduce((acc, row) => {
+      const layer = String(row?.layer || '').trim();
+      if (!layer) return acc;
+      const nextRank = INTEGRATION_ROLE_RANK[String(row?.role || 'viewer')] || 0;
+      const priorRank = INTEGRATION_ROLE_RANK[String(acc[layer] || 'viewer')] || 0;
+      if (nextRank > priorRank) acc[layer] = String(row.role || 'viewer');
+      return acc;
+    }, {});
+
+    return res.json({
+      isAuthenticated: true,
+      isIntegrationAdmin: isIntegrationAdminUser(actor),
+      actor: {
+        email: String(actor.email || '').toLowerCase(),
+        plan: String(actor.plan || '').toLowerCase()
+      },
+      accessSummary: {
+        highestRole: rankToRole(highestRank),
+        totalRecords: rows.length,
+        rolesByLayer: layerRoleMap
+      }
+    });
+  } catch (err) {
+    console.error('My permissions error:', err);
+    return res.status(500).json({ error: 'Failed to load user permissions' });
   }
 });
 
@@ -411,6 +524,116 @@ router.post('/access/grant', authenticateToken, async (req, res) => {
   } catch (err) {
     console.error('Grant access error:', err);
     return res.status(500).json({ error: 'Failed to grant access' });
+  }
+});
+
+router.post('/access/grant-bulk', authenticateToken, async (req, res) => {
+  try {
+    const actor = await getAuthUser(req);
+    if (!isIntegrationAdminUser(actor)) {
+      return res.status(403).json({ error: 'Admin access required to grant permissions' });
+    }
+
+    const incomingRows = Array.isArray(req.body?.rows) ? req.body.rows : [];
+    if (!incomingRows.length) {
+      return res.status(400).json({ error: 'rows array is required and cannot be empty' });
+    }
+
+    if (incomingRows.length > 500) {
+      return res.status(400).json({ error: 'Maximum 500 rows per bulk request' });
+    }
+
+    const results = [];
+    const roleValues = new Set(['viewer', 'analyst', 'manager', 'admin']);
+
+    for (let index = 0; index < incomingRows.length; index += 1) {
+      const row = incomingRows[index] || {};
+      const rowNum = index + 1;
+
+      const rowLayer = normalizeAccessLayer(row.layer || req.body?.layer);
+      const institutionName = String(row.institutionName || req.body?.institutionName || '').trim();
+      const userEmail = String(row.userEmail || '').trim().toLowerCase();
+      const userId = String(row.userId || '').trim();
+      const requestedRole = String(row.role || req.body?.role || 'viewer').trim().toLowerCase();
+      const role = roleValues.has(requestedRole) ? requestedRole : 'viewer';
+
+      if (!rowLayer) {
+        results.push({ row: rowNum, success: false, error: 'Invalid or missing layer' });
+        continue;
+      }
+      if (!institutionName) {
+        results.push({ row: rowNum, success: false, error: 'Missing institutionName' });
+        continue;
+      }
+      if (!userEmail && !userId) {
+        results.push({ row: rowNum, success: false, error: 'Missing userEmail or userId' });
+        continue;
+      }
+
+      let targetUserId = userId || null;
+      if (!targetUserId && userEmail) {
+        const targetUser = await User.findOne({ email: userEmail }).lean();
+        if (!targetUser) {
+          results.push({ row: rowNum, success: false, error: `User not found for ${userEmail}` });
+          continue;
+        }
+        targetUserId = String(targetUser._id);
+      }
+
+      try {
+        const institutionKey = institutionName.toLowerCase();
+        const access = await IntegrationAccess.findOneAndUpdate(
+          { userId: targetUserId, layer: rowLayer, institutionKey },
+          {
+            userId: targetUserId,
+            layer: rowLayer,
+            institutionName,
+            institutionKey,
+            role,
+            grantedBy: req.user.userId
+          },
+          { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+
+        results.push({
+          row: rowNum,
+          success: true,
+          userId: String(targetUserId),
+          userEmail,
+          layer: rowLayer,
+          institutionName,
+          role,
+          accessId: String(access?._id || '')
+        });
+      } catch (error) {
+        results.push({ row: rowNum, success: false, error: error.message || 'Failed to save access row' });
+      }
+    }
+
+    const successCount = results.filter((r) => r.success).length;
+    const failedCount = results.length - successCount;
+
+    await logIntegrationAudit(req, actor, {
+      action: 'integration-access-bulk-granted',
+      targetType: 'integration-access',
+      targetId: 'bulk',
+      details: {
+        totalRows: incomingRows.length,
+        successCount,
+        failedCount
+      }
+    });
+
+    return res.status(201).json({
+      success: failedCount === 0,
+      totalRows: incomingRows.length,
+      successCount,
+      failedCount,
+      results
+    });
+  } catch (err) {
+    console.error('Grant bulk access error:', err);
+    return res.status(500).json({ error: 'Failed to grant access in bulk' });
   }
 });
 
@@ -707,6 +930,8 @@ router.patch('/employers/verification/:id', authenticateToken, async (req, res) 
       }
     });
 
+    invalidateOverviewCache();
+
     return res.json({ success: true, employer: updated });
   } catch (err) {
     console.error('Employer verification update error:', err);
@@ -783,6 +1008,8 @@ router.post('/placements/outcome', authenticateToken, async (req, res) => {
       }
     });
 
+    invalidateOverviewCache();
+
     return res.status(201).json({ success: true, outcome: doc });
   } catch (err) {
     console.error('Placement outcome create error:', err);
@@ -827,6 +1054,8 @@ router.patch('/placements/:id/status', authenticateToken, async (req, res) => {
       details: { status }
     });
 
+    invalidateOverviewCache();
+
     return res.json({ success: true, outcome: updated });
   } catch (err) {
     console.error('Placement outcome update error:', err);
@@ -845,6 +1074,8 @@ router.get('/audit/recent', authenticateToken, async (req, res) => {
     const limit = Math.min(100, Math.max(1, parseInt(String(req.query.limit || '25'), 10) || 25));
     const action = String(req.query.action || '').trim();
     const q = String(req.query.q || '').trim();
+    const dateFrom = String(req.query.dateFrom || '').trim();
+    const dateTo = String(req.query.dateTo || '').trim();
 
     const filter = {};
     if (action) filter.action = action;
@@ -858,6 +1089,19 @@ router.get('/audit/recent', authenticateToken, async (req, res) => {
         { action: regex }
       ];
     }
+
+    const createdAtFilter = {};
+    if (dateFrom) {
+      const dt = new Date(dateFrom);
+      if (Number.isNaN(dt.getTime())) return res.status(400).json({ error: 'Invalid dateFrom filter' });
+      createdAtFilter.$gte = dt;
+    }
+    if (dateTo) {
+      const dt = new Date(dateTo);
+      if (Number.isNaN(dt.getTime())) return res.status(400).json({ error: 'Invalid dateTo filter' });
+      createdAtFilter.$lte = dt;
+    }
+    if (Object.keys(createdAtFilter).length) filter.createdAt = createdAtFilter;
 
     const [total, logs] = await Promise.all([
       IntegrationAuditLog.countDocuments(filter),
