@@ -104,6 +104,19 @@
         <article class="marketing-card tier-feature premium">
           <h3 class="feature-title">Interview Prep</h3>
           <p>Generate realistic interview prompts and stronger response frameworks quickly.</p>
+          <details class="jwa-collapsible" style="margin-top:12px;text-align:left;">
+            <summary style="cursor:pointer;color:#e2e8f0;font-weight:700;">Communication Sprint (Audio)</summary>
+            <div style="margin-top:10px;">
+              <audio id="featuresCharismaAudio" controls preload="metadata" style="width:100%;">
+                <source src="assets/audio/charisma-sprint-voiceover.m4a" type="audio/mp4" />
+              </audio>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+                <button id="featuresCharismaResetBtn" type="button" class="sidebar-link-btn">Reset Progress</button>
+              </div>
+              <div id="featuresCharismaProgress" style="margin-top:8px;color:#7dd3fc;font-size:.9rem;"></div>
+              <div id="featuresCharismaLessons" style="margin-top:10px;"></div>
+            </div>
+          </details>
         </article>
         <article class="marketing-card tier-feature premium">
           <h3 class="feature-title">1-Click Apply Queue</h3>
@@ -162,6 +175,113 @@
       </section>
 
       <script src="js/nav-plan-sync.js"></script>
+      <script>
+        (function () {
+          const STORAGE_KEY = 'features:charisma-sprint:v1';
+          const LESSONS = [
+            { id: 1, title: 'First Impression Hacks', minutes: 15 },
+            { id: 2, title: 'Build Trust with Your Voice', minutes: 11 },
+            { id: 3, title: 'Confidence Wins', minutes: 10 },
+            { id: 4, title: 'Speak Up in Any Room', minutes: 10 },
+            { id: 5, title: 'Storytelling Secrets', minutes: 13 },
+            { id: 6, title: 'Body Language', minutes: 15 },
+            { id: 7, title: 'Read People Like a Pro', minutes: 15 },
+            { id: 8, title: 'Give Tough Feedback Fast', minutes: 17 },
+            { id: 9, title: 'Handle Difficult People Smartly', minutes: 13 },
+            { id: 10, title: 'Say No and Be Likable', minutes: 10 },
+            { id: 11, title: 'Interrupt Smoothly', minutes: 10 },
+            { id: 12, title: 'Defuse Any Conflict', minutes: 15 },
+            { id: 13, title: 'Listen Like a Leader', minutes: 11 },
+            { id: 14, title: 'Small Talk Magic', minutes: 12 }
+          ];
+
+          function readState() {
+            try {
+              const raw = localStorage.getItem(STORAGE_KEY);
+              const parsed = raw ? JSON.parse(raw) : {};
+              return {
+                completed: Array.isArray(parsed.completed)
+                  ? parsed.completed.filter((x) => Number.isInteger(x) && x >= 1 && x <= 14)
+                  : [],
+                introListened: Boolean(parsed.introListened)
+              };
+            } catch (_err) {
+              return { completed: [], introListened: false };
+            }
+          }
+
+          function writeState(state) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify({
+              completed: Array.isArray(state.completed) ? state.completed : [],
+              introListened: Boolean(state.introListened)
+            }));
+          }
+
+          function render() {
+            const progressEl = document.getElementById('featuresCharismaProgress');
+            const lessonsEl = document.getElementById('featuresCharismaLessons');
+            if (!progressEl || !lessonsEl) return;
+
+            const state = readState();
+            const completedSet = new Set(state.completed);
+            const completedCount = completedSet.size;
+            const pct = Math.round((completedCount / LESSONS.length) * 100);
+            const totalMinutes = LESSONS.reduce((sum, lesson) => sum + lesson.minutes, 0);
+            const remainingMinutes = LESSONS.filter((lesson) => !completedSet.has(lesson.id)).reduce((sum, lesson) => sum + lesson.minutes, 0);
+
+            progressEl.textContent = `Progress: ${completedCount}/${LESSONS.length} lessons (${pct}%). Intro audio: ${state.introListened ? 'completed' : 'not completed'}. Runtime: ${totalMinutes} min, Remaining: ${remainingMinutes} min.`;
+
+            lessonsEl.innerHTML = LESSONS.map((lesson) => {
+              const done = completedSet.has(lesson.id);
+              return `
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;border:1px solid rgba(148,163,184,.35);border-radius:8px;padding:8px 10px;margin-bottom:6px;">
+                  <div style="font-size:.86rem;color:#e2e8f0;">Lesson ${lesson.id}: ${lesson.title} (${lesson.minutes} min)</div>
+                  <button type="button" class="features-charisma-toggle" data-lesson-id="${lesson.id}" style="border:none;border-radius:999px;padding:4px 10px;font-size:.75rem;cursor:pointer;background:${done ? '#16a34a' : '#334155'};color:#fff;">${done ? 'Done' : 'Mark Done'}</button>
+                </div>
+              `;
+            }).join('');
+          }
+
+          function toggleLesson(lessonId) {
+            const id = Number(lessonId);
+            if (!Number.isInteger(id)) return;
+            const state = readState();
+            const completedSet = new Set(state.completed);
+            if (completedSet.has(id)) completedSet.delete(id);
+            else completedSet.add(id);
+            writeState({ ...state, completed: Array.from(completedSet).sort((a, b) => a - b) });
+            render();
+          }
+
+          document.addEventListener('DOMContentLoaded', function () {
+            const lessonsEl = document.getElementById('featuresCharismaLessons');
+            const resetBtn = document.getElementById('featuresCharismaResetBtn');
+            const audioEl = document.getElementById('featuresCharismaAudio');
+            if (!lessonsEl || !resetBtn || !audioEl) return;
+
+            render();
+
+            lessonsEl.addEventListener('click', function (event) {
+              const btn = event.target.closest('.features-charisma-toggle');
+              if (!btn) return;
+              toggleLesson(btn.getAttribute('data-lesson-id'));
+            });
+
+            resetBtn.addEventListener('click', function () {
+              writeState({ completed: [], introListened: false });
+              audioEl.currentTime = 0;
+              audioEl.pause();
+              render();
+            });
+
+            audioEl.addEventListener('ended', function () {
+              const state = readState();
+              writeState({ ...state, introListened: true });
+              render();
+            });
+          });
+        })();
+      </script>
     </main>
   </div>
   <script src="js/return-navigation.js"></script>
