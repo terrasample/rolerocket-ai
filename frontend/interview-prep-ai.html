@@ -30,10 +30,10 @@
 
     <section class="communication-sprint" aria-label="Communication sprint" style="margin-top:18px;">
       <div class="sprint-header-row">
-        <h2 class="sprint-title">Communication Sprint System</h2>
+        <h2 class="sprint-title">RoleRocket Presence Lab</h2>
         <span id="sprintStatusPill" class="sprint-status-pill">0/14 complete</span>
       </div>
-      <p class="sprint-subtitle">Practice one communication skill at a time with guided playback, notes, and progress tracking.</p>
+      <p class="sprint-subtitle">Role-specific speaking drills with guided narration, timed practice rounds, and progress tracking.</p>
 
       <div class="sprint-controls-grid">
         <label for="sprintLessonSelect"><strong>Lesson</strong></label>
@@ -52,6 +52,7 @@
         <button id="sprintDoneBtn" type="button" class="auth-submit-btn tool-action-btn tool-action-btn--secondary">Mark Lesson Complete</button>
         <button id="sprintResetBtn" type="button" class="auth-submit-btn tool-action-btn tool-action-btn--secondary">Reset Sprint</button>
       </div>
+      <div id="sprintSessionMeta" style="margin-top:10px;color:#075985;font-weight:700;"></div>
 
       <label for="sprintLessonNotes" style="display:block;margin-top:12px;"><strong>Lesson Notes</strong></label>
       <textarea id="sprintLessonNotes" rows="3" class="premium-input" style="margin-bottom:8px;" placeholder="Capture your practice notes and examples for this lesson..."></textarea>
@@ -375,15 +376,49 @@
       const transcriptEl = document.getElementById('sprintTranscript');
       const lessonsEl = document.getElementById('sprintLessons');
       const progressMetaEl = document.getElementById('sprintProgressMeta');
+      const sessionMetaEl = document.getElementById('sprintSessionMeta');
       const statusPillEl = document.getElementById('sprintStatusPill');
       const playBtn = document.getElementById('sprintPlayBtn');
       const stopBtn = document.getElementById('sprintStopBtn');
       const doneBtn = document.getElementById('sprintDoneBtn');
       const resetBtn = document.getElementById('sprintResetBtn');
       let narrationSession = 0;
+      let sessionTimerId = null;
+      let sessionStartedAt = 0;
+      let sessionDurationMs = 0;
 
-      if (!lessonSelect || !voiceSelect || !rateInput || !notesEl || !transcriptEl || !lessonsEl || !progressMetaEl || !statusPillEl || !playBtn || !stopBtn || !doneBtn || !resetBtn) {
+      if (!lessonSelect || !voiceSelect || !rateInput || !notesEl || !transcriptEl || !lessonsEl || !progressMetaEl || !sessionMetaEl || !statusPillEl || !playBtn || !stopBtn || !doneBtn || !resetBtn) {
         return;
+      }
+
+      function formatClock(ms) {
+        const totalSec = Math.max(0, Math.floor(ms / 1000));
+        const min = Math.floor(totalSec / 60);
+        const sec = totalSec % 60;
+        return `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+      }
+
+      function clearSessionTimer() {
+        if (sessionTimerId) {
+          clearInterval(sessionTimerId);
+          sessionTimerId = null;
+        }
+      }
+
+      function startSessionTimer(lessonMinutes) {
+        clearSessionTimer();
+        sessionDurationMs = lessonMinutes * 60 * 1000;
+        sessionStartedAt = Date.now();
+        sessionMetaEl.textContent = `Practice session running: ${formatClock(0)} / ${formatClock(sessionDurationMs)}`;
+        sessionTimerId = setInterval(function () {
+          const elapsed = Date.now() - sessionStartedAt;
+          const safeElapsed = Math.min(elapsed, sessionDurationMs);
+          sessionMetaEl.textContent = `Practice session running: ${formatClock(safeElapsed)} / ${formatClock(sessionDurationMs)}`;
+          if (safeElapsed >= sessionDurationMs) {
+            clearSessionTimer();
+            sessionMetaEl.textContent = `Session complete: ${formatClock(sessionDurationMs)}. Mark lesson complete when ready.`;
+          }
+        }, 1000);
       }
 
       function readState() {
@@ -552,16 +587,21 @@
       function splitForPacedSpeech(text) {
         return String(text || '')
           .replace(/:/g, '. ')
-          .split(/(?<=[.!?])\s+|,\s+/)
+          .split(/(?<=[.!?])\s+|,\s+|;\s+/)
           .map((line) => line.trim())
           .filter(Boolean);
       }
 
       function buildSpeechQueue(lesson) {
-        const leadIn = `Lesson ${lesson.id}. ${lesson.title}. Focus on clear, calm delivery.`;
+        const leadIn = `RoleRocket Presence Lab. Lesson ${lesson.id}: ${lesson.title}. Focus on calm, clear, and confident delivery.`;
+        const coachingPrompts = [
+          'Practice cue. Say your strongest opening line now.',
+          'Second rep. Slow down by ten percent and keep your tone grounded.',
+          'Third rep. Make your outcome specific and measurable.',
+          'Final rep. Keep eye contact, pause, and end with confidence.'
+        ];
         const body = splitForPacedSpeech(lesson.text);
-        const close = 'Quick practice cue. Repeat your strongest sentence out loud one more time.';
-        return [leadIn, ...body, close];
+        return [leadIn, ...body, ...coachingPrompts];
       }
 
       function speakSegment(synth, text, voice, rate, pitch, transcriptTarget) {
@@ -583,6 +623,13 @@
         });
       }
 
+      function getPreferredRuntimeMs(lesson) {
+        const minMs = 60 * 1000;
+        const fromMinutes = Number(lesson.minutes) > 0 ? Number(lesson.minutes) * 60 * 1000 : 0;
+        if (fromMinutes >= minMs) return fromMinutes;
+        return minMs;
+      }
+
       async function playCurrentLesson() {
         const synth = window.speechSynthesis;
         if (!synth) {
@@ -597,26 +644,46 @@
         const voice = synth.getVoices().find((v) => v.name === voiceName);
         const baseRate = Number(rateInput.value) || 0.94;
         const queue = buildSpeechQueue(lesson);
+        const targetRuntimeMs = getPreferredRuntimeMs(lesson);
+        startSessionTimer(Math.max(1, lesson.minutes));
+        const started = Date.now();
+        let turn = 0;
 
-        for (let i = 0; i < queue.length; i += 1) {
-          if (synth.speaking === false && i > 0) break;
-          const text = queue[i];
-          const rateDelta = (i % 3 === 0 ? -0.02 : i % 2 === 0 ? 0.01 : 0);
-          const pitchDelta = (i % 4 === 0 ? 0.05 : i % 2 === 0 ? 0.02 : -0.01);
-          const safeRate = Math.min(1.08, Math.max(0.82, baseRate + rateDelta));
-          const safePitch = Math.min(1.12, Math.max(0.9, 1.0 + pitchDelta));
-          // Sequential utterances create natural breath-like pacing between clauses.
-          await speakSegment(synth, text, voice, safeRate, safePitch, transcriptEl);
-          if (sessionId !== narrationSession) {
-            break;
+        while (Date.now() - started < targetRuntimeMs) {
+          for (let i = 0; i < queue.length; i += 1) {
+            if (sessionId !== narrationSession) {
+              clearSessionTimer();
+              sessionMetaEl.textContent = 'Session stopped.';
+              return;
+            }
+
+            const text = queue[i];
+            const phrasingBias = turn % 2 === 0 ? 'Keep it conversational.' : 'Keep it crisp and confident.';
+            const spokenText = i === 0 ? `${text} ${phrasingBias}` : text;
+            const rateDelta = (i % 3 === 0 ? -0.03 : i % 2 === 0 ? 0.01 : 0);
+            const pitchDelta = (i % 4 === 0 ? 0.04 : i % 2 === 0 ? 0.02 : -0.01);
+            const safeRate = Math.min(1.04, Math.max(0.84, baseRate + rateDelta));
+            const safePitch = Math.min(1.08, Math.max(0.92, 1.0 + pitchDelta));
+            await speakSegment(synth, spokenText, voice, safeRate, safePitch, transcriptEl);
+
+            if (Date.now() - started >= targetRuntimeMs) {
+              break;
+            }
           }
+          turn += 1;
         }
 
-        transcriptEl.textContent = lesson.text;
+        if (sessionId === narrationSession) {
+          clearSessionTimer();
+          sessionMetaEl.textContent = `Session complete: ${formatClock(targetRuntimeMs)}. Mark lesson complete when ready.`;
+          transcriptEl.textContent = lesson.text;
+        }
       }
 
       function stopSpeech() {
         narrationSession += 1;
+        clearSessionTimer();
+        sessionMetaEl.textContent = 'Session stopped.';
         if (window.speechSynthesis) {
           window.speechSynthesis.cancel();
         }
@@ -641,6 +708,7 @@
       resetBtn.addEventListener('click', function () {
         stopSpeech();
         writeState({ activeLessonId: 1, completed: [], notes: {} });
+        sessionMetaEl.textContent = 'Session reset.';
         render();
       });
 
