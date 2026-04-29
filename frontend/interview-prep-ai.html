@@ -362,6 +362,7 @@
       const lessonSelect = document.getElementById('sprintLessonSelect');
       const audioPlayer = document.getElementById('sprintAudioPlayer');
       const audioSource = document.getElementById('sprintAudioSource');
+      const transcriptEl = document.getElementById('sprintTranscript');
       const notesEl = document.getElementById('sprintLessonNotes');
       const lessonsEl = document.getElementById('sprintLessons');
       const progressMetaEl = document.getElementById('sprintProgressMeta');
@@ -373,7 +374,7 @@
       let sessionStartedAt = 0;
       let sessionDurationMs = 0;
 
-      if (!lessonSelect || !audioPlayer || !audioSource || !notesEl || !lessonsEl || !progressMetaEl || !sessionMetaEl || !statusPillEl || !doneBtn || !resetBtn) {
+      if (!lessonSelect || !audioPlayer || !audioSource || !transcriptEl || !notesEl || !lessonsEl || !progressMetaEl || !sessionMetaEl || !statusPillEl || !doneBtn || !resetBtn) {
         return;
       }
 
@@ -431,6 +432,21 @@
         return LESSONS.find((l) => l.id === lessonId) || LESSONS[0];
       }
 
+      const LESSON_AUDIO_PREFIX = 'assets/audio/rolerocket-presence-lab-lesson-';
+      const FALLBACK_AUDIO_SRC = 'assets/audio/rolerocket-presence-lab-voiceover.m4a';
+      let usingFallbackAudio = false;
+
+      function setLessonAudioSource(lessonId) {
+        usingFallbackAudio = false;
+        audioSource.src = `${LESSON_AUDIO_PREFIX}${lessonId}.m4a`;
+        audioPlayer.load();
+      }
+
+      function resetAudioPlayback() {
+        audioPlayer.pause();
+        audioPlayer.currentTime = 0;
+      }
+
       function render() {
         const state = readState();
         const done = new Set(state.completed);
@@ -449,8 +465,7 @@
         const current = getCurrentLesson();
         notesEl.value = typeof state.notes[current.id] === 'string' ? state.notes[current.id] : '';
         transcriptEl.textContent = current.text;
-        audioSource.src = `assets/audio/rolerocket-presence-lab-lesson-${current.id}.m4a`;
-        audioPlayer.load();
+        setLessonAudioSource(current.id);
 
         lessonsEl.innerHTML = LESSONS.map((lesson) => {
           const isDone = done.has(lesson.id);
@@ -492,17 +507,17 @@
       function startLessonSession() {
         const current = getCurrentLesson();
         startSessionTimer(Math.max(1, current.minutes));
-        audioPlayer.play();
       }
 
       function stopLessonSession() {
         clearSessionTimer();
-        sessionMetaEl.textContent = 'Session stopped.';
-        audioPlayer.pause();
-        audioPlayer.currentTime = 0;
+        if (!audioPlayer.ended) {
+          sessionMetaEl.textContent = 'Session paused.';
+        }
       }
 
       lessonSelect.addEventListener('change', function () {
+        resetAudioPlayback();
         updateActiveLesson(lessonSelect.value);
       });
 
@@ -515,11 +530,20 @@
         sessionMetaEl.textContent = 'Narration complete. Practice your response aloud and mark complete when ready.';
       });
 
+      audioPlayer.addEventListener('error', function () {
+        if (usingFallbackAudio) return;
+        usingFallbackAudio = true;
+        audioSource.src = FALLBACK_AUDIO_SRC;
+        audioPlayer.load();
+        sessionMetaEl.textContent = 'Lesson audio is unavailable right now. Loaded the backup guided narration.';
+      });
+
       doneBtn.addEventListener('click', function () {
         toggleComplete(lessonSelect.value);
       });
 
       resetBtn.addEventListener('click', function () {
+        resetAudioPlayback();
         stopLessonSession();
         writeState({ activeLessonId: 1, completed: [], notes: {} });
         sessionMetaEl.textContent = 'Session reset.';
