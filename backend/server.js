@@ -431,7 +431,7 @@ app.use('/api/resume', require('./routes/resume'));
 
 // (REMOVED) Admin-only endpoint for backfilling referral codes has been disabled for security.
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY

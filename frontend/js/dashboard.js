@@ -869,6 +869,25 @@ let latestPlatformStats = {
 };
 let latestPlatformUsers = [];
 let latestPlatformUsersError = '';
+
+function isLikelyRealPersonName(name) {
+  const normalized = String(name || '').trim();
+  if (!normalized) return false;
+  if (/\d/.test(normalized)) return false;
+  if (/@|\+|_|\./.test(normalized)) return false;
+  if (!/^[A-Za-z][A-Za-z' -]{1,79}$/.test(normalized)) return false;
+
+  const lowered = normalized.toLowerCase();
+  if (/(verify\s*flow|test|tester|demo|sample|dummy|fake|qa|bot|admin|user)/i.test(lowered)) return false;
+
+  const parts = normalized.split(/\s+/).filter(Boolean);
+  if (parts.length < 2) return false;
+  return parts.every((part) => part.length >= 2);
+}
+
+function filterRealNamedUsers(users) {
+  return (Array.isArray(users) ? users : []).filter((user) => isLikelyRealPersonName(user?.name));
+}
 let quickstartConversionDays = 30;
 let outcomeKpiDays = 30;
 let activeAdminKpiTab = 'quickstart';
@@ -1410,9 +1429,10 @@ async function loadPlatformStats() {
     ]);
     if (statUsersCardEl) statUsersCardEl.hidden = false;
     if (statUsersLabelEl) statUsersLabelEl.textContent = 'Total signups';
-    latestPlatformStats.usersTotal = Number(adminStats.totals?.users || 0);
-    latestPlatformUsers = Array.isArray(adminUsers.users) ? adminUsers.users : [];
+    const adminUserList = Array.isArray(adminUsers.users) ? adminUsers.users : [];
+    latestPlatformUsers = filterRealNamedUsers(adminUserList);
     latestPlatformUsersError = adminUsers.error || '';
+    latestPlatformStats.usersTotal = latestPlatformUsers.length;
     if (statUsersEl) statUsersEl.textContent = formatStatNumber(latestPlatformStats.usersTotal);
     renderPlatformStatDetail('users');
     renderDashboardSignupRoster();

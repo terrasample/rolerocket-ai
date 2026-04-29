@@ -4,7 +4,7 @@
   "description": "RoleRocket AI job application assistant",
   "scripts": {
     "build": "cd backend && npm install",
-    "start": "node backend/server.js",
+    "start": "PORT=5001 node backend/server.js",
     "mobile:sync": "npx cap sync",
     "mobile:ios:add": "npx cap add ios",
     "mobile:ios:open": "npx cap open ios"
