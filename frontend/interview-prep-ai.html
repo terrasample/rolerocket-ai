@@ -380,6 +380,7 @@
       const stopBtn = document.getElementById('sprintStopBtn');
       const doneBtn = document.getElementById('sprintDoneBtn');
       const resetBtn = document.getElementById('sprintResetBtn');
+      let narrationSession = 0;
 
       if (!lessonSelect || !voiceSelect || !rateInput || !notesEl || !transcriptEl || !lessonsEl || !progressMetaEl || !statusPillEl || !playBtn || !stopBtn || !doneBtn || !resetBtn) {
         return;
@@ -465,54 +466,104 @@
         writeState({ ...state, notes });
       }
 
-      function splitForNaturalSpeech(text) {
-        return String(text || '')
-          .split(/(?<=[.!?])\s+/)
-          .map((line) => line.trim())
-          .filter(Boolean);
-      }
-
       function loadVoices() {
         const voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
         if (!voices.length) {
           voiceSelect.innerHTML = '<option value="">Default voice</option>';
           return;
         }
+        const existing = voiceSelect.value;
         const preferred = voices.filter((v) => /en-GB|en-US|en-JM/i.test(v.lang));
-        const sorted = (preferred.length ? preferred : voices).sort((a, b) => a.name.localeCompare(b.name));
-        voiceSelect.innerHTML = sorted.map((v) => `<option value="${v.name}">${v.name} (${v.lang})</option>`).join('');
-      }
+        const pool = preferred.length ? preferred : voices;
+        const priorityNames = ['Ava', 'Samantha', 'Allison', 'Karen', 'Moira', 'Daniel'];
+        const sorted = pool.slice().sort((a, b) => {
+          const aIdx = priorityNames.findIndex((name) => a.name.includes(name));
+          const bIdx = priorityNames.findIndex((name) => b.name.includes(name));
+          const aRank = aIdx === -1 ? 99 : aIdx;
+          const bRank = bIdx === -1 ? 99 : bIdx;
+          if (aRank !== bRank) return aRank - bRank;
+          return a.name.localeCompare(b.name);
+        });
 
-      function playCurrentLesson() {
-        const synth = window.speechSynthesis;
-        if (!synth) {
-          transcriptEl.textContent = 'Guided voice is not supported in this browser. Use the audio fallback player below.';
+        voiceSelect.innerHTML = sorted.map((v) => `<option value="${v.name}">${v.name} (${v.lang})</option>`).join('');
+
+        if (existing && sorted.some((v) => v.name === existing)) {
+          voiceSelect.value = existing;
           return;
         }
-        synth.cancel();
-        const lesson = getCurrentLesson();
-        const voiceName = voiceSelect.value;
-        const voice = synth.getVoices().find((v) => v.name === voiceName);
-        const rate = Number(rateInput.value) || 0.94;
-        const segments = splitForNaturalSpeech(lesson.text);
-        segments.forEach((segment, index) => {
-          const ut = new SpeechSynthesisUtterance(segment);
+
+        const naturalDefault = sorted.find((v) => /Ava|Samantha|Allison|Karen|Moira|Daniel/i.test(v.name));
+        voiceSelect.value = naturalDefault ? naturalDefault.name : sorted[0].name;
+      }
+
+      function splitForPacedSpeech(text) {
+        return String(text || '')
+          .replace(/:/g, '. ')
+          .split(/(?<=[.!?])\s+|,\s+/)
+          .map((line) => line.trim())
+          .filter(Boolean);
+      }
+
+      function buildSpeechQueue(lesson) {
+        const leadIn = `Lesson ${lesson.id}. ${lesson.title}. Focus on clear, calm delivery.`;
+        const body = splitForPacedSpeech(lesson.text);
+        const close = 'Quick practice cue. Repeat your strongest sentence out loud one more time.';
+        return [leadIn, ...body, close];
+      }
+
+      function speakSegment(synth, text, voice, rate, pitch, transcriptTarget) {
+        return new Promise((resolve) => {
+          const ut = new SpeechSynthesisUtterance(text);
           if (voice) ut.voice = voice;
           ut.rate = rate;
-          ut.pitch = 1.0;
+          ut.pitch = pitch;
           ut.onstart = function () {
-            transcriptEl.textContent = segment;
+            transcriptTarget.textContent = text;
           };
           ut.onend = function () {
-            if (index === segments.length - 1) {
-              transcriptEl.textContent = lesson.text;
-            }
+            resolve();
+          };
+          ut.onerror = function () {
+            resolve();
           };
           synth.speak(ut);
         });
       }
 
+      async function playCurrentLesson() {
+        const synth = window.speechSynthesis;
+        if (!synth) {
+          transcriptEl.textContent = 'Guided voice is not supported in this browser. Use the audio fallback player below.';
+          return;
+        }
+        narrationSession += 1;
+        const sessionId = narrationSession;
+        synth.cancel();
+        const lesson = getCurrentLesson();
+        const voiceName = voiceSelect.value;
+        const voice = synth.getVoices().find((v) => v.name === voiceName);
+        const baseRate = Number(rateInput.value) || 0.94;
+        const queue = buildSpeechQueue(lesson);
+
+        for (let i = 0; i < queue.length; i += 1) {
+          if (synth.speaking === false && i > 0) break;
+          const text = queue[i];
+          const rateDelta = (i % 3 === 0 ? -0.02 : i % 2 === 0 ? 0.01 : 0);
+          const pitchDelta = (i % 4 === 0 ? 0.05 : i % 2 === 0 ? 0.02 : -0.01);
+          const safeRate = Math.min(1.08, Math.max(0.82, baseRate + rateDelta));
+          const safePitch = Math.min(1.12, Math.max(0.9, 1.0 + pitchDelta));
+          // Sequential utterances create natural breath-like pacing between clauses.
+          await speakSegment(synth, text, voice, safeRate, safePitch, transcriptEl);
+          if (sessionId !== narrationSession) {
+            break;
+          }
+        }
+
+        transcriptEl.textContent = lesson.text;
+      }
+
       function stopSpeech() {
+        narrationSession += 1;
         if (window.speechSynthesis) {
           window.speechSynthesis.cancel();
         }
