@@ -38,18 +38,16 @@
       <div class="sprint-controls-grid">
         <label for="sprintLessonSelect"><strong>Lesson</strong></label>
         <select id="sprintLessonSelect" class="premium-input" style="margin-bottom:0;"></select>
-
-        <label for="sprintVoiceSelect"><strong>Narration Voice</strong></label>
-        <select id="sprintVoiceSelect" class="premium-input" style="margin-bottom:0;"></select>
-
-        <label for="sprintRate"><strong>Voice Speed</strong> <span id="sprintRateValue">0.94x</span></label>
-        <input id="sprintRate" type="range" min="0.8" max="1.1" value="0.94" step="0.01" />
       </div>
 
+      <label style="display:block;margin-top:12px;"><strong>Professional Guided Narration</strong></label>
+      <audio id="sprintAudioPlayer" controls preload="auto" style="width:100%;margin:8px 0 12px 0;">
+        <source src="assets/audio/rolerocket-presence-lab-voiceover.m4a" type="audio/mp4" />
+      </audio>
+      <p style="color:#0c4a6e;font-size:0.92rem;margin:0 0 12px 0;">Listen to the lesson narration, then practice your answer aloud. Track your progress below.</p>
+
       <div class="sprint-actions" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
-        <button id="sprintPlayBtn" type="button" class="auth-submit-btn premium-btn tool-action-btn tool-action-btn--primary">Play Guided Voice</button>
-        <button id="sprintStopBtn" type="button" class="auth-submit-btn tool-action-btn tool-action-btn--secondary">Stop</button>
-        <button id="sprintDoneBtn" type="button" class="auth-submit-btn tool-action-btn tool-action-btn--secondary">Mark Lesson Complete</button>
+        <button id="sprintDoneBtn" type="button" class="auth-submit-btn premium-btn tool-action-btn tool-action-btn--primary">Mark Lesson Complete</button>
         <button id="sprintResetBtn" type="button" class="auth-submit-btn tool-action-btn tool-action-btn--secondary">Reset Sprint</button>
       </div>
       <div id="sprintSessionMeta" style="margin-top:10px;color:#075985;font-weight:700;"></div>
@@ -57,14 +55,7 @@
       <label for="sprintLessonNotes" style="display:block;margin-top:12px;"><strong>Lesson Notes</strong></label>
       <textarea id="sprintLessonNotes" rows="3" class="premium-input" style="margin-bottom:8px;" placeholder="Capture your practice notes and examples for this lesson..."></textarea>
 
-      <div id="sprintTranscript" class="sprint-transcript" aria-live="polite"></div>
-
-      <details style="margin-top:10px;">
-        <summary style="cursor:pointer;font-weight:700;color:#0f172a;">Audio Fallback</summary>
-        <audio controls preload="metadata" style="width:100%;margin-top:8px;">
-          <source src="assets/audio/rolerocket-presence-lab-voiceover.m4a" type="audio/mp4" />
-        </audio>
-      </details>
+      <div id="sprintTranscript" class="sprint-transcript" aria-live="polite" style="display:none;"></div>
 
       <div id="sprintProgressMeta" style="margin-top:10px;color:#0c4a6e;font-weight:600;"></div>
       <div id="sprintLessons" style="margin-top:10px;"></div>
@@ -369,25 +360,19 @@
       ];
 
       const lessonSelect = document.getElementById('sprintLessonSelect');
-      const voiceSelect = document.getElementById('sprintVoiceSelect');
-      const rateInput = document.getElementById('sprintRate');
-      const rateValue = document.getElementById('sprintRateValue');
+      const audioPlayer = document.getElementById('sprintAudioPlayer');
       const notesEl = document.getElementById('sprintLessonNotes');
-      const transcriptEl = document.getElementById('sprintTranscript');
       const lessonsEl = document.getElementById('sprintLessons');
       const progressMetaEl = document.getElementById('sprintProgressMeta');
       const sessionMetaEl = document.getElementById('sprintSessionMeta');
       const statusPillEl = document.getElementById('sprintStatusPill');
-      const playBtn = document.getElementById('sprintPlayBtn');
-      const stopBtn = document.getElementById('sprintStopBtn');
       const doneBtn = document.getElementById('sprintDoneBtn');
       const resetBtn = document.getElementById('sprintResetBtn');
-      let narrationSession = 0;
       let sessionTimerId = null;
       let sessionStartedAt = 0;
       let sessionDurationMs = 0;
 
-      if (!lessonSelect || !voiceSelect || !rateInput || !notesEl || !transcriptEl || !lessonsEl || !progressMetaEl || !sessionMetaEl || !statusPillEl || !playBtn || !stopBtn || !doneBtn || !resetBtn) {
+      if (!lessonSelect || !audioPlayer || !notesEl || !lessonsEl || !progressMetaEl || !sessionMetaEl || !statusPillEl || !doneBtn || !resetBtn) {
         return;
       }
 
@@ -501,266 +486,17 @@
         writeState({ ...state, notes });
       }
 
-      function detectVoiceProfile() {
-        const ua = navigator.userAgent || '';
-        const isIOS = /iPhone|iPad|iPod/i.test(ua);
-        const isMac = /Macintosh/i.test(ua);
-        const isSafari = /Safari/i.test(ua) && !/Chrome|CriOS|Edg|OPR/i.test(ua);
-        const isChrome = /Chrome|CriOS/i.test(ua);
-        const isEdge = /Edg/i.test(ua);
-
-        if (isIOS && isSafari) {
-          return {
-            key: 'ios-safari',
-            rate: 0.92,
-            preferredNames: ['Samantha', 'Ava', 'Allison', 'Karen', 'Moira', 'Daniel']
-          };
-        }
-
-        if (isMac && isSafari) {
-          return {
-            key: 'mac-safari',
-            rate: 0.93,
-            preferredNames: ['Ava', 'Samantha', 'Allison', 'Karen', 'Moira', 'Daniel']
-          };
-        }
-
-        if (isEdge) {
-          return {
-            key: 'edge',
-            rate: 0.95,
-            preferredNames: ['Aria', 'Jenny', 'Guy', 'Sonia', 'Ryan', 'Emma']
-          };
-        }
-
-        if (isChrome) {
-          return {
-            key: 'chrome',
-            rate: 0.96,
-            preferredNames: ['Google UK English Female', 'Google US English', 'Samantha', 'Ava', 'Allison', 'Daniel']
-          };
-        }
-
-        return {
-          key: 'default',
-          rate: 0.94,
-          preferredNames: ['Ava', 'Samantha', 'Allison', 'Karen', 'Moira', 'Daniel']
-        };
+      function startLessonSession() {
+        const current = getCurrentLesson();
+        startSessionTimer(Math.max(1, current.minutes));
+        audioPlayer.play();
       }
 
-      const voiceProfile = detectVoiceProfile();
-      if (Number.isFinite(voiceProfile.rate)) {
-        rateInput.value = String(voiceProfile.rate);
-        rateValue.textContent = `${voiceProfile.rate.toFixed(2)}x`;
-      }
-
-      function loadVoices() {
-        const voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
-        if (!voices.length) {
-          voiceSelect.innerHTML = '<option value="">Default voice</option>';
-          return;
-        }
-        const existing = voiceSelect.value;
-        const preferred = voices.filter((v) => /en-GB|en-US|en-JM/i.test(v.lang));
-        const pool = preferred.length ? preferred : voices;
-        const priorityNames = voiceProfile.preferredNames;
-        const sorted = pool.slice().sort((a, b) => {
-          const aIdx = priorityNames.findIndex((name) => new RegExp(name, 'i').test(a.name));
-          const bIdx = priorityNames.findIndex((name) => new RegExp(name, 'i').test(b.name));
-          const aRank = aIdx === -1 ? 99 : aIdx;
-          const bRank = bIdx === -1 ? 99 : bIdx;
-          if (aRank !== bRank) return aRank - bRank;
-          return a.name.localeCompare(b.name);
-        });
-
-        voiceSelect.innerHTML = sorted.map((v) => `<option value="${v.name}">${v.name} (${v.lang})</option>`).join('');
-
-        if (existing && sorted.some((v) => v.name === existing)) {
-          voiceSelect.value = existing;
-          return;
-        }
-
-        const naturalDefault = sorted.find((v) => priorityNames.some((name) => new RegExp(name, 'i').test(v.name)));
-        voiceSelect.value = naturalDefault ? naturalDefault.name : sorted[0].name;
-      }
-
-      function splitForPacedSpeech(text) {
-        return String(text || '')
-          .replace(/:/g, '. ')
-          .split(/(?<=[.!?])\s+|,\s+|;\s+/)
-          .map((line) => line.trim())
-          .filter(Boolean);
-      }
-
-      function countWords(text) {
-        return String(text || '').trim().split(/\s+/).filter(Boolean).length;
-      }
-
-      function pick(arr, idx) {
-        if (!Array.isArray(arr) || !arr.length) return '';
-        return arr[((idx % arr.length) + arr.length) % arr.length];
-      }
-
-      function buildTimedLessonScript(lesson) {
-        const wordsPerMinute = 128;
-        const targetWords = Math.max(180, Math.round(lesson.minutes * wordsPerMinute));
-
-        const openings = [
-          `Welcome to RoleRocket Presence Lab. Lesson ${lesson.id}, ${lesson.title}.`,
-          'Today we will train your voice, pacing, and message control for interviews.',
-          'You will hear guidance, then practice, then refine your answer quality.'
-        ];
-
-        const roleFrames = [
-          'Frame your answer around business value, not activity.',
-          'Anchor your examples to measurable outcomes and clear ownership.',
-          'Use concise language so the interviewer can follow your logic quickly.',
-          'Speak as if you are already operating in the target role.'
-        ];
-
-        const drills = [
-          'Practice round {n}. State your opening answer in two crisp sentences.',
-          'Practice round {n}. Slow down your first sentence and stress the result.',
-          'Practice round {n}. Replace vague words with one concrete metric.',
-          'Practice round {n}. Keep your tone calm, steady, and intentional.',
-          'Practice round {n}. End with a confident close and no filler words.',
-          'Practice round {n}. Use one short story with a clear before and after.'
-        ];
-
-        const reflectionPrompts = [
-          'Quick reflection. Which phrase sounded strongest and why?',
-          'Quick reflection. Did your pace support clarity or create rush?',
-          'Quick reflection. Did you sound decisive at the end of your response?',
-          'Quick reflection. Which sentence can be tightened by five words?',
-          'Quick reflection. What would make this answer more role-specific?'
-        ];
-
-        const transitions = [
-          'Reset your posture, breathe in, and begin again.',
-          'Pause for two beats, then deliver your next version.',
-          'Keep your shoulders relaxed and project from your diaphragm.',
-          'Maintain eye focus and let each point land before moving on.'
-        ];
-
-        const roleSpecific = splitForPacedSpeech(lesson.text).map((line) => `${line} Apply this directly in your next interview answer.`);
-
-        const queue = [];
-        queue.push(...openings);
-        queue.push(...roleSpecific);
-
-        let round = 1;
-        let currentWords = queue.reduce((sum, line) => sum + countWords(line), 0);
-
-        while (currentWords < targetWords) {
-          const drill = pick(drills, round).replace('{n}', String(round));
-          const frame = pick(roleFrames, round + lesson.id);
-          const reflection = pick(reflectionPrompts, round * 2 + lesson.id);
-          const transition = pick(transitions, round * 3 + lesson.id);
-          const composite = `${drill} ${frame} ${transition} ${reflection}`;
-          queue.push(composite);
-          currentWords += countWords(composite);
-          round += 1;
-        }
-
-        queue.push('Session close. Deliver one final answer with calm confidence, clear structure, and measurable impact.');
-        return queue;
-      }
-
-      function speakSegment(synth, text, voice, rate, pitch, transcriptTarget) {
-        return new Promise((resolve) => {
-          const ut = new SpeechSynthesisUtterance(text);
-          if (voice) ut.voice = voice;
-          ut.rate = rate;
-          ut.pitch = pitch;
-          ut.onstart = function () {
-            transcriptTarget.textContent = text;
-          };
-          ut.onend = function () {
-            resolve();
-          };
-          ut.onerror = function () {
-            resolve();
-          };
-          synth.speak(ut);
-        });
-      }
-
-      function getSegmentProsody(index, total, baseRate) {
-        const phase = total <= 1 ? 0 : index / (total - 1);
-        let rate = baseRate;
-        let pitch = 1.0;
-
-        if (phase < 0.2) {
-          rate -= 0.03;
-          pitch += 0.01;
-        } else if (phase < 0.75) {
-          rate += (index % 3 === 0 ? 0.01 : -0.01);
-          pitch += (index % 4 === 0 ? 0.03 : 0);
-        } else {
-          rate -= 0.02;
-          pitch += 0.04;
-        }
-
-        return {
-          rate: Math.min(1.04, Math.max(0.84, rate)),
-          pitch: Math.min(1.1, Math.max(0.9, pitch))
-        };
-      }
-
-      function getPreferredRuntimeMs(lesson) {
-        const minMs = 60 * 1000;
-        const fromMinutes = Number(lesson.minutes) > 0 ? Number(lesson.minutes) * 60 * 1000 : 0;
-        if (fromMinutes >= minMs) return fromMinutes;
-        return minMs;
-      }
-
-      async function playCurrentLesson() {
-        const synth = window.speechSynthesis;
-        if (!synth) {
-          transcriptEl.textContent = 'Guided voice is not supported in this browser. Use the audio fallback player below.';
-          return;
-        }
-        narrationSession += 1;
-        const sessionId = narrationSession;
-        synth.cancel();
-        const lesson = getCurrentLesson();
-        const voiceName = voiceSelect.value;
-        const voice = synth.getVoices().find((v) => v.name === voiceName);
-        const baseRate = Number(rateInput.value) || 0.94;
-        const queue = buildTimedLessonScript(lesson);
-        const targetRuntimeMs = getPreferredRuntimeMs(lesson);
-        startSessionTimer(Math.max(1, lesson.minutes));
-
-        for (let i = 0; i < queue.length; i += 1) {
-          if (sessionId !== narrationSession) {
-            clearSessionTimer();
-            sessionMetaEl.textContent = 'Session stopped.';
-            return;
-          }
-
-          const text = queue[i];
-          const prosody = getSegmentProsody(i, queue.length, baseRate);
-          await speakSegment(synth, text, voice, prosody.rate, prosody.pitch, transcriptEl);
-
-          if (Date.now() - sessionStartedAt >= targetRuntimeMs) {
-            break;
-          }
-        }
-
-        if (sessionId === narrationSession) {
-          clearSessionTimer();
-          sessionMetaEl.textContent = `Session complete: ${formatClock(targetRuntimeMs)}. Mark lesson complete when ready.`;
-          transcriptEl.textContent = lesson.text;
-        }
-      }
-
-      function stopSpeech() {
-        narrationSession += 1;
+      function stopLessonSession() {
         clearSessionTimer();
         sessionMetaEl.textContent = 'Session stopped.';
-        if (window.speechSynthesis) {
-          window.speechSynthesis.cancel();
-        }
+        audioPlayer.pause();
+        audioPlayer.currentTime = 0;
       }
 
       lessonSelect.addEventListener('change', function () {
@@ -769,18 +505,19 @@
 
       notesEl.addEventListener('input', saveNotes);
 
-      rateInput.addEventListener('input', function () {
-        rateValue.textContent = `${Number(rateInput.value).toFixed(2)}x`;
+      audioPlayer.addEventListener('play', startLessonSession);
+      audioPlayer.addEventListener('pause', stopLessonSession);
+      audioPlayer.addEventListener('ended', function () {
+        clearSessionTimer();
+        sessionMetaEl.textContent = 'Narration complete. Practice your response aloud and mark complete when ready.';
       });
 
-      playBtn.addEventListener('click', playCurrentLesson);
-      stopBtn.addEventListener('click', stopSpeech);
       doneBtn.addEventListener('click', function () {
         toggleComplete(lessonSelect.value);
       });
 
       resetBtn.addEventListener('click', function () {
-        stopSpeech();
+        stopLessonSession();
         writeState({ activeLessonId: 1, completed: [], notes: {} });
         sessionMetaEl.textContent = 'Session reset.';
         render();
@@ -793,13 +530,6 @@
         updateActiveLesson(id);
         toggleComplete(id);
       });
-
-      if (window.speechSynthesis) {
-        loadVoices();
-        window.speechSynthesis.onvoiceschanged = loadVoices;
-      } else {
-        voiceSelect.innerHTML = '<option value="">Voice unavailable in this browser</option>';
-      }
 
       render();
     })();
