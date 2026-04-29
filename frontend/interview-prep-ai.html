@@ -592,16 +592,78 @@
           .filter(Boolean);
       }
 
-      function buildSpeechQueue(lesson) {
-        const leadIn = `RoleRocket Presence Lab. Lesson ${lesson.id}: ${lesson.title}. Focus on calm, clear, and confident delivery.`;
-        const coachingPrompts = [
-          'Practice cue. Say your strongest opening line now.',
-          'Second rep. Slow down by ten percent and keep your tone grounded.',
-          'Third rep. Make your outcome specific and measurable.',
-          'Final rep. Keep eye contact, pause, and end with confidence.'
+      function countWords(text) {
+        return String(text || '').trim().split(/\s+/).filter(Boolean).length;
+      }
+
+      function pick(arr, idx) {
+        if (!Array.isArray(arr) || !arr.length) return '';
+        return arr[((idx % arr.length) + arr.length) % arr.length];
+      }
+
+      function buildTimedLessonScript(lesson) {
+        const wordsPerMinute = 128;
+        const targetWords = Math.max(180, Math.round(lesson.minutes * wordsPerMinute));
+
+        const openings = [
+          `Welcome to RoleRocket Presence Lab. Lesson ${lesson.id}, ${lesson.title}.`,
+          'Today we will train your voice, pacing, and message control for interviews.',
+          'You will hear guidance, then practice, then refine your answer quality.'
         ];
-        const body = splitForPacedSpeech(lesson.text);
-        return [leadIn, ...body, ...coachingPrompts];
+
+        const roleFrames = [
+          'Frame your answer around business value, not activity.',
+          'Anchor your examples to measurable outcomes and clear ownership.',
+          'Use concise language so the interviewer can follow your logic quickly.',
+          'Speak as if you are already operating in the target role.'
+        ];
+
+        const drills = [
+          'Practice round {n}. State your opening answer in two crisp sentences.',
+          'Practice round {n}. Slow down your first sentence and stress the result.',
+          'Practice round {n}. Replace vague words with one concrete metric.',
+          'Practice round {n}. Keep your tone calm, steady, and intentional.',
+          'Practice round {n}. End with a confident close and no filler words.',
+          'Practice round {n}. Use one short story with a clear before and after.'
+        ];
+
+        const reflectionPrompts = [
+          'Quick reflection. Which phrase sounded strongest and why?',
+          'Quick reflection. Did your pace support clarity or create rush?',
+          'Quick reflection. Did you sound decisive at the end of your response?',
+          'Quick reflection. Which sentence can be tightened by five words?',
+          'Quick reflection. What would make this answer more role-specific?'
+        ];
+
+        const transitions = [
+          'Reset your posture, breathe in, and begin again.',
+          'Pause for two beats, then deliver your next version.',
+          'Keep your shoulders relaxed and project from your diaphragm.',
+          'Maintain eye focus and let each point land before moving on.'
+        ];
+
+        const roleSpecific = splitForPacedSpeech(lesson.text).map((line) => `${line} Apply this directly in your next interview answer.`);
+
+        const queue = [];
+        queue.push(...openings);
+        queue.push(...roleSpecific);
+
+        let round = 1;
+        let currentWords = queue.reduce((sum, line) => sum + countWords(line), 0);
+
+        while (currentWords < targetWords) {
+          const drill = pick(drills, round).replace('{n}', String(round));
+          const frame = pick(roleFrames, round + lesson.id);
+          const reflection = pick(reflectionPrompts, round * 2 + lesson.id);
+          const transition = pick(transitions, round * 3 + lesson.id);
+          const composite = `${drill} ${frame} ${transition} ${reflection}`;
+          queue.push(composite);
+          currentWords += countWords(composite);
+          round += 1;
+        }
+
+        queue.push('Session close. Deliver one final answer with calm confidence, clear structure, and measurable impact.');
+        return queue;
       }
 
       function speakSegment(synth, text, voice, rate, pitch, transcriptTarget) {
@@ -621,6 +683,28 @@
           };
           synth.speak(ut);
         });
+      }
+
+      function getSegmentProsody(index, total, baseRate) {
+        const phase = total <= 1 ? 0 : index / (total - 1);
+        let rate = baseRate;
+        let pitch = 1.0;
+
+        if (phase < 0.2) {
+          rate -= 0.03;
+          pitch += 0.01;
+        } else if (phase < 0.75) {
+          rate += (index % 3 === 0 ? 0.01 : -0.01);
+          pitch += (index % 4 === 0 ? 0.03 : 0);
+        } else {
+          rate -= 0.02;
+          pitch += 0.04;
+        }
+
+        return {
+          rate: Math.min(1.04, Math.max(0.84, rate)),
+          pitch: Math.min(1.1, Math.max(0.9, pitch))
+        };
       }
 
       function getPreferredRuntimeMs(lesson) {
@@ -643,34 +727,24 @@
         const voiceName = voiceSelect.value;
         const voice = synth.getVoices().find((v) => v.name === voiceName);
         const baseRate = Number(rateInput.value) || 0.94;
-        const queue = buildSpeechQueue(lesson);
+        const queue = buildTimedLessonScript(lesson);
         const targetRuntimeMs = getPreferredRuntimeMs(lesson);
         startSessionTimer(Math.max(1, lesson.minutes));
-        const started = Date.now();
-        let turn = 0;
 
-        while (Date.now() - started < targetRuntimeMs) {
-          for (let i = 0; i < queue.length; i += 1) {
-            if (sessionId !== narrationSession) {
-              clearSessionTimer();
-              sessionMetaEl.textContent = 'Session stopped.';
-              return;
-            }
-
-            const text = queue[i];
-            const phrasingBias = turn % 2 === 0 ? 'Keep it conversational.' : 'Keep it crisp and confident.';
-            const spokenText = i === 0 ? `${text} ${phrasingBias}` : text;
-            const rateDelta = (i % 3 === 0 ? -0.03 : i % 2 === 0 ? 0.01 : 0);
-            const pitchDelta = (i % 4 === 0 ? 0.04 : i % 2 === 0 ? 0.02 : -0.01);
-            const safeRate = Math.min(1.04, Math.max(0.84, baseRate + rateDelta));
-            const safePitch = Math.min(1.08, Math.max(0.92, 1.0 + pitchDelta));
-            await speakSegment(synth, spokenText, voice, safeRate, safePitch, transcriptEl);
-
-            if (Date.now() - started >= targetRuntimeMs) {
-              break;
-            }
+        for (let i = 0; i < queue.length; i += 1) {
+          if (sessionId !== narrationSession) {
+            clearSessionTimer();
+            sessionMetaEl.textContent = 'Session stopped.';
+            return;
           }
-          turn += 1;
+
+          const text = queue[i];
+          const prosody = getSegmentProsody(i, queue.length, baseRate);
+          await speakSegment(synth, text, voice, prosody.rate, prosody.pitch, transcriptEl);
+
+          if (Date.now() - sessionStartedAt >= targetRuntimeMs) {
+            break;
+          }
         }
 
         if (sessionId === narrationSession) {
