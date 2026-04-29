@@ -885,8 +885,27 @@ function isLikelyRealPersonName(name) {
   return parts.every((part) => part.length >= 2);
 }
 
+function isLikelyRealEmail(email) {
+  const e = String(email || '').trim().toLowerCase();
+  if (!e) return false;
+  // Block disposable/fake domains
+  if (/@(example\.com|example\.org|example\.net|test\.com|mailinator\.com|guerrillamail|tempmail|throwam|yopmail|trashmail|fakeinbox)/i.test(e)) return false;
+  // Block emails with long numeric sequences (auto-generated IDs)
+  if (/\d{6,}/.test(e)) return false;
+  // Block emails where the local part is mostly non-alpha (e.g. rawresponse_1775099...)
+  const localPart = e.split('@')[0] || '';
+  if ((localPart.match(/\d/g) || []).length > localPart.length * 0.4) return false;
+  // Block obvious test/bot patterns in the email local part
+  if (/(verify.*flow|postrotate|rawresponse|finalok|test\d|bot\d|demo\d)/i.test(localPart)) return false;
+  // Must have a valid basic email structure
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e)) return false;
+  return true;
+}
+
 function filterRealNamedUsers(users) {
-  return (Array.isArray(users) ? users : []).filter((user) => isLikelyRealPersonName(user?.name));
+  return (Array.isArray(users) ? users : []).filter(
+    (user) => isLikelyRealPersonName(user?.name) && isLikelyRealEmail(user?.email)
+  );
 }
 let quickstartConversionDays = 30;
 let outcomeKpiDays = 30;
