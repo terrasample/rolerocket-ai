@@ -466,6 +466,59 @@
         writeState({ ...state, notes });
       }
 
+      function detectVoiceProfile() {
+        const ua = navigator.userAgent || '';
+        const isIOS = /iPhone|iPad|iPod/i.test(ua);
+        const isMac = /Macintosh/i.test(ua);
+        const isSafari = /Safari/i.test(ua) && !/Chrome|CriOS|Edg|OPR/i.test(ua);
+        const isChrome = /Chrome|CriOS/i.test(ua);
+        const isEdge = /Edg/i.test(ua);
+
+        if (isIOS && isSafari) {
+          return {
+            key: 'ios-safari',
+            rate: 0.92,
+            preferredNames: ['Samantha', 'Ava', 'Allison', 'Karen', 'Moira', 'Daniel']
+          };
+        }
+
+        if (isMac && isSafari) {
+          return {
+            key: 'mac-safari',
+            rate: 0.93,
+            preferredNames: ['Ava', 'Samantha', 'Allison', 'Karen', 'Moira', 'Daniel']
+          };
+        }
+
+        if (isEdge) {
+          return {
+            key: 'edge',
+            rate: 0.95,
+            preferredNames: ['Aria', 'Jenny', 'Guy', 'Sonia', 'Ryan', 'Emma']
+          };
+        }
+
+        if (isChrome) {
+          return {
+            key: 'chrome',
+            rate: 0.96,
+            preferredNames: ['Google UK English Female', 'Google US English', 'Samantha', 'Ava', 'Allison', 'Daniel']
+          };
+        }
+
+        return {
+          key: 'default',
+          rate: 0.94,
+          preferredNames: ['Ava', 'Samantha', 'Allison', 'Karen', 'Moira', 'Daniel']
+        };
+      }
+
+      const voiceProfile = detectVoiceProfile();
+      if (Number.isFinite(voiceProfile.rate)) {
+        rateInput.value = String(voiceProfile.rate);
+        rateValue.textContent = `${voiceProfile.rate.toFixed(2)}x`;
+      }
+
       function loadVoices() {
         const voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
         if (!voices.length) {
@@ -475,10 +528,10 @@
         const existing = voiceSelect.value;
         const preferred = voices.filter((v) => /en-GB|en-US|en-JM/i.test(v.lang));
         const pool = preferred.length ? preferred : voices;
-        const priorityNames = ['Ava', 'Samantha', 'Allison', 'Karen', 'Moira', 'Daniel'];
+        const priorityNames = voiceProfile.preferredNames;
         const sorted = pool.slice().sort((a, b) => {
-          const aIdx = priorityNames.findIndex((name) => a.name.includes(name));
-          const bIdx = priorityNames.findIndex((name) => b.name.includes(name));
+          const aIdx = priorityNames.findIndex((name) => new RegExp(name, 'i').test(a.name));
+          const bIdx = priorityNames.findIndex((name) => new RegExp(name, 'i').test(b.name));
           const aRank = aIdx === -1 ? 99 : aIdx;
           const bRank = bIdx === -1 ? 99 : bIdx;
           if (aRank !== bRank) return aRank - bRank;
@@ -492,7 +545,7 @@
           return;
         }
 
-        const naturalDefault = sorted.find((v) => /Ava|Samantha|Allison|Karen|Moira|Daniel/i.test(v.name));
+        const naturalDefault = sorted.find((v) => priorityNames.some((name) => new RegExp(name, 'i').test(v.name)));
         voiceSelect.value = naturalDefault ? naturalDefault.name : sorted[0].name;
       }
 
