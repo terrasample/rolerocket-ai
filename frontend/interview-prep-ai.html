@@ -27,6 +27,47 @@
       </div>
     </div>
     <div id="interviewPrepResult" class="premium-result" style="margin-top:24px;min-height:120px;"></div>
+
+    <section class="communication-sprint" aria-label="Communication sprint" style="margin-top:18px;">
+      <div class="sprint-header-row">
+        <h2 class="sprint-title">Communication Sprint System</h2>
+        <span id="sprintStatusPill" class="sprint-status-pill">0/14 complete</span>
+      </div>
+      <p class="sprint-subtitle">Practice one communication skill at a time with guided playback, notes, and progress tracking.</p>
+
+      <div class="sprint-controls-grid">
+        <label for="sprintLessonSelect"><strong>Lesson</strong></label>
+        <select id="sprintLessonSelect" class="premium-input" style="margin-bottom:0;"></select>
+
+        <label for="sprintVoiceSelect"><strong>Narration Voice</strong></label>
+        <select id="sprintVoiceSelect" class="premium-input" style="margin-bottom:0;"></select>
+
+        <label for="sprintRate"><strong>Voice Speed</strong> <span id="sprintRateValue">0.94x</span></label>
+        <input id="sprintRate" type="range" min="0.8" max="1.1" value="0.94" step="0.01" />
+      </div>
+
+      <div class="sprint-actions" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+        <button id="sprintPlayBtn" type="button" class="auth-submit-btn premium-btn tool-action-btn tool-action-btn--primary">Play Guided Voice</button>
+        <button id="sprintStopBtn" type="button" class="auth-submit-btn tool-action-btn tool-action-btn--secondary">Stop</button>
+        <button id="sprintDoneBtn" type="button" class="auth-submit-btn tool-action-btn tool-action-btn--secondary">Mark Lesson Complete</button>
+        <button id="sprintResetBtn" type="button" class="auth-submit-btn tool-action-btn tool-action-btn--secondary">Reset Sprint</button>
+      </div>
+
+      <label for="sprintLessonNotes" style="display:block;margin-top:12px;"><strong>Lesson Notes</strong></label>
+      <textarea id="sprintLessonNotes" rows="3" class="premium-input" style="margin-bottom:8px;" placeholder="Capture your practice notes and examples for this lesson..."></textarea>
+
+      <div id="sprintTranscript" class="sprint-transcript" aria-live="polite"></div>
+
+      <details style="margin-top:10px;">
+        <summary style="cursor:pointer;font-weight:700;color:#0f172a;">Audio Fallback</summary>
+        <audio controls preload="metadata" style="width:100%;margin-top:8px;">
+          <source src="assets/audio/charisma-sprint-voiceover.m4a" type="audio/mp4" />
+        </audio>
+      </details>
+
+      <div id="sprintProgressMeta" style="margin-top:10px;color:#0c4a6e;font-weight:600;"></div>
+      <div id="sprintLessons" style="margin-top:10px;"></div>
+    </section>
   </div>
   <style>
     .premium-interview-card {
@@ -128,6 +169,88 @@
         padding: 20px 14px 16px;
       }
     }
+    .communication-sprint {
+      border: 1px solid #7dd3fc;
+      border-radius: 16px;
+      background: linear-gradient(180deg, #eff6ff 0%, #f8fafc 100%);
+      padding: 16px;
+    }
+    .sprint-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .sprint-title {
+      margin: 0;
+      color: #0f172a;
+      font-size: 1.18rem;
+    }
+    .sprint-status-pill {
+      border-radius: 999px;
+      background: #0ea5e9;
+      color: #fff;
+      padding: 4px 10px;
+      font-size: .82rem;
+      font-weight: 700;
+    }
+    .sprint-subtitle {
+      margin: 8px 0 12px;
+      color: #334155;
+    }
+    .sprint-controls-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(220px, 1fr));
+      gap: 8px 12px;
+      align-items: center;
+    }
+    .sprint-transcript {
+      border: 1px solid #bfdbfe;
+      border-radius: 10px;
+      background: #ffffff;
+      min-height: 88px;
+      padding: 10px;
+      color: #1e293b;
+      line-height: 1.55;
+    }
+    .sprint-lesson-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      border: 1px solid #bfdbfe;
+      border-radius: 10px;
+      background: #fff;
+      padding: 8px 10px;
+      margin-bottom: 8px;
+    }
+    .sprint-lesson-row.is-done {
+      border-color: #22c55e;
+      background: #f0fdf4;
+    }
+    .sprint-lesson-meta {
+      color: #334155;
+      font-size: .92rem;
+    }
+    .sprint-lesson-btn {
+      border: none;
+      border-radius: 999px;
+      padding: 5px 10px;
+      font-weight: 700;
+      cursor: pointer;
+      color: #fff;
+      background: #334155;
+    }
+    .sprint-lesson-btn.is-done {
+      background: #16a34a;
+    }
+    @media (max-width: 700px) {
+      .sprint-controls-grid {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="js/api-base.js"></script>
@@ -224,6 +347,216 @@
       document.body.removeChild(a);
       document.getElementById('interviewPrepResult').innerHTML += '<div style="color:#16a34a;">Word document downloaded.</div>';
     };
+
+    (function initCommunicationSprint() {
+      const STORAGE_KEY = 'interview-prep:communication-sprint:v1';
+      const LESSONS = [
+        { id: 1, title: 'First Impression Hacks', minutes: 15, text: 'Your first thirty seconds set the frame. Open with a calm smile, grounded posture, and one clear value statement about your fit.' },
+        { id: 2, title: 'Build Trust with Your Voice', minutes: 11, text: 'Slow down your first answer by ten percent. Use short sentence blocks so your points land with confidence and clarity.' },
+        { id: 3, title: 'Confidence Wins', minutes: 10, text: 'Confidence sounds specific. Use evidence: what you did, why it mattered, and what result came from your action.' },
+        { id: 4, title: 'Speak Up in Any Room', minutes: 10, text: 'Claim your space with concise framing. Start with the recommendation, then support it with two crisp reasons.' },
+        { id: 5, title: 'Storytelling Secrets', minutes: 13, text: 'Use a short STAR pattern: situation, task, action, result. Keep each part focused and tied to the target role.' },
+        { id: 6, title: 'Body Language That Supports Your Message', minutes: 15, text: 'Keep your shoulders open, chin neutral, and hands visible. Let posture reinforce your credibility, not distract from it.' },
+        { id: 7, title: 'Read People Like a Pro', minutes: 15, text: 'Listen for cues in tone and pacing. Mirror interview energy lightly and adapt your depth based on the interviewer response.' },
+        { id: 8, title: 'Give Tough Feedback Fast', minutes: 17, text: 'Lead with context, name the gap clearly, and end with forward action. Respectful directness builds leadership trust.' },
+        { id: 9, title: 'Handle Difficult People Smartly', minutes: 13, text: 'Separate behavior from identity. Acknowledge emotion, reset on goals, and redirect to concrete next steps.' },
+        { id: 10, title: 'Say No and Still Be Likable', minutes: 10, text: 'Say no to the request, not the person. Offer an alternative path so you protect priorities while preserving relationships.' },
+        { id: 11, title: 'Interrupt Smoothly', minutes: 10, text: 'Use bridge phrases like, one quick thought to build on that. Keep it brief and return the floor promptly.' },
+        { id: 12, title: 'Defuse Any Conflict', minutes: 15, text: 'Name the shared objective first. Then align on facts, options, and a clear owner for the next action.' },
+        { id: 13, title: 'Listen Like a Leader', minutes: 11, text: 'Summarize before responding. When people feel heard, your influence rises and your answers become sharper.' },
+        { id: 14, title: 'Small Talk Magic', minutes: 12, text: 'Use small talk as a bridge into relevance. Start warm, then connect naturally to role context and team outcomes.' }
+      ];
+
+      const lessonSelect = document.getElementById('sprintLessonSelect');
+      const voiceSelect = document.getElementById('sprintVoiceSelect');
+      const rateInput = document.getElementById('sprintRate');
+      const rateValue = document.getElementById('sprintRateValue');
+      const notesEl = document.getElementById('sprintLessonNotes');
+      const transcriptEl = document.getElementById('sprintTranscript');
+      const lessonsEl = document.getElementById('sprintLessons');
+      const progressMetaEl = document.getElementById('sprintProgressMeta');
+      const statusPillEl = document.getElementById('sprintStatusPill');
+      const playBtn = document.getElementById('sprintPlayBtn');
+      const stopBtn = document.getElementById('sprintStopBtn');
+      const doneBtn = document.getElementById('sprintDoneBtn');
+      const resetBtn = document.getElementById('sprintResetBtn');
+
+      if (!lessonSelect || !voiceSelect || !rateInput || !notesEl || !transcriptEl || !lessonsEl || !progressMetaEl || !statusPillEl || !playBtn || !stopBtn || !doneBtn || !resetBtn) {
+        return;
+      }
+
+      function readState() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          const parsed = raw ? JSON.parse(raw) : {};
+          const activeLessonId = Number(parsed.activeLessonId) || 1;
+          return {
+            activeLessonId: LESSONS.some((l) => l.id === activeLessonId) ? activeLessonId : 1,
+            completed: Array.isArray(parsed.completed) ? parsed.completed.filter((id) => LESSONS.some((l) => l.id === id)) : [],
+            notes: parsed.notes && typeof parsed.notes === 'object' ? parsed.notes : {}
+          };
+        } catch (_err) {
+          return { activeLessonId: 1, completed: [], notes: {} };
+        }
+      }
+
+      function writeState(next) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      }
+
+      function getCurrentLesson() {
+        const lessonId = Number(lessonSelect.value) || 1;
+        return LESSONS.find((l) => l.id === lessonId) || LESSONS[0];
+      }
+
+      function render() {
+        const state = readState();
+        const done = new Set(state.completed);
+        const countDone = done.size;
+        const pct = Math.round((countDone / LESSONS.length) * 100);
+        const remaining = LESSONS.filter((l) => !done.has(l.id)).reduce((sum, l) => sum + l.minutes, 0);
+        const total = LESSONS.reduce((sum, l) => sum + l.minutes, 0);
+        const nextLesson = LESSONS.find((l) => !done.has(l.id));
+
+        statusPillEl.textContent = `${countDone}/${LESSONS.length} complete`;
+        progressMetaEl.textContent = `Progress ${pct}% | Runtime ${total} min | Remaining ${remaining} min | Next: ${nextLesson ? `Lesson ${nextLesson.id} ${nextLesson.title}` : 'Sprint complete'}`;
+
+        lessonSelect.innerHTML = LESSONS.map((lesson) => `<option value="${lesson.id}">Lesson ${lesson.id}: ${lesson.title} (${lesson.minutes} min)</option>`).join('');
+        lessonSelect.value = String(state.activeLessonId);
+
+        const current = getCurrentLesson();
+        notesEl.value = typeof state.notes[current.id] === 'string' ? state.notes[current.id] : '';
+        transcriptEl.textContent = current.text;
+
+        lessonsEl.innerHTML = LESSONS.map((lesson) => {
+          const isDone = done.has(lesson.id);
+          return `
+            <div class="sprint-lesson-row ${isDone ? 'is-done' : ''}">
+              <div class="sprint-lesson-meta"><strong>Lesson ${lesson.id}</strong> ${lesson.title} (${lesson.minutes} min)</div>
+              <button type="button" class="sprint-lesson-btn ${isDone ? 'is-done' : ''}" data-lesson-id="${lesson.id}">${isDone ? 'Completed' : 'Mark Complete'}</button>
+            </div>
+          `;
+        }).join('');
+      }
+
+      function updateActiveLesson(id) {
+        const state = readState();
+        const lessonId = Number(id);
+        if (!LESSONS.some((l) => l.id === lessonId)) return;
+        writeState({ ...state, activeLessonId: lessonId });
+        render();
+      }
+
+      function toggleComplete(id) {
+        const state = readState();
+        const lessonId = Number(id);
+        if (!LESSONS.some((l) => l.id === lessonId)) return;
+        const done = new Set(state.completed);
+        if (done.has(lessonId)) done.delete(lessonId);
+        else done.add(lessonId);
+        writeState({ ...state, completed: Array.from(done).sort((a, b) => a - b) });
+        render();
+      }
+
+      function saveNotes() {
+        const state = readState();
+        const current = getCurrentLesson();
+        const notes = { ...state.notes, [current.id]: notesEl.value.trim() };
+        writeState({ ...state, notes });
+      }
+
+      function splitForNaturalSpeech(text) {
+        return String(text || '')
+          .split(/(?<=[.!?])\s+/)
+          .map((line) => line.trim())
+          .filter(Boolean);
+      }
+
+      function loadVoices() {
+        const voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+        if (!voices.length) {
+          voiceSelect.innerHTML = '<option value="">Default voice</option>';
+          return;
+        }
+        const preferred = voices.filter((v) => /en-GB|en-US|en-JM/i.test(v.lang));
+        const sorted = (preferred.length ? preferred : voices).sort((a, b) => a.name.localeCompare(b.name));
+        voiceSelect.innerHTML = sorted.map((v) => `<option value="${v.name}">${v.name} (${v.lang})</option>`).join('');
+      }
+
+      function playCurrentLesson() {
+        const synth = window.speechSynthesis;
+        if (!synth) {
+          transcriptEl.textContent = 'Guided voice is not supported in this browser. Use the audio fallback player below.';
+          return;
+        }
+        synth.cancel();
+        const lesson = getCurrentLesson();
+        const voiceName = voiceSelect.value;
+        const voice = synth.getVoices().find((v) => v.name === voiceName);
+        const rate = Number(rateInput.value) || 0.94;
+        const segments = splitForNaturalSpeech(lesson.text);
+        segments.forEach((segment, index) => {
+          const ut = new SpeechSynthesisUtterance(segment);
+          if (voice) ut.voice = voice;
+          ut.rate = rate;
+          ut.pitch = 1.0;
+          ut.onstart = function () {
+            transcriptEl.textContent = segment;
+          };
+          ut.onend = function () {
+            if (index === segments.length - 1) {
+              transcriptEl.textContent = lesson.text;
+            }
+          };
+          synth.speak(ut);
+        });
+      }
+
+      function stopSpeech() {
+        if (window.speechSynthesis) {
+          window.speechSynthesis.cancel();
+        }
+      }
+
+      lessonSelect.addEventListener('change', function () {
+        updateActiveLesson(lessonSelect.value);
+      });
+
+      notesEl.addEventListener('input', saveNotes);
+
+      rateInput.addEventListener('input', function () {
+        rateValue.textContent = `${Number(rateInput.value).toFixed(2)}x`;
+      });
+
+      playBtn.addEventListener('click', playCurrentLesson);
+      stopBtn.addEventListener('click', stopSpeech);
+      doneBtn.addEventListener('click', function () {
+        toggleComplete(lessonSelect.value);
+      });
+
+      resetBtn.addEventListener('click', function () {
+        stopSpeech();
+        writeState({ activeLessonId: 1, completed: [], notes: {} });
+        render();
+      });
+
+      lessonsEl.addEventListener('click', function (event) {
+        const btn = event.target.closest('.sprint-lesson-btn');
+        if (!btn) return;
+        const id = btn.getAttribute('data-lesson-id');
+        updateActiveLesson(id);
+        toggleComplete(id);
+      });
+
+      if (window.speechSynthesis) {
+        loadVoices();
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+      } else {
+        voiceSelect.innerHTML = '<option value="">Voice unavailable in this browser</option>';
+      }
+
+      render();
+    })();
   </script>
   <script src="js/return-navigation.js"></script>
 </body>
