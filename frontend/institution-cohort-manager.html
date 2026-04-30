@@ -68,6 +68,44 @@
     .icm-pagination { display: flex; gap: 10px; align-items: center; margin-top: 16px; font-size: .88rem; color: #94a3b8; }
     .icm-page-btn { padding: 6px 16px; border-radius: 8px; border: 1px solid #334155; background: #1e293b; color: #fff; cursor: pointer; }
     .icm-page-btn:disabled { opacity: .4; cursor: not-allowed; }
+    .icm-handoff {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 14px;
+      padding: 16px;
+      margin: 0 auto 22px;
+      max-width: 980px;
+    }
+    .icm-handoff h2 {
+      margin: 0 0 8px;
+      font-size: 1rem;
+      color: #e2e8f0;
+    }
+    .icm-handoff p {
+      margin: 0;
+      color: #94a3b8;
+      font-size: .9rem;
+    }
+    .icm-handoff-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .icm-handoff-links a {
+      text-decoration: none;
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #e2e8f0;
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: .86rem;
+      font-weight: 700;
+    }
+    .icm-handoff-links a:hover {
+      border-color: #6366f1;
+      color: #c7d2fe;
+    }
     @media (max-width: 768px) {
       .icm-hero { padding: 28px 18px 24px; }
       .icm-stat-card { max-width: none; }
@@ -108,6 +146,17 @@
       <h1>🏫 Institution Cohort Manager</h1>
       <p>Track your students' progress on RoleRocket AI — see plan adoption, activity, and engagement across your cohort.</p>
     </div>
+
+    <section class="icm-handoff" aria-label="Student and young professional tools">
+      <h2>Student & Young Professional Workspace</h2>
+      <p>Cohort Manager is for institution oversight. Students use the tools below for execution.</p>
+      <div class="icm-handoff-links">
+        <a href="resume-generator.html">📄 Resume Generator</a>
+        <a href="cover-letter-generator.html">✍️ Cover Letter Generator</a>
+        <a href="job-tracking.html">🔎 Find, Search & Track</a>
+        <a href="dashboard.html">🧑‍💼 My Dashboard</a>
+      </div>
+    </section>
 
     <!-- Stats bar -->
     <div class="icm-stats-bar" id="icmStatsBar">
