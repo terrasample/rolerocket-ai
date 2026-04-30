@@ -76,6 +76,11 @@
             <option value="institution">Institution (University, HEART/NSTA, College)</option>
           </select>
           <input id="signupInstitutionName" type="text" placeholder="Institution name (e.g. UTech, UWI, HEART Trust)" autocomplete="organization" style="display:none;margin-bottom:10px;" />
+          <div id="signupInstitutionHelp" style="background:#0f172a;border:1px solid #334155;border-radius:10px;padding:10px 12px;margin:4px 0 10px;color:#cbd5e1;font-size:.82rem;line-height:1.5;">
+            <strong style="color:#e2e8f0;">How institution linking works</strong><br>
+            Students: use your institution invite link so your account is linked automatically for cohort reporting.<br>
+            Institutions: choose <strong>Institution</strong> account type to access Cohort Manager dashboards.
+          </div>
           <button id="signupSubmitBtn" type="submit" class="auth-submit-btn" style="margin-top:6px;">Create Free Account</button>
         </form>
         <script>
@@ -110,11 +115,15 @@
           // Show/hide institution name field
           const acctType = document.getElementById('signupAccountType');
           const instInput = document.getElementById('signupInstitutionName');
+          const instHelp = document.getElementById('signupInstitutionHelp');
           if (institution) {
             instInput.value = institution;
             instInput.style.display = 'block';
             instInput.readOnly = true;
             instInput.title = 'Institution prefilled from invite link';
+            if (instHelp) {
+              instHelp.innerHTML = '<strong style="color:#e2e8f0;">Institution invite detected</strong><br>Your account will be linked to <strong style="color:#a5b4fc;">' + institution.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</strong> for cohort analytics.';
+            }
           }
           acctType.addEventListener('change', () => {
             if (instInput.readOnly && instInput.value.trim()) {
