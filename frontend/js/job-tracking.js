@@ -129,7 +129,7 @@ function createSearchJobCard(job) {
   viewLink.textContent = resolved.label;
 
   const saveBtn = document.createElement('button');
-  saveBtn.textContent = 'Save Job';
+  saveBtn.textContent = 'Add to Considered';
   saveBtn.addEventListener('click', async () => {
     try {
       await saveJobToBackend(job, 'saved');
@@ -141,7 +141,7 @@ function createSearchJobCard(job) {
 
   const readyBtn = document.createElement('button');
   readyBtn.className = 'secondary-btn';
-  readyBtn.textContent = 'Send to Ready';
+  readyBtn.textContent = 'Mark as Prepared';
   readyBtn.addEventListener('click', async () => {
     try {
       await saveJobToBackend(job, 'ready');
@@ -294,10 +294,11 @@ function createTrackerCard(job) {
 
   const select = document.createElement('select');
   const statuses = ['saved', 'ready', 'applied', 'interview', 'offer', 'rejected'];
+  const statusLabels = { saved: 'Considered', ready: 'Prepared', applied: 'Submitted', interview: 'Interviewing', offer: 'Offer Stage', rejected: 'Closed' };
   statuses.forEach((status) => {
     const option = document.createElement('option');
     option.value = status;
-    option.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+    option.textContent = statusLabels[status] || (status.charAt(0).toUpperCase() + status.slice(1));
     option.selected = currentStatus === status;
     select.appendChild(option);
   });

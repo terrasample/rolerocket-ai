@@ -3,14 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Resume Generator | RoleRocket AI</title>
+  <title>Resume Builder | Resume Studio | RoleRocket AI</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to main content</a>
   <div class="hero">
-    <h1>Resume Generator</h1>
-    <p>Generate a tailored resume for your target job in seconds.</p>
+    <h1>Resume Builder</h1>
+    <p class="home-brand-subtitle" style="color:#6d28d9;font-size:0.95rem;font-weight:600;margin-top:4px;">Resume Studio</p>
+    <p>Build a tailored resume for your target job in seconds.</p>
   </div>
   <main id="main" class="main" tabindex="-1">
     <button onclick="window.history.back()" class="back-arrow-btn" aria-label="Go back" style="margin:12px 0 18px 0;background:none;border:none;cursor:pointer;font-size:1.6em;color:#2563eb;"><span aria-hidden="true">&#8592;</span> Back</button>
@@ -81,5 +82,34 @@
   <script src="js/quickstart-progress.js"></script>
   <script src="js/resume-generator-gen.js"></script>
   <script src="js/return-navigation.js"></script>
+  <script>
+  // Auto-fill from student onboarding wizard
+  (function () {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('from') !== 'onboarding') return;
+
+    const draft = JSON.parse(localStorage.getItem('rr_student_draft') || '{}');
+    const baseline = localStorage.getItem('rr_resume_baseline') || '';
+
+    if (draft.jobTitle) {
+      const titleEl = document.getElementById('resumeJobTitleGen');
+      if (titleEl && !titleEl.value) titleEl.value = draft.jobTitle;
+    }
+    if (baseline) {
+      const baseEl = document.getElementById('resumeBaseGen');
+      if (baseEl && !baseEl.value) baseEl.value = baseline;
+    }
+
+    // Show a friendly welcome banner
+    const banner = document.createElement('div');
+    banner.style.cssText = 'background:#eff6ff;border:1px solid #bfdbfe;color:#1e3a8a;padding:12px 16px;border-radius:10px;margin-bottom:18px;font-size:0.95rem;font-weight:600;';
+    banner.innerHTML = '🚀 <strong>Welcome!</strong> We pre-filled your details from the quick-start. Review below and hit <em>Generate Resume</em> to build your first draft.';
+    const card = document.querySelector('.card');
+    if (card) card.insertBefore(banner, card.firstChild);
+
+    // Clean up storage
+    localStorage.removeItem('rr_resume_baseline');
+  })();
+  </script>
 </body>
 </html>

@@ -5,14 +5,14 @@ document.addEventListener('DOMContentLoaded', async function () {
 
   const homepageTierHighlights = {
     pro: [
-      'ATS Optimizer',
+      'ATS Optimization Engine',
       'Job Market Radar',
       'Application Quality Score',
-      'Resume Optimizer'
+      'Role Tailoring'
     ],
     premium: [
       'Interview Prep',
-      '1-Click Apply Queue',
+      'RocketApply',
       'AI Portfolio Builder',
       'AI Reference Generator'
     ],

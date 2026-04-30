@@ -161,7 +161,7 @@
         <a class="sidebar-link-btn active" href="index.html">Home</a>
         <a class="sidebar-link-btn" href="about-us.html">About Us</a>
         <a class="sidebar-link-btn" href="features.html">Features</a>
-        <a class="sidebar-link-btn" href="job-tracking.html">Find, Search & Track</a>
+        <a class="sidebar-link-btn" href="job-tracking.html">Opportunity Finder</a>
         <a class="sidebar-link-btn" href="ai-recruiter-assist.html">AI Recruiter Assist</a>
         <a class="sidebar-link-btn" href="pricing.html">Pricing</a>
         
@@ -213,7 +213,7 @@
                 <small>Generate a role-targeted resume draft.</small>
               </span>
             </label>
-            <a class="quickstart-link" href="resume-generator.html">Open Resume Generator</a>
+            <a class="quickstart-link" href="resume-generator.html">Open Resume Builder</a>
           </article>
 
           <article class="quickstart-step" data-quickstart-step="interview">
@@ -235,7 +235,7 @@
                 <small>Start your pipeline and move one role to action.</small>
               </span>
             </label>
-            <a class="quickstart-link" href="job-tracking.html">Open Job Tracking</a>
+            <a class="quickstart-link" href="job-tracking.html">Open Opportunity Finder</a>
           </article>
         </div>
         <div class="quickstart-progress" id="quickstartProgress">Progress: 0/4 completed</div>
@@ -287,7 +287,7 @@
         <p>Use one focused system for job targeting, tailored documents, interview prep, and execution.</p>
         <div class="premium-cta-links">
           <a href="features.html">Explore Features</a>
-          <a href="job-tracking.html">Open Job Tracking</a>
+          <a href="job-tracking.html">Opportunity Finder</a>
           
           <a href="pricing.html">Compare Plans</a>
         </div>
@@ -306,7 +306,7 @@
       <!-- Upgrade Now & Unlock Pro Button (visible on homepage) -->
       <section id="nextPlanCta" class="marketing-card tier-feature pro" style="margin: 32px 0; text-align: center;">
         <h2 id="nextPlanTitle">Upgrade Now & Unlock Pro</h2>
-        <p id="nextPlanDescription">Get all Pro features instantly: Resume Generator, Cover Letter AI, Job Match Analysis, LinkedIn Optimization, and more.</p>
+        <p id="nextPlanDescription">Get all Pro features instantly: Resume Builder, Application Builder, Fit Score Analysis, LinkedIn Optimization, and more.</p>
         <button id="unlockProBtn" class="checkout-btn" style="font-size:1.2em;padding:16px 32px;margin-top:12px;">Upgrade Now & Unlock Pro →</button>
         <div id="nextPlanNote" style="margin-top:10px;font-size:0.95em;color:#64748b;">No recurring fees until you choose. Cancel anytime.</div>
       </section>
@@ -379,7 +379,7 @@
         free: {
           cardClass: 'pro',
           title: 'Upgrade Now & Unlock Pro',
-          description: 'Get all Pro features instantly: Resume Generator, Cover Letter AI, Job Match Analysis, LinkedIn Optimization, and more.',
+          description: 'Get all Pro features instantly: Resume Builder, Application Builder, Fit Score Analysis, LinkedIn Optimization, and more.',
           button: 'Upgrade Now & Unlock Pro →',
           note: 'No recurring fees until you choose. Cancel anytime.',
           plan: 'pro',
@@ -388,7 +388,7 @@
         pro: {
           cardClass: 'premium',
           title: 'Upgrade Now & Unlock Premium',
-          description: 'Move up to Premium for Interview Prep, 1-Click Apply Queue, AI Portfolio Builder, Networking AI, and AI Reference Generator.',
+          description: 'Move up to Premium for Interview Prep, RocketApply, AI Portfolio Builder, Networking AI, and AI Reference Generator.',
           button: 'Upgrade Now & Unlock Premium →',
           note: 'Premium adds faster execution and stronger candidate positioning.',
           plan: 'premium',
@@ -445,24 +445,24 @@
         free: {
           intro: 'You have the foundation in place. Stay focused on the highest-leverage free actions next.',
           items: [
-            { title: 'Tailor one more role', copy: 'Use your saved resume to create a second role-specific version while the workflow is still fresh.', href: 'resume-generator.html', label: 'Generate another resume' },
-            { title: 'Build a live pipeline', copy: 'Save 3 strong-fit jobs so you are working a real pipeline instead of one-off applications.', href: 'job-tracking.html', label: 'Save more jobs' },
+            { title: 'Tailor one more role', copy: 'Use your saved resume to create a second role-specific version while the workflow is still fresh.', href: 'resume-generator.html', label: 'Build another resume' },
+            { title: 'Build a live pipeline', copy: 'Save 3 strong-fit jobs so you are working a real pipeline instead of one-off applications.', href: 'job-tracking.html', label: 'Add to Application Pipeline' },
             { title: 'Unlock more execution tools', copy: 'Pro opens ATS optimization and additional layout depth so you can move faster without guessing.', href: 'pricing.html', label: 'See plan options' }
           ]
         },
         pro: {
           intro: 'Your next gains come from improving quality control and applying with stronger positioning.',
           items: [
-            { title: 'Run ATS Optimizer', copy: 'Check your resume against a real job description before you apply again.', href: 'optimizer.html', label: 'Open ATS Optimizer' },
-            { title: 'Strengthen your core resume', copy: 'Use Resume Optimizer so future tailored versions start from a stronger base.', href: 'resume-optimizer.html', label: 'Open Resume Optimizer' },
-            { title: 'Keep your pipeline moving', copy: 'Track status changes so saved jobs become applied jobs this week.', href: 'job-tracking.html', label: 'Update job tracking' }
+            { title: 'Run ATS Optimization Engine', copy: 'Check your resume against a real job description before you apply again.', href: 'optimizer.html', label: 'Open ATS Check' },
+            { title: 'Strengthen your core resume', copy: 'Use Role Tailoring so future versions start from a stronger base.', href: 'resume-optimizer.html', label: 'Open Role Tailoring' },
+            { title: 'Keep your pipeline moving', copy: 'Track status changes so considered jobs become submitted applications this week.', href: 'job-tracking.html', label: 'Update Application Pipeline' }
           ]
         },
         premium: {
           intro: 'You have enough tools to improve both speed and conversion. Focus on the workflow after the resume.',
           items: [
             { title: 'Prep before the interview arrives', copy: 'Use Interview Prep AI now so you already have stories and frameworks ready.', href: 'interview-prep-ai.html', label: 'Open Interview Prep' },
-            { title: 'Queue stronger applications', copy: 'Move your best-fit roles into the 1-Click Apply flow so you can execute quickly.', href: 'one-click-apply-queue.html', label: 'Open 1-Click Apply' },
+            { title: 'Queue stronger applications', copy: 'Move your best-fit roles into RocketApply so you can execute with full AI support.', href: 'one-click-apply-queue.html', label: 'Open RocketApply' },
             { title: 'Expand your signal', copy: 'Use Networking AI to improve warm outreach while applications are in motion.', href: 'networking-ai.html', label: 'Open Networking AI' }
           ]
         },

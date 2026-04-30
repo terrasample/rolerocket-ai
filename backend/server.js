@@ -495,6 +495,7 @@ const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || '';
 const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER || '';
 
 const JOB_CACHE_MS = 1000 * 60 * 5;
+const JOB_STALE_CACHE_MS = 1000 * 60 * 60 * 12;
 const jobSearchCache = new Map();
 const COURSE_CONTENT_CACHE_TTL_MS = 1000 * 60 * 60 * 24;
 const COURSE_CHECK_SESSION_TTL_MS = 1000 * 60 * 120;
@@ -1298,46 +1299,105 @@ function estimateMatchScore(title, description, resume = '') {
 }
 
 async function fetchJson(url, options = {}, timeoutMs = EXTERNAL_FETCH_TIMEOUT_MS) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  const maxAttempts = 3;
+  let lastError = null;
 
-  try {
-    const res = await fetch(url, {
-      ...options,
-      signal: options.signal || controller.signal
-    });
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
-    if (!res.ok) {
-      throw new Error(`Fetch failed: ${res.status}`);
+    try {
+      const res = await fetch(url, {
+        ...options,
+        signal: options.signal || controller.signal
+      });
+
+      if (!res.ok) {
+        throw new Error(`Fetch failed: ${res.status}`);
+      }
+      return await res.json();
+    } catch (err) {
+      lastError = err;
+      const msg = String(err?.message || '').toLowerCase();
+      const isAbort = err?.name === 'AbortError' || msg.includes('timeout');
+      const isTransient = isAbort || msg.includes('fetch failed: 5') || msg.includes('econnreset') || msg.includes('enotfound') || msg.includes('socket hang up');
+
+      if (attempt === maxAttempts || !isTransient) {
+        if (isAbort) throw new Error('Fetch timeout');
+        throw err;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 150 * attempt));
+    } finally {
+      clearTimeout(timeout);
     }
-    return res.json();
-  } catch (err) {
-    if (err.name === 'AbortError') {
-      throw new Error('Fetch timeout');
-    }
-    throw err;
-  } finally {
-    clearTimeout(timeout);
   }
+
+  if (lastError?.name === 'AbortError') throw new Error('Fetch timeout');
+  throw lastError || new Error('Fetch failed');
+}
+
+function locationToAdzunaCountries(location) {
+  const loc = String(location || '').toLowerCase();
+  if (/\buk\b|united kingdom|england|scotland|wales|london|manchester|birmingham/.test(loc)) return ['gb'];
+  if (/\bcanada\b|\bca\b|toronto|ontario|vancouver|british columbia|alberta|quebec/.test(loc)) return ['ca'];
+  if (/\baustralia\b|\bau\b|sydney|melbourne|brisbane|perth/.test(loc)) return ['au'];
+  if (/\bgermany\b|\bde\b|berlin|munich|hamburg/.test(loc)) return ['de'];
+  if (/\bfrance\b|\bfr\b|paris|lyon/.test(loc)) return ['fr'];
+  if (/\bnew zealand\b|\bnz\b|auckland|wellington/.test(loc)) return ['nz'];
+  if (/\bjam[ai]+ca\b|kingston|montego/.test(loc)) return ['gb', 'us', 'ca']; // Jamaica not on Adzuna; broaden search
+  if (/\bcaribbean\b|trinidad|barbados|bahamas/.test(loc)) return ['gb', 'us', 'ca'];
+  if (/\bus\b|united states|usa|new york|california|texas|florida/.test(loc)) return ['us'];
+  if (/remote|worldwide|global|anywhere/.test(loc)) return [ADZUNA_COUNTRY, 'gb', 'ca'];
+  return [ADZUNA_COUNTRY];
 }
 
 async function fetchAdzunaJobs(title, location, resume) {
   if (!ADZUNA_APP_ID || !ADZUNA_APP_KEY) return [];
 
-  const url = `https://api.adzuna.com/v1/api/jobs/${ADZUNA_COUNTRY}/search/1?app_id=${encodeURIComponent(
-    ADZUNA_APP_ID
-  )}&app_key=${encodeURIComponent(ADZUNA_APP_KEY)}&results_per_page=20&what=${encodeURIComponent(
-    title
-  )}&where=${encodeURIComponent(location)}&content-type=application/json`;
+  const COUNTRY_LABELS = { gb: 'United Kingdom', us: 'United States', ca: 'Canada', au: 'Australia', de: 'Germany', fr: 'France', nz: 'New Zealand' };
+  const countries = locationToAdzunaCountries(location);
+  const ADZUNA_PAGES = 4;
+  const ADZUNA_RESULTS_PER_PAGE = 50;
 
-  const json = await fetchJson(url, {}, 1200);
-  const results = Array.isArray(json.results) ? json.results : [];
+  const adzunaRequests = [];
+  countries.forEach((country) => {
+    for (let page = 1; page <= ADZUNA_PAGES; page += 1) {
+      adzunaRequests.push({ country, page });
+    }
+  });
 
-  return results.map((job) =>
+  const allResults = await Promise.allSettled(
+    adzunaRequests.map(({ country, page }) => {
+      const url = `https://api.adzuna.com/v1/api/jobs/${country}/search/${page}?app_id=${encodeURIComponent(
+        ADZUNA_APP_ID
+      )}&app_key=${encodeURIComponent(ADZUNA_APP_KEY)}&results_per_page=${ADZUNA_RESULTS_PER_PAGE}&what=${encodeURIComponent(
+        title
+      )}&content-type=application/json`;
+      return fetchJson(url, {}, 2200).then((data) => ({ data, country }));
+    })
+  );
+
+  const results = [];
+  allResults.forEach((r) => {
+    if (r.status === 'fulfilled' && Array.isArray(r.value?.data?.results)) {
+      const countryLabel = COUNTRY_LABELS[r.value.country] || '';
+      r.value.data.results.forEach((job) => {
+        const jobLocation = job.location?.display_name || location;
+        // Append country name so isLocationCompatible can match it
+        const locationWithCountry = countryLabel && !jobLocation.toLowerCase().includes(countryLabel.toLowerCase())
+          ? `${jobLocation}, ${countryLabel}`
+          : jobLocation;
+        results.push({ job, locationWithCountry });
+      });
+    }
+  });
+
+  return results.map(({ job, locationWithCountry }) =>
     normalizeJob({
       title: job.title,
       company: job.company?.display_name || 'Unknown Company',
-      location: job.location?.display_name || location,
+      location: locationWithCountry,
       link: job.redirect_url || '#',
       description: job.description || '',
       postedAt: job.created,
@@ -1360,7 +1420,6 @@ async function fetchGreenhouseJobs(title, location, resume) {
         const text = `${job.title || ''} ${(job.location?.name || '')}`.toLowerCase();
         return text.includes(title.toLowerCase()) || !title.trim();
       })
-      .slice(0, 10)
       .map((job) =>
         normalizeJob({
           title: job.title,
@@ -1395,7 +1454,6 @@ async function fetchLeverJobs(title, location, resume) {
         const text = `${job.text || ''} ${(job.categories?.location || '')}`.toLowerCase();
         return text.includes(title.toLowerCase()) || !title.trim();
       })
-      .slice(0, 10)
       .map((job) =>
         normalizeJob({
           title: job.text,
@@ -1433,7 +1491,6 @@ async function fetchRemotiveJobs(title, location, resume) {
       const hasLocation = !location.trim() || haystack.includes(location.toLowerCase()) || haystack.includes('worldwide') || haystack.includes('remote');
       return hasTitle && hasLocation;
     })
-    .slice(0, 20)
     .map((job) =>
       normalizeJob({
         title: job.title,
@@ -1463,7 +1520,6 @@ async function fetchArbeitnowJobs(title, location, resume) {
       const hasLocation = !location.trim() || haystack.includes(location.toLowerCase()) || haystack.includes('remote');
       return hasTitle && hasLocation;
     })
-    .slice(0, 20)
     .map((job) =>
       normalizeJob({
         title: job.title,
@@ -1560,7 +1616,7 @@ function getBPOCompanyJobs(title, location, resume) {
           link: company.baseUrl,
           description: `${company.name} is hiring ${role} professionals. Join our team and help customers worldwide. Remote or on-site positions available in Jamaica.`,
           postedAt: new Date().toISOString(),
-          matchScore: 75 + Math.random() * 20,
+          matchScore: Math.min(95, estimateMatchScore(`${role} representative`, company.name, resume) + 10),
           source: 'BPO Career Portal',
           employmentType: 'full-time',
           isRemote: true,
@@ -1590,21 +1646,32 @@ async function fetchUsaJobs(title, location, resume) {
 
   const keyword = encodeURIComponent(title || '');
   const locationName = encodeURIComponent(location || '');
-  const url = `https://data.usajobs.gov/api/search?Keyword=${keyword}&LocationName=${locationName}&ResultsPerPage=25`;
-  const json = await fetchJson(
-    url,
-    {
-      headers: {
-        'Host': 'data.usajobs.gov',
-        'User-Agent': USAJOBS_USER_AGENT,
-        'Authorization-Key': USAJOBS_API_KEY
-      }
-    },
-    1500
+  const locationQuery = String(location || '').toLowerCase();
+  const usaPages = /united\s*states|\busa\b|\bus\b|america/.test(locationQuery) ? 4 : 1;
+
+  const responses = await Promise.allSettled(
+    Array.from({ length: usaPages }, (_, idx) => idx + 1).map((page) => {
+      const url = `https://data.usajobs.gov/api/search?Keyword=${keyword}&LocationName=${locationName}&ResultsPerPage=50&Page=${page}`;
+      return fetchJson(
+        url,
+        {
+          headers: {
+            'Host': 'data.usajobs.gov',
+            'User-Agent': USAJOBS_USER_AGENT,
+            'Authorization-Key': USAJOBS_API_KEY
+          }
+        },
+        2200
+      );
+    })
   );
 
-  const items = json?.SearchResult?.SearchResultItems;
-  const jobs = Array.isArray(items) ? items : [];
+  const jobs = [];
+  responses.forEach((r) => {
+    if (r.status !== 'fulfilled') return;
+    const items = r.value?.SearchResult?.SearchResultItems;
+    if (Array.isArray(items)) jobs.push(...items);
+  });
 
   return jobs.map((item) => {
     const d = item?.MatchedObjectDescriptor || {};
@@ -1652,18 +1719,60 @@ function getSourceConfigSnapshot() {
   };
 }
 
+function buildSourceTasks({ title, location, resume }) {
+  const q = String(location || '').trim().toLowerCase();
+  const isJamaica = /\bjamaica\b/.test(q);
+  const isCaribbean = /caribbean|trinidad|barbados|bahamas|guyana|st\s*lucia/.test(q);
+
+  const tasks = [
+    timeoutPromise(fetchAdzunaJobs(title, location, resume), 7000),
+    timeoutPromise(fetchGreenhouseJobs(title, location, resume), 2200),
+    timeoutPromise(fetchLeverJobs(title, location, resume), 2200),
+    timeoutPromise(fetchRemotiveJobs(title, location, resume), 2500),
+    timeoutPromise(fetchArbeitnowJobs(title, location, resume), 2500)
+  ];
+
+  if (/united\s*states|\busa\b|\bus\b/.test(q) || !q) {
+    tasks.push(timeoutPromise(fetchUsaJobs(title, location, resume), 7000));
+  }
+
+  if (isJamaica || isCaribbean || !q) {
+    tasks.push(timeoutPromise(fetchCaribJobs(title, location, resume), 2500));
+    tasks.push(timeoutPromise(fetchJamaicaEmployment(title, location, resume), 2500));
+    tasks.push(Promise.resolve(getBPOCompanyJobs(title, location, resume)));
+  }
+
+  return tasks;
+}
+
 async function fetchAllSourcesSettled({ title, location, resume }) {
-  return Promise.allSettled([
-    timeoutPromise(fetchAdzunaJobs(title, location, resume), 1400),
-    timeoutPromise(fetchGreenhouseJobs(title, location, resume), 1200),
-    timeoutPromise(fetchLeverJobs(title, location, resume), 1200),
-    timeoutPromise(fetchRemotiveJobs(title, location, resume), 1200),
-    timeoutPromise(fetchArbeitnowJobs(title, location, resume), 1200),
-    timeoutPromise(fetchUsaJobs(title, location, resume), 1600),
-    timeoutPromise(fetchCaribJobs(title, location, resume), 1000),
-    timeoutPromise(fetchJamaicaEmployment(title, location, resume), 1000),
-    Promise.resolve(getBPOCompanyJobs(title, location, resume))
+  return Promise.allSettled(buildSourceTasks({ title, location, resume }));
+}
+
+async function fetchJamaicaMarketFallbackJobs(title, resume) {
+  const normalizedTitle = String(title || '').trim() || 'Registered Nurse';
+
+  // Pull live jobs from markets that currently have stable structured APIs,
+  // then relabel as global market availability for Jamaica candidates.
+  const settled = await Promise.allSettled([
+    fetchAdzunaJobs(normalizedTitle, 'United Kingdom', resume),
+    fetchAdzunaJobs(normalizedTitle, 'United States', resume),
+    fetchAdzunaJobs(normalizedTitle, 'Canada', resume),
+    fetchUsaJobs(normalizedTitle, 'United States', resume)
   ]);
+
+  const combined = [];
+  settled.forEach((r) => {
+    if (r.status === 'fulfilled' && Array.isArray(r.value)) {
+      combined.push(...r.value);
+    }
+  });
+
+  const ranked = rankJobs(dedupeJobs(combined), { title: normalizedTitle, location: 'Jamaica' });
+  return ranked.map((job) => ({
+    ...job,
+    source: `${job.source} (Global market)`
+  }));
 }
 
 async function searchJobsFast({ title, location, resume }) {
@@ -1687,7 +1796,23 @@ async function searchJobsFast({ title, location, resume }) {
   const locationMatched = ranked.filter((job) => isLocationCompatible(job, location));
   const locationQuery = String(location || '').trim().toLowerCase();
   const allowBroadFallback = !locationQuery || /remote|worldwide|global|anywhere|anywhere in/i.test(locationQuery);
-  const jobs = (locationMatched.length || !allowBroadFallback ? locationMatched : ranked).slice(0, 60);
+  let jobs = (locationMatched.length || !allowBroadFallback ? locationMatched : ranked);
+
+  // For Jamaica, keep local matches first, then top up from live global market
+  // so users do not see artificially tiny result sets when local feeds are flaky.
+  if (/\bjamaica\b/.test(locationQuery)) {
+    const MIN_JAMAICA_RESULTS = 25;
+    if (jobs.length < MIN_JAMAICA_RESULTS) {
+      const fallbackJobs = await fetchJamaicaMarketFallbackJobs(title, resume);
+      const merged = dedupeJobs([...jobs, ...fallbackJobs]);
+      jobs = merged;
+    }
+  }
+
+  // If providers are flaky, return stale cache before showing empty.
+  if (!jobs.length && cached && Date.now() - cached.createdAt < JOB_STALE_CACHE_MS) {
+    return { jobs: cached.jobs, fromCache: true, staleCache: true };
+  }
   const finalJobs = jobs;
 
   jobSearchCache.set(cacheKey, {
@@ -5831,9 +5956,8 @@ app.get('/api/jobs/scout', async (req, res) => {
     const title = String(req.query.title || 'software engineer').trim();
     const location = String(req.query.location || 'remote').trim();
     const preferences = String(req.query.preferences || '').trim();
-    const limit = Math.max(1, Math.min(8, Number.parseInt(String(req.query.limit || '5'), 10) || 5));
     const { jobs } = await searchJobsFast({ title, location, resume: preferences });
-    const topJobs = jobs.slice(0, limit);
+    const topJobs = jobs;
 
     return res.json({
       query: { title, location, preferences },

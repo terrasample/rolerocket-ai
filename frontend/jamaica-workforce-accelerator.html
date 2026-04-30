@@ -574,7 +574,7 @@
         <a class="sidebar-link-btn" href="index.html">Home</a>
         <a class="sidebar-link-btn" href="about-us.html">About Us</a>
         <a class="sidebar-link-btn" href="features.html">Features</a>
-        <a class="sidebar-link-btn" href="job-tracking.html">Find, Search &amp; Track</a>
+        <a class="sidebar-link-btn" href="job-tracking.html">Opportunity Finder</a>
         <a class="sidebar-link-btn" href="ai-recruiter-assist.html">AI Recruiter Assist</a>
         <a class="sidebar-link-btn" href="pricing.html">Pricing</a>
         <a class="sidebar-link-btn" href="contact-us.html">Contact Us</a>
@@ -1329,6 +1329,21 @@
             </div>
             <button id="jwaGenerateInterviewBtn" class="jwa-submit-btn" type="button">Generate Q&amp;A Set</button>
             <div id="jwaInterviewResults" style="margin-top:14px;"></div>
+
+            <details class="jwa-collapsible" style="margin-top:12px;" open>
+              <summary>Communication Sprint (Audio)</summary>
+              <div class="jwa-collapsible-body">
+                <p style="color:#94a3b8;margin:0 0 10px;">A compact 14-lesson charisma sprint for interview presence and workplace confidence.</p>
+                <audio id="jwaCharismaAudio" controls preload="metadata" style="width:100%;max-width:720px;">
+                  <source src="assets/audio/charisma-sprint-voiceover.m4a" type="audio/mp4" />
+                </audio>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;">
+                  <button id="jwaCharismaResetBtn" class="jwa-download-btn" type="button">Reset Sprint Progress</button>
+                </div>
+                <div id="jwaCharismaProgress" class="jwa-status" style="margin-top:10px;"></div>
+                <div id="jwaCharismaLessons" style="margin-top:10px;"></div>
+              </div>
+            </details>
 
             <details class="jwa-collapsible" style="margin-top:12px;" open>
               <summary>Practice Log</summary>

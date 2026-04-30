@@ -65,18 +65,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         tier: 'free',
         features: [
           {
-            name: 'Resume Generator',
+            name: 'Resume Builder',
             desc: 'Turn your baseline resume into role-targeted versions without rewriting from scratch.',
             url: 'resume-generator.html',
           },
           {
-            name: 'Cover Letter Generator',
+            name: 'Application Builder',
             desc: 'Generate role-specific, high-conversion cover letters aligned to your resume and target job.',
             url: 'cover-letter-generator.html',
           },
           {
-            name: 'Job Search & Tracking',
-            desc: 'Find jobs, track applications, and organize your job search pipeline.',
+            name: 'Opportunity Finder',
+            desc: 'Find opportunities, build your Application Pipeline, and track every stage.',
             url: 'job-tracking.html',
           },
         ],
@@ -84,10 +84,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       {
         tier: 'pro',
         features: [
-          { name: 'ATS Optimizer', desc: 'Identify keyword gaps, structure issues, and weak phrasing before you apply.', url: 'optimizer.html' },
+          { name: 'ATS Optimization Engine', desc: 'Identify keyword gaps, structure issues, and weak phrasing before you apply.', url: 'optimizer.html' },
           { name: 'Job Market Radar', desc: 'See trending roles, in-demand skills, and market insights tailored to your profile.', url: 'job-market-radar.html' },
           { name: 'Application Quality Score', desc: 'Get a real-time score and actionable tips to improve your application before submitting.', url: 'application-quality-score.html' },
-          { name: 'Resume Optimizer', desc: 'Instantly improve your resume with AI-driven analysis and personalized suggestions.', url: 'resume-optimizer.html' },
+          { name: 'Role Tailoring', desc: 'Instantly improve your resume with AI-driven analysis and personalized suggestions.', url: 'resume-optimizer.html' },
           { name: 'Gamification', desc: 'Earn badges and rewards as you progress through your job search journey.', url: 'gamification.html' },
         ],
       },
@@ -95,7 +95,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         tier: 'premium',
         features: [
           { name: 'Interview Prep', desc: 'Generate realistic interview prompts and stronger response frameworks quickly.', url: 'interview-prep-ai.html' },
-          { name: '1-Click Apply Queue', desc: 'Send your best matches into the ready queue and execute quickly when timing matters.', url: 'one-click-apply-queue.html' },
+          { name: 'RocketApply', desc: 'AI tailors your resume, writes your cover letter, and launches your application in one shot.', url: 'one-click-apply-queue.html' },
           { name: 'AI Portfolio Builder', desc: 'Build a professional portfolio with AI-generated content and design suggestions.', url: 'ai-portfolio-builder.html' },
           { name: 'Networking AI', desc: 'Get AI-powered networking tips and introductions to relevant professionals.', url: 'networking-ai.html' },
           { name: 'AI Reference Generator', desc: 'Generate professional references and recommendation letters with AI assistance.', url: 'ai-reference-generator.html' },
@@ -715,9 +715,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (unlockMsg) unlockMsg.textContent = 'All features unlocked (admin/lifetime/subscribed)';
         tips = '<ul><li>All features unlocked (admin/lifetime/subscribed).</li></ul>';
       } else if (plan === 'pro') {
-        tips = '<ul><li>Use Resume Generator for tailored resumes.</li><li>Try Cover Letter AI for each application.</li></ul>';
+        tips = '<ul><li>Use Resume Builder to create tailored resumes.</li><li>Try Application Builder for each cover letter.</li></ul>';
       } else if (plan === 'premium') {
-        tips = '<ul><li>Optimize your resume with ATS Optimizer.</li><li>Use Interview Prep AI for upcoming interviews.</li></ul>';
+        tips = '<ul><li>Use the ATS Optimization Engine before every submission.</li><li>Use Interview Prep AI for upcoming interviews.</li></ul>';
       } else if (plan === 'elite') {
         tips = '<ul><li>Leverage Career Coach AI for strategy.</li><li>Review premium insights for your applications.</li></ul>';
       } else if (plan === 'lifetime') {
@@ -923,9 +923,9 @@ const PLAN_GUIDE_CONTENT = {
     outcome: 'Primary outcome: ship better application materials consistently so you can apply to more high-fit roles every week.',
     narrative: 'Pro turns RoleRocket from a tracker into an application production system. It focuses on the outputs that improve conversion early in the funnel.',
     bullets: [
-      'Resume Generator creates role-targeted versions faster.',
-      'Cover Letter AI removes blank-page friction for each application.',
-      'Job Match Analysis helps decide which roles deserve your time first.'
+      'Resume Builder creates role-targeted versions faster.',
+      'Application Builder removes blank-page friction for each cover letter.',
+      'Fit Score Analysis helps decide which roles deserve your time first.'
     ],
     signals: ['Application Speed', 'Tailored Output', 'Priority Focus'],
     steps: ['Prioritize best-fit roles', 'Tailor resume fast', 'Generate cover letter', 'Submit with more confidence'],
@@ -939,9 +939,9 @@ const PLAN_GUIDE_CONTENT = {
     outcome: 'Primary outcome: move more roles from interesting to applied while improving recruiter-readiness before each submission.',
     narrative: 'Premium adds the workflow tools that sharpen your materials and reduce friction between finding a role and actually getting the application out.',
     bullets: [
-      'ATS Optimizer surfaces keyword and readability gaps before you apply.',
+      'ATS Optimization Engine surfaces keyword and readability gaps before you apply.',
       'Interview Prep AI helps you prepare while opportunities are still warm.',
-      '1-Click Apply shortens the jump from ready queue to completed application.'
+      'RocketApply shortens the jump from Prepared queue to submitted application.'
     ],
     signals: ['Execution Speed', 'ATS Readiness', 'Interview Lift'],
     steps: ['Audit resume for ATS', 'Strengthen weak bullets', 'Prep likely interview questions', 'Apply from your ready queue'],

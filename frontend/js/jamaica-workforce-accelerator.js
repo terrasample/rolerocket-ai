@@ -467,7 +467,7 @@
       label: 'Jamaican Jobs',
       icon: '🇯🇲',
       locationQuery: 'Jamaica',
-      lockLabel: 'Location lock: Jamaica only',
+      lockLabel: 'Location focus: Jamaica first (global market backup)',
       matchHints: ['jamaica', 'kingston', 'montego bay', 'st. andrew', 'st andrew', 'ocho rios', 'spanish town']
     },
     {
@@ -570,14 +570,13 @@
     return score;
   }
 
-  async function fetchRegionalJobs(title, market, limit = 6) {
+  async function fetchRegionalJobs(title, market) {
     try {
       const dailyKey = new Date().toISOString().slice(0, 10);
       const params = new URLSearchParams({
         title: String(title || '').trim() || 'Customer Service Representative',
         location: market.locationQuery,
         preferences: `${market.label} jobs only`,
-        limit: String(Math.max(6, limit * 2)),
         day: dailyKey
       });
 
@@ -593,7 +592,6 @@
           title: String(title || '').trim() || 'Customer Service Representative',
           location: 'remote',
           preferences: `${market.label} jobs`,
-          limit: String(Math.max(8, limit * 3)),
           day: dailyKey
         });
 
@@ -626,13 +624,16 @@
         deduped.push(job);
       });
 
-      const filtered = deduped;
+      // For markets where direct location matching is unreliable (Jamaica, Caribbean),
+      // fall back to all valid results if the strict filter yields nothing.
+      const noDirectMarket = ['jamaica', 'caribbean'].includes(market.id);
+      const filtered = (deduped.length === 0 && noDirectMarket) ? normalized.filter((j) => j.link) : deduped;
 
       if (market.id === 'jamaica') {
         filtered.sort((a, b) => scoreJamaicaSourcePreference(b) - scoreJamaicaSourcePreference(a));
       }
 
-      return filtered.slice(0, limit);
+      return filtered;
     } catch (_error) {
       return [];
     }
@@ -659,7 +660,7 @@
       </details>
     `).join('');
 
-    const results = await Promise.all(REGION_MARKETS.map((market) => fetchRegionalJobs(roleKeyword, market, 6)));
+    const results = await Promise.all(REGION_MARKETS.map((market) => fetchRegionalJobs(roleKeyword, market)));
 
     REGION_MARKETS.forEach((market, index) => {
       const body = document.getElementById(`jwaMarketBody-${market.id}`);
@@ -1315,6 +1316,100 @@
       { q: 'A top performer is disengaged and output is falling. What is your approach?', a: 'Have a private diagnostic conversation, identify root cause, reset expectations, offer support, and track short-cycle improvement goals.' },
     ],
   };
+
+  const CHARISMA_SPRINT_KEY = 'jwa:charisma-sprint:v1';
+  const CHARISMA_SPRINT_LESSONS = [
+    { id: 1, title: 'First Impression Hacks', minutes: 15 },
+    { id: 2, title: 'Build Trust with Your Voice', minutes: 11 },
+    { id: 3, title: 'Confidence Wins', minutes: 10 },
+    { id: 4, title: 'Speak Up in Any Room', minutes: 10 },
+    { id: 5, title: 'Storytelling Secrets', minutes: 13 },
+    { id: 6, title: 'Body Language', minutes: 15 },
+    { id: 7, title: 'Read People Like a Pro', minutes: 15 },
+    { id: 8, title: 'Give Tough Feedback Fast', minutes: 17 },
+    { id: 9, title: 'Handle Difficult People Smartly', minutes: 13 },
+    { id: 10, title: 'Say No and Be Likable', minutes: 10 },
+    { id: 11, title: 'Interrupt Smoothly', minutes: 10 },
+    { id: 12, title: 'Defuse Any Conflict', minutes: 15 },
+    { id: 13, title: 'Listen Like a Leader', minutes: 11 },
+    { id: 14, title: 'Small Talk Magic', minutes: 12 }
+  ];
+
+  function readCharismaSprintState() {
+    try {
+      const raw = localStorage.getItem(CHARISMA_SPRINT_KEY);
+      const parsed = raw ? JSON.parse(raw) : {};
+      const completed = Array.isArray(parsed?.completed)
+        ? parsed.completed.filter((id) => Number.isInteger(id) && id >= 1 && id <= 14)
+        : [];
+      const introListened = Boolean(parsed?.introListened);
+      return { completed, introListened };
+    } catch (_error) {
+      return { completed: [], introListened: false };
+    }
+  }
+
+  function writeCharismaSprintState(state) {
+    try {
+      localStorage.setItem(CHARISMA_SPRINT_KEY, JSON.stringify({
+        completed: Array.isArray(state?.completed) ? state.completed : [],
+        introListened: Boolean(state?.introListened)
+      }));
+    } catch (_error) {
+      // Ignore localStorage errors.
+    }
+  }
+
+  function renderCharismaSprint() {
+    const progressEl = document.getElementById('jwaCharismaProgress');
+    const lessonsEl = document.getElementById('jwaCharismaLessons');
+    if (!progressEl || !lessonsEl) return;
+
+    const state = readCharismaSprintState();
+    const completedSet = new Set(state.completed);
+    const completedCount = completedSet.size;
+    const pct = Math.round((completedCount / CHARISMA_SPRINT_LESSONS.length) * 100);
+    const totalMinutes = CHARISMA_SPRINT_LESSONS.reduce((sum, lesson) => sum + lesson.minutes, 0);
+    const remainingMinutes = CHARISMA_SPRINT_LESSONS
+      .filter((lesson) => !completedSet.has(lesson.id))
+      .reduce((sum, lesson) => sum + lesson.minutes, 0);
+
+    progressEl.innerHTML = `<span style="color:#16a34a;">Progress: ${completedCount}/${CHARISMA_SPRINT_LESSONS.length} lessons (${pct}%). Intro audio: ${state.introListened ? 'completed' : 'not completed'}.</span><br><span style="color:#94a3b8;">Total runtime: ${totalMinutes} min • Remaining: ${remainingMinutes} min</span>`;
+
+    lessonsEl.innerHTML = CHARISMA_SPRINT_LESSONS.map((lesson) => {
+      const done = completedSet.has(lesson.id);
+      return `
+        <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:10px 12px;margin-bottom:8px;display:flex;justify-content:space-between;gap:10px;align-items:center;">
+          <div>
+            <div style="color:#f8fafc;font-weight:700;font-size:.88rem;">Lesson ${lesson.id}: ${esc(lesson.title)}</div>
+            <div style="color:#94a3b8;font-size:.8rem;">${lesson.minutes} min</div>
+          </div>
+          <button type="button" class="jwa-submit-btn jwa-charisma-toggle-btn" data-lesson-id="${lesson.id}" style="padding:6px 10px;font-size:.78rem;">${done ? 'Completed' : 'Mark Done'}</button>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function toggleCharismaLessonDone(lessonId) {
+    const id = Number(lessonId);
+    if (!Number.isInteger(id) || id < 1 || id > 14) return;
+    const state = readCharismaSprintState();
+    const completedSet = new Set(state.completed);
+    if (completedSet.has(id)) completedSet.delete(id);
+    else completedSet.add(id);
+    writeCharismaSprintState({ ...state, completed: Array.from(completedSet).sort((a, b) => a - b) });
+    renderCharismaSprint();
+  }
+
+  function resetCharismaSprint() {
+    writeCharismaSprintState({ completed: [], introListened: false });
+    const audio = document.getElementById('jwaCharismaAudio');
+    if (audio) {
+      audio.currentTime = 0;
+      audio.pause();
+    }
+    renderCharismaSprint();
+  }
 
   function renderScholarshipFinder() {
     const level = String(document.getElementById('jwaScholarLevel')?.value || 'all');
@@ -3790,6 +3885,7 @@
     renderApprenticeTargetsList();
     renderInterviewPracticeList();
     renderMentorRequestList();
+    renderCharismaSprint();
     renderReminderSummary();
 
     document.getElementById('jwaRefreshRegionalJobsBtn')?.addEventListener('click', renderMarketRadar);
@@ -3920,6 +4016,17 @@
     document.getElementById('jwaFindScholarshipsBtn')?.addEventListener('click', renderScholarshipFinder);
     document.getElementById('jwaScholarChecklistBtn')?.addEventListener('click', generateScholarChecklist);
     document.getElementById('jwaGenerateInterviewBtn')?.addEventListener('click', generateInterviewPrep);
+    document.getElementById('jwaCharismaLessons')?.addEventListener('click', function (event) {
+      const btn = event.target.closest('.jwa-charisma-toggle-btn');
+      if (!btn) return;
+      toggleCharismaLessonDone(btn.getAttribute('data-lesson-id'));
+    });
+    document.getElementById('jwaCharismaResetBtn')?.addEventListener('click', resetCharismaSprint);
+    document.getElementById('jwaCharismaAudio')?.addEventListener('ended', function () {
+      const state = readCharismaSprintState();
+      writeCharismaSprintState({ ...state, introListened: true });
+      renderCharismaSprint();
+    });
     document.getElementById('jwaFindApprenticeshipsBtn')?.addEventListener('click', renderApprenticeships);
     document.getElementById('jwaAnalyzeContractBtn')?.addEventListener('click', analyzeContractTerms);
     document.getElementById('jwaGenerateBizPlanBtn')?.addEventListener('click', generateBusinessPlan);

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Find, Search & Track | RoleRocket AI</title>
+  <title>Opportunity Finder | RoleRocket AI</title>
   <link rel="stylesheet" href="styles.css" />
   <script src="js/api-base.js"></script>
   <script src="js/import-resume.js"></script>
@@ -13,7 +13,7 @@
 
   <div class="hero contact-hero">
     <h1 class="home-brand-title"><span class="home-brand-rocket" aria-hidden="true">🚀</span><span>RoleRocket AI</span></h1>
-    <p class="home-brand-subtitle">Find, Search & Track</p>
+    <p class="home-brand-subtitle">Opportunity Finder</p>
   </div>
 
   <div class="layout">
@@ -23,7 +23,7 @@
         <a class="sidebar-link-btn" href="index.html">Home</a>
         <a class="sidebar-link-btn" href="about-us.html">About Us</a>
         <a class="sidebar-link-btn" href="features.html">Features</a>
-        <a class="sidebar-link-btn active" href="job-tracking.html">Find, Search & Track</a>
+        <a class="sidebar-link-btn active" href="job-tracking.html">Opportunity Finder</a>
         <a class="sidebar-link-btn" href="ai-recruiter-assist.html">AI Recruiter Assist</a>
         <a class="sidebar-link-btn" href="pricing.html">Pricing</a>
         <a class="sidebar-link-btn" href="contact-us.html">Contact Us</a>
@@ -39,13 +39,13 @@
     <main class="main marketing-main" id="mainContent" tabindex="-1">
       <button onclick="window.history.back()" class="back-arrow-btn" aria-label="Go back" style="margin:12px 0 0 12px;background:none;border:none;cursor:pointer;font-size:1.6em;color:#2563eb;"><span aria-hidden="true">&#8592;</span> Back</button>
       <section class="marketing-hero-card">
-        <h2>Search, import, track, and remove jobs from one page</h2>
-        <p>This tracker reuses your existing RoleRocket endpoints and status pipeline so your workflow stays consistent.</p>
+        <h2>Find your next opportunity and track every step</h2>
+        <p>Search live roles, import a job from any URL, and move every opportunity through your Application Pipeline.</p>
       </section>
 
       <section class="tracker-shell" aria-label="Job search and import tools">
         <article class="tracker-panel">
-          <h3>Find Jobs</h3>
+          <h3>Find Opportunities</h3>
           <div class="tracker-tools">
             <input id="jobTitle" placeholder="Job title" aria-label="Job title" />
             <input id="jobLocation" placeholder="Location" aria-label="Job location" />
@@ -77,8 +77,8 @@
       </section>
 
       <section class="tracker-wrap" aria-label="Job status tracker">
-        <h2 class="section-title">Pipeline Status</h2>
-        <p class="section-subtitle">Update status, remove jobs, and keep your pipeline clean.</p>
+        <h2 class="section-title">Application Pipeline</h2>
+        <p class="section-subtitle">Move every opportunity through your pipeline and stay on top of every stage.</p>
 
         <div style="display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:18px;padding:0 0 16px 0;border-bottom:1px solid #334155;">
           <label style="display:flex;align-items:center;gap:10px;flex:1 1 280px;background:#132039;border:1px solid #2b3a56;border-radius:10px;padding:10px 12px;color:#cbd5e1;">
@@ -90,32 +90,32 @@
 
         <div class="tracker-grid">
           <div class="tracker-column">
-            <h3>Saved</h3>
+            <h3>Considered</h3>
             <div id="savedJobs"></div>
           </div>
 
           <div class="tracker-column">
-            <h3>Ready</h3>
+            <h3>Prepared</h3>
             <div id="readyJobs"></div>
           </div>
 
           <div class="tracker-column">
-            <h3>Applied</h3>
+            <h3>Submitted</h3>
             <div id="appliedJobs"></div>
           </div>
 
           <div class="tracker-column">
-            <h3>Interview</h3>
+            <h3>Interviewing</h3>
             <div id="interviewJobs"></div>
           </div>
 
           <div class="tracker-column">
-            <h3>Offer</h3>
+            <h3>Offer Stage</h3>
             <div id="offerJobs"></div>
           </div>
 
           <div class="tracker-column">
-            <h3>Rejected</h3>
+            <h3>Closed</h3>
             <div id="rejectedJobs"></div>
           </div>
         </div>

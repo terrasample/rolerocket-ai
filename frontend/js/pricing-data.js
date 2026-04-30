@@ -2,16 +2,16 @@ window.RoleRocketPricingData = {
   candidatePlans: {
     free: {
       features: [
-        'Resume Generator',
-        'Cover Letter Generator',
-        'Job Search & Tracking'
+        'Resume Builder',
+        'Application Builder',
+        'Opportunity Finder'
       ]
     },
     pro: {
       features: [
         'Everything in Free',
-        'ATS Optimizer',
-        'Resume Optimizer',
+        'ATS Optimization Engine',
+        'Role Tailoring',
         'Application Quality Score',
         'Job Market Radar',
         'Gamification'
@@ -21,7 +21,7 @@ window.RoleRocketPricingData = {
       features: [
         'Everything in Pro',
         'Interview Prep',
-        '1-Click Apply Queue',
+        'RocketApply',
         'AI Portfolio Builder',
         'Networking AI',
         'AI Reference Generator'

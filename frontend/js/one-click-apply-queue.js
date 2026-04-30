@@ -96,7 +96,7 @@ document.addEventListener('DOMContentLoaded', function () {
       company,
       link,
       status: 'ready',
-      notes: role ? `Queued from 1-Click Apply Queue for ${role}` : 'Queued from 1-Click Apply Queue'
+      notes: role ? `Queued from RocketApply for ${role}` : 'Queued from RocketApply'
     };
   }
 
