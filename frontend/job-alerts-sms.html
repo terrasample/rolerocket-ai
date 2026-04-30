@@ -6,6 +6,7 @@
   <title>Job Alerts (SMS & WhatsApp) | RoleRocket AI</title>
   <link rel="stylesheet" href="styles.css" />
   <style>
+    body, .main-content { background: #0c1120 !important; color: #e2e8f0; }
     .alerts-hero {
       background: linear-gradient(135deg, #064e3b 0%, #007847 55%, #22c55e 100%);
       color: #fff; padding: 40px 32px 36px; text-align: center;
@@ -89,7 +90,6 @@
       <a class="sidebar-link-btn" href="contact-us.html">Contact Us</a>
       <a class="sidebar-link-btn" href="jamaica-workforce-accelerator.html">🇯🇲 Jamaica Workforce Accelerator</a>
       <a class="sidebar-link-btn" href="institution-cohort-manager.html">🏫 Cohort Manager</a>
-        <a class="sidebar-link-btn" href="job-alerts-sms.html">📱 Job Alerts</a>
       <a class="sidebar-link-btn active" href="job-alerts-sms.html">📱 Job Alerts</a>
       <a class="sidebar-link-btn" href="account.html">👤 Account</a>
       <a class="sidebar-link-btn premium-btn" href="dashboard.html">🧑‍💼 My Dashboard</a>
@@ -195,7 +195,17 @@
     let pendingAlertId = null;
 
     // ── Helpers ───────────────────────────────────────────────────────────
-    const token = () => getAuthToken?.() || localStorage.getItem('authToken') || localStorage.getItem('token');
+    const token = () => {
+      if (typeof getAuthToken === 'function') {
+        try {
+          const t = getAuthToken();
+          if (t) return t;
+        } catch (_) {
+          // Fall through to storage tokens.
+        }
+      }
+      return localStorage.getItem('authToken') || localStorage.getItem('token') || sessionStorage.getItem('authToken') || sessionStorage.getItem('token') || '';
+    };
     const setStatus = (elId, msg, type = '') => {
       const el = document.getElementById(elId);
       if (!el) return;
@@ -204,7 +214,8 @@
     };
 
     // ── Register ──────────────────────────────────────────────────────────
-    document.getElementById('alertRegisterBtn').addEventListener('click', async () => {
+    const registerBtn = document.getElementById('alertRegisterBtn');
+    if (registerBtn) registerBtn.addEventListener('click', async () => {
       const phone     = document.getElementById('alertPhone').value.trim();
       const alertType = document.querySelector('input[name="alertType"]:checked')?.value || 'sms';
       const frequency = document.getElementById('alertFrequency').value;
@@ -238,7 +249,8 @@
     });
 
     // ── Verify ────────────────────────────────────────────────────────────
-    document.getElementById('alertVerifyBtn').addEventListener('click', async () => {
+    const verifyBtn = document.getElementById('alertVerifyBtn');
+    if (verifyBtn) verifyBtn.addEventListener('click', async () => {
       const code = document.getElementById('alertVerifyCode').value.trim();
       if (!code) { setStatus('alertVerifyStatus', 'Enter the verification code.', 'error'); return; }
       if (!pendingAlertId) { setStatus('alertVerifyStatus', 'Please register first.', 'error'); return; }
