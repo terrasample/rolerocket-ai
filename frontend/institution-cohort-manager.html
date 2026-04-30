@@ -527,20 +527,37 @@
         var payload = await res.json();
         var actor = payload && payload.user ? payload.user : null;
         
-        // Deny access to regular individual users
         if (!actor) { redirectToLogin(); return null; }
+        
+        // Allow institution admins
+        if (actor.accountType === 'institution') {
+          institutionName = actor.institutionName || '';
+          if (institutionName) {
+            var pill = document.getElementById('icmInstitutionPill');
+            if (pill) { pill.textContent='Institution: '+institutionName; pill.style.display='inline-block'; }
+          }
+          return actor;
+        }
+        
+        // Allow students linked to a cohort (have institutionId or institutionName)
+        if (actor.accountType === 'individual' && (actor.institutionId || actor.institutionName)) {
+          institutionName = actor.institutionName || '';
+          if (institutionName) {
+            var pill = document.getElementById('icmInstitutionPill');
+            if (pill) { pill.textContent='Cohort: '+institutionName; pill.style.display='inline-block'; }
+          }
+          return actor;
+        }
+        
+        // Deny: regular users without cohort linking
         if (actor.accountType === 'individual') {
-          renderAccessDeniedState('Cohort Manager is restricted to institution administrators. If you believe this is an error, please contact your institution.');
+          renderAccessDeniedState('Cohort Manager is for institution administrators and linked students. Join a cohort or contact your institution.');
           return null;
         }
-        if (actor.accountType !== 'institution') { renderInstitutionOnlyState(); return null; }
         
-        institutionName = actor.institutionName || '';
-        if (institutionName) {
-          var pill = document.getElementById('icmInstitutionPill');
-          if (pill) { pill.textContent='Institution: '+institutionName; pill.style.display='inline-block'; }
-        }
-        return actor;
+        // Deny other account types
+        renderInstitutionOnlyState();
+        return null;
       } catch(e) { if(typeof clearStoredToken==='function')clearStoredToken(); redirectToLogin(); return null; }
     }
 
