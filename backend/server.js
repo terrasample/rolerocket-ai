@@ -1218,6 +1218,13 @@ function scoreLocationRelevance(jobLocation = '', queryLocation = '') {
   return 2;
 }
 
+function isCaribbeanIslandLocationText(value = '') {
+  const text = String(value || '').toLowerCase();
+  if (!text) return false;
+
+  return /caribbean|jamaica|bahamas|barbados|aruba|cura[cg]ao|curacao|antigua|st\.?\s*martin|saint\s*martin|sint\s*maarten|st\.?\s*maarten|trinidad|tobago|guyana|st\.?\s*lucia|saint\s*lucia|grenada|dominica|st\.?\s*kitts|saint\s*kitts|nevis|belize|suriname|cayman|bermuda|martinique|guadeloupe|puerto\s*rico|dominican\s*republic|haiti|bonaire|anguilla|turks\s*and\s*caicos|virgin\s*islands/.test(text);
+}
+
 function buildLocationHints(queryLocation = '') {
   const query = String(queryLocation || '').trim().toLowerCase();
   if (!query) return [];
@@ -1237,7 +1244,7 @@ function buildLocationHints(queryLocation = '') {
     },
     {
       match: ['caribbean'],
-      hints: ['caribbean', 'jamaica', 'trinidad', 'barbados', 'bahamas', 'guyana', 'st lucia', 'saint lucia', 'antigua', 'grenada']
+      hints: ['caribbean', 'jamaica', 'trinidad', 'tobago', 'barbados', 'bahamas', 'aruba', 'curaçao', 'curacao', 'guyana', 'st martin', 'saint martin', 'sint maarten', 'st lucia', 'saint lucia', 'antigua', 'grenada', 'dominica', 'st kitts', 'nevis', 'belize', 'suriname', 'cayman', 'bermuda', 'martinique', 'guadeloupe']
     },
     {
       match: ['united states', 'usa', 'us'],
@@ -1261,6 +1268,12 @@ function isLocationCompatible(job = {}, queryLocation = '') {
   if (query.includes('remote')) {
     const remoteText = `${String(job?.location || '')} ${String(job?.description || '')}`.toLowerCase();
     return /remote|worldwide|work from home|distributed/.test(remoteText);
+  }
+
+  const isCaribbeanQuery = /caribbean|jamaica|bahamas|barbados|aruba|antigua|st\.?\s*martin|saint\s*martin|sint\s*maarten|trinidad|tobago|guyana|st\.?\s*lucia|saint\s*lucia|grenada|dominica|st\.?\s*kitts|nevis|belize|suriname|cayman|bermuda|martinique|guadeloupe/.test(query);
+  if (isCaribbeanQuery) {
+    const scopedHaystack = `${String(job?.location || '')} ${String(job?.description || '')} ${String(job?.company || '')} ${String(job?.link || '')}`.toLowerCase();
+    if (!isCaribbeanIslandLocationText(scopedHaystack)) return false;
   }
 
   const hints = buildLocationHints(query);
@@ -1926,9 +1939,11 @@ function parseCaribbeanJobsDate(value = '') {
   return dt.toISOString();
 }
 
-function parseCaribbeanJobsListingHtml(html, resume) {
+function parseCaribbeanJobsListingHtml(html, resume, targetLocation = '') {
   const blocks = String(html || '').match(/<div class="module job-result[\s\S]*?<div class="job-result-cta"[\s\S]*?<\/div>\s*<\/div>\s*<\/div>/gi) || [];
   const records = [];
+  const target = String(targetLocation || '').trim().toLowerCase();
+  const targetIsCaribbean = /caribbean|jamaica|bahamas|barbados|aruba|antigua|st\.?\s*martin|saint\s*martin|sint\s*maarten|trinidad|tobago|guyana|st\.?\s*lucia|grenada|dominica|st\.?\s*kitts|nevis|belize|suriname|cayman|bermuda|martinique|guadeloupe/.test(target);
 
   blocks.forEach((block) => {
     const titleMatch = block.match(/<h2[^>]*>\s*<a[^>]*href=['"]([^'"]+-Job-\d+\.aspx)['"][^>]*>([\s\S]*?)<\/a>/i);
@@ -1941,15 +1956,24 @@ function parseCaribbeanJobsListingHtml(html, resume) {
 
     const relativeLink = String(titleMatch[1] || '').trim();
     const locationHref = String(locationMatch[1] || '').trim();
-    if (!relativeLink || !/\/jamaica\//i.test(locationHref)) return;
+    const locationText = decodeHtmlLite(locationMatch[2]);
+    const locationHaystack = `${locationHref} ${locationText}`.toLowerCase();
+    if (!relativeLink) return;
+
+    if (target) {
+      if (targetIsCaribbean) {
+        if (!isCaribbeanIslandLocationText(locationHaystack)) return;
+      } else if (!locationHaystack.includes(target)) {
+        return;
+      }
+    }
 
     const postedAt = parseCaribbeanJobsDate(dateMatch[1]);
     if (!postedAt) return;
 
     const title = decodeHtmlLite(titleMatch[2]);
     const company = decodeHtmlLite(companyMatch[1]) || 'Unknown Company';
-    const locationText = decodeHtmlLite(locationMatch[2]);
-    const location = /\bjamaica\b/i.test(locationText) ? locationText : `${locationText}, Jamaica`;
+    const location = locationText || (targetLocation || 'Caribbean');
     const description = decodeHtmlLite(descriptionMatch ? descriptionMatch[1] : '');
 
     records.push(
@@ -1969,13 +1993,14 @@ function parseCaribbeanJobsListingHtml(html, resume) {
   return records;
 }
 
-async function fetchCaribbeanJobsHtmlDirect(title, _location, resume) {
+async function fetchCaribbeanJobsHtmlDirect(title, location, resume) {
   const queryTitle = String(title || '').trim() || 'Customer Service Representative';
+  const queryLocation = String(location || '').trim() || 'Caribbean';
   const pages = [1, 2, 3];
 
   const settled = await Promise.allSettled(
     pages.map(async (page) => {
-      const url = `https://www.caribbeanjobs.com/jobs/?keywords=${encodeURIComponent(queryTitle)}&location=${encodeURIComponent('Jamaica')}&Page=${page}`;
+      const url = `https://www.caribbeanjobs.com/jobs/?keywords=${encodeURIComponent(queryTitle)}&location=${encodeURIComponent(queryLocation)}&Page=${page}`;
       const res = await fetch(url, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (compatible; RoleRocketBot/1.0; +https://www.rolerocketai.com)',
@@ -1990,7 +2015,7 @@ async function fetchCaribbeanJobsHtmlDirect(title, _location, resume) {
   const merged = [];
   settled.forEach((result) => {
     if (result.status !== 'fulfilled') return;
-    merged.push(...parseCaribbeanJobsListingHtml(result.value, resume));
+    merged.push(...parseCaribbeanJobsListingHtml(result.value, resume, queryLocation));
   });
 
   return dedupeJobs(merged);
@@ -2218,7 +2243,7 @@ function getSourceConfigSnapshot() {
 function buildSourceTasks({ title, location, resume }) {
   const q = String(location || '').trim().toLowerCase();
   const isJamaica = /\bjamaica\b/.test(q);
-  const isCaribbean = /caribbean|trinidad|barbados|bahamas|guyana|st\s*lucia/.test(q);
+  const isCaribbean = /caribbean|trinidad|tobago|barbados|bahamas|aruba|antigua|st\.?\s*martin|saint\s*martin|sint\s*maarten|guyana|st\s*lucia|grenada|dominica|st\s*kitts|nevis|belize|suriname|cayman|bermuda|martinique|guadeloupe/.test(q);
 
   const tasks = [
     timeoutPromise(fetchAdzunaJobs(title, location, resume), 7000),
@@ -2236,6 +2261,9 @@ function buildSourceTasks({ title, location, resume }) {
   if (isJamaica || isCaribbean || !q) {
     tasks.push(timeoutPromise(fetchCaribJobs(title, location, resume), 2500));
     tasks.push(timeoutPromise(fetchJamaicaEmployment(title, location, resume), 2500));
+    if (isCaribbean) {
+      tasks.push(timeoutPromise(fetchCaribbeanJobsHtmlDirect(title, location, resume), 3500));
+    }
   }
 
   // Add Jamaica-local direct listing feeds to improve local coverage for common roles.
@@ -2311,19 +2339,10 @@ async function searchJobsFast({ title, location, resume }) {
   }
 
   // For other Caribbean islands (Trinidad, Barbados, Bahamas, Guyana, etc.),
-  // apply the same global market top-up since local feeds don't cover them.
+  // do not inject relabeled non-Caribbean jobs.
   const isCaribbean = /caribbean|trinidad|barbados|bahamas|guyana|st\s*lucia|antigua|grenada|cayman|belize|suriname|martinique|guadeloupe/.test(locationQuery);
   if (isCaribbean && !/\bjamaica\b/.test(locationQuery)) {
-    const MIN_CARIBBEAN_RESULTS = 20;
-    if (jobs.length < MIN_CARIBBEAN_RESULTS) {
-      const fallbackJobs = await fetchJamaicaMarketFallbackJobs(title, resume);
-      const relabeled = fallbackJobs.map((job) => ({
-        ...job,
-        source: job.source.replace('(Global market)', '(Caribbean market)')
-      }));
-      const merged = dedupeJobs([...jobs, ...relabeled]);
-      jobs = merged;
-    }
+    jobs = jobs.filter((job) => isCaribbeanIslandLocationText(`${job.location || ''} ${job.description || ''} ${job.company || ''} ${job.link || ''}`));
   }
 
   // For Jamaica, do not inject synthetic/fallback portal links when none match
