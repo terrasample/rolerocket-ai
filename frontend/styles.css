@@ -3450,12 +3450,58 @@ pre {
 }
 
 .login-title-rocket {
-  display: inline-block;
+  display: inline-flex;
+  position: relative;
   margin-left: 6px;
-  transform: translateY(-1px);
-  filter: drop-shadow(0 6px 14px rgba(14, 165, 233, 0.5));
+  width: 1.35em;
+  height: 1.1em;
+  vertical-align: baseline;
   transform-origin: 35% 65%;
-  animation: loginRocketTakeoff 1.7s cubic-bezier(0.2, 0.7, 0.2, 1) 1 both;
+  animation: loginRocketTakeoff 2.05s cubic-bezier(0.2, 0.7, 0.2, 1) 1 both;
+}
+
+.rocket-glyph {
+  position: relative;
+  z-index: 4;
+  filter: drop-shadow(0 8px 16px rgba(14, 165, 233, 0.56));
+}
+
+.rocket-flame {
+  position: absolute;
+  left: -0.14em;
+  top: 0.54em;
+  width: 0.22em;
+  height: 0.22em;
+  border-radius: 50% 55% 60% 45%;
+  transform: rotate(-24deg);
+  background: radial-gradient(circle at 32% 28%, #fde68a 0%, #fb923c 48%, #ef4444 100%);
+  filter: blur(0.2px);
+  z-index: 2;
+  animation: loginRocketFlame 0.2s ease-in-out infinite alternate;
+}
+
+.rocket-smoke {
+  position: absolute;
+  left: -0.12em;
+  top: 0.58em;
+  width: 0.18em;
+  height: 0.18em;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, rgba(255,255,255,0.92) 0%, rgba(203,213,225,0.74) 55%, rgba(148,163,184,0) 100%);
+  z-index: 1;
+  opacity: 0;
+}
+
+.rocket-smoke-1 {
+  animation: loginRocketSmoke 0.95s ease-out 0.08s infinite;
+}
+
+.rocket-smoke-2 {
+  animation: loginRocketSmoke 1s ease-out 0.26s infinite;
+}
+
+.rocket-smoke-3 {
+  animation: loginRocketSmoke 1.05s ease-out 0.44s infinite;
 }
 
 @keyframes loginRocketTakeoff {
@@ -3464,10 +3510,18 @@ pre {
     opacity: 0.9;
     filter: drop-shadow(0 4px 10px rgba(14, 165, 233, 0.45));
   }
+  18% {
+    transform: translate(1px, -2px) rotate(4deg) scale(1.04);
+    opacity: 1;
+  }
   30% {
     transform: translate(4px, -4px) rotate(8deg) scale(1.06);
     opacity: 1;
     filter: drop-shadow(0 8px 16px rgba(14, 165, 233, 0.62));
+  }
+  48% {
+    transform: translate(11px, -11px) rotate(14deg) scale(1.11);
+    opacity: 1;
   }
   65% {
     transform: translate(18px, -22px) rotate(20deg) scale(1.12);
@@ -3475,9 +3529,37 @@ pre {
     filter: drop-shadow(0 12px 20px rgba(14, 165, 233, 0.55));
   }
   100% {
-    transform: translate(30px, -44px) rotate(24deg) scale(1.03);
+    transform: translate(38px, -56px) rotate(27deg) scale(0.98);
     opacity: 0;
-    filter: drop-shadow(0 14px 24px rgba(14, 165, 233, 0.15));
+    filter: drop-shadow(0 14px 24px rgba(14, 165, 233, 0.12));
+  }
+}
+
+@keyframes loginRocketFlame {
+  0% {
+    transform: rotate(-26deg) scale(0.92);
+    opacity: 0.74;
+  }
+  100% {
+    transform: rotate(-20deg) scale(1.22);
+    opacity: 1;
+  }
+}
+
+@keyframes loginRocketSmoke {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.35);
+  }
+  20% {
+    opacity: 0.9;
+  }
+  65% {
+    opacity: 0.55;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-15px, 9px) scale(1.65);
   }
 }
 
@@ -3486,6 +3568,12 @@ pre {
     animation: none;
     transform: translateY(-1px);
     opacity: 1;
+  }
+
+  .rocket-flame,
+  .rocket-smoke {
+    animation: none;
+    opacity: 0;
   }
 }
 
