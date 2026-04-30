@@ -76,6 +76,7 @@
             <option value="institution">Institution (University, HEART/NSTA, College)</option>
           </select>
           <input id="signupInstitutionName" list="signupInstitutionList" type="text" placeholder="Institution name (optional for students, required for institution accounts)" autocomplete="organization" style="display:block;margin-bottom:10px;" />
+          <input id="signupInvitationCode" type="text" placeholder="Institution invitation code (required for institution accounts)" autocomplete="off" style="display:block;margin-bottom:10px;text-transform:uppercase;" />
           <datalist id="signupInstitutionList">
             <option value="UWI Mona"></option>
             <option value="UWI Cave Hill"></option>
@@ -91,7 +92,7 @@
           <div id="signupInstitutionHelp" style="background:#0f172a;border:1px solid #334155;border-radius:10px;padding:10px 12px;margin:4px 0 10px;color:#cbd5e1;font-size:.82rem;line-height:1.5;">
             <strong style="color:#e2e8f0;">How institution linking works</strong><br>
             Students: select your institution so your account is linked for cohort reporting.<br>
-            Institutions: choose <strong>Institution</strong> account type to access Cohort Manager dashboards.
+            Institutions: choose <strong>Institution</strong> account type and enter your invitation code to activate your 30-day trial.
           </div>
           <button id="signupSubmitBtn" type="submit" class="auth-submit-btn" style="margin-top:6px;">Create Free Account</button>
         </form>
@@ -121,12 +122,14 @@
           const params = new URLSearchParams(window.location.search);
           const ref = params.get('ref') || params.get('referral') || params.get('referralCode');
           const institution = (params.get('institution') || params.get('institutionName') || '').trim();
+          const inviteCode = (params.get('inviteCode') || params.get('invitationCode') || '').trim().toUpperCase();
           if (ref) {
             document.getElementById('signupReferral').value = extractReferralCode(ref);
           }
           // Show/hide institution name field
           const acctType = document.getElementById('signupAccountType');
           const instInput = document.getElementById('signupInstitutionName');
+          const inviteInput = document.getElementById('signupInvitationCode');
           const instHelp = document.getElementById('signupInstitutionHelp');
           if (institution) {
             instInput.value = institution;
@@ -135,11 +138,27 @@
               instHelp.innerHTML = '<strong style="color:#e2e8f0;">Institution invite detected</strong><br>Prefilled with <strong style="color:#a5b4fc;">' + institution.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</strong>. You can change this if needed.';
             }
           }
-          acctType.addEventListener('change', () => {
+          if (inviteCode) {
+            inviteInput.value = inviteCode;
+          }
+
+          const applyInstitutionRequirements = () => {
+            const isInstitution = acctType.value === 'institution';
             instInput.style.display = 'block';
-            instInput.required = acctType.value === 'institution';
+            inviteInput.style.display = 'block';
+            instInput.required = isInstitution;
+            inviteInput.required = isInstitution;
+          };
+
+          acctType.addEventListener('change', () => {
+            applyInstitutionRequirements();
           });
-          instInput.required = acctType.value === 'institution';
+
+          inviteInput.addEventListener('input', () => {
+            inviteInput.value = inviteInput.value.toUpperCase().replace(/[^A-Z0-9-]/g, '');
+          });
+
+          applyInstitutionRequirements();
         })();
         </script>
 
@@ -322,6 +341,7 @@
       const referralCode = extractReferralCode(referralInputRaw || referralFromUrl);
       const accountType = document.getElementById('signupAccountType').value;
       const institutionName = document.getElementById('signupInstitutionName').value.trim();
+      const invitationCode = document.getElementById('signupInvitationCode').value.trim().toUpperCase().replace(/[^A-Z0-9-]/g, '');
 
       if (!name || !email || !password) {
         signupMessage.textContent = 'Please fill in all fields.';
@@ -330,6 +350,11 @@
 
       if (password.length < 8) {
         signupMessage.textContent = 'Password must be at least 8 characters.';
+        return;
+      }
+
+      if (accountType === 'institution' && !invitationCode) {
+        signupMessage.textContent = 'Invitation code is required for institution accounts.';
         return;
       }
 
@@ -350,7 +375,8 @@
           password,
           referralCode,
           accountType,
-          institutionName
+          institutionName,
+          invitationCode
         });
 
         signupMessage.textContent = 'Account created. Check your email to verify your account before logging in.';

@@ -8,6 +8,7 @@
     "test": "node tests/core-flows.e2e.js",
     "test:e2e": "node tests/core-flows.e2e.js",
     "a11y:audit": "node scripts/a11y-audit.js",
+    "invite:create": "node scripts/create-institution-invite.js",
     "email:welcome:dry": "node scripts/send-welcome-campaign.js",
     "email:welcome:live": "node scripts/send-welcome-campaign.js --live"
   },

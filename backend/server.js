@@ -98,12 +98,15 @@ app.get('/api/me', async (req, res) => {
     if (!user) return res.status(404).json({ error: 'User not found' });
     const email = String(user.email || '').toLowerCase();
     const isAdmin = ADMIN_EMAILS.length && ADMIN_EMAILS.includes(email);
+    const trialEntitlements = applyInstitutionTrialEntitlements(user);
     return res.json({
       user: {
         ...user,
         isAdmin,
-        plan: isAdmin ? 'lifetime' : user.plan,
-        isSubscribed: isAdmin ? true : user.isSubscribed
+        plan: isAdmin ? 'lifetime' : trialEntitlements.plan,
+        isSubscribed: isAdmin ? true : trialEntitlements.isSubscribed,
+        institutionTrialActive: trialEntitlements.institutionTrialActive,
+        institutionTrialEndsAt: trialEntitlements.institutionTrialEndsAt
       }
     });
   } catch (err) {
@@ -151,10 +154,79 @@ function normalizeInstitutionName(value) {
   return String(value || '').trim().replace(/\s+/g, ' ');
 }
 
+function normalizeInstitutionInviteCode(value) {
+  return String(value || '').trim().toUpperCase().replace(/[^A-Z0-9-]/g, '');
+}
+
+function isInstitutionTrialActive(actor) {
+  if (!actor || actor.accountType !== 'institution' || !actor.institutionTrialEndsAt) {
+    return false;
+  }
+  const endsAt = new Date(actor.institutionTrialEndsAt);
+  if (Number.isNaN(endsAt.getTime())) {
+    return false;
+  }
+  return endsAt.getTime() > Date.now();
+}
+
+function hasPaidInstitutionAccess(actor) {
+  if (!actor) return false;
+  if (actor.isSubscribed === true) return true;
+  return normalizePlan(String(actor.plan || 'free')) !== 'free';
+}
+
+function hasInstitutionAccess(actor) {
+  if (!actor || actor.accountType !== 'institution') {
+    return false;
+  }
+
+  // Keep legacy institution accounts working until they are migrated to invites.
+  if (!actor.institutionTrialEndsAt) {
+    return true;
+  }
+
+  return isInstitutionTrialActive(actor) || hasPaidInstitutionAccess(actor);
+}
+
+function applyInstitutionTrialEntitlements(actor) {
+  const trialActive = isInstitutionTrialActive(actor);
+  if (!trialActive) {
+    return {
+      plan: actor?.plan,
+      isSubscribed: actor?.isSubscribed,
+      institutionTrialActive: false,
+      institutionTrialEndsAt: actor?.institutionTrialEndsAt || null
+    };
+  }
+
+  return {
+    plan: normalizePlan(String(actor?.plan || 'free')) === 'free' ? 'elite' : actor.plan,
+    isSubscribed: true,
+    institutionTrialActive: true,
+    institutionTrialEndsAt: actor?.institutionTrialEndsAt || null
+  };
+}
+
+function buildInstitutionInviteCodePrefix(institutionName) {
+  const compact = String(institutionName || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const prefix = compact.slice(0, 6) || 'INST';
+  return `${prefix}-TRIAL`;
+}
+
+async function generateUniqueInstitutionInviteCode(institutionName, maxAttempts = 12) {
+  const prefix = buildInstitutionInviteCodePrefix(institutionName);
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const candidate = `${prefix}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
+    const exists = await InstitutionInvite.exists({ code: candidate });
+    if (!exists) return candidate;
+  }
+  throw new Error('Could not generate a unique invite code');
+}
+
 async function ensureInstitutionOrLinkedStudentAccess(actor) {
   // Allow institution admins
   if (actor && actor.accountType === 'institution') {
-    return true;
+    return hasInstitutionAccess(actor);
   }
   // Allow students linked to an institution (has institutionId or institutionName)
   if (actor && actor.accountType === 'individual' && (actor.institutionId || actor.institutionName)) {
@@ -262,7 +334,7 @@ async function backfillInstitutionIdForStudents(actor) {
 app.get('/api/institution/cohort', authenticateToken, async (req, res) => {
   try {
     let actor = await User.findById(req.user.userId)
-      .select('accountType institutionName institutionId')
+      .select('accountType institutionName institutionId plan isSubscribed institutionTrialEndsAt')
       .lean();
     if (!actor || !(await ensureInstitutionOrLinkedStudentAccess(actor))) {
       return res.status(403).json({ error: 'Institution account or cohort membership required' });
@@ -295,7 +367,7 @@ app.get('/api/institution/cohort', authenticateToken, async (req, res) => {
 app.get('/api/institution/stats', authenticateToken, async (req, res) => {
   try {
     let actor = await User.findById(req.user.userId)
-      .select('accountType institutionName institutionId')
+      .select('accountType institutionName institutionId plan isSubscribed institutionTrialEndsAt')
       .lean();
     if (!actor || !(await ensureInstitutionOrLinkedStudentAccess(actor))) {
       return res.status(403).json({ error: 'Institution account or cohort membership required' });
@@ -336,7 +408,7 @@ app.get('/api/institution/stats', authenticateToken, async (req, res) => {
 app.get('/api/institution/at-risk', authenticateToken, async (req, res) => {
   try {
     let actor = await User.findById(req.user.userId)
-      .select('accountType institutionName institutionId')
+      .select('accountType institutionName institutionId plan isSubscribed institutionTrialEndsAt')
       .lean();
     if (!actor || !(await ensureInstitutionOrLinkedStudentAccess(actor))) {
       return res.status(403).json({ error: 'Institution account or cohort membership required' });
@@ -376,6 +448,112 @@ app.get('/api/institution/at-risk', authenticateToken, async (req, res) => {
   } catch (err) {
     console.error('GET /api/institution/at-risk', err);
     return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.post('/api/admin/institution-invites', authenticateToken, requireAdminAccess, async (req, res) => {
+  try {
+    if (ensureDbReady(res, 'Create institution invite') !== true) return;
+
+    const {
+      institutionName,
+      organizationType,
+      trialDays,
+      maxUses,
+      expiresInDays,
+      code,
+      notes
+    } = req.body || {};
+
+    const normalizedInstitutionName = normalizeInstitutionName(institutionName);
+    if (!normalizedInstitutionName) {
+      return res.status(400).json({ error: 'institutionName is required' });
+    }
+
+    const normalizedOrganizationType = ['university', 'workplace', 'institution', 'other'].includes(String(organizationType || '').toLowerCase())
+      ? String(organizationType).toLowerCase()
+      : 'institution';
+    const normalizedTrialDays = Math.max(1, Math.min(365, Number(trialDays || DEFAULT_INSTITUTION_TRIAL_DAYS)));
+    const normalizedMaxUses = Math.max(1, Math.min(10000, Number(maxUses || 1)));
+    const normalizedExpiresInDays = Number.isFinite(Number(expiresInDays))
+      ? Math.max(1, Math.min(3650, Number(expiresInDays)))
+      : null;
+    const expiresAt = normalizedExpiresInDays ? new Date(Date.now() + normalizedExpiresInDays * 24 * 60 * 60 * 1000) : null;
+
+    const institutionRecord = await findOrCreateInstitutionByName(normalizedInstitutionName);
+    const chosenCode = normalizeInstitutionInviteCode(code) || await generateUniqueInstitutionInviteCode(institutionRecord.name);
+
+    const existing = await InstitutionInvite.findOne({ code: chosenCode }).select('_id').lean();
+    if (existing) {
+      return res.status(409).json({ error: 'Invite code already exists. Choose another code.' });
+    }
+
+    const invite = await InstitutionInvite.create({
+      code: chosenCode,
+      institutionName: institutionRecord.name,
+      institutionKey: institutionRecord.key,
+      institutionId: institutionRecord._id,
+      organizationType: normalizedOrganizationType,
+      trialDays: normalizedTrialDays,
+      maxUses: normalizedMaxUses,
+      expiresAt,
+      createdByUserId: req.currentUser?._id || null,
+      notes: String(notes || '').trim()
+    });
+
+    const baseUrl = (process.env.CLIENT_URL || 'https://www.rolerocketai.com').replace(/\/$/, '');
+    const signupUrl = `${baseUrl}/signup.html?institution=${encodeURIComponent(invite.institutionName)}&inviteCode=${encodeURIComponent(invite.code)}`;
+
+    return res.status(201).json({
+      invite: {
+        id: invite._id,
+        code: invite.code,
+        institutionName: invite.institutionName,
+        organizationType: invite.organizationType,
+        trialDays: invite.trialDays,
+        maxUses: invite.maxUses,
+        usedCount: invite.usedCount,
+        active: invite.active,
+        expiresAt: invite.expiresAt,
+        signupUrl
+      }
+    });
+  } catch (err) {
+    console.error('POST /api/admin/institution-invites', err);
+    return res.status(500).json({ error: 'Failed to create institution invite' });
+  }
+});
+
+app.get('/api/admin/institution-invites', authenticateToken, requireAdminAccess, async (req, res) => {
+  try {
+    if (ensureDbReady(res, 'List institution invites') !== true) return;
+
+    const normalizedInstitutionName = normalizeInstitutionName(req.query?.institutionName || '');
+    const normalizedCode = normalizeInstitutionInviteCode(req.query?.code || '');
+    const activeFilterRaw = String(req.query?.active || '').trim().toLowerCase();
+
+    const query = {};
+    if (normalizedInstitutionName) {
+      query.institutionKey = normalizedInstitutionName.toLowerCase();
+    }
+    if (normalizedCode) {
+      query.code = normalizedCode;
+    }
+    if (activeFilterRaw === 'true') {
+      query.active = true;
+    } else if (activeFilterRaw === 'false') {
+      query.active = false;
+    }
+
+    const invites = await InstitutionInvite.find(query)
+      .sort({ createdAt: -1 })
+      .limit(200)
+      .lean();
+
+    return res.json({ invites });
+  } catch (err) {
+    console.error('GET /api/admin/institution-invites', err);
+    return res.status(500).json({ error: 'Failed to list institution invites' });
   }
 });
 
@@ -591,6 +769,7 @@ const { runATSAnalysis } = require('./services/atsScorer');
 
 const User = require('./models/User');
 const Institution = require('./models/Institution');
+const InstitutionInvite = require('./models/InstitutionInvite');
 const Resume = require('./models/Resume');
 const Job = require('./models/Job');
 const Employer = require('./models/Employer');
@@ -740,6 +919,7 @@ const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '')
   .split(',')
   .map((v) => v.trim().toLowerCase())
   .filter(Boolean);
+const DEFAULT_INSTITUTION_TRIAL_DAYS = Math.max(1, Number(process.env.INSTITUTION_TRIAL_DAYS || 30));
 const E2E_MOCK_MODE = process.env.E2E_MOCK === '1';
 const DB_DIAGNOSTIC_TOKEN = String(process.env.DB_DIAGNOSTIC_TOKEN || '').trim();
 
@@ -3213,14 +3393,19 @@ app.post('/api/auth/signup', authLimiter, async (req, res) => {
   try {
     if (ensureDbReady(res, 'Signup') !== true) return;
 
-    const { name, email, password, referralCode, accountType, institutionName } = req.body || {};
+    const { name, email, password, referralCode, accountType, institutionName, invitationCode } = req.body || {};
     const normalizedName = String(name || '').trim();
     const normalizedEmail = String(email || '').trim().toLowerCase();
     const rawPassword = String(password || '');
     const normalizedReferralCode = String(referralCode || '').trim().toUpperCase();
     const normalizedAccountType = ['institution'].includes(String(accountType || '')) ? 'institution' : 'individual';
     let normalizedInstitutionName = normalizeInstitutionName(institutionName);
+    const normalizedInvitationCode = normalizeInstitutionInviteCode(invitationCode);
     let normalizedInstitutionId = null;
+    let inviteRecord = null;
+    let institutionTrialStartsAt = null;
+    let institutionTrialEndsAt = null;
+    let institutionInviteCode = null;
 
     if (!normalizedName || !normalizedEmail || !rawPassword) {
       return res.status(400).json({ error: 'Name, email, and password are required' });
@@ -3234,6 +3419,37 @@ app.post('/api/auth/signup', authLimiter, async (req, res) => {
       if (!normalizedInstitutionName) {
         return res.status(400).json({ error: 'Institution name is required for institution accounts' });
       }
+
+      if (!normalizedInvitationCode) {
+        return res.status(400).json({ error: 'Invitation code is required for institution accounts' });
+      }
+
+      inviteRecord = await InstitutionInvite.findOne({
+        code: normalizedInvitationCode,
+        active: true
+      }).lean();
+
+      if (!inviteRecord) {
+        return res.status(400).json({ error: 'Invalid invitation code' });
+      }
+
+      if (inviteRecord.expiresAt && new Date(inviteRecord.expiresAt).getTime() <= Date.now()) {
+        return res.status(400).json({ error: 'Invitation code has expired' });
+      }
+
+      if (Number(inviteRecord.usedCount || 0) >= Number(inviteRecord.maxUses || 0)) {
+        return res.status(400).json({ error: 'Invitation code has already been used' });
+      }
+
+      const inviteInstitutionName = normalizeInstitutionName(inviteRecord.institutionName);
+      if (inviteInstitutionName.toLowerCase() !== normalizedInstitutionName.toLowerCase()) {
+        return res.status(400).json({ error: 'Invitation code does not match the selected institution name' });
+      }
+
+      const trialDays = Math.max(1, Number(inviteRecord.trialDays || DEFAULT_INSTITUTION_TRIAL_DAYS));
+      institutionTrialStartsAt = new Date();
+      institutionTrialEndsAt = new Date(institutionTrialStartsAt.getTime() + trialDays * 24 * 60 * 60 * 1000);
+      institutionInviteCode = normalizedInvitationCode;
     }
 
     // Allow individual students to optionally link themselves to an institution
@@ -3259,6 +3475,9 @@ app.post('/api/auth/signup', authLimiter, async (req, res) => {
           accountType: normalizedAccountType,
           institutionName: normalizedInstitutionName,
           institutionId: normalizedInstitutionId,
+          institutionTrialStartsAt,
+          institutionTrialEndsAt,
+          institutionInviteCode,
           referralCode: generateReferralCode(),
           referredBy: normalizedReferralCode || null,
           emailVerified: false,
@@ -3269,7 +3488,7 @@ app.post('/api/auth/signup', authLimiter, async (req, res) => {
       } catch (err) {
         if (err?.code === 11000 && err?.keyPattern?.email) {
           const existingUser = await User.findOne({ email: normalizedEmail })
-            .select('_id name email password isSubscribed plan referralCode referralCount')
+            .select('_id name email password isSubscribed plan referralCode referralCount emailVerified institutionTrialStartsAt institutionTrialEndsAt')
             .lean();
 
           if (existingUser) {
@@ -3314,6 +3533,9 @@ app.post('/api/auth/signup', authLimiter, async (req, res) => {
                   email: existingUser.email,
                   isSubscribed: existingUser.isSubscribed,
                   plan: existingUser.plan,
+                  institutionTrialStartsAt: existingUser.institutionTrialStartsAt || null,
+                  institutionTrialEndsAt: existingUser.institutionTrialEndsAt || null,
+                  institutionTrialActive: isInstitutionTrialActive(existingUser),
                   referralCode: existingUser.referralCode,
                   referralCount: existingUser.referralCount
                 }
@@ -3332,6 +3554,34 @@ app.post('/api/auth/signup', authLimiter, async (req, res) => {
 
     if (!user) {
       throw new Error('Failed to create user');
+    }
+
+    if (normalizedAccountType === 'institution' && inviteRecord) {
+      const consumedAt = new Date();
+      const consumedInvite = await InstitutionInvite.findOneAndUpdate(
+        {
+          _id: inviteRecord._id,
+          active: true,
+          $or: [
+            { expiresAt: null },
+            { expiresAt: { $gt: consumedAt } }
+          ],
+          $expr: { $lt: ['$usedCount', '$maxUses'] }
+        },
+        {
+          $inc: { usedCount: 1 },
+          $set: {
+            lastUsedAt: consumedAt,
+            lastUsedByUserId: user._id
+          }
+        },
+        { new: true }
+      ).lean();
+
+      if (!consumedInvite) {
+        await User.deleteOne({ _id: user._id });
+        return res.status(409).json({ error: 'Invitation code was already consumed. Request a new code.' });
+      }
     }
 
     queueEmailVerificationEmail({
@@ -3375,6 +3625,9 @@ app.post('/api/auth/signup', authLimiter, async (req, res) => {
         email: user.email,
         isSubscribed: user.isSubscribed,
         plan: user.plan,
+        institutionTrialEndsAt: user.institutionTrialEndsAt || null,
+        institutionTrialStartsAt: user.institutionTrialStartsAt || null,
+        institutionTrialActive: isInstitutionTrialActive(user),
         referralCode: user.referralCode,
         referralCount: user.referralCount,
         emailVerified: false
@@ -3399,7 +3652,7 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
     }
 
     const user = await User.findOne({ email: normalizedEmail })
-      .select('_id name email password isSubscribed plan referralCode referralCount emailVerified accountType institutionName institutionId')
+      .select('_id name email password isSubscribed plan referralCode referralCount emailVerified accountType institutionName institutionId institutionTrialEndsAt institutionTrialStartsAt institutionInviteCode')
       .lean();
 
     if (!user) {
@@ -3421,8 +3674,9 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
     }
 
     // If admin, always set plan to 'lifetime' and isSubscribed true
-    let plan = user.plan;
-    let isSubscribed = user.isSubscribed;
+    const trialEntitlements = applyInstitutionTrialEntitlements(user);
+    let plan = trialEntitlements.plan;
+    let isSubscribed = trialEntitlements.isSubscribed;
     const isAdmin = ADMIN_EMAILS.length && ADMIN_EMAILS.includes(normalizedEmail);
     if (isAdmin) {
       plan = 'lifetime';
@@ -3446,6 +3700,9 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
         accountType: userWithInstitution.accountType || 'individual',
         institutionName: userWithInstitution.institutionName || null,
         institutionId: userWithInstitution.institutionId || null,
+        institutionTrialStartsAt: user.institutionTrialStartsAt || null,
+        institutionTrialEndsAt: user.institutionTrialEndsAt || null,
+        institutionTrialActive: trialEntitlements.institutionTrialActive,
         referralCode: user.referralCode,
         referralCount: user.referralCount,
         emailVerified: user.emailVerified !== false

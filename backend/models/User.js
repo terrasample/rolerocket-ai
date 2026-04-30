@@ -18,6 +18,9 @@ const UserSchema = new mongoose.Schema(
       default: null,
       index: true
     },
+    institutionTrialStartsAt: { type: Date, default: null },
+    institutionTrialEndsAt: { type: Date, default: null },
+    institutionInviteCode: { type: String, default: null, trim: true },
 
     isSubscribed: { type: Boolean, default: false },
     plan: {
@@ -101,5 +104,6 @@ const UserSchema = new mongoose.Schema(
 );
 
 UserSchema.index({ institutionId: 1, accountType: 1 });
+UserSchema.index({ institutionTrialEndsAt: 1, accountType: 1 });
 
 module.exports = mongoose.model('User', UserSchema);
