@@ -38,6 +38,18 @@
     }
     .icm-stat-card .icm-stat-num { font-size: 2rem; font-weight: 800; color: #818cf8; display: block; }
     .icm-stat-card .icm-stat-label { font-size: .8rem; color: #94a3b8; margin-top: 4px; }
+    .icm-onboard-banner {
+      display: none; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+      background: #0f172a; border: 1px solid rgba(129,140,248,.32); border-radius: 12px;
+      padding: 12px 14px; margin: 0 0 16px;
+    }
+    .icm-onboard-text { color: #cbd5e1; font-size: .86rem; line-height: 1.5; }
+    .icm-onboard-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .icm-onboard-btn {
+      padding: 7px 12px; border-radius: 8px; border: 1px solid rgba(129,140,248,.4);
+      background: rgba(99,102,241,.12); color: #c7d2fe; font-size: .78rem; font-weight: 700; cursor: pointer;
+    }
+    .icm-onboard-btn:hover { background: rgba(99,102,241,.25); }
     .icm-section-title { font-size: 1.05rem; font-weight: 700; margin: 0 0 14px; color: #e2e8f0; }
     .icm-risk-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-bottom: 28px; }
     .icm-risk-card {
@@ -256,6 +268,13 @@
         <div class="icm-stat-card"><span class="icm-stat-num" id="icmStatFree">&#8212;</span><div class="icm-stat-label">Free Tier</div></div>
         <div class="icm-stat-card"><span class="icm-stat-num" id="icmStatActiveWeek">&#8212;</span><div class="icm-stat-label">Active (7 days)</div></div>
       </div>
+      <div class="icm-onboard-banner" id="icmOnboardBanner">
+        <div class="icm-onboard-text">First-time setup: invite students with your institution link so cohort metrics can populate.</div>
+        <div class="icm-onboard-actions">
+          <button class="icm-onboard-btn" id="icmCopyInviteBtn">&#128203; Copy Invite Link</button>
+          <button class="icm-onboard-btn" id="icmOpenWizardBtn">&#9881;&#65039; Open Setup Wizard</button>
+        </div>
+      </div>
       <h3 class="icm-section-title">&#9888;&#65039; At-Risk Students</h3>
       <div class="icm-risk-grid">
         <div class="icm-risk-card" onclick="switchTab('interventions','no-resume')" role="button" tabindex="0">
@@ -468,6 +487,14 @@
         || sessionStorage.getItem('token')
         || localStorage.getItem('authToken') || '';
     }
+    function getInstitutionInviteLink() {
+      return window.location.origin + '/signup.html?institution=' + encodeURIComponent(institutionName || '');
+    }
+    function toggleOnboardBanner(shouldShow) {
+      var el = document.getElementById('icmOnboardBanner');
+      if (!el) return;
+      el.style.display = shouldShow ? 'flex' : 'none';
+    }
     function redirectToLogin() {
       window.location.replace('login.html?redirect='+encodeURIComponent('institution-cohort-manager.html'));
     }
@@ -520,32 +547,47 @@
     async function loadStats() {
       try {
         var res = await fetch(apiUrl('/api/institution/stats'),{headers:{Authorization:'Bearer '+getAuthToken()}});
-        if (!res.ok) return;
+        if (!res.ok) throw new Error('stats request failed');
         var data = await res.json();
-        document.getElementById('icmStatTotal').textContent      = data.totalStudents != null ? data.totalStudents : '--';
-        document.getElementById('icmStatSubscribed').textContent = data.subscribedStudents != null ? data.subscribedStudents : '--';
-        document.getElementById('icmStatFree').textContent       = data.freeStudents != null ? data.freeStudents : '--';
-      } catch(e) {}
+        var total = Number(data.totalStudents);
+        document.getElementById('icmStatTotal').textContent      = Number.isFinite(total) ? total : 0;
+        document.getElementById('icmStatSubscribed').textContent = Number.isFinite(Number(data.subscribedStudents)) ? Number(data.subscribedStudents) : 0;
+        document.getElementById('icmStatFree').textContent       = Number.isFinite(Number(data.freeStudents)) ? Number(data.freeStudents) : 0;
+        toggleOnboardBanner((Number.isFinite(total) ? total : 0) === 0);
+      } catch(e) {
+        document.getElementById('icmStatTotal').textContent      = '0';
+        document.getElementById('icmStatSubscribed').textContent = '0';
+        document.getElementById('icmStatFree').textContent       = '0';
+        toggleOnboardBanner(true);
+        setStatus('Could not load overview metrics yet. Try Refresh.','#f59e0b');
+      }
     }
 
     async function loadAtRisk() {
+      function setCount(id, n) {
+        var el = document.getElementById(id);
+        if (el) el.textContent = n;
+        var card = el && el.closest('.icm-risk-card');
+        if (card) card.classList.toggle('safe', n===0);
+      }
       try {
         var res = await fetch(apiUrl('/api/institution/at-risk'),{headers:{Authorization:'Bearer '+getAuthToken()}});
-        if (!res.ok) return;
+        if (!res.ok) throw new Error('at-risk request failed');
         var data = await res.json();
-        function setCount(id, n) {
-          var el = document.getElementById(id);
-          if (el) el.textContent = n;
-          var card = el && el.closest('.icm-risk-card');
-          if (card) card.classList.toggle('safe', n===0);
-        }
         setCount('icmRiskNoResumeCount', data.noResume ? data.noResume.count : 0);
         setCount('icmRiskInactiveCount', data.inactive14 ? data.inactive14.count : 0);
         setCount('icmRiskNoAppsCount',   data.noApplications ? data.noApplications.count : 0);
         renderInterventionList('intListNoResume','intBadgeNoResume','intMoreNoResume','intCopyNoResume', data.noResume);
         renderInterventionList('intListInactive','intBadgeInactive','intMoreInactive','intCopyInactive', data.inactive14);
         renderInterventionList('intListNoApps',  'intBadgeNoApps',  'intMoreNoApps',  'intCopyNoApps',  data.noApplications);
-      } catch(e) {}
+      } catch(e) {
+        setCount('icmRiskNoResumeCount', 0);
+        setCount('icmRiskInactiveCount', 0);
+        setCount('icmRiskNoAppsCount', 0);
+        renderInterventionList('intListNoResume','intBadgeNoResume','intMoreNoResume','intCopyNoResume', { count: 0, students: [] });
+        renderInterventionList('intListInactive','intBadgeInactive','intMoreInactive','intCopyInactive', { count: 0, students: [] });
+        renderInterventionList('intListNoApps','intBadgeNoApps','intMoreNoApps','intCopyNoApps', { count: 0, students: [] });
+      }
     }
 
     function renderInterventionList(listId, badgeId, moreId, copyBtnId, data) {
@@ -587,6 +629,7 @@
         if (!res.ok) { var e=await res.json(); setStatus(e.error||'Failed to load cohort','#dc2626'); renderEmpty('Could not load cohort data.'); return; }
         var data = await res.json();
         allStudents=data.students||[]; totalStudents=data.total||0; currentPage=page;
+        toggleOnboardBanner(totalStudents===0);
         if (page===1) {
           var activeCount = allStudents.filter(function(s){ return Math.floor((Date.now()-new Date(s.updatedAt||s.createdAt))/86400000)<=7; }).length;
           document.getElementById('icmStatActiveWeek').textContent = activeCount;
@@ -706,7 +749,7 @@
       var nameEl=document.getElementById('icmWizardInstName');
       var linkEl=document.getElementById('icmWizardSignupLink');
       if(nameEl) nameEl.textContent=institutionName||'(not set)';
-      if(linkEl) linkEl.textContent='https://www.rolerocketai.com/signup.html?institution='+encodeURIComponent(institutionName||'');
+      if(linkEl) linkEl.textContent=getInstitutionInviteLink();
       document.getElementById('icmWizard').classList.add('visible');
     }
     function closeWizard() { document.getElementById('icmWizard').classList.remove('visible'); }
@@ -723,6 +766,13 @@
         .catch(function(){ prompt('Copy this link:',linkEl.textContent); });
     });
     document.getElementById('icmWizard').addEventListener('click',function(e){ if(e.target===document.getElementById('icmWizard'))closeWizard(); });
+    document.getElementById('icmOpenWizardBtn').addEventListener('click', openWizard);
+    document.getElementById('icmCopyInviteBtn').addEventListener('click', function(){
+      var link = getInstitutionInviteLink();
+      navigator.clipboard.writeText(link)
+        .then(function(){ var btn=document.getElementById('icmCopyInviteBtn'); var o=btn.textContent; btn.textContent='Copied!'; setTimeout(function(){btn.textContent=o;},2000); })
+        .catch(function(){ prompt('Copy this link:', link); });
+    });
 
     (async function initPage() {
       var actor = await ensureInstitutionAccess();
