@@ -234,7 +234,7 @@
           return;
         }
         
-        const res = await fetch(apiPath('/api/me'), { 
+        const res = await fetch('/api/me', { 
           headers: { Authorization: `Bearer ${token}` },
           cache: 'no-store'
         });
