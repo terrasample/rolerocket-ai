@@ -1794,6 +1794,150 @@ async function fetchArbeitnowJobs(title, location, resume) {
     );
 }
 
+async function fetchIndeedJamaicaJobs(title, _location, resume) {
+  const queryTitle = String(title || '').trim() || 'Customer Service Representative';
+  const pages = [0, 10, 20];
+  const listingMap = new Map();
+
+  const settled = await Promise.allSettled(
+    pages.map(async (start) => {
+      const url = `https://jm.indeed.com/jobs?q=${encodeURIComponent(queryTitle)}&l=${encodeURIComponent('Jamaica')}&fromage=7&start=${start}`;
+      const res = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; RoleRocketBot/1.0; +https://www.rolerocketai.com)'
+        }
+      });
+      if (!res.ok) throw new Error(`Indeed fetch failed: ${res.status}`);
+      return res.text();
+    })
+  );
+
+  settled.forEach((result) => {
+    if (result.status !== 'fulfilled') return;
+    const html = String(result.value || '');
+    const matches = html.matchAll(/href="\/(?:rc\/clk|viewjob)\?[^"#]*jk=([a-zA-Z0-9]+)[^"]*"/g);
+    for (const m of matches) {
+      const jk = String(m[1] || '').trim();
+      if (!jk || listingMap.has(jk)) continue;
+      listingMap.set(jk, {
+        title: queryTitle,
+        company: 'Unknown Company',
+        location: 'Jamaica',
+        link: `https://jm.indeed.com/viewjob?jk=${encodeURIComponent(jk)}`,
+        postedAt: new Date().toISOString(),
+        source: 'Indeed Jamaica'
+      });
+    }
+  });
+
+  return Array.from(listingMap.values()).map((job) =>
+    normalizeJob({
+      title: job.title,
+      company: job.company,
+      location: job.location,
+      link: job.link,
+      description: 'Direct listing from Indeed Jamaica (last 7 days).',
+      postedAt: job.postedAt,
+      matchScore: estimateMatchScore(job.title, queryTitle, resume),
+      source: job.source
+    })
+  );
+}
+
+function decodeHtmlLite(value = '') {
+  return String(value || '')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function parseCaribbeanJobsDate(value = '') {
+  const m = String(value || '').trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!m) return null;
+  const day = Number(m[1]);
+  const month = Number(m[2]);
+  const year = Number(m[3]);
+  if (!day || !month || !year) return null;
+
+  const dt = new Date(Date.UTC(year, month - 1, day));
+  if (Number.isNaN(dt.getTime())) return null;
+  return dt.toISOString();
+}
+
+function parseCaribbeanJobsListingHtml(html, resume) {
+  const blocks = String(html || '').match(/<div class="module job-result[\s\S]*?<div class="job-result-cta"[\s\S]*?<\/div>\s*<\/div>\s*<\/div>/gi) || [];
+  const records = [];
+
+  blocks.forEach((block) => {
+    const titleMatch = block.match(/<h2[^>]*>\s*<a[^>]*href=['"]([^'"]+-Job-\d+\.aspx)['"][^>]*>([\s\S]*?)<\/a>/i);
+    const companyMatch = block.match(/<h3[^>]*>[\s\S]*?<a[^>]*>([\s\S]*?)<\/a>/i);
+    const dateMatch = block.match(/class=['"]updated-time['"][^>]*>\s*Updated\s*(\d{2}\/\d{2}\/\d{4})/i);
+    const locationMatch = block.match(/class=['"]location['"][\s\S]*?<a[^>]*href=['"]([^'"]+)['"][^>]*>([\s\S]*?)<\/a>/i);
+    const descriptionMatch = block.match(/<p[^>]*itemprop=['"]description['"][^>]*>[\s\S]*?<span>([\s\S]*?)<\/span>/i);
+
+    if (!titleMatch || !companyMatch || !dateMatch || !locationMatch) return;
+
+    const relativeLink = String(titleMatch[1] || '').trim();
+    const locationHref = String(locationMatch[1] || '').trim();
+    if (!relativeLink || !/\/jamaica\//i.test(locationHref)) return;
+
+    const postedAt = parseCaribbeanJobsDate(dateMatch[1]);
+    if (!postedAt) return;
+
+    const title = decodeHtmlLite(titleMatch[2]);
+    const company = decodeHtmlLite(companyMatch[1]) || 'Unknown Company';
+    const locationText = decodeHtmlLite(locationMatch[2]);
+    const location = /\bjamaica\b/i.test(locationText) ? locationText : `${locationText}, Jamaica`;
+    const description = decodeHtmlLite(descriptionMatch ? descriptionMatch[1] : '');
+
+    records.push(
+      normalizeJob({
+        title,
+        company,
+        location,
+        link: `https://www.caribbeanjobs.com${relativeLink}`,
+        description,
+        postedAt,
+        matchScore: estimateMatchScore(title, `${description} ${location}`, resume),
+        source: 'CaribbeanJobs Direct'
+      })
+    );
+  });
+
+  return records;
+}
+
+async function fetchCaribbeanJobsHtmlDirect(title, _location, resume) {
+  const queryTitle = String(title || '').trim() || 'Customer Service Representative';
+  const pages = [1, 2, 3];
+
+  const settled = await Promise.allSettled(
+    pages.map(async (page) => {
+      const url = `https://www.caribbeanjobs.com/jobs/?keywords=${encodeURIComponent(queryTitle)}&location=${encodeURIComponent('Jamaica')}&Page=${page}`;
+      const res = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; RoleRocketBot/1.0; +https://www.rolerocketai.com)',
+          Accept: 'text/html'
+        }
+      });
+      if (!res.ok) throw new Error(`CaribbeanJobs fetch failed: ${res.status}`);
+      return res.text();
+    })
+  );
+
+  const merged = [];
+  settled.forEach((result) => {
+    if (result.status !== 'fulfilled') return;
+    merged.push(...parseCaribbeanJobsListingHtml(result.value, resume));
+  });
+
+  return dedupeJobs(merged);
+}
+
 async function fetchCaribJobs(title, location, resume) {
   if (!CARIB_JOBS_ENABLED) return [];
 
@@ -2035,8 +2179,10 @@ function buildSourceTasks({ title, location, resume }) {
     tasks.push(timeoutPromise(fetchJamaicaEmployment(title, location, resume), 2500));
   }
 
-  // Add Jamaica-local BPO hiring feeds to improve local coverage for common roles.
+  // Add Jamaica-local direct listing feeds to improve local coverage for common roles.
   if (isJamaica) {
+    tasks.push(timeoutPromise(fetchCaribbeanJobsHtmlDirect(title, location, resume), 3500));
+    tasks.push(timeoutPromise(fetchIndeedJamaicaJobs(title, location, resume), 3500));
     tasks.push(Promise.resolve(getBPOCompanyJobs(title, 'Jamaica', resume)));
   }
 
