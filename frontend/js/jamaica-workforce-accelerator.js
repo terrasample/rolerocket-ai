@@ -684,10 +684,11 @@
               <span class="jwa-remote-tag">${esc(job.source)}</span>
               <span style="color:#64748b;font-size:.74rem;line-height:1.3;">Posted: ${esc(formatPostedDate(job.postedAt))}</span>
               ${job.requiredCredentials && job.requiredCredentials.length ? `<span style="font-size:0.85em; color:#0284c7;">Creds: ${job.requiredCredentials.slice(0,2).join(', ')}${job.requiredCredentials.length > 2 ? '...' : ''}</span>` : ''}
-              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;">
                 <a class="jwa-submit-btn" href="${esc(job.link)}" target="_blank" rel="noopener noreferrer" style="padding:6px 10px;font-size:.78rem;text-decoration:none;">Open Job</a>
                 <button type="button" class="jwa-submit-btn jwa-save-job-btn" data-job-link="${encodeURIComponent(job.link)}" data-job-title="${esc(job.title)}" data-job-company="${esc(job.company)}" data-job-location="${esc(job.location)}" style="padding:6px 10px;font-size:.78rem;">Save</button>
                 <button type="button" class="jwa-download-btn jwa-apply-job-btn" data-job-link="${encodeURIComponent(job.link)}" data-job-title="${esc(job.title)}" data-job-company="${esc(job.company)}" data-job-location="${esc(job.location)}" style="padding:6px 10px;font-size:.78rem;">Mark Applied</button>
+                <button type="button" class="jwa-rocket-apply-btn" data-job-link="${encodeURIComponent(job.link)}" data-job-title="${esc(job.title)}" data-job-company="${esc(job.company)}" data-job-location="${esc(job.location)}" style="padding:6px 10px;font-size:.78rem;background:linear-gradient(135deg,#7c3aed,#2563eb);color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;">🚀 RocketApply</button>
               </div>
             </article>
           `).join('')}
@@ -3957,6 +3958,20 @@
           location: String(applyBtn.getAttribute('data-job-location') || ''),
           link: decodeURIComponent(String(applyBtn.getAttribute('data-job-link') || '')),
           status: 'applied'
+
+              const rocketBtn = event.target.closest('.jwa-rocket-apply-btn');
+              if (rocketBtn) {
+                const job = {
+                  title: String(rocketBtn.getAttribute('data-job-title') || ''),
+                  company: String(rocketBtn.getAttribute('data-job-company') || ''),
+                  location: String(rocketBtn.getAttribute('data-job-location') || ''),
+                  link: decodeURIComponent(String(rocketBtn.getAttribute('data-job-link') || ''))
+                };
+                try {
+                  localStorage.setItem('rr_rocket_pending', JSON.stringify(job));
+                } catch (e) { /* storage full — proceed anyway */ }
+                window.location.href = 'one-click-apply-queue.html?from=jamaica&role=' + encodeURIComponent(job.title);
+              }
         });
       }
     });

@@ -8,6 +8,94 @@ document.addEventListener('DOMContentLoaded', function () {
   const result = document.getElementById('applyQueueResult');
   const queuedJobsList = document.getElementById('queuedJobsList');
   const recommendationsList = document.getElementById('queueRecommendations');
+
+  // ── Jamaica Workforce Accelerator handoff ─────────────────────────────────
+  (function handleJamaicaHandoff() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('from') !== 'jamaica') return;
+
+    let pending = null;
+    try { pending = JSON.parse(localStorage.getItem('rr_rocket_pending') || 'null'); } catch { /* ignore */ }
+    localStorage.removeItem('rr_rocket_pending');
+
+    const role = params.get('role') || (pending && pending.title) || '';
+    if (role && roleInput) roleInput.value = role;
+
+    if (pending && pending.link && queueInput) {
+      queueInput.value = pending.link;
+    } else if (role && queueInput) {
+      queueInput.value = role;
+    }
+
+    // Show welcome banner
+    const banner = document.createElement('div');
+    banner.style.cssText = 'background:linear-gradient(135deg,#7c3aed22,#2563eb22);border:1px solid #7c3aed55;border-radius:10px;padding:14px 18px;margin-bottom:18px;color:#e2e8f0;font-size:.9rem;line-height:1.5;';
+    banner.innerHTML = `<strong style="color:#a78bfa;">🚀 Handoff from Jamaica Workforce Accelerator</strong><br>
+      ${pending ? `<strong>${pending.title}</strong> at <strong>${pending.company}</strong> (${pending.location}) is pre-loaded below.` : `Role "<strong>${role}</strong>" is pre-loaded below.`}
+      Review and click <strong>Queue Applications</strong> to add it to your RocketApply pipeline.`;
+    const heroEl = document.querySelector('.queue-hero, .page-hero, h1, #applyQueueResult');
+    if (heroEl && heroEl.parentNode) {
+      heroEl.parentNode.insertBefore(banner, heroEl.nextSibling);
+    } else {
+      document.body.insertBefore(banner, document.body.firstChild);
+    }
+
+    // Show AI tailor panel when arriving from Jamaica
+    const aiTailorPanel = document.getElementById('aiTailorPanel');
+    if (aiTailorPanel) aiTailorPanel.style.display = 'block';
+  })();
+
+  // ── AI Auto-Tailor (RocketApply) ─────────────────────────────────────────
+  (function initAiTailor() {
+    const tailorBtn = document.getElementById('aiTailorBtn');
+    const statusEl  = document.getElementById('aiTailorStatus');
+    const resultEl  = document.getElementById('aiTailorResult');
+    if (!tailorBtn) return;
+
+    tailorBtn.addEventListener('click', async () => {
+      const jobTitle   = (document.getElementById('applyRole')?.value || '').trim();
+      const jobDesc    = (document.getElementById('aiTailorJobDesc')?.value || '').trim();
+      const resumeText = (document.getElementById('aiTailorResume')?.value || '').trim();
+
+      if (!jobDesc) { if (statusEl) statusEl.textContent = 'Please paste the job description above.'; return; }
+
+      tailorBtn.disabled = true;
+      tailorBtn.textContent = '⏳ Tailoring…';
+      if (statusEl) statusEl.textContent = 'AI is reading the job and tailoring your application…';
+      if (resultEl) resultEl.innerHTML = '';
+
+      try {
+        const token = typeof getStoredToken === 'function' ? getStoredToken() : localStorage.getItem('token');
+        const res = await fetch(typeof apiUrl === 'function' ? apiUrl('/api/apply/ai-tailor') : '/api/apply/ai-tailor', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ jobTitle, jobDescription: jobDesc, resumeText })
+        });
+        const data = await res.json();
+        if (!res.ok) { if (statusEl) statusEl.textContent = data.error || 'Tailor failed.'; tailorBtn.disabled = false; tailorBtn.textContent = '✨ Generate Tailored Bullets + Cover Letter'; return; }
+
+        const esc = s => String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        if (resultEl) resultEl.innerHTML = `
+          <div style="background:#0f172a;border-radius:10px;padding:16px;margin-bottom:14px;border:1px solid #334155;">
+            <p style="color:#c4b5fd;font-weight:700;margin:0 0 8px;font-size:.9rem;">📋 Tailored Resume Bullets</p>
+            <pre style="white-space:pre-wrap;color:#e2e8f0;font-family:inherit;font-size:.86rem;margin:0;">${esc(data.bullets)}</pre>
+          </div>
+          <div style="background:#0f172a;border-radius:10px;padding:16px;border:1px solid #334155;">
+            <p style="color:#c4b5fd;font-weight:700;margin:0 0 8px;font-size:.9rem;">✉️ Cover Letter Paragraph</p>
+            <pre style="white-space:pre-wrap;color:#e2e8f0;font-family:inherit;font-size:.86rem;margin:0;">${esc(data.coverLetter)}</pre>
+          </div>
+          <button onclick="navigator.clipboard.writeText(${JSON.stringify((data.bullets || '') + '\n\n---\n\n' + (data.coverLetter || ''))}).then(()=>this.textContent='✅ Copied!')" type="button" style="margin-top:12px;padding:8px 18px;border-radius:8px;border:none;background:#334155;color:#fff;cursor:pointer;font-size:.85rem;">📋 Copy All</button>`;
+        if (statusEl) statusEl.textContent = 'Done! Copy the content above and customize as needed.';
+      } catch (err) {
+        if (statusEl) statusEl.textContent = 'Network error. Please try again.';
+      } finally {
+        tailorBtn.disabled = false;
+        tailorBtn.textContent = '✨ Generate Tailored Bullets + Cover Letter';
+      }
+    });
+  })();
+
+
   let autopilotSettings = {
     mode: 'manual',
     maxDailyApplications: 5,

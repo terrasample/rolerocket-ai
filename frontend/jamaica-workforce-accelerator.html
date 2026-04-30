@@ -117,6 +117,40 @@
     .jwa-match-form h3 { color: #fdb714; margin: 0 0 18px; }
     .jwa-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
     @media (max-width: 600px) { .jwa-form-row { grid-template-columns: 1fr; } }
+
+    /* ── Mobile-first responsive ───────────────────────────────────────── */
+    @media (max-width: 768px) {
+      .jwa-hero { padding: 32px 18px 28px; }
+      .jwa-role-grid { grid-template-columns: 1fr; }
+      .jwa-diaspora-grid { grid-template-columns: 1fr; }
+      .jwa-tabs {
+        overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px;
+        -webkit-overflow-scrolling: touch; scrollbar-width: none;
+      }
+      .jwa-tabs::-webkit-scrollbar { display: none; }
+      .jwa-tab-btn { font-size: .82rem; padding: 8px 14px; flex-shrink: 0; }
+      .jwa-filter-row { flex-wrap: wrap; }
+      .jwa-filter-row select { flex: 1 1 140px; }
+      .jwa-match-form { padding: 18px; }
+      .jwa-resume-box { padding: 18px; }
+      .jwa-industry-block { padding: 16px 18px; }
+    }
+    @media (max-width: 480px) {
+      .jwa-hero { padding: 22px 14px 20px; }
+      .jwa-hero h1 { font-size: 1.45rem; }
+      .jwa-hero p { font-size: .93rem; }
+      .jwa-stat-pill { font-size: .78rem; padding: 6px 14px; }
+      .jwa-hero-stats { gap: 10px; margin-top: 16px; }
+      .jwa-submit-btn { width: 100%; box-sizing: border-box; text-align: center; }
+      .jwa-match-form { padding: 14px; }
+      .jwa-resume-box { padding: 14px; }
+      .jwa-industry-block { padding: 12px 14px; }
+      .jwa-filter-row { flex-direction: column; align-items: stretch; gap: 8px; }
+      .jwa-filter-row select { width: 100%; }
+      .jwa-role-card { padding: 12px 14px; }
+      .jwa-diaspora-card { padding: 14px 16px; }
+    }
+
     .jwa-input {
       width: 100%; padding: 10px 14px; border-radius: 9px;
       border: 1px solid #334155; background: #0f172a; color: #fff; font-size: .95rem;
@@ -581,6 +615,8 @@
         <a class="sidebar-link-btn active" href="jamaica-workforce-accelerator.html">🇯🇲 Jamaica Workforce Accelerator</a>
         <hr />
         <p id="planBadge">Free Plan</p>
+        <a class="sidebar-link-btn" href="institution-cohort-manager.html">🏫 Cohort Manager</a>
+        <a class="sidebar-link-btn" href="job-alerts-sms.html">📱 Job Alerts</a>
         <a class="sidebar-link-btn" href="account.html">👤 Account</a>
         <a class="sidebar-link-btn premium-btn" href="dashboard.html">🧑‍💼 My Dashboard</a>
         <a class="sidebar-link-btn" href="login.html?relogin=1">Logout</a>
@@ -1644,5 +1680,6 @@
   <script src="js/nav-plan-sync.js"></script>
   <script src="js/return-navigation.js"></script>
   <script src="js/jamaica-workforce-accelerator.js?v=20260422i"></script>
+  <script src="js/student-quickstart.js"></script>
 </body>
 </html>

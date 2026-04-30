@@ -123,6 +123,64 @@ app.use('/api/cover-letter', require('./routes/coverLetter'));
 // Register school/university/government/employer integration APIs
 app.use('/api/integrations', require('./routes/integrations'));
 
+/* ─── Institution Cohort Manager ──────────────────────────────────────────── */
+app.get('/api/institution/cohort', verifyToken, async (req, res) => {
+  try {
+    const actor = await User.findById(req.user.userId).select('accountType institutionName').lean();
+    if (!actor || actor.accountType !== 'institution') {
+      return res.status(403).json({ error: 'Institution account required' });
+    }
+    if (!actor.institutionName) {
+      return res.status(400).json({ error: 'No institution name on account' });
+    }
+    const { page = 1, limit = 50 } = req.query;
+    const skip = (Number(page) - 1) * Math.min(Number(limit), 100);
+    const students = await User.find({ institutionName: actor.institutionName, accountType: 'individual' })
+      .select('name email plan isSubscribed createdAt autopilotUsage aiGenerationUsage')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(Math.min(Number(limit), 100))
+      .lean();
+    const total = await User.countDocuments({ institutionName: actor.institutionName, accountType: 'individual' });
+    return res.json({ students, total, page: Number(page) });
+  } catch (err) {
+    console.error('GET /api/institution/cohort', err);
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.get('/api/institution/stats', verifyToken, async (req, res) => {
+  try {
+    const actor = await User.findById(req.user.userId).select('accountType institutionName').lean();
+    if (!actor || actor.accountType !== 'institution') {
+      return res.status(403).json({ error: 'Institution account required' });
+    }
+    if (!actor.institutionName) {
+      return res.status(400).json({ error: 'No institution name on account' });
+    }
+    const [totalStudents, subscribedStudents] = await Promise.all([
+      User.countDocuments({ institutionName: actor.institutionName }),
+      User.countDocuments({ institutionName: actor.institutionName, isSubscribed: true })
+    ]);
+    const planBreakdown = await User.aggregate([
+      { $match: { institutionName: actor.institutionName } },
+      { $group: { _id: '$plan', count: { $sum: 1 } } }
+    ]);
+    return res.json({
+      institutionName: actor.institutionName,
+      totalStudents,
+      subscribedStudents,
+      freeStudents: totalStudents - subscribedStudents,
+      planBreakdown: planBreakdown.reduce((acc, p) => { acc[p._id] = p.count; return acc; }, {})
+    });
+  } catch (err) {
+    console.error('GET /api/institution/stats', err);
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+
+
 // Register plan-based access control middleware and feature routes
 const planAccess = require('./middleware/planAccess');
 const authenticateToken = (req, res, next) => {
@@ -1346,7 +1404,7 @@ function locationToAdzunaCountries(location) {
   if (/\bfrance\b|\bfr\b|paris|lyon/.test(loc)) return ['fr'];
   if (/\bnew zealand\b|\bnz\b|auckland|wellington/.test(loc)) return ['nz'];
   if (/\bjam[ai]+ca\b|kingston|montego/.test(loc)) return ['gb', 'us', 'ca']; // Jamaica not on Adzuna; broaden search
-  if (/\bcaribbean\b|trinidad|barbados|bahamas/.test(loc)) return ['gb', 'us', 'ca'];
+  if (/\bcaribbean\b|trinidad|barbados|bahamas|guyana|st\s*lucia|antigua|grenada|cayman|belize|suriname/.test(loc)) return ['gb', 'us', 'ca'];
   if (/\bus\b|united states|usa|new york|california|texas|florida/.test(loc)) return ['us'];
   if (/remote|worldwide|global|anywhere/.test(loc)) return [ADZUNA_COUNTRY, 'gb', 'ca'];
   return [ADZUNA_COUNTRY];
@@ -1805,6 +1863,22 @@ async function searchJobsFast({ title, location, resume }) {
     if (jobs.length < MIN_JAMAICA_RESULTS) {
       const fallbackJobs = await fetchJamaicaMarketFallbackJobs(title, resume);
       const merged = dedupeJobs([...jobs, ...fallbackJobs]);
+      jobs = merged;
+    }
+  }
+
+  // For other Caribbean islands (Trinidad, Barbados, Bahamas, Guyana, etc.),
+  // apply the same global market top-up since local feeds don't cover them.
+  const isCaribbean = /caribbean|trinidad|barbados|bahamas|guyana|st\s*lucia|antigua|grenada|cayman|belize|suriname|martinique|guadeloupe/.test(locationQuery);
+  if (isCaribbean && !/\bjamaica\b/.test(locationQuery)) {
+    const MIN_CARIBBEAN_RESULTS = 20;
+    if (jobs.length < MIN_CARIBBEAN_RESULTS) {
+      const fallbackJobs = await fetchJamaicaMarketFallbackJobs(title, resume);
+      const relabeled = fallbackJobs.map((job) => ({
+        ...job,
+        source: job.source.replace('(Global market)', '(Caribbean market)')
+      }));
+      const merged = dedupeJobs([...jobs, ...relabeled]);
       jobs = merged;
     }
   }
@@ -2643,11 +2717,13 @@ app.post('/api/auth/signup', authLimiter, async (req, res) => {
   try {
     if (ensureDbReady(res, 'Signup') !== true) return;
 
-    const { name, email, password, referralCode } = req.body || {};
+    const { name, email, password, referralCode, accountType, institutionName } = req.body || {};
     const normalizedName = String(name || '').trim();
     const normalizedEmail = String(email || '').trim().toLowerCase();
     const rawPassword = String(password || '');
     const normalizedReferralCode = String(referralCode || '').trim().toUpperCase();
+    const normalizedAccountType = ['institution'].includes(String(accountType || '')) ? 'institution' : 'individual';
+    const normalizedInstitutionName = normalizedAccountType === 'institution' ? String(institutionName || '').trim() : null;
 
     if (!normalizedName || !normalizedEmail || !rawPassword) {
       return res.status(400).json({ error: 'Name, email, and password are required' });
@@ -2669,6 +2745,8 @@ app.post('/api/auth/signup', authLimiter, async (req, res) => {
           password: hashedPassword,
           isSubscribed: false,
           plan: 'free',
+          accountType: normalizedAccountType,
+          institutionName: normalizedInstitutionName,
           referralCode: generateReferralCode(),
           referredBy: normalizedReferralCode || null,
           emailVerified: false,
@@ -4034,6 +4112,51 @@ app.post('/api/interview-prep', authenticateToken, async (req, res) => {
   } catch (err) {
     console.error('Interview prep error:', err);
     return res.status(500).json({ error: 'Interview prep failed' });
+  }
+});
+
+/* ─── RocketApply AI Auto-Tailor ──────────────────────────────────────────── */
+app.post('/api/apply/ai-tailor', authenticateToken, async (req, res) => {
+  try {
+    const { jobTitle, jobDescription, resumeText } = req.body || {};
+    if (!jobTitle || !jobDescription) {
+      return res.status(400).json({ error: 'jobTitle and jobDescription are required' });
+    }
+    const user = await User.findById(req.user.userId).select('aiGenerationUsage plan').lean();
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const userPrompt = [
+      `Job Title: ${String(jobTitle).slice(0, 120)}`,
+      `Job Description:\n${String(jobDescription).slice(0, 3000)}`,
+      resumeText ? `Candidate Resume:\n${String(resumeText).slice(0, 3000)}` : null,
+      'Task: Produce two things, separated by "---COVER---":',
+      '1. A short set of tailored resume bullet points (4-6 bullets) that mirror the job description keywords and highlight relevant experience. Each bullet starts with a strong action verb.',
+      '2. A concise, personalized cover letter paragraph (3-4 sentences) for this specific role. Address it to "Hiring Manager".',
+      'Rules: Only use information present in the resume or the job description. Do not invent dates, companies, or credentials.',
+    ].filter(Boolean).join('\n\n');
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an expert career coach who tailors resumes and cover letters. Be concise, professional, and ATS-friendly. Output only the requested content with no extra commentary.'
+        },
+        { role: 'user', content: userPrompt }
+      ],
+      max_tokens: 900,
+      temperature: 0.45
+    });
+
+    const raw = completion.choices?.[0]?.message?.content || '';
+    const [bulletsPart, coverPart] = raw.split(/---COVER---/i);
+    return res.json({
+      bullets: bulletsPart?.trim() || '',
+      coverLetter: coverPart?.trim() || ''
+    });
+  } catch (err) {
+    console.error('POST /api/apply/ai-tailor', err);
+    return res.status(500).json({ error: 'AI tailor failed' });
   }
 });
 

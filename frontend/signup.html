@@ -70,8 +70,13 @@
           <input id="signupName" type="text" placeholder="Full name" required />
           <input id="signupEmail" type="email" placeholder="Email address" autocomplete="email" required />
           <input id="signupPassword" type="password" placeholder="Create password" autocomplete="new-password" minlength="8" required />
-          <input id="signupReferral" type="text" placeholder="Referral code or referral link (optional)" autocomplete="off" style="margin-bottom:10px;" />
-          <button id="signupSubmitBtn" type="submit" class="auth-submit-btn">Create Free Account</button>
+          <input id="signupReferral" type="text" placeholder="Referral code or referral link (optional)" autocomplete="off" />
+          <select id="signupAccountType" style="width:100%;padding:10px 14px;border-radius:8px;border:1px solid #334155;background:#0f172a;color:#fff;font-size:.95rem;margin-bottom:6px;">
+            <option value="individual">Individual Student / Job Seeker</option>
+            <option value="institution">Institution (University, HEART/NSTA, College)</option>
+          </select>
+          <input id="signupInstitutionName" type="text" placeholder="Institution name (e.g. UTech, UWI, HEART Trust)" autocomplete="organization" style="display:none;margin-bottom:10px;" />
+          <button id="signupSubmitBtn" type="submit" class="auth-submit-btn" style="margin-top:6px;">Create Free Account</button>
         </form>
         <script>
         function extractReferralCode(input) {
@@ -101,6 +106,12 @@
           if (ref) {
             document.getElementById('signupReferral').value = extractReferralCode(ref);
           }
+          // Show/hide institution name field
+          const acctType = document.getElementById('signupAccountType');
+          const instInput = document.getElementById('signupInstitutionName');
+          acctType.addEventListener('change', () => {
+            instInput.style.display = acctType.value === 'institution' ? 'block' : 'none';
+          });
         })();
         </script>
 
@@ -281,6 +292,8 @@
       const password = document.getElementById('signupPassword').value;
       const referralInputRaw = document.getElementById('signupReferral').value;
       const referralCode = extractReferralCode(referralInputRaw || referralFromUrl);
+      const accountType = document.getElementById('signupAccountType').value;
+      const institutionName = accountType === 'institution' ? document.getElementById('signupInstitutionName').value.trim() : '';
 
       if (!name || !email || !password) {
         signupMessage.textContent = 'Please fill in all fields.';
@@ -307,7 +320,9 @@
           name,
           email,
           password,
-          referralCode
+          referralCode,
+          accountType,
+          institutionName
         });
 
         signupMessage.textContent = 'Account created. Check your email to verify your account before logging in.';

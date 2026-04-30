@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Institution Cohort Manager | RoleRocket AI</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .icm-hero {
+      background: linear-gradient(135deg, #1e1b4b 0%, #312e81 60%, #4338ca 100%);
+      color: #fff; padding: 40px 32px 36px; text-align: center;
+      border-radius: 0 0 24px 24px; margin-bottom: 32px;
+    }
+    .icm-hero h1 { font-size: clamp(1.5rem, 3.5vw, 2.2rem); font-weight: 800; margin: 0 0 10px; }
+    .icm-hero p { font-size: 1rem; opacity: .85; margin: 0 auto; max-width: 600px; }
+    .icm-stats-bar {
+      display: flex; gap: 16px; flex-wrap: wrap; justify-content: center;
+      margin-bottom: 28px;
+    }
+    .icm-stat-card {
+      background: #1e293b; border-radius: 14px; padding: 20px 28px;
+      flex: 1 1 180px; max-width: 220px; text-align: center;
+      border: 1px solid rgba(255,255,255,.07);
+    }
+    .icm-stat-card .icm-stat-num { font-size: 2.2rem; font-weight: 800; color: #818cf8; display: block; }
+    .icm-stat-card .icm-stat-label { font-size: .82rem; color: #94a3b8; margin-top: 4px; }
+    .icm-section-title {
+      font-size: 1.1rem; font-weight: 700; margin: 0 0 16px; color: #e2e8f0;
+    }
+    .icm-table-wrap { overflow-x: auto; }
+    .icm-table {
+      width: 100%; border-collapse: collapse; font-size: .88rem;
+    }
+    .icm-table th {
+      background: #1e293b; color: #94a3b8; font-weight: 600;
+      padding: 10px 14px; text-align: left; white-space: nowrap;
+      border-bottom: 2px solid #334155;
+    }
+    .icm-table td {
+      padding: 10px 14px; border-bottom: 1px solid #1e293b;
+      color: #cbd5e1; vertical-align: top;
+    }
+    .icm-table tr:hover td { background: rgba(255,255,255,.03); }
+    .icm-plan-badge {
+      display: inline-block; padding: 2px 10px; border-radius: 50px;
+      font-size: .74rem; font-weight: 700; text-transform: uppercase;
+    }
+    .icm-plan-free { background: #1e293b; color: #64748b; border: 1px solid #334155; }
+    .icm-plan-pro { background: rgba(99,102,241,.2); color: #818cf8; border: 1px solid rgba(99,102,241,.4); }
+    .icm-plan-premium { background: rgba(234,179,8,.15); color: #fbbf24; border: 1px solid rgba(234,179,8,.3); }
+    .icm-plan-elite { background: rgba(239,68,68,.15); color: #f87171; border: 1px solid rgba(239,68,68,.3); }
+    .icm-plan-lifetime { background: rgba(16,185,129,.15); color: #34d399; border: 1px solid rgba(16,185,129,.3); }
+    .icm-empty { text-align: center; color: #475569; padding: 40px 20px; font-size: .95rem; }
+    .icm-controls { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 20px; }
+    .icm-search {
+      flex: 1 1 200px; padding: 9px 14px; border-radius: 9px;
+      border: 1px solid #334155; background: #0f172a; color: #fff; font-size: .9rem;
+    }
+    .icm-search:focus { outline: 2px solid #4338ca; border-color: transparent; }
+    .icm-btn {
+      padding: 9px 20px; border-radius: 9px; border: none; cursor: pointer;
+      background: linear-gradient(135deg, #4338ca, #6d28d9);
+      color: #fff; font-weight: 700; font-size: .9rem; transition: opacity .2s;
+    }
+    .icm-btn:hover { opacity: .88; }
+    .icm-btn:disabled { opacity: .5; cursor: not-allowed; }
+    .icm-status { font-size: .85rem; color: #64748b; margin-top: 8px; min-height: 1.2em; }
+    .icm-pagination { display: flex; gap: 10px; align-items: center; margin-top: 16px; font-size: .88rem; color: #94a3b8; }
+    .icm-page-btn { padding: 6px 16px; border-radius: 8px; border: 1px solid #334155; background: #1e293b; color: #fff; cursor: pointer; }
+    .icm-page-btn:disabled { opacity: .4; cursor: not-allowed; }
+    @media (max-width: 768px) {
+      .icm-hero { padding: 28px 18px 24px; }
+      .icm-stat-card { max-width: none; }
+    }
+    @media (max-width: 480px) {
+      .icm-btn { width: 100%; }
+      .icm-search { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open navigation menu" aria-expanded="false">&#9776;</button>
+
+  <aside class="sidebar" id="sidebarNav" aria-label="Primary navigation">
+    <div class="sidebar-logo">RoleRocket<span>AI</span></div>
+    <nav>
+      <a class="sidebar-link-btn" href="index.html">Home</a>
+      <a class="sidebar-link-btn" href="about-us.html">About Us</a>
+      <a class="sidebar-link-btn" href="features.html">Features</a>
+      <a class="sidebar-link-btn" href="job-tracking.html">Opportunity Finder</a>
+      <a class="sidebar-link-btn" href="ai-recruiter-assist.html">AI Recruiter Assist</a>
+      <a class="sidebar-link-btn" href="pricing.html">Pricing</a>
+      <a class="sidebar-link-btn" href="contact-us.html">Contact Us</a>
+      <a class="sidebar-link-btn" href="jamaica-workforce-accelerator.html">🇯🇲 Jamaica Workforce Accelerator</a>
+      <a class="sidebar-link-btn active" href="institution-cohort-manager.html">🏫 Cohort Manager</a>
+      <a class="sidebar-link-btn" href="institution-cohort-manager.html">🏫 Cohort Manager</a>
+        <a class="sidebar-link-btn" href="job-alerts-sms.html">📱 Job Alerts</a>
+        <a class="sidebar-link-btn" href="account.html">👤 Account</a>
+      <a class="sidebar-link-btn premium-btn" href="dashboard.html">🧑‍💼 My Dashboard</a>
+      <a class="sidebar-link-btn" href="login.html?relogin=1">Logout</a>
+    </nav>
+  </aside>
+  <div class="sidebar-overlay" id="sidebarOverlay" tabindex="-1" aria-hidden="true"></div>
+
+  <main class="main-content" id="mainContent">
+
+    <div class="icm-hero">
+      <h1>🏫 Institution Cohort Manager</h1>
+      <p>Track your students' progress on RoleRocket AI — see plan adoption, activity, and engagement across your cohort.</p>
+    </div>
+
+    <!-- Stats bar -->
+    <div class="icm-stats-bar" id="icmStatsBar">
+      <div class="icm-stat-card">
+        <span class="icm-stat-num" id="icmStatTotal">—</span>
+        <div class="icm-stat-label">Total Students</div>
+      </div>
+      <div class="icm-stat-card">
+        <span class="icm-stat-num" id="icmStatSubscribed">—</span>
+        <div class="icm-stat-label">Subscribed</div>
+      </div>
+      <div class="icm-stat-card">
+        <span class="icm-stat-num" id="icmStatFree">—</span>
+        <div class="icm-stat-label">Free Tier</div>
+      </div>
+      <div class="icm-stat-card">
+        <span class="icm-stat-num" id="icmStatInstitution">—</span>
+        <div class="icm-stat-label">Institution</div>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="icm-controls">
+      <input type="search" class="icm-search" id="icmSearch" placeholder="Filter by name or email…" />
+      <button class="icm-btn" id="icmRefreshBtn">Refresh Cohort</button>
+    </div>
+    <div class="icm-status" id="icmStatus"></div>
+
+    <!-- Table -->
+    <div class="icm-table-wrap">
+      <table class="icm-table" aria-label="Cohort students">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Plan</th>
+            <th>AI Uses</th>
+            <th>Applications (Autopilot)</th>
+            <th>Joined</th>
+          </tr>
+        </thead>
+        <tbody id="icmTableBody">
+          <tr><td colspan="6" class="icm-empty">Loading cohort data…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="icm-pagination">
+      <button class="icm-page-btn" id="icmPrevBtn" disabled>← Prev</button>
+      <span id="icmPageInfo">Page 1</span>
+      <button class="icm-page-btn" id="icmNextBtn" disabled>Next →</button>
+    </div>
+
+  </main>
+
+  <script src="js/auth-storage.js"></script>
+  <script src="js/api-base.js"></script>
+  <script src="js/nav-plan-sync.js"></script>
+  <script>
+    // ── Sidebar mobile toggle ─────────────────────────────────────────────
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    const sidebarNav    = document.getElementById('sidebarNav');
+    const sidebarOverlay = document.getElementById('sidebarOverlay');
+    function openSidebar()  { sidebarNav.classList.add('open'); sidebarOverlay.classList.add('visible'); mobileMenuBtn.setAttribute('aria-expanded','true'); }
+    function closeSidebar() { sidebarNav.classList.remove('open'); sidebarOverlay.classList.remove('visible'); mobileMenuBtn.setAttribute('aria-expanded','false'); }
+    mobileMenuBtn?.addEventListener('click', openSidebar);
+    sidebarOverlay?.addEventListener('click', closeSidebar);
+
+    // ── State ─────────────────────────────────────────────────────────────
+    let allStudents = [];
+    let currentPage = 1;
+    const PAGE_SIZE = 50;
+    let totalStudents = 0;
+
+    // ── Helpers ───────────────────────────────────────────────────────────
+    const esc = s => String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const setStatus = (msg, color = '#94a3b8') => { document.getElementById('icmStatus').textContent = msg; document.getElementById('icmStatus').style.color = color; };
+    const fmtDate = iso => iso ? new Date(iso).toLocaleDateString('en-JM', { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
+    const planClass = p => ({ free:'icm-plan-free', pro:'icm-plan-pro', premium:'icm-plan-premium', elite:'icm-plan-elite', lifetime:'icm-plan-lifetime' }[p] || 'icm-plan-free');
+
+    // ── Load stats ────────────────────────────────────────────────────────
+    async function loadStats() {
+      try {
+        const token = getAuthToken?.() || localStorage.getItem('authToken');
+        const res = await fetch(`${apiUrl()}/api/institution/stats`, { headers: { Authorization: `Bearer ${token}` } });
+        if (!res.ok) { const e = await res.json(); setStatus(e.error || 'Failed to load stats', '#dc2626'); return; }
+        const data = await res.json();
+        document.getElementById('icmStatTotal').textContent = data.totalStudents ?? '—';
+        document.getElementById('icmStatSubscribed').textContent = data.subscribedStudents ?? '—';
+        document.getElementById('icmStatFree').textContent = data.freeStudents ?? '—';
+        document.getElementById('icmStatInstitution').textContent = esc(data.institutionName || '—');
+      } catch (err) {
+        setStatus('Could not load stats. Are you logged in as an institution account?', '#dc2626');
+      }
+    }
+
+    // ── Load cohort ───────────────────────────────────────────────────────
+    async function loadCohort(page = 1) {
+      setStatus('Loading cohort…', '#2563eb');
+      document.getElementById('icmPrevBtn').disabled = true;
+      document.getElementById('icmNextBtn').disabled = true;
+      try {
+        const token = getAuthToken?.() || localStorage.getItem('authToken');
+        const params = new URLSearchParams({ page, limit: PAGE_SIZE });
+        const res = await fetch(`${apiUrl()}/api/institution/cohort?${params}`, { headers: { Authorization: `Bearer ${token}` } });
+        if (!res.ok) { const e = await res.json(); setStatus(e.error || 'Failed to load cohort', '#dc2626'); renderEmpty('Could not load cohort data.'); return; }
+        const data = await res.json();
+        allStudents = data.students || [];
+        totalStudents = data.total || 0;
+        currentPage = page;
+        renderTable(allStudents);
+        updatePagination();
+        setStatus(`Showing ${allStudents.length} of ${totalStudents} students`, '#22c55e');
+      } catch (err) {
+        setStatus('Network error loading cohort.', '#dc2626');
+        renderEmpty('Network error. Please try again.');
+      }
+    }
+
+    // ── Render ────────────────────────────────────────────────────────────
+    function renderTable(students) {
+      const tbody = document.getElementById('icmTableBody');
+      if (!students.length) { renderEmpty('No students found for this institution yet.'); return; }
+      tbody.innerHTML = students.map(s => {
+        const aiUses = (s.aiGenerationUsage || []).reduce((sum, d) => sum + (d.count || 0), 0);
+        const appUses = (s.autopilotUsage || []).reduce((sum, d) => sum + (d.count || 0), 0);
+        return `<tr>
+          <td>${esc(s.name)}</td>
+          <td>${esc(s.email)}</td>
+          <td><span class="icm-plan-badge ${planClass(s.plan)}">${esc(s.plan || 'free')}</span></td>
+          <td>${aiUses}</td>
+          <td>${appUses}</td>
+          <td>${fmtDate(s.createdAt)}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    function renderEmpty(msg) {
+      document.getElementById('icmTableBody').innerHTML = `<tr><td colspan="6" class="icm-empty">${esc(msg)}</td></tr>`;
+    }
+
+    function updatePagination() {
+      const totalPages = Math.max(1, Math.ceil(totalStudents / PAGE_SIZE));
+      document.getElementById('icmPageInfo').textContent = `Page ${currentPage} of ${totalPages}`;
+      document.getElementById('icmPrevBtn').disabled = currentPage <= 1;
+      document.getElementById('icmNextBtn').disabled = currentPage >= totalPages;
+    }
+
+    // ── Search filter (client-side on loaded page) ─────────────────────────
+    document.getElementById('icmSearch').addEventListener('input', e => {
+      const q = e.target.value.trim().toLowerCase();
+      if (!q) { renderTable(allStudents); return; }
+      renderTable(allStudents.filter(s => s.name?.toLowerCase().includes(q) || s.email?.toLowerCase().includes(q)));
+    });
+
+    // ── Events ────────────────────────────────────────────────────────────
+    document.getElementById('icmRefreshBtn').addEventListener('click', () => loadCohort(1));
+    document.getElementById('icmPrevBtn').addEventListener('click', () => loadCohort(currentPage - 1));
+    document.getElementById('icmNextBtn').addEventListener('click', () => loadCohort(currentPage + 1));
+
+    // ── Init ──────────────────────────────────────────────────────────────
+    loadStats();
+    loadCohort(1);
+  </script>
+</body>
+</html>

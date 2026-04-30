@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Job Alerts (SMS & WhatsApp) | RoleRocket AI</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .alerts-hero {
+      background: linear-gradient(135deg, #064e3b 0%, #007847 55%, #22c55e 100%);
+      color: #fff; padding: 40px 32px 36px; text-align: center;
+      border-radius: 0 0 24px 24px; margin-bottom: 32px;
+    }
+    .alerts-hero h1 { font-size: clamp(1.4rem,3.5vw,2.1rem); font-weight: 800; margin: 0 0 10px; }
+    .alerts-hero p { font-size: .97rem; opacity: .88; max-width: 580px; margin: 0 auto; }
+    .alerts-card {
+      background: #1e293b; border-radius: 16px; padding: 28px 32px;
+      max-width: 600px; margin: 0 auto 24px; border: 1px solid rgba(255,255,255,.07);
+    }
+    .alerts-card h2 { font-size: 1.05rem; font-weight: 700; margin: 0 0 18px; color: #e2e8f0; }
+    .alerts-field { margin-bottom: 16px; }
+    .alerts-field label { display: block; font-size: .85rem; color: #94a3b8; font-weight: 600; margin-bottom: 6px; }
+    .alerts-input {
+      width: 100%; padding: 10px 14px; border-radius: 9px;
+      border: 1px solid #334155; background: #0f172a; color: #fff; font-size: .93rem;
+      box-sizing: border-box;
+    }
+    .alerts-input:focus { outline: 2px solid #007847; border-color: transparent; }
+    .alerts-select {
+      width: 100%; padding: 10px 14px; border-radius: 9px;
+      border: 1px solid #334155; background: #0f172a; color: #fff; font-size: .93rem;
+      cursor: pointer; box-sizing: border-box;
+    }
+    .alerts-btn {
+      width: 100%; padding: 12px; border-radius: 10px; border: none; cursor: pointer;
+      background: linear-gradient(135deg, #007847, #22c55e);
+      color: #fff; font-weight: 700; font-size: 1rem; transition: opacity .2s; margin-top: 4px;
+    }
+    .alerts-btn:hover { opacity: .88; }
+    .alerts-btn:disabled { opacity: .5; cursor: not-allowed; }
+    .alerts-btn--secondary {
+      background: #334155; margin-top: 10px;
+    }
+    .alerts-status { font-size: .85rem; margin-top: 10px; min-height: 1.1em; }
+    .alerts-success { color: #22c55e; }
+    .alerts-error { color: #f87171; }
+    .alerts-verify-section { display: none; margin-top: 18px; }
+    .alerts-info-chip {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(0,120,71,.15); border: 1px solid rgba(0,120,71,.4);
+      border-radius: 50px; padding: 5px 14px; font-size: .8rem; color: #4ade80;
+      margin-bottom: 20px;
+    }
+    .alerts-type-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    .alerts-type-opt { position: relative; }
+    .alerts-type-opt input[type="radio"] { position: absolute; opacity: 0; }
+    .alerts-type-opt label {
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      padding: 12px 8px; border-radius: 10px; border: 2px solid #334155;
+      background: #0f172a; cursor: pointer; transition: all .18s; font-size: .85rem; color: #94a3b8;
+      text-align: center; font-weight: 600;
+    }
+    .alerts-type-opt input:checked + label {
+      border-color: #007847; background: rgba(0,120,71,.15); color: #4ade80;
+    }
+    .alerts-type-opt label .alerts-type-icon { font-size: 1.5rem; }
+    @media (max-width: 640px) {
+      .alerts-card { padding: 20px 18px; }
+      .alerts-hero { padding: 28px 16px 24px; }
+    }
+    @media (max-width: 420px) {
+      .alerts-type-grid { grid-template-columns: 1fr; }
+      .alerts-type-opt label { flex-direction: row; justify-content: flex-start; padding: 10px 14px; }
+    }
+  </style>
+</head>
+<body>
+  <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open navigation menu" aria-expanded="false">&#9776;</button>
+
+  <aside class="sidebar" id="sidebarNav" aria-label="Primary navigation">
+    <div class="sidebar-logo">RoleRocket<span>AI</span></div>
+    <nav>
+      <a class="sidebar-link-btn" href="index.html">Home</a>
+      <a class="sidebar-link-btn" href="about-us.html">About Us</a>
+      <a class="sidebar-link-btn" href="features.html">Features</a>
+      <a class="sidebar-link-btn" href="job-tracking.html">Opportunity Finder</a>
+      <a class="sidebar-link-btn" href="ai-recruiter-assist.html">AI Recruiter Assist</a>
+      <a class="sidebar-link-btn" href="pricing.html">Pricing</a>
+      <a class="sidebar-link-btn" href="contact-us.html">Contact Us</a>
+      <a class="sidebar-link-btn" href="jamaica-workforce-accelerator.html">🇯🇲 Jamaica Workforce Accelerator</a>
+      <a class="sidebar-link-btn" href="institution-cohort-manager.html">🏫 Cohort Manager</a>
+        <a class="sidebar-link-btn" href="job-alerts-sms.html">📱 Job Alerts</a>
+      <a class="sidebar-link-btn active" href="job-alerts-sms.html">📱 Job Alerts</a>
+      <a class="sidebar-link-btn" href="account.html">👤 Account</a>
+      <a class="sidebar-link-btn premium-btn" href="dashboard.html">🧑‍💼 My Dashboard</a>
+      <a class="sidebar-link-btn" href="login.html?relogin=1">Logout</a>
+    </nav>
+  </aside>
+  <div class="sidebar-overlay" id="sidebarOverlay" tabindex="-1" aria-hidden="true"></div>
+
+  <main class="main-content" id="mainContent">
+
+    <div class="alerts-hero">
+      <h1>📱 Job Alerts — SMS & WhatsApp</h1>
+      <p>Get instant job alerts sent directly to your phone. Choose SMS, WhatsApp, or both — and never miss an opportunity.</p>
+    </div>
+
+    <!-- Alert type card -->
+    <div class="alerts-card">
+      <div class="alerts-info-chip">🇯🇲 Jamaica & Caribbean alerts available</div>
+      <h2>Set Up Your Job Alerts</h2>
+
+      <div class="alerts-field">
+        <label>Alert Channel</label>
+        <div class="alerts-type-grid">
+          <div class="alerts-type-opt">
+            <input type="radio" name="alertType" id="atSms" value="sms" checked />
+            <label for="atSms"><span class="alerts-type-icon">💬</span>SMS</label>
+          </div>
+          <div class="alerts-type-opt">
+            <input type="radio" name="alertType" id="atWhatsapp" value="whatsapp" />
+            <label for="atWhatsapp"><span class="alerts-type-icon">📲</span>WhatsApp</label>
+          </div>
+          <div class="alerts-type-opt">
+            <input type="radio" name="alertType" id="atBoth" value="both" />
+            <label for="atBoth"><span class="alerts-type-icon">🔔</span>Both</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="alerts-field">
+        <label for="alertPhone">Phone Number (include country code)</label>
+        <input class="alerts-input" type="tel" id="alertPhone" placeholder="+1876XXXXXXX" autocomplete="tel" />
+      </div>
+
+      <div class="alerts-field">
+        <label for="alertFrequency">Alert Frequency</label>
+        <select class="alerts-select" id="alertFrequency">
+          <option value="immediate">Immediate — as jobs are found</option>
+          <option value="daily" selected>Daily digest</option>
+          <option value="weekly">Weekly summary</option>
+        </select>
+      </div>
+
+      <div class="alerts-field">
+        <label for="alertRoles">Target Roles (comma-separated)</label>
+        <input class="alerts-input" type="text" id="alertRoles" placeholder="e.g. Software Engineer, Data Analyst, Nurse" />
+      </div>
+
+      <div class="alerts-field">
+        <label for="alertLocations">Preferred Locations (comma-separated)</label>
+        <input class="alerts-input" type="text" id="alertLocations" placeholder="e.g. Kingston, Jamaica, Remote" />
+      </div>
+
+      <button class="alerts-btn" id="alertRegisterBtn" type="button">Register Alerts</button>
+      <div class="alerts-status" id="alertRegStatus"></div>
+
+      <!-- Verification -->
+      <div class="alerts-verify-section" id="alertVerifySection">
+        <hr style="border-color:#334155;margin:20px 0;" />
+        <h2 style="font-size:1rem;margin:0 0 12px;">Verify Your Phone Number</h2>
+        <p style="font-size:.85rem;color:#94a3b8;margin:0 0 14px;">Enter the 6-digit code sent to your phone.</p>
+        <div class="alerts-field">
+          <label for="alertVerifyCode">Verification Code</label>
+          <input class="alerts-input" type="text" id="alertVerifyCode" placeholder="123456" maxlength="6" inputmode="numeric" autocomplete="one-time-code" />
+        </div>
+        <button class="alerts-btn" id="alertVerifyBtn" type="button">Verify &amp; Activate</button>
+        <div class="alerts-status" id="alertVerifyStatus"></div>
+      </div>
+    </div>
+
+    <!-- Confirmation card (shown after successful verify) -->
+    <div class="alerts-card" id="alertSuccessCard" style="display:none;border-color:rgba(34,197,94,.35);">
+      <h2 style="color:#22c55e;">✅ Job Alerts Active!</h2>
+      <p style="color:#94a3b8;font-size:.92rem;">You'll receive job alerts matching your preferences. You can update or pause your alerts any time by returning to this page.</p>
+      <a href="jamaica-workforce-accelerator.html" class="alerts-btn" style="display:block;text-align:center;text-decoration:none;margin-top:14px;">🇯🇲 Back to Jamaica Workforce Accelerator</a>
+    </div>
+
+  </main>
+
+  <script src="js/auth-storage.js"></script>
+  <script src="js/api-base.js"></script>
+  <script src="js/nav-plan-sync.js"></script>
+  <script>
+    // ── Sidebar mobile toggle ─────────────────────────────────────────────
+    const mobileMenuBtn  = document.getElementById('mobileMenuBtn');
+    const sidebarNav     = document.getElementById('sidebarNav');
+    const sidebarOverlay = document.getElementById('sidebarOverlay');
+    function openSidebar()  { sidebarNav.classList.add('open'); sidebarOverlay.classList.add('visible'); mobileMenuBtn.setAttribute('aria-expanded','true'); }
+    function closeSidebar() { sidebarNav.classList.remove('open'); sidebarOverlay.classList.remove('visible'); mobileMenuBtn.setAttribute('aria-expanded','false'); }
+    mobileMenuBtn?.addEventListener('click', openSidebar);
+    sidebarOverlay?.addEventListener('click', closeSidebar);
+
+    // ── State ─────────────────────────────────────────────────────────────
+    let pendingAlertId = null;
+
+    // ── Helpers ───────────────────────────────────────────────────────────
+    const token = () => getAuthToken?.() || localStorage.getItem('authToken') || localStorage.getItem('token');
+    const setStatus = (elId, msg, type = '') => {
+      const el = document.getElementById(elId);
+      if (!el) return;
+      el.textContent = msg;
+      el.className = 'alerts-status' + (type ? ' alerts-' + type : '');
+    };
+
+    // ── Register ──────────────────────────────────────────────────────────
+    document.getElementById('alertRegisterBtn').addEventListener('click', async () => {
+      const phone     = document.getElementById('alertPhone').value.trim();
+      const alertType = document.querySelector('input[name="alertType"]:checked')?.value || 'sms';
+      const frequency = document.getElementById('alertFrequency').value;
+      const roles     = document.getElementById('alertRoles').value.split(',').map(s => s.trim()).filter(Boolean);
+      const locations = document.getElementById('alertLocations').value.split(',').map(s => s.trim()).filter(Boolean);
+
+      if (!phone) { setStatus('alertRegStatus', 'Please enter your phone number.', 'error'); return; }
+
+      const btn = document.getElementById('alertRegisterBtn');
+      btn.disabled = true; btn.textContent = 'Registering…';
+      setStatus('alertRegStatus', 'Sending verification code…');
+
+      try {
+        const res = await fetch(`${apiUrl()}/api/alerts/sms/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` },
+          body: JSON.stringify({ phoneNumber: phone, alertType, frequency, rolePreferences: roles, locationPreferences: locations })
+        });
+        const data = await res.json();
+        if (!res.ok) { setStatus('alertRegStatus', data.error || 'Registration failed.', 'error'); btn.disabled = false; btn.textContent = 'Register Alerts'; return; }
+
+        pendingAlertId = data.alertId;
+        setStatus('alertRegStatus', '✅ Code sent! Check your phone.', 'success');
+        document.getElementById('alertVerifySection').style.display = 'block';
+        document.getElementById('alertVerifyCode').focus();
+      } catch (err) {
+        setStatus('alertRegStatus', 'Network error. Please try again.', 'error');
+      } finally {
+        btn.disabled = false; btn.textContent = 'Register Alerts';
+      }
+    });
+
+    // ── Verify ────────────────────────────────────────────────────────────
+    document.getElementById('alertVerifyBtn').addEventListener('click', async () => {
+      const code = document.getElementById('alertVerifyCode').value.trim();
+      if (!code) { setStatus('alertVerifyStatus', 'Enter the verification code.', 'error'); return; }
+      if (!pendingAlertId) { setStatus('alertVerifyStatus', 'Please register first.', 'error'); return; }
+
+      const btn = document.getElementById('alertVerifyBtn');
+      btn.disabled = true; btn.textContent = 'Verifying…';
+      setStatus('alertVerifyStatus', 'Verifying…');
+
+      try {
+        const res = await fetch(`${apiUrl()}/api/alerts/sms/verify`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` },
+          body: JSON.stringify({ alertId: pendingAlertId, verificationCode: code })
+        });
+        const data = await res.json();
+        if (!res.ok) { setStatus('alertVerifyStatus', data.error || 'Verification failed.', 'error'); btn.disabled = false; btn.textContent = 'Verify & Activate'; return; }
+
+        // Success
+        document.getElementById('alertVerifySection').style.display = 'none';
+        document.getElementById('alertSuccessCard').style.display = 'block';
+        setStatus('alertVerifyStatus', '');
+        document.getElementById('alertSuccessCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } catch (err) {
+        setStatus('alertVerifyStatus', 'Network error. Please try again.', 'error');
+      } finally {
+        btn.disabled = false; btn.textContent = 'Verify & Activate';
+      }
+    });
+
+    // ── Pre-fill from JWA if arriving via ?role= ──────────────────────────
+    (function() {
+      const params = new URLSearchParams(window.location.search);
+      const role = params.get('role');
+      if (role) document.getElementById('alertRoles').value = role;
+      const loc = params.get('location');
+      if (loc) document.getElementById('alertLocations').value = loc;
+    })();
+  </script>
+</body>
+</html>
