@@ -123,8 +123,31 @@ app.use('/api/cover-letter', require('./routes/coverLetter'));
 // Register school/university/government/employer integration APIs
 app.use('/api/integrations', require('./routes/integrations'));
 
+// Register plan-based access control middleware and feature routes
+const planAccess = require('./middleware/planAccess');
+const authenticateToken = (req, res, next) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) {
+    return res.status(401).json({ error: 'No token' });
+  }
+  try {
+    const decoded = require('jsonwebtoken').verify(token, process.env.JWT_SECRET);
+    req.user = {
+      ...decoded,
+      userId: decoded.userId || decoded.id || decoded._id || decoded.sub || null
+    };
+    if (!req.user.userId) {
+      return res.status(403).json({ error: 'Invalid token payload' });
+    }
+    return next();
+  } catch {
+    return res.status(403).json({ error: 'Invalid token' });
+  }
+};
+app.use('/api/features', authenticateToken, require('./routes/features'));
+
 /* ─── Institution Cohort Manager ──────────────────────────────────────────── */
-app.get('/api/institution/cohort', verifyToken, async (req, res) => {
+app.get('/api/institution/cohort', authenticateToken, async (req, res) => {
   try {
     const actor = await User.findById(req.user.userId).select('accountType institutionName').lean();
     if (!actor || actor.accountType !== 'institution') {
@@ -149,7 +172,7 @@ app.get('/api/institution/cohort', verifyToken, async (req, res) => {
   }
 });
 
-app.get('/api/institution/stats', verifyToken, async (req, res) => {
+app.get('/api/institution/stats', authenticateToken, async (req, res) => {
   try {
     const actor = await User.findById(req.user.userId).select('accountType institutionName').lean();
     if (!actor || actor.accountType !== 'institution') {
@@ -181,28 +204,6 @@ app.get('/api/institution/stats', verifyToken, async (req, res) => {
 
 
 
-// Register plan-based access control middleware and feature routes
-const planAccess = require('./middleware/planAccess');
-const authenticateToken = (req, res, next) => {
-  const token = req.headers.authorization?.split(' ')[1];
-  if (!token) {
-    return res.status(401).json({ error: 'No token' });
-  }
-  try {
-    const decoded = require('jsonwebtoken').verify(token, process.env.JWT_SECRET);
-    req.user = {
-      ...decoded,
-      userId: decoded.userId || decoded.id || decoded._id || decoded.sub || null
-    };
-    if (!req.user.userId) {
-      return res.status(403).json({ error: 'Invalid token payload' });
-    }
-    return next();
-  } catch {
-    return res.status(403).json({ error: 'Invalid token' });
-  }
-};
-app.use('/api/features', authenticateToken, require('./routes/features'));
 
 // Start the Express server
 // Start the Express server (must be at the end)
