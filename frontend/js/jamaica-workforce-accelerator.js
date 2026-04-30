@@ -703,9 +703,6 @@
       if (market.id === 'jamaica') {
         const freshOnly = filtered.filter((job) => isWithinRecentDays(job.postedAt, 7));
         freshOnly.sort((a, b) => scoreJamaicaSourcePreference(b) - scoreJamaicaSourcePreference(a));
-        if (!freshOnly.length) {
-          return buildJamaicaFallbackJobs(title);
-        }
         return freshOnly;
       }
 

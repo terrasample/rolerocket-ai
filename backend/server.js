@@ -1389,6 +1389,30 @@ function isEligibleTopMatchJob(job) {
   return hasValidLink || matchScore > 0;
 }
 
+function isGenericCareerLandingLink(value) {
+  try {
+    const raw = String(value || '').trim();
+    if (!/^https?:\/\//i.test(raw)) return true;
+
+    const parsed = new URL(raw);
+    const host = parsed.hostname.replace(/^www\./, '').toLowerCase();
+    const path = (parsed.pathname || '/').replace(/\/+$/, '').toLowerCase() || '/';
+    const hasQuery = Boolean(parsed.search && parsed.search !== '?');
+
+    if (host.includes('alorica.com') && path === '/careers') return true;
+    if (host.includes('conduent.com') && (path === '/' || path === '/careers')) return true;
+    if (host.includes('concentrix.com') && (path === '/' || path === '/careers')) return true;
+    if (host.includes('ttec.com') && (path === '/' || path === '/find-a-job')) return true;
+    if (host.includes('taskus.com') && (path === '/' || path === '/careers')) return true;
+    if (host.includes('foundever.com') && (path === '/' || path === '/jobs')) return true;
+
+    const genericPath = path === '/' || path === '/jobs' || path === '/careers' || path === '/find-a-job';
+    return genericPath && !hasQuery;
+  } catch (_error) {
+    return true;
+  }
+}
+
 function estimateSalaryRange(title, location, source, description = '') {
   const role = String(title || '').toLowerCase();
   const loc = String(location || '').toLowerCase();
@@ -2072,16 +2096,13 @@ async function searchJobsFast({ title, location, resume }) {
   const allowBroadFallback = !locationQuery || /remote|worldwide|global|anywhere|anywhere in/i.test(locationQuery);
   let jobs = (locationMatched.length || !allowBroadFallback ? locationMatched : ranked);
 
-  // For Jamaica, keep results Jamaica-only and top up from Jamaica-local
-  // curated sources when upstream APIs under-return.
+  // For Jamaica, return only Jamaica-matched jobs with recent posted dates
+  // and direct posting links (not generic career portal landing pages).
   if (/\bjamaica\b/.test(locationQuery)) {
-    const MIN_JAMAICA_RESULTS = 12;
-    if (jobs.length < MIN_JAMAICA_RESULTS) {
-      const fallbackJobs = getBPOCompanyJobs(title, 'Jamaica', resume);
-      const merged = dedupeJobs([...jobs, ...fallbackJobs]);
-      jobs = merged.filter((job) => isLocationCompatible(job, 'Jamaica'));
-    }
-    jobs = jobs.filter((job) => isPostedWithinDays(job.postedAt, 7));
+    jobs = jobs
+      .filter((job) => isLocationCompatible(job, 'Jamaica'))
+      .filter((job) => isPostedWithinDays(job.postedAt, 7))
+      .filter((job) => !isGenericCareerLandingLink(job.link));
   }
 
   // For other Caribbean islands (Trinidad, Barbados, Bahamas, Guyana, etc.),
@@ -2100,14 +2121,8 @@ async function searchJobsFast({ title, location, resume }) {
     }
   }
 
-  // Hard stop for empty Jamaica feeds: keep output Jamaica-only and non-empty.
-  if (!jobs.length && /\bjamaica\b/.test(locationQuery)) {
-    jobs = dedupeJobs([
-      ...getBPOCompanyJobs(title, 'Jamaica', resume),
-      ...getGuaranteedJamaicaFallbackJobs(title, resume)
-    ])
-      .filter((job) => isLocationCompatible(job, 'Jamaica'));
-  }
+  // For Jamaica, do not inject synthetic/fallback portal links when none match
+  // direct-link and recency requirements.
 
   // If providers are flaky, return stale cache before showing empty.
   if (!jobs.length && cached && Date.now() - cached.createdAt < JOB_STALE_CACHE_MS) {
