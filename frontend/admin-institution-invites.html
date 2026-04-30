@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Institution Invite Manager | RoleRocket AI Admin</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    body, .main { background: #0c1120 !important; color: #e2e8f0; }
+    .aim-hero {
+      background: linear-gradient(135deg, #14532d 0%, #166534 60%, #15803d 100%);
+      color: #fff; padding: 36px 32px 32px; text-align: center;
+      border-radius: 0 0 24px 24px; margin-bottom: 28px;
+    }
+    .aim-hero h1 { font-size: clamp(1.4rem,3.5vw,2rem); font-weight: 800; margin: 0 0 6px; }
+    .aim-hero p { font-size:.95rem; opacity:.85; margin:0 auto; max-width:580px; }
+    .aim-admin-pill {
+      display:inline-block; margin-top:10px; background:rgba(255,255,255,.12);
+      border:1px solid rgba(255,255,255,.22); border-radius:50px;
+      padding:3px 14px; font-size:.82rem; font-weight:700; color:#bbf7d0;
+    }
+
+    /* ── Layout ── */
+    .aim-wrap { max-width:960px; margin:0 auto; padding:0 16px 60px; }
+    .aim-two-col { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+    @media(max-width:680px){ .aim-two-col{ grid-template-columns:1fr; } }
+
+    /* ── Card ── */
+    .aim-card {
+      background:#1e293b; border-radius:16px; padding:22px 24px;
+      border:1px solid rgba(255,255,255,.07); margin-bottom:22px;
+    }
+    .aim-card-title { font-size:1rem; font-weight:700; color:#e2e8f0; margin:0 0 16px; display:flex; align-items:center; gap:8px; }
+
+    /* ── Form ── */
+    .aim-form { display:flex; flex-direction:column; gap:11px; }
+    .aim-form input, .aim-form select, .aim-form textarea {
+      width:100%; padding:9px 12px; border-radius:9px; border:1px solid #334155;
+      background:#0f172a; color:#e2e8f0; font-size:.9rem; box-sizing:border-box;
+    }
+    .aim-form textarea { resize:vertical; min-height:56px; }
+    .aim-form label { font-size:.78rem; color:#94a3b8; margin-bottom:-6px; }
+    .aim-form-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    @media(max-width:480px){ .aim-form-row{ grid-template-columns:1fr; } }
+
+    /* ── Buttons ── */
+    .aim-btn-primary {
+      padding:10px 20px; border-radius:9px; border:none;
+      background:linear-gradient(135deg,#15803d,#16a34a); color:#fff;
+      font-size:.92rem; font-weight:700; cursor:pointer; transition:opacity .2s;
+    }
+    .aim-btn-primary:disabled { opacity:.5; cursor:not-allowed; }
+    .aim-btn-primary:hover:not(:disabled) { opacity:.9; }
+    .aim-btn-danger {
+      padding:6px 12px; border-radius:7px; border:1px solid rgba(239,68,68,.4);
+      background:rgba(239,68,68,.1); color:#fca5a5; font-size:.78rem;
+      font-weight:700; cursor:pointer; transition:background .2s;
+    }
+    .aim-btn-danger:hover { background:rgba(239,68,68,.25); }
+    .aim-btn-copy {
+      padding:5px 10px; border-radius:7px; border:1px solid rgba(129,140,248,.35);
+      background:rgba(99,102,241,.1); color:#a5b4fc; font-size:.76rem;
+      font-weight:700; cursor:pointer; transition:background .2s; white-space:nowrap;
+    }
+    .aim-btn-copy:hover { background:rgba(99,102,241,.25); }
+
+    /* ── Message ── */
+    .aim-msg { font-size:.86rem; padding:8px 12px; border-radius:8px; margin-top:6px; min-height:24px; }
+    .aim-msg.success { background:rgba(22,163,74,.15); color:#86efac; border:1px solid rgba(22,163,74,.3); }
+    .aim-msg.error { background:rgba(239,68,68,.13); color:#fca5a5; border:1px solid rgba(239,68,68,.3); }
+    .aim-msg.info { background:rgba(14,165,233,.13); color:#7dd3fc; border:1px solid rgba(14,165,233,.3); }
+
+    /* ── Table ── */
+    .aim-table-wrap { overflow-x:auto; margin-top:4px; }
+    table.aim-table { width:100%; border-collapse:collapse; font-size:.84rem; }
+    table.aim-table thead th {
+      text-align:left; padding:8px 10px; color:#94a3b8;
+      border-bottom:1px solid #1e293b; font-weight:700; white-space:nowrap;
+    }
+    table.aim-table tbody tr { border-bottom:1px solid rgba(255,255,255,.05); }
+    table.aim-table tbody tr:hover { background:rgba(255,255,255,.03); }
+    table.aim-table td { padding:9px 10px; vertical-align:middle; }
+
+    /* ── Badges ── */
+    .badge-active { display:inline-block; padding:2px 9px; border-radius:50px; font-size:.73rem; font-weight:700; background:rgba(22,163,74,.18); color:#86efac; border:1px solid rgba(22,163,74,.3); }
+    .badge-inactive { display:inline-block; padding:2px 9px; border-radius:50px; font-size:.73rem; font-weight:700; background:rgba(100,116,139,.18); color:#94a3b8; border:1px solid #334155; }
+    .badge-expired { display:inline-block; padding:2px 9px; border-radius:50px; font-size:.73rem; font-weight:700; background:rgba(239,68,68,.15); color:#fca5a5; border:1px solid rgba(239,68,68,.3); }
+    .badge-exhausted { display:inline-block; padding:2px 9px; border-radius:50px; font-size:.73rem; font-weight:700; background:rgba(234,179,8,.15); color:#fde68a; border:1px solid rgba(234,179,8,.3); }
+
+    /* ── Filter row ── */
+    .aim-filter-row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; align-items:center; }
+    .aim-filter-row input, .aim-filter-row select {
+      padding:7px 10px; border-radius:8px; border:1px solid #334155;
+      background:#0f172a; color:#e2e8f0; font-size:.85rem;
+    }
+    .aim-filter-row input { min-width:160px; }
+
+    /* ── Empty state ── */
+    .aim-empty { text-align:center; padding:30px 0; color:#64748b; font-size:.9rem; }
+
+    /* ── Access denied ── */
+    #aimAccessDenied { display:none; text-align:center; padding:60px 20px; }
+    #aimAccessDenied h2 { color:#f87171; margin-bottom:8px; }
+    #aimAccessDenied p { color:#94a3b8; max-width:440px; margin:0 auto; }
+  </style>
+</head>
+<body>
+
+  <div class="aim-hero">
+    <h1>Institution Invite Manager</h1>
+    <p>Create, view, and revoke invitation codes for universities, workplaces, and institutions.</p>
+    <span class="aim-admin-pill" id="aimAdminPill">Admin Only</span>
+  </div>
+
+  <div id="aimAccessDenied">
+    <h2>Access Denied</h2>
+    <p>This page is restricted to RoleRocket administrators. Please <a href="login.html" style="color:#818cf8;">sign in</a> with an admin account.</p>
+  </div>
+
+  <div class="aim-wrap" id="aimMain" style="display:none;">
+
+    <!-- ─── Create new invite ─────────────────────────── -->
+    <div class="aim-card">
+      <div class="aim-card-title">🔑 Create Invitation Code</div>
+      <div class="aim-two-col">
+
+        <form class="aim-form" id="aimCreateForm" autocomplete="off">
+          <label>Institution / Organization Name *</label>
+          <input id="aimInstName" type="text" placeholder="e.g. UWI Mona, HEART Trust, Digicel" required maxlength="180" />
+
+          <label>Organization Type</label>
+          <select id="aimOrgType">
+            <option value="university">University / College</option>
+            <option value="workplace">Workplace / Company</option>
+            <option value="institution" selected>Institution / Gov Agency</option>
+            <option value="other">Other</option>
+          </select>
+
+          <div class="aim-form-row">
+            <div>
+              <label>Trial Days (default 30)</label>
+              <input id="aimTrialDays" type="number" value="30" min="1" max="365" />
+            </div>
+            <div>
+              <label>Max Uses (default 1)</label>
+              <input id="aimMaxUses" type="number" value="1" min="1" max="10000" />
+            </div>
+          </div>
+
+          <div class="aim-form-row">
+            <div>
+              <label>Custom Code (leave blank to auto-generate)</label>
+              <input id="aimCustomCode" type="text" placeholder="e.g. UWI-MONA-2026" maxlength="80" style="text-transform:uppercase;" />
+            </div>
+            <div>
+              <label>Code Expires In (days, optional)</label>
+              <input id="aimExpiresInDays" type="number" placeholder="e.g. 90" min="1" max="3650" />
+            </div>
+          </div>
+
+          <label>Notes (internal, optional)</label>
+          <textarea id="aimNotes" placeholder="e.g. Contact: Dean Smith, deal signed April 2026" maxlength="500"></textarea>
+
+          <button type="submit" class="aim-btn-primary" id="aimCreateBtn">Create Invitation Code</button>
+          <div class="aim-msg" id="aimCreateMsg"></div>
+        </form>
+
+        <!-- Result card shown after creation -->
+        <div id="aimResultCard" style="display:none;">
+          <div class="aim-card" style="margin-bottom:0;border-color:rgba(22,163,74,.3);">
+            <div class="aim-card-title" style="color:#86efac;">✅ Invite Created</div>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <div>
+                <div style="font-size:.76rem;color:#94a3b8;margin-bottom:3px;">Invitation Code</div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <strong id="rcCode" style="font-size:1.1rem;font-family:monospace;color:#86efac;letter-spacing:.08em;"></strong>
+                  <button class="aim-btn-copy" onclick="copyText('rcCode',this)">Copy</button>
+                </div>
+              </div>
+              <div>
+                <div style="font-size:.76rem;color:#94a3b8;margin-bottom:3px;">Institution</div>
+                <span id="rcInst" style="font-size:.92rem;"></span>
+              </div>
+              <div style="display:flex;gap:16px;flex-wrap:wrap;">
+                <div><span style="font-size:.76rem;color:#94a3b8;">Trial</span><br><strong id="rcTrial"></strong></div>
+                <div><span style="font-size:.76rem;color:#94a3b8;">Max Uses</span><br><strong id="rcMaxUses"></strong></div>
+                <div><span style="font-size:.76rem;color:#94a3b8;">Expires</span><br><strong id="rcExpires"></strong></div>
+              </div>
+              <div>
+                <div style="font-size:.76rem;color:#94a3b8;margin-bottom:4px;">Signup Link (send this to the institution)</div>
+                <div style="display:flex;align-items:flex-start;gap:8px;">
+                  <span id="rcUrl" style="font-size:.78rem;color:#7dd3fc;word-break:break-all;"></span>
+                  <button class="aim-btn-copy" style="flex-shrink:0;" onclick="copyText('rcUrl',this)">Copy</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── Search & list ─────────────────────────────── -->
+    <div class="aim-card">
+      <div class="aim-card-title">📋 All Invitation Codes</div>
+
+      <div class="aim-filter-row">
+        <input id="aimFilterInst" type="text" placeholder="Filter by institution name…" />
+        <select id="aimFilterActive">
+          <option value="">All statuses</option>
+          <option value="true">Active</option>
+          <option value="false">Revoked</option>
+        </select>
+        <button class="aim-btn-primary" style="padding:7px 16px;font-size:.85rem;" onclick="loadInvites()">Search</button>
+        <button style="padding:7px 14px;border-radius:8px;border:1px solid #334155;background:none;color:#94a3b8;font-size:.85rem;cursor:pointer;" onclick="clearFilters()">Clear</button>
+      </div>
+
+      <div class="aim-msg info" id="aimListMsg" style="margin-bottom:12px;display:none;"></div>
+
+      <div class="aim-table-wrap">
+        <table class="aim-table" id="aimTable">
+          <thead>
+            <tr>
+              <th>Code</th>
+              <th>Institution</th>
+              <th>Type</th>
+              <th>Trial</th>
+              <th>Used</th>
+              <th>Status</th>
+              <th>Expires</th>
+              <th>Created</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="aimTableBody">
+            <tr><td colspan="9" class="aim-empty">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /aim-wrap -->
+
+  <script src="js/api-base.js"></script>
+  <script src="js/auth-storage.js"></script>
+  <script>
+  (function() {
+    'use strict';
+
+    /* ── Auth guard ── */
+    function getAuthToken() {
+      return (typeof getStoredToken === 'function' && getStoredToken()) || null;
+    }
+
+    function authHeaders() {
+      return { 'Authorization': 'Bearer ' + getAuthToken(), 'Content-Type': 'application/json' };
+    }
+
+    async function safeJson(res) {
+      const text = await res.text();
+      try { return text ? JSON.parse(text) : {}; } catch { return { error: text }; }
+    }
+
+    async function init() {
+      const token = getAuthToken();
+      if (!token) { showAccessDenied(); return; }
+      try {
+        const res = await fetch(apiUrl('/api/me'), { headers: { Authorization: 'Bearer ' + token }, cache: 'no-store' });
+        if (!res.ok) { showAccessDenied(); return; }
+        const data = await safeJson(res);
+        const user = data.user || data;
+        if (!user.isAdmin) { showAccessDenied(); return; }
+        document.getElementById('aimAdminPill').textContent = user.name || 'Admin';
+        document.getElementById('aimMain').style.display = '';
+        await loadInvites();
+      } catch { showAccessDenied(); }
+    }
+
+    function showAccessDenied() {
+      document.getElementById('aimAccessDenied').style.display = '';
+    }
+
+    /* ── Create invite ── */
+    document.getElementById('aimCreateForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('aimCreateBtn');
+      const msg = document.getElementById('aimCreateMsg');
+      const resultCard = document.getElementById('aimResultCard');
+
+      btn.disabled = true;
+      btn.textContent = 'Creating…';
+      msg.className = 'aim-msg';
+      msg.textContent = '';
+      resultCard.style.display = 'none';
+
+      const institutionName = document.getElementById('aimInstName').value.trim();
+      const organizationType = document.getElementById('aimOrgType').value;
+      const trialDays = Number(document.getElementById('aimTrialDays').value) || 30;
+      const maxUses = Number(document.getElementById('aimMaxUses').value) || 1;
+      const code = document.getElementById('aimCustomCode').value.trim().toUpperCase().replace(/[^A-Z0-9-]/g, '') || undefined;
+      const expiresInDaysRaw = document.getElementById('aimExpiresInDays').value.trim();
+      const expiresInDays = expiresInDaysRaw ? Number(expiresInDaysRaw) : undefined;
+      const notes = document.getElementById('aimNotes').value.trim();
+
+      try {
+        const res = await fetch(apiUrl('/api/admin/institution-invites'), {
+          method: 'POST',
+          headers: authHeaders(),
+          body: JSON.stringify({ institutionName, organizationType, trialDays, maxUses, code, expiresInDays, notes })
+        });
+        const data = await safeJson(res);
+        if (!res.ok) {
+          msg.className = 'aim-msg error';
+          msg.textContent = data.error || 'Failed to create invite';
+          return;
+        }
+        const inv = data.invite;
+        document.getElementById('rcCode').textContent = inv.code;
+        document.getElementById('rcInst').textContent = inv.institutionName;
+        document.getElementById('rcTrial').textContent = inv.trialDays + ' days';
+        document.getElementById('rcMaxUses').textContent = inv.maxUses;
+        document.getElementById('rcExpires').textContent = inv.expiresAt ? new Date(inv.expiresAt).toLocaleDateString() : 'None';
+        document.getElementById('rcUrl').textContent = inv.signupUrl;
+        resultCard.style.display = '';
+        msg.className = 'aim-msg success';
+        msg.textContent = 'Invite created! Copy the signup link and send it to the institution.';
+        document.getElementById('aimCreateForm').reset();
+        document.getElementById('aimTrialDays').value = 30;
+        document.getElementById('aimMaxUses').value = 1;
+        await loadInvites();
+      } catch (err) {
+        msg.className = 'aim-msg error';
+        msg.textContent = 'Request failed: ' + err.message;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Create Invitation Code';
+      }
+    });
+
+    document.getElementById('aimCustomCode').addEventListener('input', (e) => {
+      e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, '');
+    });
+
+    /* ── Load invites ── */
+    window.loadInvites = async function() {
+      const tbody = document.getElementById('aimTableBody');
+      const listMsg = document.getElementById('aimListMsg');
+      tbody.innerHTML = '<tr><td colspan="9" class="aim-empty">Loading…</td></tr>';
+      listMsg.style.display = 'none';
+
+      const instFilter = document.getElementById('aimFilterInst').value.trim();
+      const activeFilter = document.getElementById('aimFilterActive').value;
+
+      const params = new URLSearchParams();
+      if (instFilter) params.set('institutionName', instFilter);
+      if (activeFilter !== '') params.set('active', activeFilter);
+
+      try {
+        const res = await fetch(apiUrl('/api/admin/institution-invites') + (params.toString() ? '?' + params : ''), {
+          headers: authHeaders()
+        });
+        const data = await safeJson(res);
+        if (!res.ok) {
+          tbody.innerHTML = '<tr><td colspan="9" class="aim-empty" style="color:#f87171;">' + escHtml(data.error || 'Failed to load') + '</td></tr>';
+          return;
+        }
+        const invites = data.invites || [];
+        if (!invites.length) {
+          tbody.innerHTML = '<tr><td colspan="9" class="aim-empty">No invitation codes found.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = invites.map(renderRow).join('');
+        listMsg.className = 'aim-msg info';
+        listMsg.textContent = invites.length + ' code(s) found.';
+        listMsg.style.display = '';
+      } catch (err) {
+        tbody.innerHTML = '<tr><td colspan="9" class="aim-empty" style="color:#f87171;">Error: ' + escHtml(err.message) + '</td></tr>';
+      }
+    };
+
+    function renderRow(inv) {
+      const now = Date.now();
+      const expired = inv.expiresAt && new Date(inv.expiresAt).getTime() < now;
+      const exhausted = inv.usedCount >= inv.maxUses;
+      let statusBadge;
+      if (!inv.active) statusBadge = '<span class="badge-inactive">Revoked</span>';
+      else if (expired) statusBadge = '<span class="badge-expired">Expired</span>';
+      else if (exhausted) statusBadge = '<span class="badge-exhausted">Exhausted</span>';
+      else statusBadge = '<span class="badge-active">Active</span>';
+
+      const expiresText = inv.expiresAt ? new Date(inv.expiresAt).toLocaleDateString() : '—';
+      const createdText = new Date(inv.createdAt).toLocaleDateString();
+      const orgTypeLabels = { university: 'University', workplace: 'Workplace', institution: 'Institution', other: 'Other' };
+      const typeLabel = orgTypeLabels[inv.organizationType] || inv.organizationType || '—';
+
+      const canRevoke = inv.active && !expired && !exhausted;
+
+      return `<tr data-id="${escHtml(inv._id)}">
+        <td>
+          <span style="font-family:monospace;font-size:.82rem;font-weight:700;color:#86efac;">${escHtml(inv.code)}</span>
+          <button class="aim-btn-copy" style="margin-left:6px;" onclick="copyStr('${escHtml(inv.code)}',this)">Copy</button>
+        </td>
+        <td style="max-width:180px;word-break:break-word;">${escHtml(inv.institutionName)}</td>
+        <td><span style="font-size:.78rem;color:#94a3b8;">${escHtml(typeLabel)}</span></td>
+        <td>${escHtml(String(inv.trialDays))}d</td>
+        <td>${escHtml(String(inv.usedCount))} / ${escHtml(String(inv.maxUses))}</td>
+        <td>${statusBadge}</td>
+        <td style="font-size:.8rem;color:#94a3b8;">${escHtml(expiresText)}</td>
+        <td style="font-size:.8rem;color:#94a3b8;">${escHtml(createdText)}</td>
+        <td>
+          ${canRevoke ? `<button class="aim-btn-danger" onclick="revokeInvite('${escHtml(inv._id)}',this)">Revoke</button>` : '<span style="font-size:.75rem;color:#475569;">—</span>'}
+          <button class="aim-btn-copy" style="margin-left:6px;" onclick="copySignupUrl('${escHtml(inv.institutionName)}','${escHtml(inv.code)}',this)">Link</button>
+        </td>
+      </tr>`;
+    }
+
+    /* ── Revoke invite ── */
+    window.revokeInvite = async function(id, btn) {
+      if (!confirm('Revoke this invitation code? The code will stop working immediately.')) return;
+      btn.disabled = true;
+      btn.textContent = '…';
+      try {
+        const res = await fetch(apiUrl('/api/admin/institution-invites/' + id + '/revoke'), {
+          method: 'POST',
+          headers: authHeaders()
+        });
+        const data = await safeJson(res);
+        if (!res.ok) { alert(data.error || 'Failed to revoke'); btn.disabled = false; btn.textContent = 'Revoke'; return; }
+        await loadInvites();
+      } catch (err) { alert('Error: ' + err.message); btn.disabled = false; btn.textContent = 'Revoke'; }
+    };
+
+    /* ── Copy helpers ── */
+    window.copyText = function(elemId, btn) {
+      const text = document.getElementById(elemId)?.textContent || '';
+      copyStr(text, btn);
+    };
+
+    window.copyStr = function(text, btn) {
+      navigator.clipboard.writeText(text).then(() => {
+        const orig = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = orig; }, 1800);
+      }).catch(() => {
+        prompt('Copy this:', text);
+      });
+    };
+
+    window.copySignupUrl = function(institutionName, code, btn) {
+      const base = (typeof getApiBase === 'function' ? getApiBase() : 'https://www.rolerocketai.com').replace(/\/api$/, '').replace(/\/$/, '');
+      const url = base + '/signup.html?institution=' + encodeURIComponent(institutionName) + '&inviteCode=' + encodeURIComponent(code);
+      copyStr(url, btn);
+    };
+
+    /* ── Filters ── */
+    window.clearFilters = function() {
+      document.getElementById('aimFilterInst').value = '';
+      document.getElementById('aimFilterActive').value = '';
+      loadInvites();
+    };
+
+    /* ── Escape HTML ── */
+    function escHtml(str) {
+      return String(str || '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]);
+    }
+
+    /* ── Boot ── */
+    init();
+  })();
+  </script>
+</body>
+</html>

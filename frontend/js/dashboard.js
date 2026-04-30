@@ -2278,6 +2278,9 @@ async function loadUserPlan() {
       window.currentUserIsSubscribed = !!data.user.isSubscribed;
       window.currentUserIsAdmin = isAdminUser(data.user);
       if (planBadgeEl) planBadgeEl.textContent = formatPlan(currentUserPlan);
+      // Show admin-only sidebar links
+      const adminInvitesLink = document.getElementById('adminInvitesLink');
+      if (adminInvitesLink && window.currentUserIsAdmin) adminInvitesLink.style.display = '';
       renderPlanGuide(currentUserPlan === 'free' ? 'pro' : currentUserPlan);
       applyLocks();
       updateTodayRail();

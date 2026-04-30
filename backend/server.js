@@ -557,6 +557,22 @@ app.get('/api/admin/institution-invites', authenticateToken, requireAdminAccess,
   }
 });
 
+// Revoke (or reactivate) an institution invite — admin only
+app.post('/api/admin/institution-invites/:id/revoke', authenticateToken, requireAdminAccess, async (req, res) => {
+  try {
+    const invite = await InstitutionInvite.findByIdAndUpdate(
+      req.params.id,
+      { active: false },
+      { new: true }
+    );
+    if (!invite) return res.status(404).json({ error: 'Invite not found' });
+    return res.json({ success: true, invite });
+  } catch (err) {
+    console.error('POST /api/admin/institution-invites/:id/revoke', err);
+    return res.status(500).json({ error: 'Failed to revoke invite' });
+  }
+});
+
 // Start the Express server
 // Start the Express server (must be at the end)
 // Start the Express server (must be at the end)
