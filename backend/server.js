@@ -1916,7 +1916,6 @@ function buildSourceTasks({ title, location, resume }) {
   if (isJamaica || isCaribbean || !q) {
     tasks.push(timeoutPromise(fetchCaribJobs(title, location, resume), 2500));
     tasks.push(timeoutPromise(fetchJamaicaEmployment(title, location, resume), 2500));
-    tasks.push(Promise.resolve(getBPOCompanyJobs(title, location, resume)));
   }
 
   return tasks;

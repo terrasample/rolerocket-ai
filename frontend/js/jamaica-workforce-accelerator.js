@@ -516,6 +516,30 @@
     return /^https?:\/\//i.test(String(value || ''));
   }
 
+  function isGenericCareerLandingLink(value) {
+    try {
+      const raw = String(value || '').trim();
+      if (!isAbsoluteHttpUrl(raw)) return true;
+
+      const parsed = new URL(raw);
+      const host = parsed.hostname.replace(/^www\./, '').toLowerCase();
+      const path = parsed.pathname.replace(/\/+$/, '').toLowerCase() || '/';
+      const hasQuery = Boolean(parsed.search && parsed.search !== '?');
+
+      if (host.includes('alorica.com') && path === '/careers') return true;
+      if (host.includes('conduent.com') && (path === '/' || path === '/careers')) return true;
+      if (host.includes('concentrix.com') && (path === '/' || path === '/careers')) return true;
+      if (host.includes('ttec.com') && (path === '/' || path === '/find-a-job')) return true;
+      if (host.includes('taskus.com') && (path === '/' || path === '/careers')) return true;
+      if (host.includes('foundever.com') && (path === '/' || path === '/jobs')) return true;
+
+      const genericPath = path === '/' || path === '/jobs' || path === '/careers' || path === '/find-a-job';
+      return genericPath && !hasQuery;
+    } catch (_error) {
+      return true;
+    }
+  }
+
   function getScoutApiUrl(params) {
     const path = `/api/jobs/scout?${params.toString()}`;
     if (typeof apiUrl === 'function') return apiUrl(path);
@@ -620,7 +644,8 @@
           source: String(job.source || 'Live Source').trim(),
           postedAt: job.postedAt || job.created || '',
           link: String(job.link || '').trim()
-        }));
+        }))
+        .filter((job) => !isGenericCareerLandingLink(job.link));
 
       const strict = normalized.filter((job) => matchesMarketLocation(job.location, market));
       const signalMatched = normalized.filter((job) => matchesMarketBySignals(job, market));
