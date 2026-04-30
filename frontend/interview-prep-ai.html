@@ -218,6 +218,65 @@
   <script src="js/idle-timeout.js"></script>
   <script src="js/dashboard.js"></script>
   <script>
+    // --- Access Control: Interview Prep is a paid feature ---
+    (async function() {
+      const params = new URLSearchParams(window.location.search);
+      const fromCohort = params.get('from') === 'cohort';
+      
+      // If coming from cohort manager or with student token, allow immediately
+      if (fromCohort) return;
+      
+      // Check user plan and role
+      try {
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token') || localStorage.getItem('authToken') || '';
+        if (!token) {
+          redirectToFeatureAuth('Interview Prep requires an account. Please log in.');
+          return;
+        }
+        
+        const res = await fetch(apiPath('/api/me'), { 
+          headers: { Authorization: `Bearer ${token}` },
+          cache: 'no-store'
+        });
+        
+        if (!res.ok) {
+          redirectToFeatureAuth('Session expired. Please log in again.');
+          return;
+        }
+        
+        const data = await res.json();
+        const user = data.user || {};
+        const isAdmin = user.isAdmin === true;
+        const plan = user.plan || 'free';
+        const isPaid = plan !== 'free';
+        
+        // Allow if admin or has paid plan
+        if (isAdmin || isPaid) return;
+        
+        // Deny: free plan users without admin role
+        redirectToFeatureAuth('Interview Prep is available on paid plans. Upgrade to access this feature.');
+      } catch (err) {
+        console.error('Access control check failed:', err);
+        redirectToFeatureAuth('Could not verify access. Please refresh and try again.');
+      }
+      
+      function redirectToFeatureAuth(msg) {
+        const body = document.body;
+        body.innerHTML = '';
+        body.style.cssText = 'padding:40px;background:#f8fafc;color:#0f172a;font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;';
+        const card = document.createElement('div');
+        card.style.cssText = 'background:#fff;border:1px solid #dbeafe;border-radius:12px;padding:32px;max-width:480px;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.1);';
+        card.innerHTML = '<h1 style="margin:0 0 12px;color:#0c4a6e;font-size:1.4rem;">Access Restricted</h1>' +
+          '<p style="margin:0 0 24px;color:#475569;line-height:1.6;">'+String(msg).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c])+'</p>' +
+          '<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">' +
+          '<a href="dashboard.html" style="padding:10px 20px;background:#0ea5e9;color:#fff;text-decoration:none;border-radius:8px;font-weight:600;">Back to Dashboard</a>' +
+          '<a href="login.html?relogin=1" style="padding:10px 20px;background:#e2e8f0;color:#334155;text-decoration:none;border-radius:8px;font-weight:600;">Sign In</a>' +
+          '</div>';
+        body.appendChild(card);
+      }
+    })();
+  </script>
+  <script>
     // --- Interview Prep AI Download Logic ---
     let lastInterviewPrep = '';
     // Patch dashboard.js renderAIOutput to also update lastInterviewPrep
