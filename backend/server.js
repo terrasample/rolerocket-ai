@@ -767,7 +767,8 @@ app.get('/api/public/stats', async (_req, res) => {
       jobsTrackedTotal,
       applicationsTotal,
       usageTotal: resumesTotal + jobsTrackedTotal + applicationsTotal,
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
+      sources: getPlatformStatsSourceLabels()
     });
   } catch (err) {
     console.error('Public stats error:', err);
@@ -2355,6 +2356,10 @@ function getInDemandJobSourceLabels() {
   if (config.usajobs?.enabled) labels.push('USAJobs');
 
   return labels;
+}
+
+function getPlatformStatsSourceLabels() {
+  return ['RoleRocket AI platform database'];
 }
 
 function normalizeJobTitleForDemand(title) {
@@ -6059,6 +6064,7 @@ app.get('/api/in-demand-jobs', async (_req, res) => {
     return res.status(200).json({
       updatedAt: new Date().toISOString(),
       industries: buildFallbackIndustryJobs(),
+      sources: getInDemandJobSourceLabels(),
       cacheTtlMs: IN_DEMAND_JOBS_CACHE_MS,
       fromCache: false,
       fallback: true

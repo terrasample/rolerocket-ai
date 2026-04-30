@@ -2,6 +2,14 @@ function formatHomepageStat(value) {
   return Number(value || 0).toLocaleString();
 }
 
+function formatSourceList(sources) {
+  if (!Array.isArray(sources) || !sources.length) {
+    return 'Source: RoleRocket AI platform database';
+  }
+
+  return `Source: ${sources.join(', ')}`;
+}
+
 function renderUsagePie(pieEl, resumesTotal, jobsTrackedTotal, applicationsTotal) {
   if (!pieEl) return;
 
@@ -140,8 +148,8 @@ function renderStatsSummary(prefix, stats) {
   if (statusEl) {
     const updatedAt = stats.updatedAt ? new Date(stats.updatedAt) : null;
     statusEl.textContent = updatedAt && !Number.isNaN(updatedAt.getTime())
-      ? `Live stats updated ${updatedAt.toLocaleString()}`
-      : 'Live stats updated just now';
+      ? `Live stats updated ${updatedAt.toLocaleString()} | ${formatSourceList(stats.sources)}`
+      : `Live stats updated just now | ${formatSourceList(stats.sources)}`;
   }
 
   renderPublicStatsDetail(prefix, stats, 'activity');

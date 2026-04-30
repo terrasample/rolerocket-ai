@@ -867,6 +867,14 @@ let latestPlatformStats = {
   usageTotal: 0,
   updatedAt: null
 };
+
+function formatPlatformStatsSourceList(sources) {
+  if (!Array.isArray(sources) || !sources.length) {
+    return 'Source: RoleRocket AI platform database';
+  }
+
+  return `Source: ${sources.join(', ')}`;
+}
 let latestPlatformUsers = [];
 let latestPlatformUsersError = '';
 
@@ -1420,8 +1428,8 @@ async function loadPlatformStats() {
     if (statsFootnoteEl) {
       const updatedAt = stats.updatedAt ? new Date(stats.updatedAt) : null;
       statsFootnoteEl.textContent = updatedAt && !Number.isNaN(updatedAt.getTime())
-        ? `Live platform stats updated ${updatedAt.toLocaleString()}.`
-        : 'Live platform stats updated just now.';
+        ? `Live platform stats updated ${updatedAt.toLocaleString()}. ${formatPlatformStatsSourceList(stats.sources)}.`
+        : `Live platform stats updated just now. ${formatPlatformStatsSourceList(stats.sources)}.`;
     }
   } catch (err) {
     if (statsFootnoteEl) {

@@ -177,6 +177,9 @@ function renderPlatformLeadership(summary, publicStats) {
   const jobsTotal = Number(summary?.totals?.jobs || 0);
   const windowDays = Number(summary?.windowDays || 14);
   const paidShare = usersTotal ? ((subscribersTotal / usersTotal) * 100).toFixed(1) : '0.0';
+  const sourceText = Array.isArray(publicStats?.sources) && publicStats.sources.length
+    ? `Source: ${publicStats.sources.join(', ')}`
+    : 'Source: RoleRocket AI platform database';
 
   if (usersTotalEl) usersTotalEl.textContent = formatNumber(usersTotal);
   if (subscribersTotalEl) subscribersTotalEl.textContent = formatNumber(subscribersTotal);
@@ -186,8 +189,8 @@ function renderPlatformLeadership(summary, publicStats) {
   if (statusEl) {
     const updatedAt = publicStats?.updatedAt ? new Date(publicStats.updatedAt) : null;
     statusEl.textContent = updatedAt && !Number.isNaN(updatedAt.getTime())
-      ? `Live stats updated ${updatedAt.toLocaleString()}`
-      : 'Live stats unavailable';
+      ? `Live stats updated ${updatedAt.toLocaleString()} | ${sourceText}`
+      : `Live stats unavailable | ${sourceText}`;
   }
 
   if (narrativeEl) {

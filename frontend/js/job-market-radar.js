@@ -160,6 +160,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const skillsList = extractSkillSignals(industries);
     const skills = skillsList.join(', ') || 'Market data loading';
     const refreshDate = data.updatedAt ? new Date(data.updatedAt).toLocaleDateString() : 'today';
+    const sourceList = Array.isArray(data.sources) && data.sources.length ? data.sources.join(', ') : 'Configured live job feeds';
     const actionPlan = buildActionPlan(role, location, skillsList);
     const confidence = matches.length ? Math.max(45, Math.round(matches.reduce((sum, item) => sum + item.match, 0) / matches.length)) : 40;
 
@@ -175,6 +176,7 @@ document.addEventListener('DOMContentLoaded', function () {
       '',
       `Top trending roles: ${trendingRoles.join(', ') || 'No live role data available'}`,
       `In-demand skills: ${skills}`,
+      `Sources: ${sourceList}`,
       '',
       `Market insights: Live market feed refreshed on ${refreshDate}. Remote-friendly roles remain strong, and candidates who align their resume to role-specific skills are getting faster traction.`,
       '',
@@ -186,6 +188,7 @@ document.addEventListener('DOMContentLoaded', function () {
       reportText,
       confidence,
       refreshDate,
+      sourceList,
       matches,
       skillsList,
       actionPlan
@@ -227,6 +230,7 @@ document.addEventListener('DOMContentLoaded', function () {
           <div style="font-size:0.8rem;color:#15803d;font-weight:700;text-transform:uppercase;">Confidence</div>
           <div style="margin-top:4px;color:#0f172a;font-weight:800;font-size:1.95rem;line-height:1.2;">${model.confidence}/100</div>
           <div style="color:#334155;font-size:1.16rem;">Last refresh: ${model.refreshDate}</div>
+          <div style="color:#475569;font-size:0.95rem;margin-top:4px;">Sources: ${model.sourceList}</div>
         </div>
       </div>
       <div style="margin-bottom:12px;">
