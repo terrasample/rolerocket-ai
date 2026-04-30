@@ -1794,6 +1794,64 @@ async function fetchArbeitnowJobs(title, location, resume) {
     );
 }
 
+// The Muse — free public API, no key required.
+// Covers US-heavy job listings across many industries including customer service.
+async function fetchTheMuseJobs(title, location, resume) {
+  const loc = String(location || '').toLowerCase();
+
+  // Map common locations to Muse location slugs
+  const museLocations = [];
+  if (/united states|\busa\b|\bus\b|new york|california|texas|florida|remote/.test(loc)) {
+    museLocations.push('New York, NY', 'Los Angeles, CA', 'Chicago, IL', 'Remote');
+  }
+  if (/united kingdom|\buk\b|london|england/.test(loc)) {
+    museLocations.push('London, United Kingdom');
+  }
+  if (/canada|toronto|vancouver/.test(loc)) {
+    museLocations.push('Toronto, Ontario', 'Vancouver, British Columbia');
+  }
+  // For no location or broad queries include top US cities
+  if (!loc || museLocations.length === 0) {
+    museLocations.push('New York, NY', 'Los Angeles, CA', 'Remote');
+  }
+
+  const params = new URLSearchParams({ page: '0', descending: 'true' });
+  museLocations.slice(0, 3).forEach((l) => params.append('location[]', l));
+
+  const url = `https://www.themuse.com/api/public/jobs?${params.toString()}`;
+  let json;
+  try {
+    json = await fetchJson(url, {}, 3000);
+  } catch {
+    return [];
+  }
+
+  const results = Array.isArray(json.results) ? json.results : [];
+  const titleLower = String(title || '').toLowerCase();
+
+  return results
+    .filter((job) => {
+      if (!titleLower) return true;
+      const text = `${job.name || ''} ${(job.categories || []).map((c) => c.name).join(' ')}`.toLowerCase();
+      return text.includes(titleLower);
+    })
+    .map((job) => {
+      const jobLocation = Array.isArray(job.locations) && job.locations.length
+        ? job.locations.map((l) => l.name).join(', ')
+        : location || 'United States';
+      return normalizeJob({
+        title: job.name || '',
+        company: job.company?.name || 'Unknown Company',
+        location: jobLocation,
+        link: job.refs?.landing_page || '#',
+        description: job.contents || '',
+        postedAt: job.publication_date,
+        matchScore: estimateMatchScore(job.name, job.contents || '', resume),
+        source: 'The Muse'
+      });
+    });
+}
+
 async function fetchIndeedJamaicaJobs(title, _location, resume) {
   const queryTitle = String(title || '').trim() || 'Customer Service Representative';
   const pages = [0, 10, 20];
@@ -2167,7 +2225,8 @@ function buildSourceTasks({ title, location, resume }) {
     timeoutPromise(fetchGreenhouseJobs(title, location, resume), 2200),
     timeoutPromise(fetchLeverJobs(title, location, resume), 2200),
     timeoutPromise(fetchRemotiveJobs(title, location, resume), 2500),
-    timeoutPromise(fetchArbeitnowJobs(title, location, resume), 2500)
+    timeoutPromise(fetchArbeitnowJobs(title, location, resume), 2500),
+    timeoutPromise(fetchTheMuseJobs(title, location, resume), 4000)
   ];
 
   if (/united\s*states|\busa\b|\bus\b/.test(q) || !q) {
