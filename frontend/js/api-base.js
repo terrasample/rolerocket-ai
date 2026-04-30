@@ -42,8 +42,9 @@
       hostname === '127.0.0.1' ||
       hostname === '[::1]'
     ) {
-      if (!port || port === '5555') return `${global.location.protocol}//${hostname}${port ? `:${port}` : ''}`;
-      return `${global.location.protocol}//${hostname}:5555`;
+      // Use the same port the page is served from — the Express server serves
+      // both static files and API routes on the same port.
+      return `${global.location.protocol}//${hostname}${port ? `:${port}` : ''}`;
     }
 
     return global.location.origin;
