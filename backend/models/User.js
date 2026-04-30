@@ -12,6 +12,12 @@ const UserSchema = new mongoose.Schema(
       default: 'individual'
     },
     institutionName: { type: String, default: null, trim: true },
+    institutionId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Institution',
+      default: null,
+      index: true
+    },
 
     isSubscribed: { type: Boolean, default: false },
     plan: {
@@ -93,5 +99,7 @@ const UserSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+UserSchema.index({ institutionId: 1, accountType: 1 });
 
 module.exports = mongoose.model('User', UserSchema);

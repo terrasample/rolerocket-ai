@@ -147,24 +147,132 @@ const authenticateToken = (req, res, next) => {
 app.use('/api/features', authenticateToken, require('./routes/features'));
 
 /* ─── Institution Cohort Manager ──────────────────────────────────────────── */
+function normalizeInstitutionName(value) {
+  return String(value || '').trim().replace(/\s+/g, ' ');
+}
+
+async function findOrCreateInstitutionByName(name) {
+  const normalizedName = normalizeInstitutionName(name);
+  if (!normalizedName) return null;
+
+  const key = normalizedName.toLowerCase();
+  return Institution.findOneAndUpdate(
+    { key },
+    {
+      $setOnInsert: {
+        name: normalizedName,
+        key
+      }
+    },
+    {
+      upsert: true,
+      new: true,
+      setDefaultsOnInsert: true
+    }
+  ).lean();
+}
+
+async function ensureInstitutionIdentityForUser(userDoc) {
+  if (!userDoc || userDoc.accountType !== 'institution') {
+    return userDoc;
+  }
+
+  const normalizedName = normalizeInstitutionName(userDoc.institutionName);
+  let institutionId = userDoc.institutionId || null;
+  let institutionName = normalizedName;
+
+  if (!institutionId && !institutionName) {
+    return userDoc;
+  }
+
+  let institution = null;
+  if (institutionId) {
+    institution = await Institution.findById(institutionId).select('_id name key').lean();
+  }
+  if (!institution && institutionName) {
+    institution = await findOrCreateInstitutionByName(institutionName);
+  }
+  if (!institution) {
+    return userDoc;
+  }
+
+  const patch = {};
+  if (!institutionId || String(institutionId) !== String(institution._id)) {
+    patch.institutionId = institution._id;
+  }
+  if (!institutionName || institutionName !== institution.name) {
+    patch.institutionName = institution.name;
+  }
+
+  if (Object.keys(patch).length) {
+    await User.updateOne({ _id: userDoc._id }, { $set: patch });
+  }
+
+  return {
+    ...userDoc,
+    institutionId: patch.institutionId || institutionId,
+    institutionName: patch.institutionName || institutionName
+  };
+}
+
+function buildInstitutionStudentScope(actor) {
+  if (actor && actor.institutionId) {
+    return {
+      accountType: 'individual',
+      $or: [
+        { institutionId: actor.institutionId },
+        ...(actor.institutionName ? [{ institutionName: actor.institutionName }] : [])
+      ]
+    };
+  }
+
+  return {
+    accountType: 'individual',
+    institutionName: actor.institutionName
+  };
+}
+
+async function backfillInstitutionIdForStudents(actor) {
+  if (!actor || !actor.institutionId || !actor.institutionName) {
+    return;
+  }
+
+  await User.updateMany(
+    {
+      accountType: 'individual',
+      institutionName: actor.institutionName,
+      $or: [{ institutionId: null }, { institutionId: { $exists: false } }]
+    },
+    { $set: { institutionId: actor.institutionId } }
+  );
+}
+
 app.get('/api/institution/cohort', authenticateToken, async (req, res) => {
   try {
-    const actor = await User.findById(req.user.userId).select('accountType institutionName').lean();
+    let actor = await User.findById(req.user.userId)
+      .select('accountType institutionName institutionId')
+      .lean();
     if (!actor || actor.accountType !== 'institution') {
       return res.status(403).json({ error: 'Institution account required' });
     }
-    if (!actor.institutionName) {
+    actor = await ensureInstitutionIdentityForUser(actor);
+    if (!actor.institutionId && !actor.institutionName) {
       return res.status(400).json({ error: 'No institution name on account' });
     }
+
+    const studentScope = buildInstitutionStudentScope(actor);
     const { page = 1, limit = 50 } = req.query;
     const skip = (Number(page) - 1) * Math.min(Number(limit), 100);
-    const students = await User.find({ institutionName: actor.institutionName, accountType: 'individual' })
+    const students = await User.find(studentScope)
       .select('name email plan isSubscribed createdAt autopilotUsage aiGenerationUsage')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(Math.min(Number(limit), 100))
       .lean();
-    const total = await User.countDocuments({ institutionName: actor.institutionName, accountType: 'individual' });
+    const total = await User.countDocuments(studentScope);
+
+    await backfillInstitutionIdForStudents(actor);
+
     return res.json({ students, total, page: Number(page) });
   } catch (err) {
     console.error('GET /api/institution/cohort', err);
@@ -174,19 +282,27 @@ app.get('/api/institution/cohort', authenticateToken, async (req, res) => {
 
 app.get('/api/institution/stats', authenticateToken, async (req, res) => {
   try {
-    const actor = await User.findById(req.user.userId).select('accountType institutionName').lean();
+    let actor = await User.findById(req.user.userId)
+      .select('accountType institutionName institutionId')
+      .lean();
     if (!actor || actor.accountType !== 'institution') {
       return res.status(403).json({ error: 'Institution account required' });
     }
-    if (!actor.institutionName) {
+    actor = await ensureInstitutionIdentityForUser(actor);
+    if (!actor.institutionId && !actor.institutionName) {
       return res.status(400).json({ error: 'No institution name on account' });
     }
+
+    const studentScope = buildInstitutionStudentScope(actor);
     const [totalStudents, subscribedStudents] = await Promise.all([
-      User.countDocuments({ institutionName: actor.institutionName }),
-      User.countDocuments({ institutionName: actor.institutionName, isSubscribed: true })
+      User.countDocuments(studentScope),
+      User.countDocuments({ ...studentScope, isSubscribed: true })
     ]);
+
+    await backfillInstitutionIdForStudents(actor);
+
     const planBreakdown = await User.aggregate([
-      { $match: { institutionName: actor.institutionName } },
+      { $match: studentScope },
       { $group: { _id: '$plan', count: { $sum: 1 } } }
     ]);
     return res.json({
@@ -416,6 +532,7 @@ global.queueEmailVerificationEmail = queueEmailVerificationEmail;
 const { runATSAnalysis } = require('./services/atsScorer');
 
 const User = require('./models/User');
+const Institution = require('./models/Institution');
 const Resume = require('./models/Resume');
 const Job = require('./models/Job');
 const Employer = require('./models/Employer');
@@ -2744,7 +2861,8 @@ app.post('/api/auth/signup', authLimiter, async (req, res) => {
     const rawPassword = String(password || '');
     const normalizedReferralCode = String(referralCode || '').trim().toUpperCase();
     const normalizedAccountType = ['institution'].includes(String(accountType || '')) ? 'institution' : 'individual';
-    const normalizedInstitutionName = normalizedAccountType === 'institution' ? String(institutionName || '').trim() : null;
+    let normalizedInstitutionName = normalizedAccountType === 'institution' ? normalizeInstitutionName(institutionName) : null;
+    let normalizedInstitutionId = null;
 
     if (!normalizedName || !normalizedEmail || !rawPassword) {
       return res.status(400).json({ error: 'Name, email, and password are required' });
@@ -2752,6 +2870,16 @@ app.post('/api/auth/signup', authLimiter, async (req, res) => {
 
     if (rawPassword.length < 8) {
       return res.status(400).json({ error: 'Password must be at least 8 characters' });
+    }
+
+    if (normalizedAccountType === 'institution') {
+      if (!normalizedInstitutionName) {
+        return res.status(400).json({ error: 'Institution name is required for institution accounts' });
+      }
+
+      const institutionRecord = await findOrCreateInstitutionByName(normalizedInstitutionName);
+      normalizedInstitutionName = institutionRecord.name;
+      normalizedInstitutionId = institutionRecord._id;
     }
 
     const hashedPassword = await bcrypt.hash(rawPassword, 10);
@@ -2768,6 +2896,7 @@ app.post('/api/auth/signup', authLimiter, async (req, res) => {
           plan: 'free',
           accountType: normalizedAccountType,
           institutionName: normalizedInstitutionName,
+          institutionId: normalizedInstitutionId,
           referralCode: generateReferralCode(),
           referredBy: normalizedReferralCode || null,
           emailVerified: false,
@@ -2908,7 +3037,7 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
     }
 
     const user = await User.findOne({ email: normalizedEmail })
-      .select('_id name email password isSubscribed plan referralCode referralCount emailVerified')
+      .select('_id name email password isSubscribed plan referralCode referralCount emailVerified accountType institutionName institutionId')
       .lean();
 
     if (!user) {
@@ -2922,6 +3051,11 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
 
     if (user.emailVerified === false) {
       return res.status(403).json({ error: 'Please verify your email before logging in.' });
+    }
+
+    let userWithInstitution = user;
+    if (user.accountType === 'institution') {
+      userWithInstitution = await ensureInstitutionIdentityForUser(user);
     }
 
     // If admin, always set plan to 'lifetime' and isSubscribed true
@@ -2947,6 +3081,9 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
         email: user.email,
         isSubscribed,
         plan,
+        accountType: userWithInstitution.accountType || 'individual',
+        institutionName: userWithInstitution.institutionName || null,
+        institutionId: userWithInstitution.institutionId || null,
         referralCode: user.referralCode,
         referralCount: user.referralCount,
         emailVerified: user.emailVerified !== false
