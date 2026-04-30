@@ -250,10 +250,65 @@
     const fmtDate = iso => iso ? new Date(iso).toLocaleDateString('en-JM', { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
     const planClass = p => ({ free:'icm-plan-free', pro:'icm-plan-pro', premium:'icm-plan-premium', elite:'icm-plan-elite', lifetime:'icm-plan-lifetime' }[p] || 'icm-plan-free');
 
+    function getAuthToken() {
+      return (typeof getStoredToken === 'function' && getStoredToken())
+        || localStorage.getItem('token')
+        || sessionStorage.getItem('token')
+        || localStorage.getItem('authToken')
+        || '';
+    }
+
+    function redirectToLogin() {
+      const target = encodeURIComponent('institution-cohort-manager.html');
+      window.location.replace(`login.html?redirect=${target}`);
+    }
+
+    async function ensureInstitutionAccess() {
+      const token = getAuthToken();
+      if (!token) {
+        redirectToLogin();
+        return null;
+      }
+
+      try {
+        const res = await fetch(apiUrl('/api/me'), {
+          headers: { Authorization: `Bearer ${token}` },
+          cache: 'no-store'
+        });
+
+        if (!res.ok) {
+          if (typeof clearStoredToken === 'function') {
+            clearStoredToken();
+          }
+          redirectToLogin();
+          return null;
+        }
+
+        const payload = await res.json();
+        const actor = payload && payload.user ? payload.user : null;
+        if (!actor || actor.accountType !== 'institution') {
+          window.location.replace('dashboard.html?access=institution-only');
+          return null;
+        }
+
+        if (actor.institutionName) {
+          document.getElementById('icmStatInstitution').textContent = esc(actor.institutionName);
+        }
+
+        return actor;
+      } catch (_) {
+        if (typeof clearStoredToken === 'function') {
+          clearStoredToken();
+        }
+        redirectToLogin();
+        return null;
+      }
+    }
+
     // ── Load stats ────────────────────────────────────────────────────────
     async function loadStats() {
       try {
-        const token = getAuthToken?.() || localStorage.getItem('authToken');
+        const token = getAuthToken();
         const res = await fetch(`${apiUrl()}/api/institution/stats`, { headers: { Authorization: `Bearer ${token}` } });
         if (!res.ok) { const e = await res.json(); setStatus(e.error || 'Failed to load stats', '#dc2626'); return; }
         const data = await res.json();
@@ -272,7 +327,7 @@
       document.getElementById('icmPrevBtn').disabled = true;
       document.getElementById('icmNextBtn').disabled = true;
       try {
-        const token = getAuthToken?.() || localStorage.getItem('authToken');
+        const token = getAuthToken();
         const params = new URLSearchParams({ page, limit: PAGE_SIZE });
         const res = await fetch(`${apiUrl()}/api/institution/cohort?${params}`, { headers: { Authorization: `Bearer ${token}` } });
         if (!res.ok) { const e = await res.json(); setStatus(e.error || 'Failed to load cohort', '#dc2626'); renderEmpty('Could not load cohort data.'); return; }
@@ -331,8 +386,12 @@
     document.getElementById('icmNextBtn').addEventListener('click', () => loadCohort(currentPage + 1));
 
     // ── Init ──────────────────────────────────────────────────────────────
-    loadStats();
-    loadCohort(1);
+    (async function initPage() {
+      const actor = await ensureInstitutionAccess();
+      if (!actor) return;
+      loadStats();
+      loadCohort(1);
+    })();
   </script>
 </body>
 </html>
