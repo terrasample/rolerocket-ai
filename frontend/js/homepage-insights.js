@@ -5,70 +5,83 @@ document.addEventListener('DOMContentLoaded', function () {
     return;
   }
 
-  const dailyInsightGroups = [
-    [
-      {
-        tier: 'pro',
-        title: 'Where response rates are opening up',
-        body: 'Hybrid roles in major hiring hubs are still drawing fewer applicants than fully remote jobs, especially when the company asks for office presence two or three days a week.'
-      },
-      {
-        tier: 'premium',
-        title: 'What recruiters notice first',
-        body: 'The fastest scan still starts with title alignment, measurable outcomes, and whether your first few bullets match the role mandate without fluff.'
-      },
-      {
-        tier: 'elite',
-        title: 'How stronger candidates are applying',
-        body: 'The best-performing applicants are sending fewer total applications, but each one is more tailored across resume, portfolio, and interview narrative.'
-      }
-    ],
-    [
-      {
-        tier: 'pro',
-        title: 'Which skills are breaking ties',
-        body: 'Hiring teams keep favoring candidates who show practical AI, analytics, or automation usage inside real business work instead of listing tools without outcomes.'
-      },
-      {
-        tier: 'premium',
-        title: 'Why callbacks stall after good resumes',
-        body: 'A strong resume still loses momentum when the LinkedIn profile, portfolio, or job narrative does not reinforce the same positioning.'
-      },
-      {
-        tier: 'elite',
-        title: 'What improves interview conversion',
-        body: 'Candidates are converting more screens by preparing role-specific stories with business context, not generic strengths or broad career summaries.'
-      }
-    ],
-    [
-      {
-        tier: 'pro',
-        title: 'Where speed matters most now',
-        body: 'Fresh postings still matter, but speed only helps when your application already matches the role language and surfaces proof in the top section.'
-      },
-      {
-        tier: 'premium',
-        title: 'What job seekers are underestimating',
-        body: 'Follow-ups are still underused. Short, specific recruiter follow-ups often outperform sending more cold applications into crowded pipelines.'
-      },
-      {
-        tier: 'elite',
-        title: 'How top candidates keep momentum',
-        body: 'They run a weekly system: target high-fit roles, follow up, prep interviews early, and cut low-probability effort before it drains the week.'
-      }
-    ]
-  ];
+  function summarizeTopRoles(industries) {
+    const entries = Object.entries(industries || {})
+      .map(([industry, roles]) => ({
+        industry,
+        roles: Array.isArray(roles) ? roles.filter(Boolean) : []
+      }))
+      .filter((entry) => entry.roles.length)
+      .sort((a, b) => b.roles.length - a.roles.length)
+      .slice(0, 3);
 
-  const now = new Date();
-  const dayIndex = Math.floor(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) / 86400000);
-  const activeGroup = dailyInsightGroups[dayIndex % dailyInsightGroups.length];
+    return entries;
+  }
 
-  insightsWrap.innerHTML = activeGroup.map((item) => `
-    <article class="marketing-card tier-feature ${item.tier}">
-      <h3>${item.title}</h3>
-      <p>${item.body}</p>
-    </article>
-  `).join('');
+  function formatUpdatedAt(isoString) {
+    const date = new Date(isoString);
+    if (Number.isNaN(date.getTime())) {
+      return 'Updated recently';
+    }
 
-  meta.textContent = `Daily refresh: ${now.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}`;
+    return `Last refresh: ${date.toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    })}`;
+  }
+
+  function formatSources(sources) {
+    if (!Array.isArray(sources) || !sources.length) {
+      return 'Sources: Configured live job feeds';
+    }
+
+    return `Sources: ${sources.join(', ')}`;
+  }
+
+  function renderInsights(entries) {
+    if (!entries.length) {
+      insightsWrap.innerHTML = `
+        <article class="marketing-card tier-feature premium">
+          <h3>Live market data is loading</h3>
+          <p>We could not read enough live role data right now. Please refresh in a moment.</p>
+        </article>
+      `;
+      return;
+    }
+
+    const tierOrder = ['pro', 'premium', 'elite'];
+    insightsWrap.innerHTML = entries.map((entry, index) => {
+      const tier = tierOrder[index] || 'premium';
+      const topRoles = entry.roles.slice(0, 3).join(', ');
+      return `
+        <article class="marketing-card tier-feature ${tier}">
+          <h3>${entry.industry} is actively hiring</h3>
+          <p>Trending roles: ${topRoles}</p>
+        </article>
+      `;
+    }).join('');
+  }
+
+  (async function loadLivePulse() {
+    try {
+      const response = await fetch(apiUrl('/api/in-demand-jobs'), { cache: 'no-store' });
+      if (!response.ok) {
+        throw new Error(`Failed with status ${response.status}`);
+      }
+
+      const data = await response.json();
+      const topEntries = summarizeTopRoles(data.industries);
+      renderInsights(topEntries);
+      meta.textContent = `${formatUpdatedAt(data.updatedAt)} | ${formatSources(data.sources)}`;
+    } catch (_) {
+      insightsWrap.innerHTML = `
+        <article class="marketing-card tier-feature premium">
+          <h3>Live market pulse unavailable</h3>
+          <p>We could not reach the live market feed right now. Please try again shortly.</p>
+        </article>
+      `;
+      meta.textContent = 'Live source feed temporarily unavailable';
+    }
+  })();
 });
