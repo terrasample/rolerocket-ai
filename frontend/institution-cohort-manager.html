@@ -511,6 +511,13 @@
       ['icmSearch','icmRefreshBtn','icmPrevBtn','icmNextBtn','icmExportBtn'].forEach(function(id){var el=document.getElementById(id);if(el)el.disabled=true;});
     }
 
+    function renderAccessDeniedState(msg) {
+      setStatus(msg,'#dc2626');
+      var tbody=document.getElementById('icmTableBody');
+      if (tbody) tbody.innerHTML='<tr><td colspan="8" class="icm-empty">'+msg+'</td></tr>';
+      ['icmSearch','icmRefreshBtn','icmPrevBtn','icmNextBtn','icmExportBtn'].forEach(function(id){var el=document.getElementById(id);if(el)el.disabled=true;});
+    }
+
     async function ensureInstitutionAccess() {
       var token = getAuthToken();
       if (!token) { redirectToLogin(); return null; }
@@ -519,7 +526,15 @@
         if (!res.ok) { if(typeof clearStoredToken==='function')clearStoredToken(); redirectToLogin(); return null; }
         var payload = await res.json();
         var actor = payload && payload.user ? payload.user : null;
-        if (!actor || actor.accountType !== 'institution') { renderInstitutionOnlyState(); return null; }
+        
+        // Deny access to regular individual users
+        if (!actor) { redirectToLogin(); return null; }
+        if (actor.accountType === 'individual') {
+          renderAccessDeniedState('Cohort Manager is restricted to institution administrators. If you believe this is an error, please contact your institution.');
+          return null;
+        }
+        if (actor.accountType !== 'institution') { renderInstitutionOnlyState(); return null; }
+        
         institutionName = actor.institutionName || '';
         if (institutionName) {
           var pill = document.getElementById('icmInstitutionPill');
