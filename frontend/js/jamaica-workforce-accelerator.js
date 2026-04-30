@@ -467,7 +467,7 @@
       label: 'Jamaican Jobs',
       icon: '🇯🇲',
       locationQuery: 'Jamaica',
-      lockLabel: 'Location focus: Jamaica first (global market backup)',
+      lockLabel: 'Location focus: Jamaica only',
       matchHints: ['jamaica', 'kingston', 'montego bay', 'st. andrew', 'st andrew', 'ocho rios', 'spanish town']
     },
     {
@@ -606,10 +606,11 @@
           clearTimeout(timer);
         }
       };
+      const locationQuery = market.id === 'jamaica' ? 'Jamaica, Caribbean' : market.locationQuery;
       const params = new URLSearchParams({
         title: String(title || '').trim() || 'Customer Service Representative',
-        location: market.locationQuery,
-        preferences: `${market.label} jobs only`,
+        location: locationQuery,
+        preferences: market.id === 'jamaica' ? 'Jamaica only — do not include United Kingdom, USA, Canada or other countries' : `${market.label} jobs only`,
         day: dailyKey
       });
 
@@ -662,8 +663,8 @@
       // fall back to all valid results if strict filtering returns fewer than 5 jobs.
       // A threshold of 0 caused issues where a single false-positive (e.g. "Kingston, Ontario")
       // prevented the full global-market fallback from activating.
-      const noDirectMarket = ['jamaica', 'caribbean'].includes(market.id);
-      const filtered = (deduped.length < 5 && noDirectMarket) ? normalized.filter((j) => j.link) : deduped;
+      // Only show jobs that explicitly matched Jamaica location signals — no global fallback.
+      const filtered = deduped;
 
       if (market.id === 'jamaica') {
         filtered.sort((a, b) => scoreJamaicaSourcePreference(b) - scoreJamaicaSourcePreference(a));
