@@ -264,7 +264,7 @@ app.get('/api/institution/cohort', authenticateToken, async (req, res) => {
     const { page = 1, limit = 50 } = req.query;
     const skip = (Number(page) - 1) * Math.min(Number(limit), 100);
     const students = await User.find(studentScope)
-      .select('name email plan isSubscribed createdAt autopilotUsage aiGenerationUsage')
+      .select('name email plan isSubscribed createdAt updatedAt autopilotUsage aiGenerationUsage')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(Math.min(Number(limit), 100))
@@ -320,6 +320,52 @@ app.get('/api/institution/stats', authenticateToken, async (req, res) => {
 
 
 
+
+app.get('/api/institution/at-risk', authenticateToken, async (req, res) => {
+  try {
+    let actor = await User.findById(req.user.userId)
+      .select('accountType institutionName institutionId')
+      .lean();
+    if (!actor || actor.accountType !== 'institution') {
+      return res.status(403).json({ error: 'Institution account required' });
+    }
+    actor = await ensureInstitutionIdentityForUser(actor);
+    if (!actor.institutionId && !actor.institutionName) {
+      return res.status(400).json({ error: 'No institution name on account' });
+    }
+
+    const studentScope = buildInstitutionStudentScope(actor);
+    const cutoff14 = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+
+    const students = await User.find(studentScope)
+      .select('name email plan aiGenerationUsage autopilotUsage updatedAt createdAt')
+      .limit(500)
+      .lean();
+
+    const noResume = [];
+    const inactive14 = [];
+    const noApplications = [];
+
+    for (const s of students) {
+      const aiTotal = (s.aiGenerationUsage || []).reduce((sum, d) => sum + (d.count || 0), 0);
+      const appTotal = (s.autopilotUsage || []).reduce((sum, d) => sum + (d.count || 0), 0);
+      const lastActive = s.updatedAt || s.createdAt;
+      const mini = { name: s.name, email: s.email, plan: s.plan };
+      if (aiTotal === 0) noResume.push(mini);
+      if (new Date(lastActive) < cutoff14) inactive14.push(mini);
+      if (appTotal === 0) noApplications.push(mini);
+    }
+
+    return res.json({
+      noResume:      { count: noResume.length,      students: noResume.slice(0, 25) },
+      inactive14:    { count: inactive14.length,    students: inactive14.slice(0, 25) },
+      noApplications:{ count: noApplications.length,students: noApplications.slice(0, 25) }
+    });
+  } catch (err) {
+    console.error('GET /api/institution/at-risk', err);
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
 
 // Start the Express server
 // Start the Express server (must be at the end)

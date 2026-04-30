@@ -1,4 +1,9 @@
-<!DOCTYPE html>
+const fs = require('fs');
+const path = require('path');
+
+const dest = path.join(__dirname, '..', 'frontend', 'institution-cohort-manager.html');
+
+const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -684,7 +689,7 @@
         var act=relativeTime(s.updatedAt||s.createdAt);
         return ['"'+String(s.name||'').replace(/"/g,'""')+'"','"'+String(s.email||'').replace(/"/g,'""')+'"',s.plan||'free',ai,ap,'"'+act.label+'"','"'+fmtDate(s.createdAt)+'"'].join(',');
       });
-      var csv=[headers.join(',')].concat(rows).join('\n');
+      var csv=[headers.join(',')].concat(rows).join('\\n');
       var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
       var url=URL.createObjectURL(blob);
       var a=document.createElement('a');
@@ -727,4 +732,8 @@
     })();
   </script>
 </body>
-</html>
+</html>`;
+
+fs.writeFileSync(dest, html, 'utf8');
+const lines = html.split('\n').length;
+console.log('Written:', lines, 'lines to', dest);
