@@ -151,6 +151,18 @@ function normalizeInstitutionName(value) {
   return String(value || '').trim().replace(/\s+/g, ' ');
 }
 
+async function ensureInstitutionOrLinkedStudentAccess(actor) {
+  // Allow institution admins
+  if (actor && actor.accountType === 'institution') {
+    return true;
+  }
+  // Allow students linked to an institution (has institutionId or institutionName)
+  if (actor && actor.accountType === 'individual' && (actor.institutionId || actor.institutionName)) {
+    return true;
+  }
+  return false;
+}
+
 async function findOrCreateInstitutionByName(name) {
   const normalizedName = normalizeInstitutionName(name);
   if (!normalizedName) return null;
@@ -252,8 +264,8 @@ app.get('/api/institution/cohort', authenticateToken, async (req, res) => {
     let actor = await User.findById(req.user.userId)
       .select('accountType institutionName institutionId')
       .lean();
-    if (!actor || actor.accountType !== 'institution') {
-      return res.status(403).json({ error: 'Institution account required' });
+    if (!actor || !(await ensureInstitutionOrLinkedStudentAccess(actor))) {
+      return res.status(403).json({ error: 'Institution account or cohort membership required' });
     }
     actor = await ensureInstitutionIdentityForUser(actor);
     if (!actor.institutionId && !actor.institutionName) {
@@ -285,8 +297,8 @@ app.get('/api/institution/stats', authenticateToken, async (req, res) => {
     let actor = await User.findById(req.user.userId)
       .select('accountType institutionName institutionId')
       .lean();
-    if (!actor || actor.accountType !== 'institution') {
-      return res.status(403).json({ error: 'Institution account required' });
+    if (!actor || !(await ensureInstitutionOrLinkedStudentAccess(actor))) {
+      return res.status(403).json({ error: 'Institution account or cohort membership required' });
     }
     actor = await ensureInstitutionIdentityForUser(actor);
     if (!actor.institutionId && !actor.institutionName) {
@@ -326,8 +338,8 @@ app.get('/api/institution/at-risk', authenticateToken, async (req, res) => {
     let actor = await User.findById(req.user.userId)
       .select('accountType institutionName institutionId')
       .lean();
-    if (!actor || actor.accountType !== 'institution') {
-      return res.status(403).json({ error: 'Institution account required' });
+    if (!actor || !(await ensureInstitutionOrLinkedStudentAccess(actor))) {
+      return res.status(403).json({ error: 'Institution account or cohort membership required' });
     }
     actor = await ensureInstitutionIdentityForUser(actor);
     if (!actor.institutionId && !actor.institutionName) {
