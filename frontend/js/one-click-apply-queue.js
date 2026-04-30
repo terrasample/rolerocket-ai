@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', function () {
     banner.style.cssText = 'background:linear-gradient(135deg,#7c3aed22,#2563eb22);border:1px solid #7c3aed55;border-radius:10px;padding:14px 18px;margin-bottom:18px;color:#e2e8f0;font-size:.9rem;line-height:1.5;';
     banner.innerHTML = `<strong style="color:#a78bfa;">🚀 Handoff from Jamaica Workforce Accelerator</strong><br>
       ${pending ? `<strong>${pending.title}</strong> at <strong>${pending.company}</strong> (${pending.location}) is pre-loaded below.` : `Role "<strong>${role}</strong>" is pre-loaded below.`}
-      Review and click <strong>Queue Applications</strong> to add it to your RocketApply pipeline.`;
+      Review and click <strong>Queue Applications</strong> to add it to your 1-Click Apply Queue pipeline.`;
     const heroEl = document.querySelector('.queue-hero, .page-hero, h1, #applyQueueResult');
     if (heroEl && heroEl.parentNode) {
       heroEl.parentNode.insertBefore(banner, heroEl.nextSibling);
@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (aiTailorPanel) aiTailorPanel.style.display = 'block';
   })();
 
-  // ── AI Auto-Tailor (RocketApply) ─────────────────────────────────────────
+  // ── AI Auto-Tailor (1-Click Apply Queue) ─────────────────────────────────────────
   (function initAiTailor() {
     const tailorBtn = document.getElementById('aiTailorBtn');
     const statusEl  = document.getElementById('aiTailorStatus');
@@ -184,7 +184,7 @@ document.addEventListener('DOMContentLoaded', function () {
       company,
       link,
       status: 'ready',
-      notes: role ? `Queued from RocketApply for ${role}` : 'Queued from RocketApply'
+      notes: role ? `Queued from 1-Click Apply Queue for ${role}` : 'Queued from 1-Click Apply Queue'
     };
   }
 

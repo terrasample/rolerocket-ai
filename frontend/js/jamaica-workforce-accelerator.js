@@ -573,6 +573,15 @@
   async function fetchRegionalJobs(title, market) {
     try {
       const dailyKey = new Date().toISOString().slice(0, 10);
+      const fetchWithTimeout = async (url, timeoutMs = 12000) => {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+          return await fetch(url, { cache: 'no-store', signal: controller.signal });
+        } finally {
+          clearTimeout(timer);
+        }
+      };
       const params = new URLSearchParams({
         title: String(title || '').trim() || 'Customer Service Representative',
         location: market.locationQuery,
@@ -580,7 +589,7 @@
         day: dailyKey
       });
 
-      const res = await fetch(getScoutApiUrl(params), { cache: 'no-store' });
+      const res = await fetchWithTimeout(getScoutApiUrl(params));
       if (!res.ok) return [];
 
       const payload = await res.json();
@@ -595,7 +604,7 @@
           day: dailyKey
         });
 
-        const fallbackRes = await fetch(getScoutApiUrl(fallbackParams), { cache: 'no-store' });
+        const fallbackRes = await fetchWithTimeout(getScoutApiUrl(fallbackParams));
         if (fallbackRes.ok) {
           const fallbackPayload = await fallbackRes.json();
           jobs = Array.isArray(fallbackPayload?.jobs) ? fallbackPayload.jobs : [];
@@ -688,7 +697,7 @@
                 <a class="jwa-submit-btn" href="${esc(job.link)}" target="_blank" rel="noopener noreferrer" style="padding:6px 10px;font-size:.78rem;text-decoration:none;">Open Job</a>
                 <button type="button" class="jwa-submit-btn jwa-save-job-btn" data-job-link="${encodeURIComponent(job.link)}" data-job-title="${esc(job.title)}" data-job-company="${esc(job.company)}" data-job-location="${esc(job.location)}" style="padding:6px 10px;font-size:.78rem;">Save</button>
                 <button type="button" class="jwa-download-btn jwa-apply-job-btn" data-job-link="${encodeURIComponent(job.link)}" data-job-title="${esc(job.title)}" data-job-company="${esc(job.company)}" data-job-location="${esc(job.location)}" style="padding:6px 10px;font-size:.78rem;">Mark Applied</button>
-                <button type="button" class="jwa-rocket-apply-btn" data-job-link="${encodeURIComponent(job.link)}" data-job-title="${esc(job.title)}" data-job-company="${esc(job.company)}" data-job-location="${esc(job.location)}" style="padding:6px 10px;font-size:.78rem;background:linear-gradient(135deg,#7c3aed,#2563eb);color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;">🚀 RocketApply</button>
+                <button type="button" class="jwa-rocket-apply-btn" data-job-link="${encodeURIComponent(job.link)}" data-job-title="${esc(job.title)}" data-job-company="${esc(job.company)}" data-job-location="${esc(job.location)}" style="padding:6px 10px;font-size:.78rem;background:linear-gradient(135deg,#7c3aed,#2563eb);color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;">🚀 1-Click Apply Queue</button>
               </div>
             </article>
           `).join('')}
@@ -3958,21 +3967,22 @@
           location: String(applyBtn.getAttribute('data-job-location') || ''),
           link: decodeURIComponent(String(applyBtn.getAttribute('data-job-link') || '')),
           status: 'applied'
-
-              const rocketBtn = event.target.closest('.jwa-rocket-apply-btn');
-              if (rocketBtn) {
-                const job = {
-                  title: String(rocketBtn.getAttribute('data-job-title') || ''),
-                  company: String(rocketBtn.getAttribute('data-job-company') || ''),
-                  location: String(rocketBtn.getAttribute('data-job-location') || ''),
-                  link: decodeURIComponent(String(rocketBtn.getAttribute('data-job-link') || ''))
-                };
-                try {
-                  localStorage.setItem('rr_rocket_pending', JSON.stringify(job));
-                } catch (e) { /* storage full — proceed anyway */ }
-                window.location.href = 'one-click-apply-queue.html?from=jamaica&role=' + encodeURIComponent(job.title);
-              }
         });
+        return;
+      }
+
+      const rocketBtn = event.target.closest('.jwa-rocket-apply-btn');
+      if (rocketBtn) {
+        const job = {
+          title: String(rocketBtn.getAttribute('data-job-title') || ''),
+          company: String(rocketBtn.getAttribute('data-job-company') || ''),
+          location: String(rocketBtn.getAttribute('data-job-location') || ''),
+          link: decodeURIComponent(String(rocketBtn.getAttribute('data-job-link') || ''))
+        };
+        try {
+          localStorage.setItem('rr_rocket_pending', JSON.stringify(job));
+        } catch (e) { /* storage full - proceed anyway */ }
+        window.location.href = 'one-click-apply-queue.html?from=jamaica&role=' + encodeURIComponent(job.title);
       }
     });
 

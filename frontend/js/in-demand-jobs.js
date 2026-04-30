@@ -5,14 +5,14 @@ document.addEventListener('DOMContentLoaded', async function () {
 
   const homepageTierHighlights = {
     pro: [
-      'ATS Optimization Engine',
+      'ATS Optimizer',
       'Job Market Radar',
       'Application Quality Score',
-      'Role Tailoring'
+      'Resume Optimizer'
     ],
     premium: [
       'Interview Prep',
-      'RocketApply',
+      '1-Click Apply Queue',
       'AI Portfolio Builder',
       'AI Reference Generator'
     ],
@@ -74,6 +74,14 @@ document.addEventListener('DOMContentLoaded', async function () {
     })}`;
   }
 
+  function formatSourceList(sources) {
+    if (!Array.isArray(sources) || !sources.length) {
+      return '';
+    }
+
+    return `Sources: ${sources.join(', ')}`;
+  }
+
   renderTierHighlights();
 
   if (!jobsContainer) {
@@ -85,7 +93,8 @@ document.addEventListener('DOMContentLoaded', async function () {
     const data = await response.json();
     renderJobs(data.industries || {});
     if (jobsMeta) {
-      jobsMeta.textContent = formatUpdatedDate(data.updatedAt);
+      const parts = [formatUpdatedDate(data.updatedAt), formatSourceList(data.sources)].filter(Boolean);
+      jobsMeta.textContent = parts.join('  |  ');
     }
     if (jobsError) {
       jobsError.style.display = 'none';

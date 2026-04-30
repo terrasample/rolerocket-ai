@@ -629,6 +629,15 @@ h3,
   box-shadow: 0 10px 22px rgba(12, 74, 110, 0.35);
 }
 
+.sidebar-section-label {
+  margin: 14px 6px 8px;
+  color: #7dd3fc;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 /* ─── Sidebar Feature Snippet ────────────────────────────────────────────── */
 .sidebar-features-snippet {
   margin: -6px 0 10px;

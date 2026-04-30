@@ -1,7 +1,7 @@
 /**
  * Student Quick-Start Onboarding Wizard
  * Shows once on first dashboard visit after signup.
- * Collects 5 key details → pre-fills Resume Builder → launches career journey.
+ * Collects 5 key details → pre-fills Resume Generator → launches career journey.
  */
 (function () {
   const STORAGE_KEY = 'rr_onboarding_done';

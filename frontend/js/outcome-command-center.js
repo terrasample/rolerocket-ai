@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     const applied = Number(mine?.applied || 0);
 
     if (applied >= 8 && interview === 0) {
-      return 'Run the ATS Optimization Engine on your next 3 roles and submit those applications within 48 hours.';
+      return 'Run the ATS Optimizer on your next 3 roles and submit those applications within 48 hours.';
     }
 
     if (applied < 5) {

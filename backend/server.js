@@ -2343,6 +2343,20 @@ function buildFallbackIndustryJobs() {
   };
 }
 
+function getInDemandJobSourceLabels() {
+  const config = getSourceConfigSnapshot();
+  const labels = [];
+
+  if (config.adzuna?.enabled) labels.push('Adzuna');
+  if (config.greenhouse?.enabled) labels.push('Greenhouse');
+  if (config.lever?.enabled) labels.push('Lever');
+  if (config.remotive?.enabled) labels.push('Remotive');
+  if (config.arbeitnow?.enabled) labels.push('Arbeitnow');
+  if (config.usajobs?.enabled) labels.push('USAJobs');
+
+  return labels;
+}
+
 function normalizeJobTitleForDemand(title) {
   return String(title || '')
     .replace(/\([^)]*\)/g, ' ')
@@ -2396,7 +2410,8 @@ async function buildInDemandJobsPayload() {
 
   return {
     updatedAt: new Date().toISOString(),
-    industries: Object.fromEntries(results)
+    industries: Object.fromEntries(results),
+    sources: getInDemandJobSourceLabels()
   };
 }
 
