@@ -98,8 +98,8 @@ function buildSharedAudioRecorder(sourceStream, handlers = {}) {
     sharedAudioMode = 'shared';
   };
 
-  // Slightly longer chunks improve phrase-level clarity.
-  sharedAudioRecorder.start(5000);
+  // Shorter chunks improve question-detection latency.
+  sharedAudioRecorder.start(3000);
 }
 
 function getSupportedAudioMimeType() {
@@ -194,8 +194,15 @@ function startLiveQuestionCapture(handlers = {}) {
   };
 
   liveRecognition.onerror = function onError(event) {
+    const errorType = String(event.error || '');
     if (typeof handlers.onError === 'function') {
       handlers.onError(event);
+    }
+    // For transient errors (network, no-speech) the onend handler will restart
+    // automatically. For fatal permission errors, stop listening.
+    if (liveRecognitionEnabled && (errorType === 'not-allowed' || errorType === 'service-not-allowed')) {
+      liveRecognitionEnabled = false;
+      if (typeof handlers.onState === 'function') handlers.onState('stopped');
     }
   };
 
@@ -206,6 +213,18 @@ function startLiveQuestionCapture(handlers = {}) {
         if (typeof handlers.onState === 'function') handlers.onState('listening');
       } catch {
         if (typeof handlers.onState === 'function') handlers.onState('restarting');
+        // Retry after a brief pause — prevents getting permanently stuck when the
+        // browser briefly refuses a restart immediately after an error event.
+        setTimeout(() => {
+          if (liveRecognitionEnabled && liveRecognition) {
+            try {
+              liveRecognition.start();
+              if (typeof handlers.onState === 'function') handlers.onState('listening');
+            } catch {
+              // Will try again on the next natural onend event.
+            }
+          }
+        }, 1000);
       }
       return;
     }
@@ -234,17 +253,30 @@ async function startSharedAudioCapture(handlers = {}) {
   if (typeof handlers.onState === 'function') handlers.onState('requesting-permission');
 
   let captureStream;
+  const audioConstraints = {
+    echoCancellation: false,
+    noiseSuppression: false,
+    autoGainControl: false
+  };
+
   try {
+    // Try audio-only first — Chrome 109+ shows a focused tab-audio picker
+    // without requiring the user to share their screen, making it much clearer
+    // that they should pick the interview tab and enable audio sharing.
     captureStream = await navigator.mediaDevices.getDisplayMedia({
-      video: true,
-      audio: {
-        echoCancellation: false,
-        noiseSuppression: false,
-        autoGainControl: false
-      }
+      video: false,
+      audio: audioConstraints
     });
-  } catch (err) {
-    throw err;
+  } catch {
+    try {
+      // Fall back to video+audio picker for browsers that require video for audio capture.
+      captureStream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        audio: audioConstraints
+      });
+    } catch (err) {
+      throw err;
+    }
   }
 
   let activeStream = captureStream;
