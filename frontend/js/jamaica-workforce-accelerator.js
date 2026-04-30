@@ -3981,6 +3981,9 @@
           link: decodeURIComponent(String(saveBtn.getAttribute('data-job-link') || '')),
           status: 'saved'
         });
+        saveBtn.textContent = 'Job Saved';
+        saveBtn.disabled = true;
+        saveBtn.style.opacity = '0.7';
         return;
       }
 
