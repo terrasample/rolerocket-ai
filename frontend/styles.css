@@ -3454,6 +3454,39 @@ pre {
   margin-left: 6px;
   transform: translateY(-1px);
   filter: drop-shadow(0 6px 14px rgba(14, 165, 233, 0.5));
+  transform-origin: 35% 65%;
+  animation: loginRocketTakeoff 1.7s cubic-bezier(0.2, 0.7, 0.2, 1) 1 both;
+}
+
+@keyframes loginRocketTakeoff {
+  0% {
+    transform: translate(0, -1px) rotate(0deg) scale(1);
+    opacity: 0.9;
+    filter: drop-shadow(0 4px 10px rgba(14, 165, 233, 0.45));
+  }
+  30% {
+    transform: translate(4px, -4px) rotate(8deg) scale(1.06);
+    opacity: 1;
+    filter: drop-shadow(0 8px 16px rgba(14, 165, 233, 0.62));
+  }
+  65% {
+    transform: translate(18px, -22px) rotate(20deg) scale(1.12);
+    opacity: 1;
+    filter: drop-shadow(0 12px 20px rgba(14, 165, 233, 0.55));
+  }
+  100% {
+    transform: translate(30px, -44px) rotate(24deg) scale(1.03);
+    opacity: 0;
+    filter: drop-shadow(0 14px 24px rgba(14, 165, 233, 0.15));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-title-rocket {
+    animation: none;
+    transform: translateY(-1px);
+    opacity: 1;
+  }
 }
 
 .auth-left p {
