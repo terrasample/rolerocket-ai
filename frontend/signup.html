@@ -75,10 +75,22 @@
             <option value="individual">Individual Student / Job Seeker</option>
             <option value="institution">Institution (University, HEART/NSTA, College)</option>
           </select>
-          <input id="signupInstitutionName" type="text" placeholder="Institution name (e.g. UTech, UWI, HEART Trust)" autocomplete="organization" style="display:none;margin-bottom:10px;" />
+          <input id="signupInstitutionName" list="signupInstitutionList" type="text" placeholder="Institution name (optional for students, required for institution accounts)" autocomplete="organization" style="display:block;margin-bottom:10px;" />
+          <datalist id="signupInstitutionList">
+            <option value="UWI Mona"></option>
+            <option value="UWI Cave Hill"></option>
+            <option value="UWI St. Augustine"></option>
+            <option value="University of Technology, Jamaica"></option>
+            <option value="HEART/NSTA Trust"></option>
+            <option value="University College of the Caribbean"></option>
+            <option value="Northern Caribbean University"></option>
+            <option value="Mico University College"></option>
+            <option value="Caribbean Maritime University"></option>
+            <option value="The University of the West Indies Open Campus"></option>
+          </datalist>
           <div id="signupInstitutionHelp" style="background:#0f172a;border:1px solid #334155;border-radius:10px;padding:10px 12px;margin:4px 0 10px;color:#cbd5e1;font-size:.82rem;line-height:1.5;">
             <strong style="color:#e2e8f0;">How institution linking works</strong><br>
-            Students: use your institution invite link so your account is linked automatically for cohort reporting.<br>
+            Students: select your institution so your account is linked for cohort reporting.<br>
             Institutions: choose <strong>Institution</strong> account type to access Cohort Manager dashboards.
           </div>
           <button id="signupSubmitBtn" type="submit" class="auth-submit-btn" style="margin-top:6px;">Create Free Account</button>
@@ -119,19 +131,15 @@
           if (institution) {
             instInput.value = institution;
             instInput.style.display = 'block';
-            instInput.readOnly = true;
-            instInput.title = 'Institution prefilled from invite link';
             if (instHelp) {
-              instHelp.innerHTML = '<strong style="color:#e2e8f0;">Institution invite detected</strong><br>Your account will be linked to <strong style="color:#a5b4fc;">' + institution.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</strong> for cohort analytics.';
+              instHelp.innerHTML = '<strong style="color:#e2e8f0;">Institution invite detected</strong><br>Prefilled with <strong style="color:#a5b4fc;">' + institution.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</strong>. You can change this if needed.';
             }
           }
           acctType.addEventListener('change', () => {
-            if (instInput.readOnly && instInput.value.trim()) {
-              instInput.style.display = 'block';
-              return;
-            }
-            instInput.style.display = acctType.value === 'institution' ? 'block' : 'none';
+            instInput.style.display = 'block';
+            instInput.required = acctType.value === 'institution';
           });
+          instInput.required = acctType.value === 'institution';
         })();
         </script>
 
