@@ -659,9 +659,11 @@
       });
 
       // For markets where direct location matching is unreliable (Jamaica, Caribbean),
-      // fall back to all valid results if the strict filter yields nothing.
+      // fall back to all valid results if strict filtering returns fewer than 5 jobs.
+      // A threshold of 0 caused issues where a single false-positive (e.g. "Kingston, Ontario")
+      // prevented the full global-market fallback from activating.
       const noDirectMarket = ['jamaica', 'caribbean'].includes(market.id);
-      const filtered = (deduped.length === 0 && noDirectMarket) ? normalized.filter((j) => j.link) : deduped;
+      const filtered = (deduped.length < 5 && noDirectMarket) ? normalized.filter((j) => j.link) : deduped;
 
       if (market.id === 'jamaica') {
         filtered.sort((a, b) => scoreJamaicaSourcePreference(b) - scoreJamaicaSourcePreference(a));
