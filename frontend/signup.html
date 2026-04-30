@@ -99,17 +99,28 @@
           return candidate.replace(/[^a-zA-Z0-9_-]/g, '').toUpperCase().slice(0, 40);
         }
 
-        // Autofill referral code from URL
+        // Autofill referral code and institution from URL
         (function() {
           const params = new URLSearchParams(window.location.search);
           const ref = params.get('ref') || params.get('referral') || params.get('referralCode');
+          const institution = (params.get('institution') || params.get('institutionName') || '').trim();
           if (ref) {
             document.getElementById('signupReferral').value = extractReferralCode(ref);
           }
           // Show/hide institution name field
           const acctType = document.getElementById('signupAccountType');
           const instInput = document.getElementById('signupInstitutionName');
+          if (institution) {
+            instInput.value = institution;
+            instInput.style.display = 'block';
+            instInput.readOnly = true;
+            instInput.title = 'Institution prefilled from invite link';
+          }
           acctType.addEventListener('change', () => {
+            if (instInput.readOnly && instInput.value.trim()) {
+              instInput.style.display = 'block';
+              return;
+            }
             instInput.style.display = acctType.value === 'institution' ? 'block' : 'none';
           });
         })();
@@ -293,7 +304,7 @@
       const referralInputRaw = document.getElementById('signupReferral').value;
       const referralCode = extractReferralCode(referralInputRaw || referralFromUrl);
       const accountType = document.getElementById('signupAccountType').value;
-      const institutionName = accountType === 'institution' ? document.getElementById('signupInstitutionName').value.trim() : '';
+      const institutionName = document.getElementById('signupInstitutionName').value.trim();
 
       if (!name || !email || !password) {
         signupMessage.textContent = 'Please fill in all fields.';

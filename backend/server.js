@@ -2958,7 +2958,7 @@ app.post('/api/auth/signup', authLimiter, async (req, res) => {
     const rawPassword = String(password || '');
     const normalizedReferralCode = String(referralCode || '').trim().toUpperCase();
     const normalizedAccountType = ['institution'].includes(String(accountType || '')) ? 'institution' : 'individual';
-    let normalizedInstitutionName = normalizedAccountType === 'institution' ? normalizeInstitutionName(institutionName) : null;
+    let normalizedInstitutionName = normalizeInstitutionName(institutionName);
     let normalizedInstitutionId = null;
 
     if (!normalizedName || !normalizedEmail || !rawPassword) {
@@ -2973,7 +2973,11 @@ app.post('/api/auth/signup', authLimiter, async (req, res) => {
       if (!normalizedInstitutionName) {
         return res.status(400).json({ error: 'Institution name is required for institution accounts' });
       }
+    }
 
+    // Allow individual students to optionally link themselves to an institution
+    // (for cohort analytics) while keeping institution accounts required to provide it.
+    if (normalizedInstitutionName) {
       const institutionRecord = await findOrCreateInstitutionByName(normalizedInstitutionName);
       normalizedInstitutionName = institutionRecord.name;
       normalizedInstitutionId = institutionRecord._id;
