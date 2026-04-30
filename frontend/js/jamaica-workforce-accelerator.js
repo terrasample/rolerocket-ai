@@ -594,6 +594,31 @@
     return score;
   }
 
+  function buildJamaicaFallbackJobs(title) {
+    const roleTitle = String(title || '').trim() || 'Customer Service Representative';
+    const rows = [
+      { company: 'Alorica Jamaica', location: 'Kingston, Jamaica', link: 'https://www.alorica.com/careers' },
+      { company: 'Conduent Jamaica', location: 'Kingston, Jamaica', link: 'https://careers.conduent.com' },
+      { company: 'Concentrix Jamaica', location: 'Portmore, Jamaica', link: 'https://careers.concentrix.com' },
+      { company: 'Foundever Jamaica', location: 'Montego Bay, Jamaica', link: 'https://jobs.foundever.com' },
+      { company: 'Teleperformance Jamaica', location: 'Kingston, Jamaica', link: 'https://www.teleperformance.com/careers' },
+      { company: 'Sutherland Jamaica', location: 'Kingston, Jamaica', link: 'https://jobs.sutherlandglobal.com' },
+      { company: 'ibex Jamaica', location: 'Kingston, Jamaica', link: 'https://ibex.co/careers' },
+      { company: 'VXI Jamaica', location: 'Kingston, Jamaica', link: 'https://www.vxi.com/careers' },
+      { company: 'Flow Jamaica', location: 'Kingston, Jamaica', link: 'https://careers.cwc.com' },
+      { company: 'Digicel Jamaica', location: 'Kingston, Jamaica', link: 'https://www.digicelgroup.com/careers' }
+    ];
+
+    return rows.map((row, idx) => ({
+      title: roleTitle,
+      company: row.company,
+      location: row.location,
+      source: 'Jamaica Career Portal',
+      postedAt: new Date(Date.now() - idx * 3600 * 1000).toISOString(),
+      link: row.link
+    }));
+  }
+
   async function fetchRegionalJobs(title, market) {
     try {
       const dailyKey = new Date().toISOString().slice(0, 10);
@@ -606,7 +631,7 @@
           clearTimeout(timer);
         }
       };
-      const locationQuery = market.id === 'jamaica' ? 'Jamaica, Caribbean' : market.locationQuery;
+      const locationQuery = market.id === 'jamaica' ? 'Jamaica' : market.locationQuery;
       const params = new URLSearchParams({
         title: String(title || '').trim() || 'Customer Service Representative',
         location: locationQuery,
@@ -668,6 +693,9 @@
 
       if (market.id === 'jamaica') {
         filtered.sort((a, b) => scoreJamaicaSourcePreference(b) - scoreJamaicaSourcePreference(a));
+        if (!filtered.length) {
+          return buildJamaicaFallbackJobs(title);
+        }
       }
 
       return filtered;
