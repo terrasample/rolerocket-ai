@@ -263,6 +263,26 @@
       window.location.replace(`login.html?redirect=${target}`);
     }
 
+    function renderInstitutionOnlyState() {
+      setStatus('Institution account required to view Cohort Manager.', '#dc2626');
+
+      const tbody = document.getElementById('icmTableBody');
+      if (tbody) {
+        tbody.innerHTML = '<tr><td colspan="6" class="icm-empty">Institution account required. Please log in with an institution profile.</td></tr>';
+      }
+
+      const search = document.getElementById('icmSearch');
+      const refreshBtn = document.getElementById('icmRefreshBtn');
+      const prevBtn = document.getElementById('icmPrevBtn');
+      const nextBtn = document.getElementById('icmNextBtn');
+
+      if (search) search.disabled = true;
+      if (refreshBtn) refreshBtn.disabled = true;
+      if (prevBtn) prevBtn.disabled = true;
+      if (nextBtn) nextBtn.disabled = true;
+      document.getElementById('icmStatInstitution').textContent = 'Institution account required';
+    }
+
     async function ensureInstitutionAccess() {
       const token = getAuthToken();
       if (!token) {
@@ -287,7 +307,7 @@
         const payload = await res.json();
         const actor = payload && payload.user ? payload.user : null;
         if (!actor || actor.accountType !== 'institution') {
-          window.location.replace('dashboard.html?access=institution-only');
+          renderInstitutionOnlyState();
           return null;
         }
 
