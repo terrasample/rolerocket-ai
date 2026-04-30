@@ -1297,6 +1297,15 @@ function scoreFreshness(postedAt) {
   return Math.max(0, Math.round(22 - ageDays * 1.3));
 }
 
+function isPostedWithinDays(postedAt, days = 7) {
+  if (!postedAt) return false;
+  const ts = new Date(postedAt).getTime();
+  if (Number.isNaN(ts)) return false;
+  const ageMs = Date.now() - ts;
+  if (ageMs < 0) return true;
+  return ageMs <= (Number(days) * 24 * 60 * 60 * 1000);
+}
+
 function sourceQualityWeight(source = '') {
   const table = {
     Adzuna: 7,
@@ -2072,6 +2081,7 @@ async function searchJobsFast({ title, location, resume }) {
       const merged = dedupeJobs([...jobs, ...fallbackJobs]);
       jobs = merged.filter((job) => isLocationCompatible(job, 'Jamaica'));
     }
+    jobs = jobs.filter((job) => isPostedWithinDays(job.postedAt, 7));
   }
 
   // For other Caribbean islands (Trinidad, Barbados, Bahamas, Guyana, etc.),

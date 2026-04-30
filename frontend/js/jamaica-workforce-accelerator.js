@@ -577,6 +577,15 @@
     return d.toLocaleDateString('en-JM', { day: 'numeric', month: 'short', year: 'numeric' });
   }
 
+  function isWithinRecentDays(iso, days) {
+    if (!iso) return false;
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return false;
+    const ageMs = Date.now() - d.getTime();
+    if (ageMs < 0) return true;
+    return ageMs <= (Number(days) * 24 * 60 * 60 * 1000);
+  }
+
   function scoreJamaicaSourcePreference(job) {
     const link = String(job?.link || '').toLowerCase();
     const source = String(job?.source || '').toLowerCase();
@@ -692,10 +701,12 @@
       const filtered = deduped;
 
       if (market.id === 'jamaica') {
-        filtered.sort((a, b) => scoreJamaicaSourcePreference(b) - scoreJamaicaSourcePreference(a));
-        if (!filtered.length) {
+        const freshOnly = filtered.filter((job) => isWithinRecentDays(job.postedAt, 7));
+        freshOnly.sort((a, b) => scoreJamaicaSourcePreference(b) - scoreJamaicaSourcePreference(a));
+        if (!freshOnly.length) {
           return buildJamaicaFallbackJobs(title);
         }
+        return freshOnly;
       }
 
       return filtered;
