@@ -573,6 +573,101 @@ app.post('/api/admin/institution-invites/:id/revoke', authenticateToken, require
   }
 });
 
+// Pilot KPI dashboard — institution admin view
+app.get('/api/institution/pilot-kpis', authenticateToken, async (req, res) => {
+  try {
+    let actor = await User.findById(req.user.userId)
+      .select('accountType institutionName institutionId plan isSubscribed institutionTrialEndsAt isAdmin')
+      .lean();
+    if (!actor) return res.status(403).json({ error: 'Access denied' });
+    const isAdminActor = actor.isAdmin === true;
+    if (!isAdminActor && !(await ensureInstitutionOrLinkedStudentAccess(actor))) {
+      return res.status(403).json({ error: 'Institution account required' });
+    }
+    actor = await ensureInstitutionIdentityForUser(actor);
+
+    const studentScope = buildInstitutionStudentScope(actor);
+    const now = Date.now();
+    const day7  = new Date(now - 7  * 86400000);
+    const day14 = new Date(now - 14 * 86400000);
+    const day21 = new Date(now - 21 * 86400000);
+    const day28 = new Date(now - 28 * 86400000);
+
+    // Pull all cohort students with relevant fields
+    const students = await User.find(studentScope)
+      .select('createdAt updatedAt aiGenerationUsage autopilotUsage institutionInviteCode')
+      .lean();
+
+    const total = students.length;
+
+    // Activation: student has used the product (updatedAt meaningfully > createdAt)
+    const activated = students.filter(s => {
+      const created = new Date(s.createdAt).getTime();
+      const updated = new Date(s.updatedAt || s.createdAt).getTime();
+      return (updated - created) > 60000; // >1 min difference = actually did something
+    }).length;
+
+    // Weekly active: updated in last 7 days
+    const weeklyActive = students.filter(s =>
+      new Date(s.updatedAt || s.createdAt) >= day7
+    ).length;
+
+    // Retention week 3: joined >21 days ago AND still active after day 21
+    const cohortWeek3 = students.filter(s => new Date(s.createdAt) <= day21);
+    const retainedWeek3 = cohortWeek3.filter(s =>
+      new Date(s.updatedAt || s.createdAt) >= day21
+    ).length;
+
+    // Retention week 4: joined >28 days ago AND still active after day 28
+    const cohortWeek4 = students.filter(s => new Date(s.createdAt) <= day28);
+    const retainedWeek4 = cohortWeek4.filter(s =>
+      new Date(s.updatedAt || s.createdAt) >= day28
+    ).length;
+
+    // Career readiness: resume/AI actions + application actions
+    let resumeActions = 0, applicationActions = 0;
+    for (const s of students) {
+      resumeActions     += (s.aiGenerationUsage  || []).reduce((sum, d) => sum + (d.count || 0), 0);
+      applicationActions += (s.autopilotUsage    || []).reduce((sum, d) => sum + (d.count || 0), 0);
+    }
+
+    // Invite code usage for this institution
+    const institutionQuery = actor.institutionName
+      ? { institutionName: { $regex: new RegExp('^' + actor.institutionName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i') } }
+      : {};
+    const invites = await InstitutionInvite.find(institutionQuery)
+      .select('usedCount maxUses active expiresAt code trialDays createdAt')
+      .lean();
+    const totalInviteSlots = invites.reduce((s, i) => s + (i.maxUses || 1), 0);
+    const totalInviteUsed  = invites.reduce((s, i) => s + (i.usedCount || 0), 0);
+    const activeInvites    = invites.filter(i => i.active && (!i.expiresAt || new Date(i.expiresAt) > new Date())).length;
+
+    return res.json({
+      total,
+      activated,
+      activationRate: total > 0 ? Math.round((activated / total) * 100) : 0,
+      weeklyActive,
+      weeklyEngagementRate: total > 0 ? Math.round((weeklyActive / total) * 100) : 0,
+      retentionWeek3: cohortWeek3.length > 0 ? Math.round((retainedWeek3 / cohortWeek3.length) * 100) : null,
+      retentionWeek4: cohortWeek4.length > 0 ? Math.round((retainedWeek4 / cohortWeek4.length) * 100) : null,
+      retentionWeek3Cohort: cohortWeek3.length,
+      retentionWeek4Cohort: cohortWeek4.length,
+      resumeActions,
+      applicationActions,
+      careerReadinessTotal: resumeActions + applicationActions,
+      invites: {
+        total: invites.length,
+        totalSlots: totalInviteSlots,
+        used: totalInviteUsed,
+        active: activeInvites,
+      }
+    });
+  } catch (err) {
+    console.error('GET /api/institution/pilot-kpis', err);
+    return res.status(500).json({ error: 'Failed to load pilot KPIs' });
+  }
+});
+
 // Start the Express server
 // Start the Express server (must be at the end)
 // Start the Express server (must be at the end)

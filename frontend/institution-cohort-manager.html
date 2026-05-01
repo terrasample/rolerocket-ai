@@ -38,6 +38,33 @@
     }
     .icm-stat-card .icm-stat-num { font-size: 2rem; font-weight: 800; color: #818cf8; display: block; }
     .icm-stat-card .icm-stat-label { font-size: .8rem; color: #94a3b8; margin-top: 4px; }
+
+    /* ── Pilot KPI Panel ── */
+    .kpi-panel {
+      background: linear-gradient(135deg, rgba(30,27,75,.7) 0%, rgba(17,24,39,1) 100%);
+      border: 1px solid rgba(129,140,248,.25); border-radius: 18px;
+      padding: 20px 22px 18px; margin-bottom: 24px;
+    }
+    .kpi-panel-title {
+      font-size: .85rem; font-weight: 800; color: #818cf8; text-transform: uppercase;
+      letter-spacing: .08em; margin: 0 0 14px; display: flex; align-items: center; gap: 8px;
+    }
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+    .kpi-card {
+      background: #0f172a; border-radius: 12px; padding: 14px 16px;
+      border: 1px solid rgba(255,255,255,.06); text-align: center; position: relative;
+    }
+    .kpi-card .kpi-num {
+      font-size: 1.9rem; font-weight: 800; display: block; line-height: 1.1;
+    }
+    .kpi-card .kpi-label { font-size: .75rem; color: #94a3b8; margin-top: 5px; }
+    .kpi-card .kpi-sub  { font-size: .72rem; color: #475569; margin-top: 2px; }
+    .kpi-green  { color: #4ade80; }
+    .kpi-blue   { color: #38bdf8; }
+    .kpi-indigo { color: #818cf8; }
+    .kpi-amber  { color: #fbbf24; }
+    .kpi-rose   { color: #fb7185; }
+    .kpi-na     { color: #475569; font-size: 1.2rem !important; }
     .icm-onboard-banner {
       display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
       background: #0f172a; border: 1px solid rgba(129,140,248,.32); border-radius: 12px;
@@ -262,6 +289,44 @@
 
     <!-- OVERVIEW -->
     <div id="tab-overview" class="icm-panel active">
+
+      <!-- ── Pilot KPI Panel ── -->
+      <div class="kpi-panel" id="kpiPanel">
+        <div class="kpi-panel-title">📊 Pilot KPIs <span style="font-size:.75rem;color:#475569;font-weight:400;text-transform:none;letter-spacing:0;" id="kpiLastUpdated"></span></div>
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <span class="kpi-num kpi-green" id="kpiActivationRate">—</span>
+            <div class="kpi-label">Activation Rate</div>
+            <div class="kpi-sub" id="kpiActivationSub">invited users who took action</div>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-num kpi-blue" id="kpiWeeklyActive">—</span>
+            <div class="kpi-label">Weekly Active Users</div>
+            <div class="kpi-sub" id="kpiWeeklyActiveSub">active in last 7 days</div>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-num kpi-indigo" id="kpiRetentionW3">—</span>
+            <div class="kpi-label">Week 3 Retention</div>
+            <div class="kpi-sub" id="kpiRetentionW3Sub">of week-3 cohort still active</div>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-num kpi-indigo" id="kpiRetentionW4">—</span>
+            <div class="kpi-label">Week 4 Retention</div>
+            <div class="kpi-sub" id="kpiRetentionW4Sub">of week-4 cohort still active</div>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-num kpi-amber" id="kpiCareerActions">—</span>
+            <div class="kpi-label">Career Readiness Actions</div>
+            <div class="kpi-sub" id="kpiCareerActionsSub">resume + application activity</div>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-num kpi-rose" id="kpiInviteUsed">—</span>
+            <div class="kpi-label">Invite Codes Used</div>
+            <div class="kpi-sub" id="kpiInviteUsedSub">of available slots</div>
+          </div>
+        </div>
+      </div>
+
       <div class="icm-stats-bar">
         <div class="icm-stat-card"><span class="icm-stat-num" id="icmStatTotal">&#8212;</span><div class="icm-stat-label">Total Students</div></div>
         <div class="icm-stat-card"><span class="icm-stat-num" id="icmStatSubscribed">&#8212;</span><div class="icm-stat-label">Subscribed</div></div>
@@ -780,7 +845,7 @@
       setTimeout(function(){URL.revokeObjectURL(url);},5000);
     }
     document.getElementById('icmExportBtn').addEventListener('click',function(){ exportCSV(filteredStudents.length?filteredStudents:allStudents,'cohort-export.csv'); });
-    document.getElementById('icmRefreshBtn').addEventListener('click',function(){ loadStats(); loadAtRisk(); loadCohort(1); });
+    document.getElementById('icmRefreshBtn').addEventListener('click',function(){ loadStats(); loadAtRisk(); loadPilotKPIs(); loadCohort(1); });
     document.getElementById('icmPrevBtn').addEventListener('click',function(){ loadCohort(currentPage-1); });
     document.getElementById('icmNextBtn').addEventListener('click',function(){ loadCohort(currentPage+1); });
 
@@ -814,10 +879,87 @@
         .catch(function(){ prompt('Copy this link:', link); });
     });
 
+    async function loadPilotKPIs() {
+      try {
+        var res = await fetch(apiUrl('/api/institution/pilot-kpis'), {
+          headers: { Authorization: 'Bearer ' + getAuthToken() }
+        });
+        if (!res.ok) { document.getElementById('kpiPanel').style.opacity = '.4'; return; }
+        var d = await res.json();
+
+        function pct(v) { return v != null ? v + '%' : null; }
+        function fmt(v)  { return (v != null && v !== undefined) ? v.toLocaleString() : '—'; }
+
+        // Activation rate
+        var actEl = document.getElementById('kpiActivationRate');
+        var actSub = document.getElementById('kpiActivationSub');
+        if (actEl) { actEl.textContent = d.total > 0 ? (d.activationRate + '%') : '—'; }
+        if (actSub) { actSub.textContent = d.activated + ' of ' + d.total + ' users took action'; }
+
+        // Weekly active
+        var waEl = document.getElementById('kpiWeeklyActive');
+        var waSub = document.getElementById('kpiWeeklyActiveSub');
+        if (waEl) { waEl.textContent = fmt(d.weeklyActive); }
+        if (waSub) { waSub.textContent = (d.weeklyEngagementRate != null ? d.weeklyEngagementRate + '% of cohort' : '') + ' active in last 7 days'; }
+
+        // Week 3 retention
+        var w3El = document.getElementById('kpiRetentionW3');
+        var w3Sub = document.getElementById('kpiRetentionW3Sub');
+        if (w3El) {
+          if (d.retentionWeek3 != null) {
+            w3El.textContent = d.retentionWeek3 + '%';
+            w3El.classList.remove('kpi-na');
+          } else {
+            w3El.textContent = 'N/A';
+            w3El.classList.add('kpi-na');
+          }
+        }
+        if (w3Sub) { w3Sub.textContent = d.retentionWeek3Cohort > 0 ? ('of ' + d.retentionWeek3Cohort + '-student week-3 cohort') : 'cohort not yet 3 weeks old'; }
+
+        // Week 4 retention
+        var w4El = document.getElementById('kpiRetentionW4');
+        var w4Sub = document.getElementById('kpiRetentionW4Sub');
+        if (w4El) {
+          if (d.retentionWeek4 != null) {
+            w4El.textContent = d.retentionWeek4 + '%';
+            w4El.classList.remove('kpi-na');
+          } else {
+            w4El.textContent = 'N/A';
+            w4El.classList.add('kpi-na');
+          }
+        }
+        if (w4Sub) { w4Sub.textContent = d.retentionWeek4Cohort > 0 ? ('of ' + d.retentionWeek4Cohort + '-student week-4 cohort') : 'cohort not yet 4 weeks old'; }
+
+        // Career readiness
+        var caEl = document.getElementById('kpiCareerActions');
+        var caSub = document.getElementById('kpiCareerActionsSub');
+        if (caEl) { caEl.textContent = fmt(d.careerReadinessTotal); }
+        if (caSub) { caSub.textContent = fmt(d.resumeActions) + ' resume · ' + fmt(d.applicationActions) + ' applications'; }
+
+        // Invite codes used
+        var invEl = document.getElementById('kpiInviteUsed');
+        var invSub = document.getElementById('kpiInviteUsedSub');
+        if (invEl) {
+          invEl.textContent = d.invites ? (d.invites.used + ' / ' + d.invites.totalSlots) : '—';
+        }
+        if (invSub && d.invites) {
+          invSub.textContent = d.invites.active + ' active code' + (d.invites.active !== 1 ? 's' : '');
+        }
+
+        // Timestamp
+        var ts = document.getElementById('kpiLastUpdated');
+        if (ts) ts.textContent = '· updated ' + new Date().toLocaleTimeString();
+
+      } catch (e) {
+        console.warn('pilot-kpis failed', e);
+        document.getElementById('kpiPanel').style.opacity = '.4';
+      }
+    }
+
     (async function initPage() {
       var actor = await ensureInstitutionAccess();
       if (!actor) return;
-      await Promise.all([loadStats(), loadAtRisk()]);
+      await Promise.all([loadStats(), loadAtRisk(), loadPilotKPIs()]);
       loadCohort(1);
     })();
   </script>
