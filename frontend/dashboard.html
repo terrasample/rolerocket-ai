@@ -295,27 +295,28 @@
         </div>
 
         <div class="rr-shot-main">
+            <div id="rrShotProfileHint" style="display:none;margin:-4px 0 16px;padding:10px 14px;background:rgba(22,163,74,0.08);border-left:3px solid #16a34a;border-radius:6px;font-size:13px;color:#94a3b8;line-height:1.6;"></div>
           <article class="rr-shot-card">
             <h3><span id="rrShotPanelTitle">Top Job Matches for You</span> <a href="job-tracking.html" class="rr-shot-viewall" id="rrShotPanelLink">View all</a></h3>
             <div class="rr-shot-list" id="rrShotJobMatches">
               <div class="rr-shot-row">
                 <div>
                   <div class="title">Product Manager</div>
-                  <div class="meta">Google · 91% Match</div>
+                  <div class="meta">Google</div>
                 </div>
                 <a class="rr-shot-apply" href="https://www.linkedin.com/jobs/search/?keywords=Product+Manager&f_C=1441" target="_blank" rel="noopener noreferrer">Apply</a>
               </div>
               <div class="rr-shot-row">
                 <div>
                   <div class="title">AI/ML Engineer</div>
-                  <div class="meta">Microsoft · 89% Match</div>
+                  <div class="meta">Microsoft</div>
                 </div>
                 <a class="rr-shot-apply" href="https://www.linkedin.com/jobs/search/?keywords=AI+ML+Engineer&f_C=1035" target="_blank" rel="noopener noreferrer">Apply</a>
               </div>
               <div class="rr-shot-row">
                 <div>
                   <div class="title">Software Engineer</div>
-                  <div class="meta">Amazon · 87% Match</div>
+                  <div class="meta">Amazon</div>
                 </div>
                 <a class="rr-shot-apply" href="https://www.linkedin.com/jobs/search/?keywords=Software+Engineer&f_C=1586" target="_blank" rel="noopener noreferrer">Apply</a>
               </div>
@@ -567,7 +568,7 @@
             ['Marketing Coordinator', 'GraceKennedy', 'Kingston', 90, 'https://www.linkedin.com/jobs/search/?keywords=Marketing+Coordinator&location=Jamaica'],
             ['IT Support Analyst', 'Digicel Jamaica', 'New Kingston', 88, 'https://www.linkedin.com/jobs/search/?keywords=IT+Support+Analyst&location=Jamaica']
           ].map(function(j) {
-            return '<div class="rr-shot-row"><div><div class="title">'+j[0]+'</div><div class="meta">'+j[1]+' · '+j[2]+' · '+j[3]+'% Match</div></div><a class="rr-shot-apply" href="'+j[4]+'" target="_blank" rel="noopener noreferrer">Apply</a></div>';
+            return '<div class="rr-shot-row"><div><div class="title">'+j[0]+'</div><div class="meta">'+j[1]+' · '+j[2]+'</div></div><a class="rr-shot-apply" href="'+j[4]+'" target="_blank" rel="noopener noreferrer">Apply</a></div>';
           }).join('');
         }
       }
@@ -575,6 +576,7 @@
       async function loadSnapshotData() {
         var params = new URLSearchParams(window.location.search);
         var forcedJamaicaMode = (params.get('market') || '').toLowerCase() === 'jamaica';
+        var meUser = null;
         if (forcedJamaicaMode) applyJamaicaVariant();
 
         var token = (typeof getStoredToken === 'function' ? getStoredToken() : '') || localStorage.getItem('token') || sessionStorage.getItem('token') || '';
@@ -585,6 +587,7 @@
           if (meRes.ok) {
             var me = await meRes.json();
             var name = (me && me.user && me.user.name) ? me.user.name : '';
+            meUser = (me && me.user) ? me.user : null;
             if (name) {
               var welcome = document.getElementById('rrShotWelcome');
               if (welcome) welcome.textContent = 'Welcome back, ' + name + ' 👋';
@@ -663,26 +666,65 @@
           if (atsEl) atsEl.textContent = String(Math.round(atsScore));
           if (ringEl) ringEl.style.setProperty('--rr-ats-angle', Math.round((atsScore / 100) * 360) + 'deg');
 
+
+          var esc = function(s){ return String(s).replace(/[&<>"]/g, function(c){ return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]); }); };
+
           var pool = jobs.slice(0, 3);
+          var list = document.getElementById('rrShotJobMatches');
           if (pool.length) {
-            var list = document.getElementById('rrShotJobMatches');
             if (list) {
               list.innerHTML = pool.map(function (j) {
-                var score = Math.max(75, Math.min(98, 82 + Math.floor(Math.random() * 11)));
                 var applyLink = (j.link && /^https?:\/\//i.test(String(j.link).trim())) ? String(j.link).trim() :
                   'https://www.linkedin.com/jobs/search/?keywords=' + encodeURIComponent(j.title || '') + '&company=' + encodeURIComponent(j.company || '');
-                var esc = function(s){ return String(s).replace(/[&<>"]/g, function(c){ return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]); }); };
                 var metaBits = [j.company || 'Company'];
-                if (forcedJamaicaMode && j.location) metaBits.push(j.location);
+                if (j.location) metaBits.push(j.location);
                 return '<div class="rr-shot-row">' +
                   '<div><div class="title">' + esc(j.title || 'Role') + '</div>' +
-                  '<div class="meta">' + esc(metaBits.join(' · ')) + ' · ' + score + '% Match</div></div>' +
+                  '<div class="meta">' + esc(metaBits.join(' \u00b7 ')) + '</div></div>' +
                   '<a class="rr-shot-apply" href="' + esc(applyLink) + '" target="_blank" rel="noopener noreferrer">Apply</a>' +
                 '</div>';
               }).join('');
             }
+          } else if (list) {
+            try {
+              var scoutTitle = (meUser && meUser.jobAlertDefaults && meUser.jobAlertDefaults.includeKeywords && meUser.jobAlertDefaults.includeKeywords.length)
+                ? meUser.jobAlertDefaults.includeKeywords[0] : 'Software Engineer';
+              var scoutLocation = forcedJamaicaMode ? 'Jamaica'
+                : (meUser && meUser.jobAlertDefaults && meUser.jobAlertDefaults.location && meUser.jobAlertDefaults.location !== 'Remote')
+                  ? meUser.jobAlertDefaults.location : 'United States';
+              var scoutRes = await fetch(apiUrl('/api/jobs/scout?title=' + encodeURIComponent(scoutTitle) + '&location=' + encodeURIComponent(scoutLocation)), { headers: { Authorization: 'Bearer ' + token } });
+              if (scoutRes.ok) {
+                var scoutData = await scoutRes.json();
+                var scoutJobs = Array.isArray(scoutData.jobs) ? scoutData.jobs.slice(0, 3) : [];
+                if (scoutJobs.length) {
+                  list.innerHTML = scoutJobs.map(function(j) {
+                    var applyLink = (j.link && /^https?:\/\//i.test(String(j.link).trim())) ? String(j.link).trim()
+                      : 'https://www.linkedin.com/jobs/search/?keywords=' + encodeURIComponent(j.title || '');
+                    var metaBits = [j.company || 'Company'];
+                    if (j.location) metaBits.push(j.location);
+                    return '<div class="rr-shot-row">' +
+                      '<div><div class="title">' + esc(j.title || 'Role') + '</div>' +
+                      '<div class="meta">' + esc(metaBits.join(' \u00b7 ')) + '</div></div>' +
+                      '<a class="rr-shot-apply" href="' + esc(applyLink) + '" target="_blank" rel="noopener noreferrer">Apply</a>' +
+                    '</div>';
+                  }).join('');
+                }
+              }
+            } catch (_scoutErr) {}
           }
         } catch (_e2) {}
+
+        // Profile strength improvement hint
+        var hintEl = document.getElementById('rrShotProfileHint');
+        if (hintEl && typeof profileScore !== 'undefined' && profileScore < 80) {
+          var tips = [];
+          if (total === 0) tips.push('Track your first job application');
+          if (applied === 0 && total > 0) tips.push('Mark an application as \u201cApplied\u201d');
+          if (interview === 0) tips.push('Update a job to \u201cInterview\u201d when invited');
+          tips.push('Upload or update your resume in the optimizer');
+          hintEl.innerHTML = '<strong style="color:#e5e7eb;">Build your profile:</strong>&nbsp;&nbsp;' + tips.slice(0, 3).map(function(t){ return '\u2192 ' + t; }).join('&nbsp;&nbsp;&nbsp;');
+          hintEl.style.display = 'block';
+        }
       }
 
       if (document.readyState === 'loading') {
