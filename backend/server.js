@@ -8116,6 +8116,25 @@ app.get('/api/me', authenticateToken, async (req, res) => {
   }
 });
 
+app.patch('/api/profile', authenticateToken, async (req, res) => {
+  try {
+    const updates = {};
+    if (req.body && typeof req.body.name === 'string') {
+      const name = req.body.name.trim().slice(0, 120);
+      if (name) updates.name = name;
+    }
+    if (!Object.keys(updates).length) {
+      return res.status(400).json({ error: 'No valid fields to update' });
+    }
+    const user = await User.findByIdAndUpdate(req.user.userId, { $set: updates }, { new: true }).select('-password');
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    return res.json({ user });
+  } catch (err) {
+    console.error('Profile update error:', err);
+    return res.status(500).json({ error: 'Failed to update profile' });
+  }
+});
+
 app.get('/google1e7a24f124416c47.html', (_req, res) => {
   return res.type('text/plain').send('google-site-verification: google1e7a24f124416c47.html');
 });

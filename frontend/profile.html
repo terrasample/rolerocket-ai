@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Profile | RoleRocket AI</title>
+  <meta name="robots" content="noindex" />
+  <link rel="icon" type="image/png" href="assets/rolerocket-logo-new.png" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    body { background: radial-gradient(circle at 82% 8%, #0f305e 0%, #071123 42%, #050b16 100%) !important; }
+    .hero { display: none !important; }
+    #profileMain { padding-top: 20px; }
+
+    .rr-profile-shell {
+      background: linear-gradient(180deg, #0d182c 0%, #0a1426 100%);
+      border: 1px solid rgba(96, 165, 250, .24);
+      box-shadow: 0 16px 48px rgba(2, 6, 23, .7), inset 0 1px 0 rgba(148, 163, 184, .12);
+      border-radius: 18px;
+      padding: 30px 28px 28px;
+      max-width: 1100px;
+      margin: 12px auto 24px;
+      color: #e2e8f0;
+    }
+
+    .rr-profile-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .rr-profile-header h2 {
+      margin: 0;
+      font-size: clamp(1.4rem, 2.6vw, 2rem);
+      letter-spacing: -.02em;
+      color: #f8fafc;
+    }
+    .rr-profile-header p {
+      margin: 4px 0 0;
+      color: #9fb3cf;
+      font-size: 1rem;
+    }
+    .rr-profile-header-left { display: flex; flex-direction: column; }
+
+    /* Strength ring + summary */
+    .rr-strength-ring-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 130px;
+    }
+    .rr-strength-ring {
+      width: 118px;
+      height: 118px;
+      border-radius: 50%;
+      background: conic-gradient(#22c55e 0 var(--rr-ring-angle, 0deg), #0f1f36 var(--rr-ring-angle, 0deg) 360deg);
+      display: grid;
+      place-items: center;
+      position: relative;
+    }
+    .rr-strength-ring::before {
+      content: '';
+      position: absolute;
+      inset: 12px;
+      border-radius: 50%;
+      background: linear-gradient(180deg, #071327 0%, #0a162b 100%);
+      border: 1px solid rgba(51, 65, 85, .75);
+    }
+    .rr-strength-ring-core {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+    }
+    .rr-strength-pct {
+      font-size: 1.85rem;
+      font-weight: 900;
+      line-height: 1;
+      color: #f8fafc;
+    }
+    .rr-strength-label {
+      font-size: .78rem;
+      font-weight: 800;
+      color: #22c55e;
+      margin-top: 3px;
+    }
+    .rr-strength-title {
+      font-size: .82rem;
+      color: #94a3b8;
+      margin-top: 6px;
+    }
+
+    /* Strength breakdown bar */
+    .rr-strength-breakdown {
+      background: linear-gradient(180deg, rgba(10, 20, 36, .95), rgba(8, 18, 32, .98));
+      border: 1px solid rgba(59, 130, 246, .25);
+      border-radius: 14px;
+      padding: 18px 20px;
+      margin-bottom: 24px;
+    }
+    .rr-strength-breakdown h3 {
+      margin: 0 0 14px;
+      font-size: 1.1rem;
+      color: #f1f5f9;
+    }
+    .rr-strength-bars { display: grid; gap: 10px; }
+    .rr-bar-row { display: grid; grid-template-columns: 130px 1fr 38px; gap: 10px; align-items: center; }
+    .rr-bar-label { font-size: .88rem; color: #9fb3cf; font-weight: 700; }
+    .rr-bar-track {
+      height: 8px;
+      background: rgba(51,65,85,.5);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .rr-bar-fill {
+      height: 100%;
+      border-radius: 99px;
+      background: #22c55e;
+      transition: width .4s ease;
+    }
+    .rr-bar-val { font-size: .88rem; color: #e2e8f0; font-weight: 700; text-align: right; }
+
+    /* Sections */
+    .rr-profile-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+    .rr-profile-card {
+      background: linear-gradient(180deg, rgba(10, 20, 36, .95), rgba(8, 18, 32, .98));
+      border: 1px solid rgba(59, 130, 246, .25);
+      border-radius: 14px;
+      padding: 20px;
+    }
+    .rr-profile-card h3 {
+      margin: 0 0 16px;
+      font-size: 1.1rem;
+      color: #f1f5f9;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .rr-profile-card.span2 { grid-column: 1 / -1; }
+
+    .rr-field { margin-bottom: 16px; }
+    .rr-field:last-child { margin-bottom: 0; }
+    .rr-field label {
+      display: block;
+      font-size: .87rem;
+      font-weight: 700;
+      color: #9fb3cf;
+      margin-bottom: 6px;
+    }
+    .rr-field input[type="text"],
+    .rr-field input[type="number"] {
+      width: 100%;
+      box-sizing: border-box;
+      background: rgba(15, 23, 42, .85);
+      border: 1px solid rgba(59, 130, 246, .3);
+      border-radius: 8px;
+      color: #f1f5f9;
+      padding: 9px 12px;
+      font-size: .97rem;
+      outline: none;
+      transition: border-color .2s;
+    }
+    .rr-field input[type="text"]:focus,
+    .rr-field input[type="number"]:focus {
+      border-color: #3b82f6;
+    }
+    .rr-field .rr-hint {
+      font-size: .8rem;
+      color: #64748b;
+      margin-top: 4px;
+    }
+
+    .rr-tag-group { display: flex; flex-wrap: wrap; gap: 8px; }
+    .rr-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 11px;
+      border-radius: 999px;
+      border: 1px solid rgba(59, 130, 246, .3);
+      background: rgba(30, 58, 138, .15);
+      color: #93c5fd;
+      font-size: .84rem;
+      font-weight: 700;
+      cursor: pointer;
+      user-select: none;
+      transition: background .15s, border-color .15s, color .15s;
+    }
+    .rr-tag:hover { border-color: rgba(59, 130, 246, .65); }
+    .rr-tag.active {
+      background: rgba(37, 99, 235, .4);
+      border-color: #3b82f6;
+      color: #dbeafe;
+    }
+
+    /* keywords input */
+    .rr-keywords-wrap {
+      display: flex;
+      gap: 8px;
+    }
+    .rr-keywords-wrap input { flex: 1; }
+    .rr-keywords-wrap button {
+      background: rgba(37, 99, 235, .2);
+      border: 1px solid rgba(59, 130, 246, .4);
+      color: #93c5fd;
+      border-radius: 8px;
+      padding: 9px 14px;
+      font-size: .93rem;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .rr-keywords-wrap button:hover {
+      background: rgba(37, 99, 235, .35);
+    }
+    .rr-keyword-chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 8px; min-height: 0; }
+    .rr-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(22, 163, 74, .18);
+      border: 1px solid rgba(34, 197, 94, .3);
+      color: #86efac;
+      font-size: .82rem;
+      font-weight: 700;
+    }
+    .rr-chip button {
+      background: none;
+      border: none;
+      color: #94a3b8;
+      cursor: pointer;
+      font-size: .9rem;
+      padding: 0;
+      line-height: 1;
+    }
+    .rr-chip button:hover { color: #f87171; }
+
+    /* Industries free-text */
+    .rr-industry-chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 8px; min-height: 0; }
+
+    /* Save bar */
+    .rr-save-bar {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 14px;
+      margin-top: 4px;
+    }
+    .rr-save-msg {
+      font-size: .9rem;
+      font-weight: 700;
+      color: #22c55e;
+      opacity: 0;
+      transition: opacity .3s;
+    }
+    .rr-save-msg.visible { opacity: 1; }
+    .rr-save-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 28px;
+      border-radius: 10px;
+      border: 1px solid #2563eb;
+      color: #dbeafe;
+      background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
+      font-weight: 800;
+      font-size: 1rem;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .rr-save-btn:hover { background: linear-gradient(180deg, #1d4ed8 0%, #1e40af 100%); }
+    .rr-save-btn:disabled {
+      opacity: .6;
+      cursor: not-allowed;
+    }
+
+    /* Quick links */
+    .rr-quick-links {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+    .rr-quick-link {
+      display: block;
+      text-decoration: none;
+      color: inherit;
+      background: linear-gradient(180deg, rgba(13, 25, 44, .95), rgba(9, 18, 34, .98));
+      border: 1px solid rgba(59, 130, 246, .18);
+      border-radius: 14px;
+      padding: 16px;
+    }
+    .rr-quick-link:hover { border-color: rgba(59, 130, 246, .45); }
+    .rr-quick-link-title { color: #f8fafc; font-size: 1rem; font-weight: 800; margin-bottom: 5px; line-height: 1.35; }
+    .rr-quick-link-sub { color: #9fb3cf; font-size: .87rem; line-height: 1.5; }
+
+    @media (max-width: 880px) {
+      .rr-profile-grid { grid-template-columns: 1fr; }
+      .rr-profile-card.span2 { grid-column: 1; }
+      .rr-quick-links { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 560px) {
+      .rr-profile-shell { padding: 20px 14px 18px; }
+      .rr-bar-row { grid-template-columns: 90px 1fr 32px; }
+      .rr-quick-links { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#profileMain">Skip to main content</a>
+  <div class="hero">
+    <h1>My Profile</h1>
+    <p>Manage your career preferences to improve job match quality and profile strength.</p>
+  </div>
+
+  <div class="layout">
+    <aside class="sidebar" aria-label="Primary navigation">
+      <h2 aria-label="RoleRocket AI"></h2>
+      <nav>
+        <a class="sidebar-link-btn" href="index.html">Home</a>
+        <a class="sidebar-link-btn" href="about-us.html">About Us</a>
+        <a class="sidebar-link-btn" href="features.html">Features</a>
+        <a class="sidebar-link-btn" href="job-tracking.html">Find, Search &amp; Track</a>
+        <a class="sidebar-link-btn" href="ai-recruiter-assist.html">AI Recruiter Assist</a>
+        <a class="sidebar-link-btn" href="pricing.html">Pricing</a>
+        <a class="sidebar-link-btn" href="contact-us.html">Contact Us</a>
+        <a class="sidebar-link-btn" href="jamaica-workforce-accelerator.html">🇯🇲 Jamaica Workforce Accelerator</a>
+        <a class="sidebar-link-btn" href="dashboard.html">My Dashboard</a>
+        <hr />
+        <p id="planBadge">Free Plan</p>
+        <a class="sidebar-link-btn" href="institution-cohort-manager.html">🏫 Cohort Manager</a>
+        <a class="sidebar-link-btn" id="adminInvitesLink" href="admin-institution-invites.html" style="display:none;">🔑 Admin: Invites</a>
+        <a class="sidebar-link-btn active" href="profile.html">🧑 My Profile</a>
+        <a class="sidebar-link-btn" href="job-alerts-sms.html">📱 Job Alerts</a>
+        <a class="sidebar-link-btn" href="account.html">👤 Account</a>
+        <a class="sidebar-link-btn" href="login.html?relogin=1">Logout</a>
+      </nav>
+    </aside>
+
+    <main class="main" id="profileMain" tabindex="-1">
+      <button onclick="window.history.back()" class="back-arrow-btn" aria-label="Go back"
+        style="margin:12px 0 0 12px;background:none;border:none;cursor:pointer;font-size:1.6em;color:#2563eb;">
+        <span aria-hidden="true">&#8592;</span> Back
+      </button>
+
+      <section class="rr-profile-shell" aria-label="My Profile">
+
+        <!-- Header + Strength Ring -->
+        <div class="rr-profile-header">
+          <div class="rr-profile-header-left">
+            <h2 id="rrProfileWelcome">My Profile</h2>
+            <p id="rrProfileSub">Fill in your career preferences to unlock better job matches.</p>
+          </div>
+          <div class="rr-strength-ring-wrap">
+            <div class="rr-strength-ring" id="rrStrengthRing">
+              <div class="rr-strength-ring-core">
+                <div class="rr-strength-pct" id="rrStrengthPct">—</div>
+                <div class="rr-strength-label" id="rrStrengthLabel">—</div>
+              </div>
+            </div>
+            <div class="rr-strength-title">Profile Strength</div>
+          </div>
+        </div>
+
+        <!-- Strength breakdown -->
+        <div class="rr-strength-breakdown">
+          <h3>Score Breakdown</h3>
+          <div class="rr-strength-bars">
+            <div class="rr-bar-row">
+              <div class="rr-bar-label">Completeness</div>
+              <div class="rr-bar-track"><div class="rr-bar-fill" id="rrBarCompleteness" style="width:0%"></div></div>
+              <div class="rr-bar-val" id="rrBarCompletenessVal">0/60</div>
+            </div>
+            <div class="rr-bar-row">
+              <div class="rr-bar-label">Activity</div>
+              <div class="rr-bar-track"><div class="rr-bar-fill" id="rrBarActivity" style="width:0%;background:#3b82f6;"></div></div>
+              <div class="rr-bar-val" id="rrBarActivityVal">0/30</div>
+            </div>
+            <div class="rr-bar-row">
+              <div class="rr-bar-label">Outcomes</div>
+              <div class="rr-bar-track"><div class="rr-bar-fill" id="rrBarOutcomes" style="width:0%;background:#a78bfa;"></div></div>
+              <div class="rr-bar-val" id="rrBarOutcomesVal">0/10</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Form Sections -->
+        <div class="rr-profile-grid">
+
+          <!-- Career Identity -->
+          <div class="rr-profile-card">
+            <h3>🎯 Career Identity</h3>
+
+            <div class="rr-field">
+              <label for="rrFieldName">Your Name</label>
+              <input type="text" id="rrFieldName" placeholder="e.g. Jordan Smith" autocomplete="name" maxlength="120" />
+            </div>
+
+            <div class="rr-field">
+              <label for="rrFieldLocation">Preferred Job Location</label>
+              <input type="text" id="rrFieldLocation" placeholder="e.g. New York, NY or Remote" maxlength="120" />
+              <p class="rr-hint">Adds +15 points to your completeness score</p>
+            </div>
+
+            <div class="rr-field">
+              <label>Target Role Keywords <span style="font-weight:400;color:#64748b;">(what job titles are you targeting?)</span></label>
+              <div class="rr-keywords-wrap">
+                <input type="text" id="rrKeywordInput" placeholder="e.g. Product Manager" maxlength="60" />
+                <button type="button" id="rrAddKeyword">+ Add</button>
+              </div>
+              <div class="rr-keyword-chips" id="rrKeywordChips"></div>
+              <p class="rr-hint">Adds +15 points · up to 12 keywords</p>
+            </div>
+          </div>
+
+          <!-- Experience & Industry -->
+          <div class="rr-profile-card">
+            <h3>📊 Experience &amp; Industry</h3>
+
+            <div class="rr-field">
+              <label>Seniority Level</label>
+              <div class="rr-tag-group" id="rrSeniorityTags">
+                <span class="rr-tag" data-val="internship">Internship</span>
+                <span class="rr-tag" data-val="entry">Entry</span>
+                <span class="rr-tag" data-val="associate">Associate</span>
+                <span class="rr-tag" data-val="mid">Mid</span>
+                <span class="rr-tag" data-val="senior">Senior</span>
+                <span class="rr-tag" data-val="lead">Lead</span>
+                <span class="rr-tag" data-val="manager">Manager</span>
+                <span class="rr-tag" data-val="director">Director</span>
+                <span class="rr-tag" data-val="executive">Executive</span>
+              </div>
+              <p class="rr-hint">Adds +5 points · select all that apply</p>
+            </div>
+
+            <div class="rr-field">
+              <label>Industries <span style="font-weight:400;color:#64748b;">(type and add)</span></label>
+              <div class="rr-keywords-wrap">
+                <input type="text" id="rrIndustryInput" placeholder="e.g. Technology" maxlength="60" />
+                <button type="button" id="rrAddIndustry">+ Add</button>
+              </div>
+              <div class="rr-industry-chips" id="rrIndustryChips"></div>
+              <p class="rr-hint">Adds +5 points · up to 8 industries</p>
+            </div>
+          </div>
+
+          <!-- Job Preferences -->
+          <div class="rr-profile-card span2">
+            <h3>⚙️ Job Preferences</h3>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;flex-wrap:wrap;">
+              <div class="rr-field">
+                <label>Work Mode</label>
+                <div class="rr-tag-group" id="rrWorkModeTags">
+                  <span class="rr-tag" data-val="remote">Remote</span>
+                  <span class="rr-tag" data-val="hybrid">Hybrid</span>
+                  <span class="rr-tag" data-val="onsite">On-site</span>
+                </div>
+              </div>
+              <div class="rr-field">
+                <label>Employment Type</label>
+                <div class="rr-tag-group" id="rrEmploymentTags">
+                  <span class="rr-tag" data-val="full-time">Full-time</span>
+                  <span class="rr-tag" data-val="contract">Contract</span>
+                  <span class="rr-tag" data-val="part-time">Part-time</span>
+                  <span class="rr-tag" data-val="temporary">Temporary</span>
+                  <span class="rr-tag" data-val="internship">Internship</span>
+                </div>
+              </div>
+              <div class="rr-field">
+                <label for="rrSalaryMin">Minimum Salary (USD / yr)</label>
+                <input type="number" id="rrSalaryMin" placeholder="e.g. 60000" min="0" max="9999999" step="1000" />
+                <p class="rr-hint">Used to filter job alert results</p>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /.rr-profile-grid -->
+
+        <!-- Save bar -->
+        <div class="rr-save-bar">
+          <span class="rr-save-msg" id="rrSaveMsg">✓ Profile saved</span>
+          <button class="rr-save-btn" id="rrSaveBtn" type="button">Save Profile</button>
+        </div>
+
+        <!-- Quick links -->
+        <div style="margin-top:28px;">
+          <h3 style="margin:0 0 14px;color:#f1f5f9;font-size:1.1rem;">Quick Links</h3>
+          <div class="rr-quick-links">
+            <a class="rr-quick-link" href="ai-recruiter-assist.html">
+              <div class="rr-quick-link-title">📄 Resume Optimizer</div>
+              <div class="rr-quick-link-sub">Improve your ATS score and get AI feedback on your resume.</div>
+            </a>
+            <a class="rr-quick-link" href="job-tracking.html">
+              <div class="rr-quick-link-title">🗂️ Job Tracker</div>
+              <div class="rr-quick-link-sub">Track applications, interviews, and offers in one place.</div>
+            </a>
+            <a class="rr-quick-link" href="job-alerts-sms.html">
+              <div class="rr-quick-link-title">📱 Job Alerts</div>
+              <div class="rr-quick-link-sub">Set up SMS / email alerts for new matching job openings.</div>
+            </a>
+          </div>
+        </div>
+
+      </section>
+    </main>
+  </div><!-- /.layout -->
+
+  <script src="js/nav-plan-sync.js"></script>
+  <script>
+    (function () {
+      'use strict';
+
+      function apiBase() {
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+          return 'http://localhost:5001';
+        }
+        return '';
+      }
+      function apiUrl(path) { return apiBase() + path; }
+
+      function getToken() {
+        return localStorage.getItem('token') || sessionStorage.getItem('token') || '';
+      }
+
+      // ── State ──────────────────────────────────────────────────────────────
+      var keywords = [];
+      var industries = [];
+      var activityScore = 0;
+      var outcomeScore = 0;
+
+      // ── Helpers ─────────────────────────────────────────────────────────────
+      function esc(s) {
+        return String(s).replace(/[&<>"]/g, function (c) {
+          return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c];
+        });
+      }
+
+      function profileLabel(s) {
+        if (s >= 85) return 'Excellent';
+        if (s >= 70) return 'Strong';
+        if (s >= 50) return 'Active';
+        if (s >= 30) return 'Building';
+        return 'Getting Started';
+      }
+
+      function computeCompleteness() {
+        var c = 20; // base: account created
+        var loc = (document.getElementById('rrFieldLocation').value || '').trim();
+        if (loc && loc.toLowerCase() !== 'remote') c += 15;
+        if (keywords.length > 0) c += 15;
+        var sel = document.querySelectorAll('#rrSeniorityTags .rr-tag.active');
+        if (sel.length > 0) c += 5;
+        if (industries.length > 0) c += 5;
+        return Math.min(60, c);
+      }
+
+      function updateStrengthDisplay() {
+        var completeness = computeCompleteness();
+        var total = Math.min(100, completeness + activityScore + outcomeScore);
+
+        var pctEl = document.getElementById('rrStrengthPct');
+        var labelEl = document.getElementById('rrStrengthLabel');
+        var ringEl = document.getElementById('rrStrengthRing');
+
+        if (pctEl) pctEl.textContent = total + '%';
+        if (labelEl) labelEl.textContent = profileLabel(total);
+        if (ringEl) ringEl.style.setProperty('--rr-ring-angle', Math.round((total / 100) * 360) + 'deg');
+
+        var barC = document.getElementById('rrBarCompleteness');
+        var barCv = document.getElementById('rrBarCompletenessVal');
+        var barA = document.getElementById('rrBarActivity');
+        var barAv = document.getElementById('rrBarActivityVal');
+        var barO = document.getElementById('rrBarOutcomes');
+        var barOv = document.getElementById('rrBarOutcomesVal');
+
+        if (barC) barC.style.width = Math.round((completeness / 60) * 100) + '%';
+        if (barCv) barCv.textContent = completeness + '/60';
+        if (barA) barA.style.width = Math.round((activityScore / 30) * 100) + '%';
+        if (barAv) barAv.textContent = activityScore + '/30';
+        if (barO) barO.style.width = Math.round((outcomeScore / 10) * 100) + '%';
+        if (barOv) barOv.textContent = outcomeScore + '/10';
+      }
+
+      // ── Tag toggle ──────────────────────────────────────────────────────────
+      function bindTagGroup(containerId) {
+        var container = document.getElementById(containerId);
+        if (!container) return;
+        container.addEventListener('click', function (e) {
+          var tag = e.target.closest('.rr-tag');
+          if (!tag) return;
+          tag.classList.toggle('active');
+          updateStrengthDisplay();
+        });
+      }
+      bindTagGroup('rrSeniorityTags');
+      bindTagGroup('rrWorkModeTags');
+      bindTagGroup('rrEmploymentTags');
+
+      // ── Live update on location change ────────────────────────────────────
+      var locField = document.getElementById('rrFieldLocation');
+      if (locField) {
+        locField.addEventListener('input', updateStrengthDisplay);
+      }
+
+      // ── Keyword chips ───────────────────────────────────────────────────────
+      function renderKeywordChips() {
+        var container = document.getElementById('rrKeywordChips');
+        if (!container) return;
+        container.innerHTML = keywords.map(function (kw, i) {
+          return '<span class="rr-chip">' + esc(kw) +
+            '<button type="button" aria-label="Remove ' + esc(kw) + '" data-ki="' + i + '">&times;</button></span>';
+        }).join('');
+      }
+
+      function addKeyword(val) {
+        var trimmed = val.trim().slice(0, 60);
+        if (!trimmed || keywords.length >= 12 || keywords.indexOf(trimmed) !== -1) return false;
+        keywords.push(trimmed);
+        renderKeywordChips();
+        updateStrengthDisplay();
+        return true;
+      }
+
+      document.getElementById('rrAddKeyword').addEventListener('click', function () {
+        var inp = document.getElementById('rrKeywordInput');
+        if (addKeyword(inp.value)) inp.value = '';
+      });
+      document.getElementById('rrKeywordInput').addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ',') {
+          e.preventDefault();
+          if (addKeyword(this.value)) this.value = '';
+        }
+      });
+      document.getElementById('rrKeywordChips').addEventListener('click', function (e) {
+        var btn = e.target.closest('button[data-ki]');
+        if (!btn) return;
+        keywords.splice(Number(btn.dataset.ki), 1);
+        renderKeywordChips();
+        updateStrengthDisplay();
+      });
+
+      // ── Industry chips ──────────────────────────────────────────────────────
+      function renderIndustryChips() {
+        var container = document.getElementById('rrIndustryChips');
+        if (!container) return;
+        container.innerHTML = industries.map(function (ind, i) {
+          return '<span class="rr-chip">' + esc(ind) +
+            '<button type="button" aria-label="Remove ' + esc(ind) + '" data-ii="' + i + '">&times;</button></span>';
+        }).join('');
+      }
+
+      function addIndustry(val) {
+        var trimmed = val.trim().slice(0, 60);
+        if (!trimmed || industries.length >= 8 || industries.indexOf(trimmed) !== -1) return false;
+        industries.push(trimmed);
+        renderIndustryChips();
+        updateStrengthDisplay();
+        return true;
+      }
+
+      document.getElementById('rrAddIndustry').addEventListener('click', function () {
+        var inp = document.getElementById('rrIndustryInput');
+        if (addIndustry(inp.value)) inp.value = '';
+      });
+      document.getElementById('rrIndustryInput').addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ',') {
+          e.preventDefault();
+          if (addIndustry(this.value)) this.value = '';
+        }
+      });
+      document.getElementById('rrIndustryChips').addEventListener('click', function (e) {
+        var btn = e.target.closest('button[data-ii]');
+        if (!btn) return;
+        industries.splice(Number(btn.dataset.ii), 1);
+        renderIndustryChips();
+        updateStrengthDisplay();
+      });
+
+      // ── Load saved data ─────────────────────────────────────────────────────
+      async function loadProfile() {
+        var token = getToken();
+        if (!token) {
+          window.location.href = 'login.html?redirect=profile.html';
+          return;
+        }
+
+        try {
+          var [meRes, jadRes, jobsRes] = await Promise.all([
+            fetch(apiUrl('/api/me'), { headers: { Authorization: 'Bearer ' + token } }),
+            fetch(apiUrl('/api/job-alerts/defaults'), { headers: { Authorization: 'Bearer ' + token } }),
+            fetch(apiUrl('/api/jobs'), { headers: { Authorization: 'Bearer ' + token } })
+          ]);
+
+          // Populate name
+          if (meRes.ok) {
+            var meData = await meRes.json();
+            var u = meData.user || {};
+            var nameField = document.getElementById('rrFieldName');
+            if (nameField && u.name) nameField.value = u.name;
+            var welcomeEl = document.getElementById('rrProfileWelcome');
+            if (welcomeEl && u.name) welcomeEl.textContent = 'Hi, ' + u.name.split(' ')[0] + ' 👋';
+          }
+
+          // Populate jobAlertDefaults
+          if (jadRes.ok) {
+            var jadData = await jadRes.json();
+            var jad = jadData.defaults || {};
+
+            // Location
+            var locEl = document.getElementById('rrFieldLocation');
+            if (locEl && jad.location) locEl.value = jad.location;
+
+            // Keywords
+            keywords = Array.isArray(jad.includeKeywords) ? jad.includeKeywords.slice(0, 12) : [];
+            renderKeywordChips();
+
+            // Industries
+            industries = Array.isArray(jad.industries) ? jad.industries.slice(0, 8) : [];
+            renderIndustryChips();
+
+            // Seniority
+            if (Array.isArray(jad.seniorityLevels)) {
+              jad.seniorityLevels.forEach(function (v) {
+                var tag = document.querySelector('#rrSeniorityTags [data-val="' + v + '"]');
+                if (tag) tag.classList.add('active');
+              });
+            }
+
+            // Work modes
+            if (Array.isArray(jad.workModes)) {
+              jad.workModes.forEach(function (v) {
+                var tag = document.querySelector('#rrWorkModeTags [data-val="' + v + '"]');
+                if (tag) tag.classList.add('active');
+              });
+            }
+
+            // Employment types
+            if (Array.isArray(jad.employmentTypes)) {
+              jad.employmentTypes.forEach(function (v) {
+                var tag = document.querySelector('#rrEmploymentTags [data-val="' + v + '"]');
+                if (tag) tag.classList.add('active');
+              });
+            }
+
+            // Salary
+            var salEl = document.getElementById('rrSalaryMin');
+            if (salEl && jad.salaryMin) salEl.value = jad.salaryMin;
+          }
+
+          // Compute activity / outcomes from jobs
+          if (jobsRes.ok) {
+            var jobData = await jobsRes.json();
+            var jobs = Array.isArray(jobData.jobs) ? jobData.jobs : (Array.isArray(jobData) ? jobData : []);
+            var total = jobs.length;
+            var applied = jobs.filter(function (j) { return j.status && /applied|interview|offer/i.test(String(j.status)); }).length;
+            var interview = jobs.filter(function (j) { return j.status && /interview/i.test(String(j.status)); }).length;
+            activityScore = Math.min(15, total * 3) + Math.min(10, applied * 2) + Math.min(5, interview * 5);
+            outcomeScore = (applied > 0 && interview > 0) ? 5 : 0;
+            if (interview >= 2) outcomeScore = 10;
+          }
+
+        } catch (_e) {}
+
+        updateStrengthDisplay();
+      }
+
+      // ── Save ────────────────────────────────────────────────────────────────
+      document.getElementById('rrSaveBtn').addEventListener('click', async function () {
+        var token = getToken();
+        if (!token) { window.location.href = 'login.html?redirect=profile.html'; return; }
+
+        var btn = document.getElementById('rrSaveBtn');
+        btn.disabled = true;
+        btn.textContent = 'Saving…';
+
+        try {
+          var name = (document.getElementById('rrFieldName').value || '').trim();
+          var location = (document.getElementById('rrFieldLocation').value || '').trim() || 'Remote';
+          var salary = Number(document.getElementById('rrSalaryMin').value || 0) || null;
+
+          var seniorityLevels = Array.from(document.querySelectorAll('#rrSeniorityTags .rr-tag.active')).map(function (t) { return t.dataset.val; });
+          var workModes = Array.from(document.querySelectorAll('#rrWorkModeTags .rr-tag.active')).map(function (t) { return t.dataset.val; });
+          var employmentTypes = Array.from(document.querySelectorAll('#rrEmploymentTags .rr-tag.active')).map(function (t) { return t.dataset.val; });
+
+          var requests = [];
+
+          // Save name if provided
+          if (name) {
+            requests.push(fetch(apiUrl('/api/profile'), {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+              body: JSON.stringify({ name: name })
+            }));
+          }
+
+          // Save job alert defaults (career prefs)
+          requests.push(fetch(apiUrl('/api/job-alerts/defaults'), {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({
+              location: location,
+              includeKeywords: keywords,
+              industries: industries,
+              seniorityLevels: seniorityLevels,
+              workModes: workModes,
+              employmentTypes: employmentTypes,
+              salaryMin: salary
+            })
+          }));
+
+          var results = await Promise.all(requests);
+          var allOk = results.every(function (r) { return r.ok; });
+
+          if (allOk) {
+            var msgEl = document.getElementById('rrSaveMsg');
+            if (msgEl) {
+              msgEl.classList.add('visible');
+              setTimeout(function () { msgEl.classList.remove('visible'); }, 3000);
+            }
+            updateStrengthDisplay();
+          }
+        } catch (_e) {}
+
+        btn.disabled = false;
+        btn.textContent = 'Save Profile';
+      });
+
+      // ── Boot ─────────────────────────────────────────────────────────────────
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', loadProfile);
+      } else {
+        loadProfile();
+      }
+    })();
+  </script>
+</body>
+</html>
