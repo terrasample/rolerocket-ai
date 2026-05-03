@@ -19,6 +19,28 @@
       border: 1px solid rgba(255,255,255,.2); border-radius: 50px;
       padding: 4px 16px; font-size: .85rem; font-weight: 600; color: #e0e7ff;
     }
+    .icm-demo-actions {
+      margin-top: 12px;
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .icm-demo-btn {
+      border: 1px solid rgba(250, 204, 21, .45);
+      background: rgba(250, 204, 21, .12);
+      color: #fde68a;
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: .78rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .icm-demo-btn.alt {
+      border-color: rgba(129, 140, 248, .45);
+      background: rgba(129, 140, 248, .14);
+      color: #c7d2fe;
+    }
     .icm-demo-pill {
       display: inline-block; margin-top: 10px; margin-left: 8px;
       background: rgba(250, 204, 21, .18); border: 1px solid rgba(250, 204, 21, .4);
@@ -285,6 +307,10 @@
       <p>Track student progress, identify at-risk learners, and take action from one command center.</p>
       <div class="icm-institution-pill" id="icmInstitutionPill" style="display:none;"></div>
       <div class="icm-demo-pill" id="icmDemoPill" style="display:none;">Demo Data Mode</div>
+      <div class="icm-demo-actions">
+        <button type="button" class="icm-demo-btn" id="icmLoadUWIDemoBtn">🎓 Load UWI Mockup Data</button>
+        <button type="button" class="icm-demo-btn alt" id="icmExitUWIDemoBtn" style="display:none;">↺ Back to Live Data</button>
+      </div>
     </div>
 
     <div class="icm-tab-nav" role="tablist" id="icmTabNav">
@@ -654,6 +680,34 @@
       updatePagination();
       setStatus('Showing UWI demo cohort data for presentation mode.', '#22c55e');
     }
+
+    function syncDemoControls() {
+      var loadBtn = document.getElementById('icmLoadUWIDemoBtn');
+      var exitBtn = document.getElementById('icmExitUWIDemoBtn');
+      if (loadBtn) loadBtn.style.display = isUWIDemo ? 'none' : 'inline-block';
+      if (exitBtn) exitBtn.style.display = isUWIDemo ? 'inline-block' : 'none';
+      var demoPill = document.getElementById('icmDemoPill');
+      if (demoPill) demoPill.style.display = isUWIDemo ? 'inline-block' : 'none';
+    }
+
+    function syncDemoQueryString() {
+      try {
+        var u = new URL(window.location.href);
+        if (isUWIDemo) u.searchParams.set('demo', 'uwi');
+        else u.searchParams.delete('demo');
+        window.history.replaceState({}, '', u.toString());
+      } catch (_) {}
+    }
+
+    async function exitUWIDemoMode() {
+      isUWIDemo = false;
+      syncDemoControls();
+      syncDemoQueryString();
+      var actor = await ensureInstitutionAccess();
+      if (!actor) return;
+      await Promise.all([loadStats(), loadAtRisk(), loadPilotKPIs()]);
+      loadCohort(1);
+    }
     function toggleOnboardBanner(shouldShow) {
       var el = document.getElementById('icmOnboardBanner');
       var textEl = document.getElementById('icmOnboardText');
@@ -979,6 +1033,13 @@
         .then(function(){ var btn=document.getElementById('icmCopyInviteBtn'); var o=btn.textContent; btn.textContent='Copied!'; setTimeout(function(){btn.textContent=o;},2000); })
         .catch(function(){ prompt('Copy this link:', link); });
     });
+    document.getElementById('icmLoadUWIDemoBtn').addEventListener('click', function() {
+      isUWIDemo = true;
+      syncDemoControls();
+      syncDemoQueryString();
+      applyUWIDemoData();
+    });
+    document.getElementById('icmExitUWIDemoBtn').addEventListener('click', exitUWIDemoMode);
 
     async function loadPilotKPIs() {
       try {
@@ -1058,6 +1119,7 @@
     }
 
     (async function initPage() {
+      syncDemoControls();
       if (isUWIDemo) {
         applyUWIDemoData();
         return;
