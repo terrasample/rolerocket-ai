@@ -105,6 +105,7 @@
   </style>
 </head>
 <body>
+  <button onclick="window.history.back()" style="position:absolute;top:14px;left:16px;background:none;border:none;cursor:pointer;font-size:1.5em;color:#86efac;z-index:10;" aria-label="Go back">&#8592; Back</button>
 
   <div class="aim-hero">
     <h1>Institution Invite Manager</h1>
@@ -121,7 +122,10 @@
 
     <!-- ─── Create new invite ─────────────────────────── -->
     <div class="aim-card">
-      <div class="aim-card-title">🔑 Create Invitation Code</div>
+      <div class="aim-card-title" style="justify-content:space-between;">
+        <span>🔑 Create Invitation Code</span>
+        <button type="button" class="aim-btn-copy" style="font-size:.8rem;padding:5px 12px;" onclick="fillUWIDemo()">🎓 Fill UWI Demo</button>
+      </div>
       <div class="aim-two-col">
 
         <form class="aim-form" id="aimCreateForm" autocomplete="off">
@@ -243,6 +247,21 @@
   <script src="js/api-base.js"></script>
   <script src="js/auth-storage.js"></script>
   <script>
+  function fillUWIDemo() {
+    var today = new Date();
+    var year = today.getFullYear();
+    var mon = String(today.getMonth() + 1).padStart(2, '0');
+    var code = 'UWI-MONA-' + year;
+    var el = function(id) { return document.getElementById(id); };
+    if (el('aimInstName'))      el('aimInstName').value      = 'UWI Mona';
+    if (el('aimOrgType'))       el('aimOrgType').value       = 'university';
+    if (el('aimTrialDays'))     el('aimTrialDays').value     = '30';
+    if (el('aimMaxUses'))       el('aimMaxUses').value       = '150';
+    if (el('aimCustomCode'))    el('aimCustomCode').value    = code;
+    if (el('aimExpiresInDays')) el('aimExpiresInDays').value = '90';
+    if (el('aimNotes'))         el('aimNotes').value         = 'UWI Mona pilot — May 2026. Contact: Dean of Student Affairs. Cohort: final-year + internship-track students.';
+  }
+
   (function() {
     'use strict';
 
