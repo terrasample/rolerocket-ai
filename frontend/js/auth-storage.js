@@ -54,13 +54,28 @@
 
   function isSessionExpired() {
     const last = readLastActivity();
-    if (!last) return false;
+    if (!last) return hasAnyToken();
     return (nowMs() - last) > IDLE_TIMEOUT_MS;
+  }
+
+  function isLoginLikePath() {
+    const path = String(global.location?.pathname || '').toLowerCase();
+    return path.endsWith('/login.html') || path.endsWith('/signup.html') || path.endsWith('/forgot-password.html') || path.endsWith('/reset-password.html');
+  }
+
+  function redirectToSessionExpired() {
+    if (isLoginLikePath()) return;
+    try {
+      global.location.href = '/login.html?session-expired=1';
+    } catch {
+      // ignore
+    }
   }
 
   function getStoredToken() {
     if (hasAnyToken() && isSessionExpired()) {
       clearStoredToken();
+      redirectToSessionExpired();
       return '';
     }
     const token = safeGet(global.localStorage, 'token') || safeGet(global.sessionStorage, 'token') || '';
@@ -115,12 +130,17 @@
   function initInactivityGuards() {
     if (hasAnyToken() && isSessionExpired()) {
       clearStoredToken();
+      redirectToSessionExpired();
       return;
     }
 
     if (!hasAnyToken()) return;
 
-    if (!readLastActivity()) writeLastActivity(nowMs());
+    if (!readLastActivity()) {
+      clearStoredToken();
+      redirectToSessionExpired();
+      return;
+    }
 
     ['mousedown', 'keydown', 'scroll', 'touchstart', 'click'].forEach(function (eventName) {
       try {
