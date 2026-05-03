@@ -703,11 +703,17 @@
       if (market.id === 'jamaica') {
         const freshOnly = filtered.filter((job) => isWithinRecentDays(job.postedAt, 7));
         freshOnly.sort((a, b) => scoreJamaicaSourcePreference(b) - scoreJamaicaSourcePreference(a));
-        return freshOnly;
+        if (freshOnly.length) return freshOnly;
+        const fallback = buildJamaicaFallbackJobs(title);
+        fallback.sort((a, b) => scoreJamaicaSourcePreference(b) - scoreJamaicaSourcePreference(a));
+        return fallback;
       }
 
       return filtered;
     } catch (_error) {
+      if (market?.id === 'jamaica') {
+        return buildJamaicaFallbackJobs(title);
+      }
       return [];
     }
   }
@@ -1391,6 +1397,70 @@
     ],
   };
 
+  const ROLE_SPECIFIC_ANSWER_HINTS = {
+    'customer service': 'Highlight de-escalation, empathy, and first-contact resolution with measurable outcomes.',
+    'registered nurse': 'Show patient safety, triage prioritisation, and multidisciplinary communication under pressure.',
+    'software developer': 'Focus on system thinking, code quality, collaboration, and performance impact with metrics.',
+    'accountant': 'Demonstrate financial accuracy, controls, compliance, and insight generation for business decisions.',
+    'hotel front desk agent': 'Emphasize guest experience, issue ownership, and operational calm during peak periods.',
+    electrician: 'Show safety-first execution, diagnostic rigor, and reliable completion within standards and deadlines.'
+  };
+
+  function inferRoleHint(role) {
+    const text = String(role || '').toLowerCase();
+    const key = Object.keys(ROLE_SPECIFIC_ANSWER_HINTS).find((k) => text.includes(k));
+    return key ? ROLE_SPECIFIC_ANSWER_HINTS[key] : 'Use clear STAR structure, specific ownership, and one measurable outcome in each answer.';
+  }
+
+  function interviewPrepApiUrl() {
+    if (typeof apiUrl === 'function') return apiUrl('/api/interview-prep');
+    return '/api/interview-prep';
+  }
+
+  async function postInterviewPrep(payload, token) {
+    const res = await fetch(interviewPrepApiUrl(), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data?.error || 'Interview prep request failed.');
+    }
+    return data;
+  }
+
+  function renderInterviewFallback(role, market, type) {
+    const pool = INTERVIEW_QUESTION_BANK[type] || INTERVIEW_QUESTION_BANK.behavioral;
+    const roleHint = inferRoleHint(role);
+    return pool.map((item, idx) => {
+      const answer = `${item.a} ${roleHint}`;
+      return `Q${idx + 1} (${role}, ${market})\nQuestion: ${item.q}\nSuggested answer approach: ${answer}`;
+    }).join('\n\n');
+  }
+
+  function renderInterviewHtml(role, market, questionsText, answersText, sourceLabel) {
+    return `
+      <div style="display:grid;gap:10px;">
+        <div style="background:#0f172a;border:1px solid #334155;border-radius:10px;padding:12px;">
+          <strong style="color:#f8fafc;">${esc(role)} Interview Pack (${esc(market)})</strong>
+          <div style="color:#94a3b8;font-size:.78rem;margin-top:4px;">Source: ${esc(sourceLabel)}</div>
+        </div>
+        <details class="jwa-collapsible" open>
+          <summary>Likely Interview Questions</summary>
+          <div class="jwa-collapsible-body"><pre style="white-space:pre-wrap;color:#e2e8f0;line-height:1.5;font-size:.9rem;margin:0;">${esc(questionsText)}</pre></div>
+        </details>
+        <details class="jwa-collapsible" open>
+          <summary>High-Scoring Sample Answers</summary>
+          <div class="jwa-collapsible-body"><pre style="white-space:pre-wrap;color:#a7f3d0;line-height:1.5;font-size:.9rem;margin:0;">${esc(answersText)}</pre></div>
+        </details>
+      </div>
+    `;
+  }
+
   const CHARISMA_SPRINT_KEY = 'jwa:charisma-sprint:v1';
   const CHARISMA_SPRINT_LESSONS = [
     { id: 1, title: 'First Impression Hacks', minutes: 15 },
@@ -1555,23 +1625,60 @@
     }
   }
 
-  function generateInterviewPrep() {
+  async function generateInterviewPrep() {
     const role = String(document.getElementById('jwaInterviewRole')?.value || '').trim() || 'Project Manager';
     const market = String(document.getElementById('jwaInterviewMarket')?.value || 'jamaica').toUpperCase();
     const type = String(document.getElementById('jwaInterviewType')?.value || 'behavioral');
     const target = document.getElementById('jwaInterviewResults');
     if (!target) return;
 
-    const pool = INTERVIEW_QUESTION_BANK[type] || INTERVIEW_QUESTION_BANK.behavioral;
-    target.innerHTML = pool.map((item, idx) => `
-      <details class="jwa-collapsible" ${idx === 0 ? 'open' : ''}>
-        <summary>${esc(role)} Interview Q${idx + 1} (${esc(market)})</summary>
-        <div class="jwa-collapsible-body">
-          <p style="margin:0 0 10px;color:#e2e8f0;"><strong>Question:</strong> ${esc(item.q)}</p>
-          <p style="margin:0;color:#a7f3d0;"><strong>High-scoring sample answer approach:</strong> ${esc(item.a)}</p>
-        </div>
-      </details>
-    `).join('');
+    target.innerHTML = '<p class="jwa-empty">Generating smart, role-specific interview questions and answers...</p>';
+
+    const token = (typeof getStoredToken === 'function' ? getStoredToken() : '') || localStorage.getItem('token') || sessionStorage.getItem('token') || '';
+    const marketHint = {
+      JAMAICA: 'Focus on Jamaica market context, practical local expectations, and employer-ready responses.',
+      US: 'Use US hiring norms and concise, metric-driven examples.',
+      UK: 'Use UK workplace language and structured competency-based style.',
+      CANADA: 'Use STAR/behavioral style aligned with Canadian employer expectations.'
+    }[market] || 'Use role-appropriate market context.';
+    const typeHint = {
+      behavioral: 'Prioritize behavioral and collaboration questions.',
+      technical: 'Prioritize technical depth, execution, and role-specific tradeoffs.',
+      case: 'Prioritize situational case questions and decision frameworks.'
+    }[type] || 'Use balanced interview coverage.';
+    const syntheticJobDescription = `${marketHint} ${typeHint} ${inferRoleHint(role)}`;
+
+    try {
+      if (!token) throw new Error('You must be logged in to generate AI interview prep.');
+
+      const qData = await postInterviewPrep({
+        role,
+        jobDescription: syntheticJobDescription,
+        mode: 'questions'
+      }, token);
+
+      const questionsText = String(qData?.result || '').trim();
+      if (!questionsText) throw new Error('No interview questions were returned.');
+
+      const aData = await postInterviewPrep({
+        role,
+        jobDescription: syntheticJobDescription,
+        mode: 'answers',
+        questions: questionsText
+      }, token);
+
+      const answersText = String(aData?.result || '').trim() || renderInterviewFallback(role, market, type);
+      target.innerHTML = renderInterviewHtml(role, market, questionsText, answersText, 'AI Interview Prep');
+    } catch (error) {
+      const fallback = renderInterviewFallback(role, market, type);
+      target.innerHTML = renderInterviewHtml(
+        role,
+        market,
+        `Generated fallback questions for ${role} (${market}).`,
+        fallback,
+        'Enhanced fallback pack'
+      );
+    }
   }
 
   function renderApprenticeships() {
@@ -1717,6 +1824,9 @@
   function activateTab(tabId) {
     document.querySelectorAll('.jwa-tab-btn').forEach(btn => {
       btn.classList.toggle('jwa-tab-active', btn.dataset.tab === tabId);
+      if (btn.dataset.tab === tabId && typeof btn.scrollIntoView === 'function') {
+        btn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      }
     });
     document.querySelectorAll('.jwa-tab-panel').forEach(panel => {
       panel.hidden = panel.id !== tabId;
@@ -4101,6 +4211,15 @@
         event.preventDefault();
         renderMarketRadar();
       }
+    });
+    document.querySelectorAll('.jwa-market-role-chip').forEach((chip) => {
+      chip.addEventListener('click', function () {
+        const role = String(chip.getAttribute('data-role') || '').trim();
+        const keywordInput = document.getElementById('jwaMarketKeyword');
+        if (!role || !keywordInput) return;
+        keywordInput.value = role;
+        renderMarketRadar();
+      });
     });
     document.getElementById('jwaDiasporaMatchBtn')?.addEventListener('click', submitDiasporaMatch);
     document.getElementById('jwaDownloadReportBtn')?.addEventListener('click', downloadSkillsGapReport);

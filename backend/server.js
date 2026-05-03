@@ -4963,32 +4963,34 @@ app.post('/api/interview-prep', authenticateToken, async (req, res) => {
 
     const wantsAnswers = String(mode || '').toLowerCase() === 'answers';
     const cleanedQuestions = String(questions || '').trim();
+    const roleText = String(role || '').trim() || 'Not provided';
+    const jdText = String(jobDescription || '').trim() || 'Not provided';
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
-      max_tokens: 1200,
-      temperature: 0.5,
+      max_tokens: 1600,
+      temperature: 0.35,
       messages: wantsAnswers
         ? [
             {
               role: 'system',
               content:
-                'You are an interview coach. Using the provided interview questions, return concise, legible model answers. For each question, include: 1) a direct sample answer (70-120 words), 2) why this answer works (one line), and 3) one metric/result line when applicable.'
+                'You are an elite interview coach. Generate precise, logical, role-specific interview answers. For each question: include (1) a direct sample answer in STAR/CAR style (90-140 words), (2) one-line why this answer works, (3) one concrete metric/result line, and (4) one refinement tip. Keep language professional, natural, and practical. Avoid vague advice and filler.'
             },
             {
               role: 'user',
-              content: `Role: ${role || 'Not provided'}\n\nJob Description:\n${jobDescription || 'Not provided'}\n\nQuestions:\n${cleanedQuestions || 'Not provided'}`
+              content: `Role: ${roleText}\n\nJob Description:\n${jdText}\n\nQuestions:\n${cleanedQuestions || 'Not provided'}\n\nReturn clean markdown with clear headings per question.`
             }
           ]
         : [
             {
               role: 'system',
               content:
-                'Create concise interview prep for this role: 8 likely questions, strong answer themes, and 3 smart questions to ask the interviewer.'
+                'You are an elite interview strategist. Create highly relevant interview prep for the target role and job context. Output: (1) 8 likely interview questions grouped by category, (2) concise answer themes for each question, (3) 3 high-quality questions the candidate should ask the interviewer, and (4) a short prep checklist for the final 24 hours before interview. Keep it sharp, practical, and logically structured.'
             },
             {
               role: 'user',
-              content: `Role: ${role || 'Not provided'}\n\nJob Description:\n${jobDescription || 'Not provided'}`
+              content: `Role: ${roleText}\n\nJob Description:\n${jdText}\n\nUse concrete terminology for this role and avoid generic advice.`
             }
           ]
     });

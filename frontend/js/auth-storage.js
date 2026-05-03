@@ -1,4 +1,7 @@
 (function initAuthStorage(global) {
+  const IDLE_TIMEOUT_MS = 5 * 60 * 1000;
+  const LAST_ACTIVITY_KEY = 'rr_last_activity_at';
+
   function safeGet(storage, key) {
     try {
       return storage.getItem(key);
@@ -24,8 +27,45 @@
     }
   }
 
+  function nowMs() {
+    return Date.now();
+  }
+
+  function readLastActivity() {
+    const raw = safeGet(global.localStorage, LAST_ACTIVITY_KEY) || safeGet(global.sessionStorage, LAST_ACTIVITY_KEY) || '';
+    const n = Number(raw);
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  }
+
+  function writeLastActivity(ts) {
+    const value = String(ts || nowMs());
+    safeSet(global.localStorage, LAST_ACTIVITY_KEY, value);
+    safeSet(global.sessionStorage, LAST_ACTIVITY_KEY, value);
+  }
+
+  function hasAnyToken() {
+    return Boolean(
+      safeGet(global.localStorage, 'token') ||
+      safeGet(global.sessionStorage, 'token') ||
+      safeGet(global.localStorage, 'rr_token') ||
+      safeGet(global.sessionStorage, 'rr_token')
+    );
+  }
+
+  function isSessionExpired() {
+    const last = readLastActivity();
+    if (!last) return false;
+    return (nowMs() - last) > IDLE_TIMEOUT_MS;
+  }
+
   function getStoredToken() {
-    return safeGet(global.localStorage, 'token') || safeGet(global.sessionStorage, 'token') || '';
+    if (hasAnyToken() && isSessionExpired()) {
+      clearStoredToken();
+      return '';
+    }
+    const token = safeGet(global.localStorage, 'token') || safeGet(global.sessionStorage, 'token') || '';
+    if (token) writeLastActivity(nowMs());
+    return token;
   }
 
   function getStoredUser() {
@@ -43,6 +83,7 @@
     if (!token) return false;
     const localOk = safeSet(global.localStorage, 'token', token);
     const sessionOk = safeSet(global.sessionStorage, 'token', token);
+    if (localOk || sessionOk) writeLastActivity(nowMs());
     return localOk || sessionOk;
   }
 
@@ -51,14 +92,43 @@
     const serialized = JSON.stringify(user);
     const localOk = safeSet(global.localStorage, 'rr_user', serialized);
     const sessionOk = safeSet(global.sessionStorage, 'rr_user', serialized);
+    if (localOk || sessionOk) writeLastActivity(nowMs());
     return localOk || sessionOk;
   }
 
   function clearStoredToken() {
     safeRemove(global.localStorage, 'token');
     safeRemove(global.sessionStorage, 'token');
+    safeRemove(global.localStorage, 'rr_token');
+    safeRemove(global.sessionStorage, 'rr_token');
     safeRemove(global.localStorage, 'rr_user');
     safeRemove(global.sessionStorage, 'rr_user');
+    safeRemove(global.localStorage, LAST_ACTIVITY_KEY);
+    safeRemove(global.sessionStorage, LAST_ACTIVITY_KEY);
+  }
+
+  function touchAuthActivity() {
+    if (!hasAnyToken()) return;
+    writeLastActivity(nowMs());
+  }
+
+  function initInactivityGuards() {
+    if (hasAnyToken() && isSessionExpired()) {
+      clearStoredToken();
+      return;
+    }
+
+    if (!hasAnyToken()) return;
+
+    if (!readLastActivity()) writeLastActivity(nowMs());
+
+    ['mousedown', 'keydown', 'scroll', 'touchstart', 'click'].forEach(function (eventName) {
+      try {
+        global.addEventListener(eventName, touchAuthActivity, true);
+      } catch {
+        // ignore listener errors
+      }
+    });
   }
 
   global.getStoredToken = getStoredToken;
@@ -66,4 +136,11 @@
   global.setStoredToken = setStoredToken;
   global.setStoredUser = setStoredUser;
   global.clearStoredToken = clearStoredToken;
+  global.touchAuthActivity = touchAuthActivity;
+
+  if (global.document?.readyState === 'loading') {
+    global.document.addEventListener('DOMContentLoaded', initInactivityGuards);
+  } else {
+    initInactivityGuards();
+  }
 })(window);
