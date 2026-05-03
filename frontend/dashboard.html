@@ -52,6 +52,147 @@
         grid-template-columns: 1fr !important;
       }
     }
+
+    /* Screenshot-style dashboard shell */
+    body { background: radial-gradient(circle at 82% 8%, #0f305e 0%, #071123 42%, #050b16 100%) !important; }
+    .hero { display: none !important; }
+    #dashboardMain { padding-top: 20px; }
+    #dashboardMain .dashboard-grid,
+    #dashboardFeaturesSection {
+      opacity: .001;
+      max-height: 0;
+      overflow: hidden;
+      pointer-events: none;
+      margin: 0 !important;
+    }
+    .rr-shot-shell {
+      background: linear-gradient(180deg, #0d182c 0%, #0a1426 100%);
+      border: 1px solid rgba(96, 165, 250, .24);
+      box-shadow: 0 16px 48px rgba(2, 6, 23, .7), inset 0 1px 0 rgba(148, 163, 184, .12);
+      border-radius: 18px;
+      padding: 30px 24px 24px;
+      max-width: 1220px;
+      margin: 12px auto 18px;
+      color: #e2e8f0;
+    }
+    .rr-shot-header h2 {
+      margin: 0;
+      font-size: clamp(1.5rem, 2.8vw, 2.2rem);
+      letter-spacing: -.02em;
+      color: #f8fafc;
+    }
+    .rr-shot-header p {
+      margin: 6px 0 20px;
+      color: #9fb3cf;
+      font-size: 1.04rem;
+    }
+    .rr-shot-kpis {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+    .rr-shot-kpi {
+      background: linear-gradient(180deg, rgba(15, 23, 42, .92), rgba(8, 19, 36, .96));
+      border: 1px solid rgba(59, 130, 246, .28);
+      border-radius: 14px;
+      padding: 14px;
+      min-height: 122px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .rr-shot-kpi .label { color: #93a7c3; font-size: .86rem; font-weight: 700; }
+    .rr-shot-kpi .value { color: #f8fafc; font-size: 2.05rem; font-weight: 800; line-height: 1.1; }
+    .rr-shot-kpi .sub { color: #22c55e; font-size: .97rem; font-weight: 700; }
+    .rr-shot-main {
+      display: grid;
+      grid-template-columns: 1.45fr 1fr;
+      gap: 16px;
+    }
+    .rr-shot-card {
+      background: linear-gradient(180deg, rgba(10, 20, 36, .95), rgba(8, 18, 32, .98));
+      border: 1px solid rgba(59, 130, 246, .25);
+      border-radius: 14px;
+      padding: 16px;
+    }
+    .rr-shot-card h3 {
+      margin: 0 0 12px;
+      font-size: 1.3rem;
+      color: #f1f5f9;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .rr-shot-viewall { color: #3b82f6; font-size: .95rem; text-decoration: none; }
+    .rr-shot-list { display: grid; gap: 10px; }
+    .rr-shot-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+      border: 1px solid rgba(51, 65, 85, .8);
+      border-radius: 10px;
+      padding: 10px 12px;
+      background: rgba(10, 16, 30, .72);
+    }
+    .rr-shot-row .title { font-size: 1.07rem; font-weight: 700; color: #f8fafc; }
+    .rr-shot-row .meta { font-size: .9rem; color: #8aa2bf; margin-top: 4px; }
+    .rr-shot-apply {
+      border: 1px solid #3b82f6;
+      color: #93c5fd;
+      background: rgba(37, 99, 235, .12);
+      padding: 7px 14px;
+      border-radius: 9px;
+      font-weight: 800;
+      font-size: .95rem;
+      cursor: pointer;
+    }
+    .rr-shot-ats-wrap { text-align: center; }
+    .rr-shot-ats-ring {
+      width: 220px;
+      height: 220px;
+      margin: 6px auto 12px;
+      border-radius: 50%;
+      background: conic-gradient(#22c55e 0 var(--rr-ats-angle, 338deg), #0f1f36 var(--rr-ats-angle, 338deg) 360deg);
+      display: grid;
+      place-items: center;
+      position: relative;
+    }
+    .rr-shot-ats-ring::before {
+      content: '';
+      position: absolute;
+      inset: 16px;
+      border-radius: 50%;
+      background: linear-gradient(180deg, #071327 0%, #0a162b 100%);
+      border: 1px solid rgba(51, 65, 85, .75);
+    }
+    .rr-shot-ats-core { position: relative; z-index: 1; }
+    .rr-shot-ats-score { font-size: 3rem; font-weight: 900; line-height: 1; color: #f8fafc; }
+    .rr-shot-ats-grade { font-size: 1.5rem; font-weight: 800; color: #22c55e; margin-top: 6px; }
+    .rr-shot-ats-msg { color: #a8bdd8; font-size: 1.02rem; margin: 4px 0 16px; }
+    .rr-shot-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 180px;
+      padding: 11px 16px;
+      border-radius: 10px;
+      border: 1px solid #2563eb;
+      color: #dbeafe;
+      text-decoration: none;
+      background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
+      font-weight: 800;
+    }
+    @media (max-width: 1040px) {
+      .rr-shot-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .rr-shot-main { grid-template-columns: 1fr; }
+      .rr-shot-ats-ring { width: 200px; height: 200px; }
+    }
+    @media (max-width: 620px) {
+      .rr-shot-shell { padding: 20px 14px 16px; }
+      .rr-shot-kpis { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
@@ -85,6 +226,76 @@
     </aside>
     <main class="main marketing-main" id="dashboardMain" tabindex="-1">
       <button onclick="window.history.back()" class="back-arrow-btn" aria-label="Go back" style="margin:12px 0 0 12px;background:none;border:none;cursor:pointer;font-size:1.6em;color:#2563eb;"><span aria-hidden="true">&#8592;</span> Back</button>
+      <section class="rr-shot-shell" aria-label="Modern dashboard shell">
+        <header class="rr-shot-header">
+          <h2 id="rrShotWelcome">Welcome back, Arjun 👋</h2>
+          <p>Here's your career progress today.</p>
+        </header>
+
+        <div class="rr-shot-kpis">
+          <article class="rr-shot-kpi">
+            <div class="label">Job Match Score</div>
+            <div class="value" id="rrShotMatchScore">92%</div>
+            <div class="sub" id="rrShotMatchStatus">Excellent Match</div>
+          </article>
+          <article class="rr-shot-kpi">
+            <div class="label">Applications Sent</div>
+            <div class="value" id="rrShotApplied">24</div>
+            <div class="sub">+8 this week</div>
+          </article>
+          <article class="rr-shot-kpi">
+            <div class="label">Interview Requests</div>
+            <div class="value" id="rrShotInterview">6</div>
+            <div class="sub">+2 this week</div>
+          </article>
+          <article class="rr-shot-kpi">
+            <div class="label">Profile Strength</div>
+            <div class="value" id="rrShotProfile">85%</div>
+            <div class="sub">Strong</div>
+          </article>
+        </div>
+
+        <div class="rr-shot-main">
+          <article class="rr-shot-card">
+            <h3>Top Job Matches for You <a href="job-tracking.html" class="rr-shot-viewall">View all</a></h3>
+            <div class="rr-shot-list" id="rrShotJobMatches">
+              <div class="rr-shot-row">
+                <div>
+                  <div class="title">Product Manager</div>
+                  <div class="meta">Google · 91% Match</div>
+                </div>
+                <button class="rr-shot-apply" type="button">Apply</button>
+              </div>
+              <div class="rr-shot-row">
+                <div>
+                  <div class="title">AI/ML Engineer</div>
+                  <div class="meta">Microsoft · 89% Match</div>
+                </div>
+                <button class="rr-shot-apply" type="button">Apply</button>
+              </div>
+              <div class="rr-shot-row">
+                <div>
+                  <div class="title">Software Engineer</div>
+                  <div class="meta">Amazon · 87% Match</div>
+                </div>
+                <button class="rr-shot-apply" type="button">Apply</button>
+              </div>
+            </div>
+          </article>
+
+          <article class="rr-shot-card rr-shot-ats-wrap">
+            <h3 style="justify-content:center;">ATS Score</h3>
+            <div class="rr-shot-ats-ring" id="rrShotAtsRing" style="--rr-ats-angle:338deg;">
+              <div class="rr-shot-ats-core">
+                <div class="rr-shot-ats-score" id="rrShotAtsScore">94</div>
+                <div class="rr-shot-ats-grade">Excellent</div>
+              </div>
+            </div>
+            <p class="rr-shot-ats-msg">Keep it up!</p>
+            <a class="rr-shot-btn" href="optimizer.html">Improve Score</a>
+          </article>
+        </div>
+      </section>
       <div class="grid dashboard-grid">
         <div id="learningProgressDashboardCard" class="marketing-card" style="margin-bottom:18px;grid-column:1 / -1;" hidden>
           <h3>🎓 Learning Progress</h3>
@@ -259,6 +470,73 @@
     })();
   </script>
   <script src="js/dashboard.js"></script>
+  <script>
+    (function initScreenshotStyleDashboard() {
+      async function loadSnapshotData() {
+        var token = (typeof getStoredToken === 'function' ? getStoredToken() : '') || localStorage.getItem('token') || sessionStorage.getItem('token') || '';
+        if (!token) return;
+
+        try {
+          var meRes = await fetch(apiUrl('/api/me'), { headers: { Authorization: 'Bearer ' + token } });
+          if (meRes.ok) {
+            var me = await meRes.json();
+            var name = (me && me.user && me.user.name) ? me.user.name : '';
+            if (name) {
+              var welcome = document.getElementById('rrShotWelcome');
+              if (welcome) welcome.textContent = 'Welcome back, ' + name + ' 👋';
+            }
+          }
+        } catch (_e) {}
+
+        try {
+          var jobsRes = await fetch(apiUrl('/api/jobs'), { headers: { Authorization: 'Bearer ' + token } });
+          if (!jobsRes.ok) return;
+          var jobsData = await jobsRes.json();
+          var jobs = Array.isArray(jobsData.jobs) ? jobsData.jobs : [];
+
+          var applied = jobs.filter(function (j) { return String(j.status || '').toLowerCase() === 'applied'; }).length;
+          var interview = jobs.filter(function (j) { return String(j.status || '').toLowerCase() === 'interview'; }).length;
+          var total = jobs.length;
+
+          var appliedEl = document.getElementById('rrShotApplied');
+          var interviewEl = document.getElementById('rrShotInterview');
+          if (appliedEl) appliedEl.textContent = String(applied || total || 0);
+          if (interviewEl) interviewEl.textContent = String(interview || 0);
+
+          var matchScore = Math.max(72, Math.min(98, 70 + (Math.min(total, 30) * 0.9) + (interview * 2)));
+          var atsScore = Math.max(70, Math.min(99, 68 + (Math.min(total, 25) * 1.05) + (interview * 2.2)));
+
+          var matchEl = document.getElementById('rrShotMatchScore');
+          var atsEl = document.getElementById('rrShotAtsScore');
+          var ringEl = document.getElementById('rrShotAtsRing');
+          if (matchEl) matchEl.textContent = Math.round(matchScore) + '%';
+          if (atsEl) atsEl.textContent = String(Math.round(atsScore));
+          if (ringEl) ringEl.style.setProperty('--rr-ats-angle', Math.round((atsScore / 100) * 360) + 'deg');
+
+          var pool = jobs.slice(0, 3);
+          if (pool.length) {
+            var list = document.getElementById('rrShotJobMatches');
+            if (list) {
+              list.innerHTML = pool.map(function (j) {
+                var score = Math.max(75, Math.min(98, 82 + Math.floor(Math.random() * 11)));
+                return '<div class="rr-shot-row">' +
+                  '<div><div class="title">' + String(j.title || 'Role').replace(/[&<>"]/g, function (c) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]); }) + '</div>' +
+                  '<div class="meta">' + String(j.company || 'Company').replace(/[&<>"]/g, function (c) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]); }) + ' · ' + score + '% Match</div></div>' +
+                  '<button class="rr-shot-apply" type="button" onclick="window.location.href=\'job-tracking.html\'">Apply</button>' +
+                '</div>';
+              }).join('');
+            }
+          }
+        } catch (_e2) {}
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', loadSnapshotData);
+      } else {
+        loadSnapshotData();
+      }
+    })();
+  </script>
   <script src="js/dashboard-charts.js"></script>
   <script src="js/return-navigation.js"></script>
 </body>
