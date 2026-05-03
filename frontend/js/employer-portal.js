@@ -106,6 +106,25 @@
     if (badge) badge.textContent = company || getCompany() || 'Your Company';
   }
 
+  function showAuthPanel(message) {
+    const authPanel = document.getElementById('epAuthPanel');
+    const dashboard = document.getElementById('epDashboard');
+    if (authPanel) authPanel.style.display = 'block';
+    if (dashboard) dashboard.classList.remove('visible');
+    if (message) setMsg('epLoginMsg', message);
+  }
+
+  function clearEmployerSession() {
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(COMPANY_KEY);
+  }
+
+  function handleEmployerAuthFailure(message) {
+    clearEmployerSession();
+    showAuthPanel(message || 'Your employer session expired. Please sign in again.');
+    window.switchEpTab('login');
+  }
+
   /* ── Post a job ─────────────────────────────────────────────────────── */
   window.postJob = async function () {
     const title       = document.getElementById('postTitle')?.value.trim();
@@ -162,6 +181,11 @@
         headers: { 'Authorization': 'Bearer ' + getToken() },
       });
       const data = await res.json();
+      if (res.status === 401) {
+        handleEmployerAuthFailure(data.error || 'Your employer session expired. Please sign in again.');
+        list.innerHTML = '<p class="ep-empty">Sign in to view your employer dashboard.</p>';
+        return;
+      }
       if (!res.ok) throw new Error(data.error || 'Failed to load jobs.');
       const jobs = Array.isArray(data) ? data : (data.jobs || []);
       if (!jobs.length) {
@@ -198,6 +222,10 @@
       });
       if (!res.ok) {
         const d = await res.json();
+        if (res.status === 401) {
+          handleEmployerAuthFailure(d.error || 'Your employer session expired. Please sign in again.');
+          return;
+        }
         throw new Error(d.error || 'Delete failed.');
       }
       loadMyJobs();
@@ -208,8 +236,7 @@
 
   /* ── Logout ─────────────────────────────────────────────────────────── */
   window.logoutEmployer = function () {
-    localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem(COMPANY_KEY);
+    clearEmployerSession();
     location.reload();
   };
 
@@ -256,6 +283,8 @@
     if (token) {
       showDashboard(getCompany());
       loadMyJobs();
+    } else {
+      showAuthPanel('');
     }
 
     // Store initial button labels
