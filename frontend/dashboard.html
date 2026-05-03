@@ -653,10 +653,32 @@
 
           if (matchStatusEl && !forcedJamaicaMode) matchStatusEl.textContent = matchLabel(matchScore);
 
-          // Profile strength: based on job activity (0–100)
-          var profileScore = Math.min(100, Math.round(50 + (Math.min(total, 20) * 1.8) + (applied * 1.2) + (interview * 3)));
+          // Profile strength: hybrid (completeness 60% + activity 30% + outcomes 10%)
+          // --- Completeness (0–60) ---
+          var completeness = 20; // base: account created
+          if (meUser && meUser.jobAlertDefaults) {
+            var jad = meUser.jobAlertDefaults;
+            if (jad.location && jad.location !== 'Remote') completeness += 15; // preferred location set
+            if (Array.isArray(jad.includeKeywords) && jad.includeKeywords.length > 0) completeness += 15; // target role keywords
+            if (Array.isArray(jad.seniorityLevels) && jad.seniorityLevels.length > 0) completeness += 5; // seniority set
+            if (Array.isArray(jad.industries) && jad.industries.length > 0) completeness += 5; // industry set
+          }
+          // --- Activity (0–30) ---
+          var activityScore = Math.min(15, total * 3) + Math.min(10, applied * 2) + Math.min(5, interview * 5);
+          // --- Outcomes (0–10) ---
+          var outcomeScore = (applied > 0 && interview > 0) ? 5 : 0;
+          if (interview >= 2) outcomeScore = 10;
+
+          var profileScore = Math.min(100, completeness + activityScore + outcomeScore);
+          function profileLabel(s) {
+            if (s >= 85) return 'Excellent';
+            if (s >= 70) return 'Strong';
+            if (s >= 50) return 'Active';
+            if (s >= 30) return 'Building';
+            return 'Getting Started';
+          }
           if (profileEl) profileEl.textContent = profileScore + '%';
-          if (profileSubEl && !forcedJamaicaMode) profileSubEl.textContent = scoreLabel(profileScore);
+          if (profileSubEl && !forcedJamaicaMode) profileSubEl.textContent = profileLabel(profileScore);
           if (atsGradeEl) atsGradeEl.textContent = scoreLabel(atsScore);
 
           var matchEl = document.getElementById('rrShotMatchScore');
@@ -714,14 +736,20 @@
           }
         } catch (_e2) {}
 
-        // Profile strength improvement hint
+        // Profile strength improvement hint (hybrid model)
         var hintEl = document.getElementById('rrShotProfileHint');
-        if (hintEl && typeof profileScore !== 'undefined' && profileScore < 80) {
+        if (hintEl && typeof profileScore !== 'undefined' && profileScore < 85) {
           var tips = [];
+          // Completeness tips
+          var jad = meUser && meUser.jobAlertDefaults ? meUser.jobAlertDefaults : null;
+          if (!jad || !jad.location || jad.location === 'Remote') tips.push('Set your preferred job location in Job Alerts');
+          if (!jad || !Array.isArray(jad.includeKeywords) || !jad.includeKeywords.length) tips.push('Add target role keywords in Job Alerts');
+          if (!jad || !Array.isArray(jad.seniorityLevels) || !jad.seniorityLevels.length) tips.push('Select your experience level in Job Alerts');
+          // Activity tips
           if (total === 0) tips.push('Track your first job application');
-          if (applied === 0 && total > 0) tips.push('Mark an application as \u201cApplied\u201d');
-          if (interview === 0) tips.push('Update a job to \u201cInterview\u201d when invited');
-          tips.push('Upload or update your resume in the optimizer');
+          if (total > 0 && applied === 0) tips.push('Mark a job as \u201cApplied\u201d after submitting');
+          // Outcome tips
+          if (applied > 0 && interview === 0) tips.push('Update a job to \u201cInterview\u201d when invited');
           hintEl.innerHTML = '<strong style="color:#e5e7eb;">Build your profile:</strong>&nbsp;&nbsp;' + tips.slice(0, 3).map(function(t){ return '\u2192 ' + t; }).join('&nbsp;&nbsp;&nbsp;');
           hintEl.style.display = 'block';
         }
