@@ -12,6 +12,7 @@
     'jamaica-workforce-accelerator.html': '🇯🇲 Jamaica Workforce Accelerator',
     'job-alerts-sms.html': '📱 Job Alerts',
     'institution-cohort-manager.html': '🏫 Cohort Manager',
+    'profile.html': '🧑 My Profile',
     'account.html': '👤 Account',
     'dashboard.html': '🧑‍💼 My Dashboard',
     'login.html': '🚪 Logout'
@@ -83,6 +84,44 @@
 
     if (account) {
       ensureSectionLabel(nav, account, 'account', 'ACCOUNT');
+    }
+
+    // Inject "My Profile" link if not already present in this nav.
+    ensureProfileLink(nav);
+  }
+
+  function ensureProfileLink(nav) {
+    if (!nav) return;
+    // Don't inject on pages that have no authenticated nav (login, signup, etc.)
+    const currentPage = normalizePath(window.location.href) || 'index.html';
+    const noAuthPages = ['login.html', 'signup.html', 'forgot-password.html', 'reset-password.html', 'verify-email.html', 'terms.html', 'privacy.html', 'refund-policy.html'];
+    if (noAuthPages.includes(currentPage)) return;
+
+    // Already present — just ensure label and active state are correct.
+    let existing = Array.from(nav.querySelectorAll('a.sidebar-link-btn'))
+      .find((l) => normalizePath(l.getAttribute('href') || '') === 'profile.html');
+
+    if (!existing) {
+      existing = document.createElement('a');
+      existing.className = 'sidebar-link-btn';
+      existing.href = 'profile.html';
+
+      // Insert before job-alerts-sms.html, or before account.html, or before logout as fallback.
+      const jobAlerts = Array.from(nav.querySelectorAll('a.sidebar-link-btn'))
+        .find((l) => normalizePath(l.getAttribute('href') || '') === 'job-alerts-sms.html');
+      const accountLink = Array.from(nav.querySelectorAll('a.sidebar-link-btn'))
+        .find((l) => normalizePath(l.getAttribute('href') || '') === 'account.html');
+      const anchor = jobAlerts || accountLink;
+      if (anchor) {
+        nav.insertBefore(existing, anchor);
+      } else {
+        nav.appendChild(existing);
+      }
+    }
+
+    existing.textContent = '🧑 My Profile';
+    if (currentPage === 'profile.html') {
+      existing.classList.add('active');
     }
   }
 
@@ -158,9 +197,30 @@
       const isAdmin = !!(data.user && data.user.isAdmin);
       badge.textContent = formatPlanLabel(plan);
       upsertAdminInvitesLink(isAdmin);
+      syncJamaicaNavLink(data.user);
     } catch (_) {
       upsertAdminInvitesLink(false);
       // Silently ignore — badge stays at default
+    }
+  }
+
+  function syncJamaicaNavLink(user) {
+    const nav = document.querySelector('#sidebarNav nav, .sidebar nav');
+    if (!nav) return;
+
+    // Detect Jamaica audience: explicit market param OR institutionName matches Caribbean institutions
+    const marketParam = new URLSearchParams(window.location.search).get('market');
+    const institutionName = String((user && user.institutionName) || '').toLowerCase();
+    const isJamaica = marketParam === 'jamaica' || /uwi|jamaica|heart|caribbean/.test(institutionName);
+
+    const jamaicaLink = Array.from(nav.querySelectorAll('a.sidebar-link-btn'))
+      .find((l) => normalizePath(l.getAttribute('href') || '') === 'jamaica-workforce-accelerator.html');
+
+    if (jamaicaLink) {
+      jamaicaLink.style.display = isJamaica ? '' : 'none';
+      // Also hide/show the section label
+      const sectionLabel = nav.querySelector('.sidebar-section-label[data-section="jamaica"]');
+      if (sectionLabel) sectionLabel.style.display = isJamaica ? '' : 'none';
     }
   }
 
