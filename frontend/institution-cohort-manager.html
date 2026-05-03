@@ -19,6 +19,11 @@
       border: 1px solid rgba(255,255,255,.2); border-radius: 50px;
       padding: 4px 16px; font-size: .85rem; font-weight: 600; color: #e0e7ff;
     }
+    .icm-demo-pill {
+      display: inline-block; margin-top: 10px; margin-left: 8px;
+      background: rgba(250, 204, 21, .18); border: 1px solid rgba(250, 204, 21, .4);
+      border-radius: 50px; padding: 4px 12px; font-size: .8rem; font-weight: 700; color: #fde68a;
+    }
     .icm-tab-nav { display: flex; gap: 0; border-bottom: 2px solid #1e293b; margin-bottom: 28px; }
     .icm-tab-btn {
       padding: 12px 24px; background: none; border: none; color: #64748b;
@@ -279,6 +284,7 @@
       <h1>&#127979; Institution Cohort Manager</h1>
       <p>Track student progress, identify at-risk learners, and take action from one command center.</p>
       <div class="icm-institution-pill" id="icmInstitutionPill" style="display:none;"></div>
+      <div class="icm-demo-pill" id="icmDemoPill" style="display:none;">Demo Data Mode</div>
     </div>
 
     <div class="icm-tab-nav" role="tablist" id="icmTabNav">
@@ -524,6 +530,7 @@
     var allStudents = [], filteredStudents = [], selectedEmails = new Set();
     var currentPage = 1, totalStudents = 0, institutionName = '';
     var PAGE_SIZE = 50;
+    var isUWIDemo = (new URLSearchParams(window.location.search).get('demo') || '').toLowerCase() === 'uwi';
 
     function esc(s) { return String(s||'').replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]);}); }
     function setStatus(msg,color){ var el=document.getElementById('icmStatus'); if(el){el.textContent=msg;el.style.color=color||'#64748b';} }
@@ -555,6 +562,97 @@
     }
     function getInstitutionInviteLink() {
       return window.location.origin + '/signup.html?institution=' + encodeURIComponent(institutionName || '');
+    }
+
+    function setInstitutionPill(text) {
+      var pill = document.getElementById('icmInstitutionPill');
+      if (pill) {
+        pill.textContent = text;
+        pill.style.display = 'inline-block';
+      }
+    }
+
+    function applyUWIDemoData() {
+      institutionName = 'UWI Mona';
+      setInstitutionPill('Institution: UWI Mona');
+      var demoPill = document.getElementById('icmDemoPill');
+      if (demoPill) demoPill.style.display = 'inline-block';
+
+      document.getElementById('icmStatTotal').textContent = '148';
+      document.getElementById('icmStatSubscribed').textContent = '96';
+      document.getElementById('icmStatFree').textContent = '52';
+      document.getElementById('icmStatActiveWeek').textContent = '121';
+      toggleOnboardBanner(false);
+
+      document.getElementById('kpiActivationRate').textContent = '82%';
+      document.getElementById('kpiActivationSub').textContent = '121 of 148 users took action';
+      document.getElementById('kpiWeeklyActive').textContent = '121';
+      document.getElementById('kpiWeeklyActiveSub').textContent = '82% of cohort active in last 7 days';
+      document.getElementById('kpiRetentionW3').textContent = '74%';
+      document.getElementById('kpiRetentionW3').classList.remove('kpi-na');
+      document.getElementById('kpiRetentionW3Sub').textContent = 'of 124-student week-3 cohort';
+      document.getElementById('kpiRetentionW4').textContent = '69%';
+      document.getElementById('kpiRetentionW4').classList.remove('kpi-na');
+      document.getElementById('kpiRetentionW4Sub').textContent = 'of 110-student week-4 cohort';
+      document.getElementById('kpiCareerActions').textContent = '1,364';
+      document.getElementById('kpiCareerActionsSub').textContent = '892 resume · 472 applications';
+      document.getElementById('kpiInviteUsed').textContent = '148 / 200';
+      document.getElementById('kpiInviteUsedSub').textContent = '3 active codes';
+      document.getElementById('kpiLastUpdated').textContent = '· demo snapshot for UWI presentation';
+
+      var noResume = {
+        count: 11,
+        students: [
+          { name: 'Aaliyah Brown', email: 'aaliyah.brown@uwimona.edu.jm', plan: 'free' },
+          { name: 'Kemar James', email: 'kemar.james@uwimona.edu.jm', plan: 'free' },
+          { name: 'Nia Thompson', email: 'nia.thompson@uwimona.edu.jm', plan: 'pro' }
+        ]
+      };
+      var inactive14 = {
+        count: 17,
+        students: [
+          { name: 'Renee Clarke', email: 'renee.clarke@uwimona.edu.jm', plan: 'premium' },
+          { name: 'Javon Reid', email: 'javon.reid@uwimona.edu.jm', plan: 'free' },
+          { name: 'Tiana Morgan', email: 'tiana.morgan@uwimona.edu.jm', plan: 'pro' }
+        ]
+      };
+      var noApps = {
+        count: 26,
+        students: [
+          { name: 'Andre Walters', email: 'andre.walters@uwimona.edu.jm', plan: 'free' },
+          { name: 'Shanice Grant', email: 'shanice.grant@uwimona.edu.jm', plan: 'premium' },
+          { name: 'Omar Bennett', email: 'omar.bennett@uwimona.edu.jm', plan: 'pro' }
+        ]
+      };
+
+      var setRisk = function(id, n) {
+        var el = document.getElementById(id);
+        if (el) el.textContent = String(n);
+      };
+      setRisk('icmRiskNoResumeCount', noResume.count);
+      setRisk('icmRiskInactiveCount', inactive14.count);
+      setRisk('icmRiskNoAppsCount', noApps.count);
+      renderInterventionList('intListNoResume', 'intBadgeNoResume', 'intMoreNoResume', 'intCopyNoResume', noResume);
+      renderInterventionList('intListInactive', 'intBadgeInactive', 'intMoreInactive', 'intCopyInactive', inactive14);
+      renderInterventionList('intListNoApps', 'intBadgeNoApps', 'intMoreNoApps', 'intCopyNoApps', noApps);
+
+      allStudents = [
+        { name: 'Aaliyah Brown', email: 'aaliyah.brown@uwimona.edu.jm', plan: 'free', aiGenerationUsage:[{count:2}], autopilotUsage:[{count:0}], createdAt: '2026-03-09T09:00:00Z', updatedAt: '2026-05-02T14:00:00Z' },
+        { name: 'Kemar James', email: 'kemar.james@uwimona.edu.jm', plan: 'pro', aiGenerationUsage:[{count:7}], autopilotUsage:[{count:3}], createdAt: '2026-03-12T10:30:00Z', updatedAt: '2026-05-01T16:15:00Z' },
+        { name: 'Nia Thompson', email: 'nia.thompson@uwimona.edu.jm', plan: 'premium', aiGenerationUsage:[{count:11}], autopilotUsage:[{count:5}], createdAt: '2026-03-18T11:10:00Z', updatedAt: '2026-05-03T08:20:00Z' },
+        { name: 'Andre Walters', email: 'andre.walters@uwimona.edu.jm', plan: 'free', aiGenerationUsage:[{count:1}], autopilotUsage:[{count:0}], createdAt: '2026-04-02T07:40:00Z', updatedAt: '2026-04-16T10:05:00Z' },
+        { name: 'Shanice Grant', email: 'shanice.grant@uwimona.edu.jm', plan: 'elite', aiGenerationUsage:[{count:22}], autopilotUsage:[{count:9}], createdAt: '2026-02-21T13:00:00Z', updatedAt: '2026-05-03T09:12:00Z' },
+        { name: 'Renee Clarke', email: 'renee.clarke@uwimona.edu.jm', plan: 'premium', aiGenerationUsage:[{count:4}], autopilotUsage:[{count:1}], createdAt: '2026-03-27T12:45:00Z', updatedAt: '2026-04-14T18:30:00Z' },
+        { name: 'Javon Reid', email: 'javon.reid@uwimona.edu.jm', plan: 'free', aiGenerationUsage:[{count:0}], autopilotUsage:[{count:0}], createdAt: '2026-04-05T08:30:00Z', updatedAt: '2026-04-10T08:30:00Z' },
+        { name: 'Tiana Morgan', email: 'tiana.morgan@uwimona.edu.jm', plan: 'pro', aiGenerationUsage:[{count:5}], autopilotUsage:[{count:2}], createdAt: '2026-03-30T15:00:00Z', updatedAt: '2026-04-28T15:00:00Z' },
+        { name: 'Omar Bennett', email: 'omar.bennett@uwimona.edu.jm', plan: 'lifetime', aiGenerationUsage:[{count:19}], autopilotUsage:[{count:12}], createdAt: '2026-02-11T11:30:00Z', updatedAt: '2026-05-02T11:00:00Z' }
+      ];
+      filteredStudents = allStudents.slice();
+      totalStudents = 148;
+      currentPage = 1;
+      applyFilters();
+      updatePagination();
+      setStatus('Showing UWI demo cohort data for presentation mode.', '#22c55e');
     }
     function toggleOnboardBanner(shouldShow) {
       var el = document.getElementById('icmOnboardBanner');
@@ -845,7 +943,10 @@
       setTimeout(function(){URL.revokeObjectURL(url);},5000);
     }
     document.getElementById('icmExportBtn').addEventListener('click',function(){ exportCSV(filteredStudents.length?filteredStudents:allStudents,'cohort-export.csv'); });
-    document.getElementById('icmRefreshBtn').addEventListener('click',function(){ loadStats(); loadAtRisk(); loadPilotKPIs(); loadCohort(1); });
+    document.getElementById('icmRefreshBtn').addEventListener('click',function(){
+      if (isUWIDemo) { applyUWIDemoData(); return; }
+      loadStats(); loadAtRisk(); loadPilotKPIs(); loadCohort(1);
+    });
     document.getElementById('icmPrevBtn').addEventListener('click',function(){ loadCohort(currentPage-1); });
     document.getElementById('icmNextBtn').addEventListener('click',function(){ loadCohort(currentPage+1); });
 
@@ -957,6 +1058,10 @@
     }
 
     (async function initPage() {
+      if (isUWIDemo) {
+        applyUWIDemoData();
+        return;
+      }
       var actor = await ensureInstitutionAccess();
       if (!actor) return;
       await Promise.all([loadStats(), loadAtRisk(), loadPilotKPIs()]);
