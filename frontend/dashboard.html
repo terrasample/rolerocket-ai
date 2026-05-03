@@ -300,24 +300,24 @@
             <div class="rr-shot-list" id="rrShotJobMatches">
               <div class="rr-shot-row">
                 <div>
-                  <div class="title">Customer Service Representative</div>
-                  <div class="meta">Scotiabank Jamaica · Kingston · 93% Match</div>
+                  <div class="title">Product Manager</div>
+                  <div class="meta">Google · 91% Match</div>
                 </div>
-                <a class="rr-shot-apply" href="https://www.linkedin.com/jobs/search/?keywords=Customer+Service+Representative&location=Jamaica" target="_blank" rel="noopener noreferrer">Apply</a>
+                <a class="rr-shot-apply" href="https://www.linkedin.com/jobs/search/?keywords=Product+Manager&f_C=1441" target="_blank" rel="noopener noreferrer">Apply</a>
               </div>
               <div class="rr-shot-row">
                 <div>
-                  <div class="title">Marketing Coordinator</div>
-                  <div class="meta">GraceKennedy · Kingston · 90% Match</div>
+                  <div class="title">AI/ML Engineer</div>
+                  <div class="meta">Microsoft · 89% Match</div>
                 </div>
-                <a class="rr-shot-apply" href="https://www.linkedin.com/jobs/search/?keywords=Marketing+Coordinator&location=Jamaica" target="_blank" rel="noopener noreferrer">Apply</a>
+                <a class="rr-shot-apply" href="https://www.linkedin.com/jobs/search/?keywords=AI+ML+Engineer&f_C=1035" target="_blank" rel="noopener noreferrer">Apply</a>
               </div>
               <div class="rr-shot-row">
                 <div>
-                  <div class="title">IT Support Analyst</div>
-                  <div class="meta">Digicel Jamaica · New Kingston · 88% Match</div>
+                  <div class="title">Software Engineer</div>
+                  <div class="meta">Amazon · 87% Match</div>
                 </div>
-                <a class="rr-shot-apply" href="https://www.linkedin.com/jobs/search/?keywords=IT+Support+Analyst&location=Jamaica" target="_blank" rel="noopener noreferrer">Apply</a>
+                <a class="rr-shot-apply" href="https://www.linkedin.com/jobs/search/?keywords=Software+Engineer&f_C=1586" target="_blank" rel="noopener noreferrer">Apply</a>
               </div>
             </div>
           </article>
@@ -335,7 +335,7 @@
           </article>
         </div>
 
-        <div class="rr-shot-tools" id="rrShotTools">
+        <div class="rr-shot-tools" id="rrShotTools" style="display:none;">
           <a class="rr-shot-tool" href="jamaica-workforce-accelerator.html">
             <div class="rr-shot-tool-title">🇯🇲 Jamaica Workforce Accelerator</div>
             <div class="rr-shot-tool-sub">Explore Jamaica job trends, market radar, and local opportunity pathways.</div>
@@ -558,6 +558,18 @@
         text('rrShotAtsBtn', 'Open Jamaica Hub');
         var atsBtn = document.getElementById('rrShotAtsBtn');
         if (atsBtn) atsBtn.href = 'jamaica-workforce-accelerator.html';
+        var toolsEl = document.getElementById('rrShotTools');
+        if (toolsEl) toolsEl.style.display = 'grid';
+        var jobList = document.getElementById('rrShotJobMatches');
+        if (jobList) {
+          jobList.innerHTML = [
+            ['Customer Service Representative', 'Scotiabank Jamaica', 'Kingston', 93, 'https://www.linkedin.com/jobs/search/?keywords=Customer+Service+Representative&location=Jamaica'],
+            ['Marketing Coordinator', 'GraceKennedy', 'Kingston', 90, 'https://www.linkedin.com/jobs/search/?keywords=Marketing+Coordinator&location=Jamaica'],
+            ['IT Support Analyst', 'Digicel Jamaica', 'New Kingston', 88, 'https://www.linkedin.com/jobs/search/?keywords=IT+Support+Analyst&location=Jamaica']
+          ].map(function(j) {
+            return '<div class="rr-shot-row"><div><div class="title">'+j[0]+'</div><div class="meta">'+j[1]+' · '+j[2]+' · '+j[3]+'% Match</div></div><a class="rr-shot-apply" href="'+j[4]+'" target="_blank" rel="noopener noreferrer">Apply</a></div>';
+          }).join('');
+        }
       }
 
       async function loadSnapshotData() {
