@@ -86,6 +86,39 @@
     }
   }
 
+  function upsertAdminInvitesLink(isAdmin) {
+    const nav = document.querySelector('#sidebarNav nav, .sidebar nav');
+    if (!nav) return;
+
+    let adminLink = nav.querySelector('a.sidebar-link-btn[data-nav-admin="1"]')
+      || nav.querySelector('a.sidebar-link-btn#adminInvitesLink')
+      || Array.from(nav.querySelectorAll('a.sidebar-link-btn')).find((l) => normalizePath(l.getAttribute('href') || '') === 'admin-institution-invites.html');
+
+    if (!isAdmin) {
+      if (adminLink) adminLink.remove();
+      return;
+    }
+
+    if (!adminLink) {
+      adminLink = document.createElement('a');
+      adminLink.className = 'sidebar-link-btn';
+      adminLink.href = 'admin-institution-invites.html';
+      adminLink.setAttribute('data-nav-admin', '1');
+    }
+
+    adminLink.id = 'adminInvitesLink';
+    adminLink.textContent = '🔑 Admin Invites';
+    adminLink.style.display = '';
+
+    const accountLink = Array.from(nav.querySelectorAll('a.sidebar-link-btn'))
+      .find((l) => normalizePath(l.getAttribute('href') || '') === 'account.html');
+    if (accountLink) {
+      nav.insertBefore(adminLink, accountLink);
+    } else if (!adminLink.parentNode) {
+      nav.appendChild(adminLink);
+    }
+  }
+
   function formatPlanLabel(plan) {
     const map = {
       free: 'Free Plan',
@@ -100,21 +133,33 @@
 
   async function syncNavPlan() {
     const badge = document.getElementById('planBadge');
-    if (!badge) return;
+    if (!badge) {
+      upsertAdminInvitesLink(false);
+      return;
+    }
 
     const token = localStorage.getItem('token') || sessionStorage.getItem('token') || '';
-    if (!token) return; // Not logged in — keep "Free Plan" default
+    if (!token) {
+      upsertAdminInvitesLink(false);
+      return; // Not logged in — keep "Free Plan" default
+    }
 
     try {
       const apiBase = (typeof getApiBase === 'function') ? getApiBase() : '';
       const res = await fetch(apiBase + '/api/me', {
         headers: { Authorization: 'Bearer ' + token }
       });
-      if (!res.ok) return;
+      if (!res.ok) {
+        upsertAdminInvitesLink(false);
+        return;
+      }
       const data = await res.json();
       const plan = (data.user && data.user.plan) || 'free';
+      const isAdmin = !!(data.user && data.user.isAdmin);
       badge.textContent = formatPlanLabel(plan);
+      upsertAdminInvitesLink(isAdmin);
     } catch (_) {
+      upsertAdminInvitesLink(false);
       // Silently ignore — badge stays at default
     }
   }
