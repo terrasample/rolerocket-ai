@@ -1434,11 +1434,50 @@
   }
 
   function renderInterviewFallback(role, market, type) {
-    const pool = INTERVIEW_QUESTION_BANK[type] || INTERVIEW_QUESTION_BANK.behavioral;
     const roleHint = inferRoleHint(role);
-    return pool.map((item, idx) => {
-      const answer = `${item.a} ${roleHint}`;
-      return `Q${idx + 1} (${role}, ${market})\nQuestion: ${item.q}\nSuggested answer approach: ${answer}`;
+    const behavioralSet = [
+      'Tell me about a time you had to deliver under tight deadlines. What did you do?',
+      'Describe a conflict within your team and how you handled it.',
+      'Give an example of when you made a mistake at work. What did you learn?',
+      'Describe a situation where you had to manage an upset customer or stakeholder.',
+      'Tell me about a time you improved a process or workflow.',
+      'How have you handled competing priorities from different stakeholders?',
+      'Share an example of when you took initiative without being asked.',
+      'Describe a time you worked with limited resources and still delivered results.'
+    ];
+    const technicalSet = [
+      'How do you structure your approach when starting a new role project?',
+      'What metrics would you track in your first 90 days?',
+      'How do you prioritize multiple urgent tasks with limited time?',
+      'What tools, systems, or methods are core to your role execution?',
+      'How do you ensure quality and reduce avoidable errors?',
+      'How do you communicate progress and risk to leadership?',
+      'How do you diagnose root causes when results drop unexpectedly?',
+      'How do you hand over work to maintain continuity and accountability?'
+    ];
+    const caseSet = [
+      'A key project is behind by 3 weeks and stakeholders are frustrated. What do you do first?',
+      'Budget is cut by 20% mid-project. How do you re-plan?',
+      'A top performer is disengaged and output is dropping. What is your approach?',
+      'A customer escalation risks reputational damage. What steps do you take in the first 24 hours?',
+      'You have two urgent priorities and one team member unavailable. How do you manage execution?',
+      'A process handoff keeps failing between teams. How would you fix it?',
+      'Leadership requests faster results but quality is declining. How do you respond?',
+      'A new system rollout is facing user resistance. What is your adoption strategy?'
+    ];
+
+    const questionSet = type === 'technical' ? technicalSet : type === 'case' ? caseSet : behavioralSet;
+
+    return questionSet.map((q, idx) => {
+      const answer = [
+        `Sample answer: In a ${market} ${role} context, I would start by clarifying the objective, success metric, and constraints with the key stakeholders.`,
+        'I then prioritize the highest-impact actions, assign clear owners, and set a short execution cadence with checkpoints so risks are visible early.',
+        'I communicate progress proactively, resolve blockers quickly, and close with a measurable outcome that shows business value.',
+        `Why this works: It demonstrates structure, ownership, communication discipline, and outcome focus.`,
+        `Metric line: For example, this approach helped cut turnaround time by 22% while improving quality scores by 15%.`,
+        `Role refinement: ${roleHint}`
+      ].join(' ');
+      return `Q${idx + 1} (${role}, ${market})\nQuestion: ${q}\n${answer}`;
     }).join('\n\n');
   }
 
