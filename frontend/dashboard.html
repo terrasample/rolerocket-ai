@@ -275,22 +275,22 @@
           <article class="rr-shot-kpi">
             <div class="label" id="rrShotMatchLabel">Job Match Score</div>
             <div class="value" id="rrShotMatchScore">92%</div>
-            <div class="sub" id="rrShotMatchStatus">Excellent Match</div>
+            <div class="sub" id="rrShotMatchStatus">Loading...</div>
           </article>
           <article class="rr-shot-kpi">
             <div class="label">Applications Sent</div>
-            <div class="value" id="rrShotApplied">24</div>
-            <div class="sub" id="rrShotAppliedSub">+8 this week</div>
+            <div class="value" id="rrShotApplied">—</div>
+            <div class="sub" id="rrShotAppliedSub">Loading...</div>
           </article>
           <article class="rr-shot-kpi">
             <div class="label">Interview Requests</div>
-            <div class="value" id="rrShotInterview">6</div>
-            <div class="sub" id="rrShotInterviewSub">+2 this week</div>
+            <div class="value" id="rrShotInterview">—</div>
+            <div class="sub" id="rrShotInterviewSub">Loading...</div>
           </article>
           <article class="rr-shot-kpi">
             <div class="label" id="rrShotProfileLabel">Profile Strength</div>
-            <div class="value" id="rrShotProfile">85%</div>
-            <div class="sub" id="rrShotProfileSub">Strong</div>
+            <div class="value" id="rrShotProfile">—</div>
+            <div class="sub" id="rrShotProfileSub">Loading...</div>
           </article>
         </div>
 
@@ -326,8 +326,8 @@
             <h3 style="justify-content:center;" id="rrShotAtsTitle">ATS Score</h3>
             <div class="rr-shot-ats-ring" id="rrShotAtsRing" style="--rr-ats-angle:338deg;">
               <div class="rr-shot-ats-core">
-                <div class="rr-shot-ats-score" id="rrShotAtsScore">94</div>
-                <div class="rr-shot-ats-grade">Excellent</div>
+                <div class="rr-shot-ats-score" id="rrShotAtsScore">—</div>
+                <div class="rr-shot-ats-grade">—</div>
               </div>
             </div>
             <p class="rr-shot-ats-msg" id="rrShotAtsMsg">Keep it up!</p>
@@ -608,11 +608,53 @@
 
           var appliedEl = document.getElementById('rrShotApplied');
           var interviewEl = document.getElementById('rrShotInterview');
-          if (appliedEl) appliedEl.textContent = String(applied || total || 0);
-          if (interviewEl) interviewEl.textContent = String(interview || 0);
+          var appliedSubEl = document.getElementById('rrShotAppliedSub');
+          var interviewSubEl = document.getElementById('rrShotInterviewSub');
+          var matchStatusEl = document.getElementById('rrShotMatchStatus');
+          var profileEl = document.getElementById('rrShotProfile');
+          var profileSubEl = document.getElementById('rrShotProfileSub');
+          var atsGradeEl = document.querySelector('.rr-shot-ats-grade');
 
-          var matchScore = Math.max(72, Math.min(98, 70 + (Math.min(total, 30) * 0.9) + (interview * 2)));
-          var atsScore = Math.max(70, Math.min(99, 68 + (Math.min(total, 25) * 1.05) + (interview * 2.2)));
+          var displayApplied = applied > 0 ? applied : total;
+          if (appliedEl) appliedEl.textContent = String(displayApplied);
+          if (appliedSubEl) {
+            if (displayApplied === 0) appliedSubEl.textContent = 'No applications yet';
+            else if (applied > 0) appliedSubEl.textContent = applied + ' marked applied';
+            else appliedSubEl.textContent = total + ' job' + (total !== 1 ? 's' : '') + ' tracked';
+          }
+
+          if (interviewEl) interviewEl.textContent = String(interview);
+          if (interviewSubEl) {
+            interviewSubEl.textContent = interview > 0
+              ? interview + ' request' + (interview !== 1 ? 's' : '') + ' received'
+              : 'Apply to get interviews';
+          }
+
+          var matchScore = Math.max(55, Math.min(98, 70 + (Math.min(total, 30) * 0.9) + (interview * 2)));
+          var atsScore = Math.max(55, Math.min(99, 68 + (Math.min(total, 25) * 1.05) + (interview * 2.2)));
+
+          function scoreLabel(s) {
+            if (s >= 90) return 'Excellent';
+            if (s >= 80) return 'Strong';
+            if (s >= 70) return 'Good';
+            if (s >= 60) return 'Fair';
+            return 'Building';
+          }
+          function matchLabel(s) {
+            if (s >= 90) return 'Excellent Match';
+            if (s >= 80) return 'Strong Match';
+            if (s >= 70) return 'Good Match';
+            if (s >= 60) return 'Fair Match';
+            return 'Building Match';
+          }
+
+          if (matchStatusEl && !forcedJamaicaMode) matchStatusEl.textContent = matchLabel(matchScore);
+
+          // Profile strength: based on job activity (0–100)
+          var profileScore = Math.min(100, Math.round(50 + (Math.min(total, 20) * 1.8) + (applied * 1.2) + (interview * 3)));
+          if (profileEl) profileEl.textContent = profileScore + '%';
+          if (profileSubEl && !forcedJamaicaMode) profileSubEl.textContent = scoreLabel(profileScore);
+          if (atsGradeEl) atsGradeEl.textContent = scoreLabel(atsScore);
 
           var matchEl = document.getElementById('rrShotMatchScore');
           var atsEl = document.getElementById('rrShotAtsScore');
