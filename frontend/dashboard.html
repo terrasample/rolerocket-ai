@@ -131,6 +131,7 @@
     .rr-shot-row .title { font-size: 1.07rem; font-weight: 700; color: #f8fafc; }
     .rr-shot-row .meta { font-size: .9rem; color: #8aa2bf; margin-top: 4px; }
     .rr-shot-apply {
+      display: inline-block;
       border: 1px solid #3b82f6;
       color: #93c5fd;
       background: rgba(37, 99, 235, .12);
@@ -139,6 +140,8 @@
       font-weight: 800;
       font-size: .95rem;
       cursor: pointer;
+      text-decoration: none;
+      white-space: nowrap;
     }
     .rr-shot-ats-wrap { text-align: center; }
     .rr-shot-ats-ring {
@@ -256,21 +259,21 @@
                   <div class="title">Product Manager</div>
                   <div class="meta">Google · 91% Match</div>
                 </div>
-                <button class="rr-shot-apply" type="button">Apply</button>
+                <a class="rr-shot-apply" href="https://www.linkedin.com/jobs/search/?keywords=Product+Manager&f_C=1441" target="_blank" rel="noopener noreferrer">Apply</a>
               </div>
               <div class="rr-shot-row">
                 <div>
                   <div class="title">AI/ML Engineer</div>
                   <div class="meta">Microsoft · 89% Match</div>
                 </div>
-                <button class="rr-shot-apply" type="button">Apply</button>
+                <a class="rr-shot-apply" href="https://www.linkedin.com/jobs/search/?keywords=AI+ML+Engineer&f_C=1035" target="_blank" rel="noopener noreferrer">Apply</a>
               </div>
               <div class="rr-shot-row">
                 <div>
                   <div class="title">Software Engineer</div>
                   <div class="meta">Amazon · 87% Match</div>
                 </div>
-                <button class="rr-shot-apply" type="button">Apply</button>
+                <a class="rr-shot-apply" href="https://www.linkedin.com/jobs/search/?keywords=Software+Engineer&f_C=1586" target="_blank" rel="noopener noreferrer">Apply</a>
               </div>
             </div>
           </article>
@@ -511,10 +514,13 @@
             if (list) {
               list.innerHTML = pool.map(function (j) {
                 var score = Math.max(75, Math.min(98, 82 + Math.floor(Math.random() * 11)));
+                var applyLink = (j.link && /^https?:\/\//i.test(String(j.link).trim())) ? String(j.link).trim() :
+                  'https://www.linkedin.com/jobs/search/?keywords=' + encodeURIComponent(j.title || '') + '&company=' + encodeURIComponent(j.company || '');
+                var esc = function(s){ return String(s).replace(/[&<>"]/g, function(c){ return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]); }); };
                 return '<div class="rr-shot-row">' +
-                  '<div><div class="title">' + String(j.title || 'Role').replace(/[&<>"]/g, function (c) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]); }) + '</div>' +
-                  '<div class="meta">' + String(j.company || 'Company').replace(/[&<>"]/g, function (c) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]); }) + ' · ' + score + '% Match</div></div>' +
-                  '<button class="rr-shot-apply" type="button" onclick="window.location.href=\'job-tracking.html\'">Apply</button>' +
+                  '<div><div class="title">' + esc(j.title || 'Role') + '</div>' +
+                  '<div class="meta">' + esc(j.company || 'Company') + ' · ' + score + '% Match</div></div>' +
+                  '<a class="rr-shot-apply" href="' + esc(applyLink) + '" target="_blank" rel="noopener noreferrer">Apply</a>' +
                 '</div>';
               }).join('');
             }
