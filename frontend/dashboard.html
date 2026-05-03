@@ -78,6 +78,19 @@
       color: #9fb3cf;
       font-size: 1.04rem;
     }
+    .rr-shot-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(34, 197, 94, .35);
+      background: rgba(34, 197, 94, .12);
+      color: #bbf7d0;
+      font-size: .82rem;
+      font-weight: 800;
+      margin-bottom: 14px;
+    }
     .rr-shot-kpis {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -179,14 +192,44 @@
       background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
       font-weight: 800;
     }
+    .rr-shot-tools {
+      margin-top: 16px;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .rr-shot-tool {
+      display: block;
+      text-decoration: none;
+      color: inherit;
+      background: linear-gradient(180deg, rgba(13, 25, 44, .95), rgba(9, 18, 34, .98));
+      border: 1px solid rgba(59, 130, 246, .18);
+      border-radius: 14px;
+      padding: 16px;
+      min-height: 110px;
+    }
+    .rr-shot-tool-title {
+      color: #f8fafc;
+      font-size: 1rem;
+      font-weight: 800;
+      margin-bottom: 6px;
+      line-height: 1.35;
+    }
+    .rr-shot-tool-sub {
+      color: #9fb3cf;
+      font-size: .88rem;
+      line-height: 1.5;
+    }
     @media (max-width: 1040px) {
       .rr-shot-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .rr-shot-main { grid-template-columns: 1fr; }
       .rr-shot-ats-ring { width: 200px; height: 200px; }
+      .rr-shot-tools { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
     @media (max-width: 620px) {
       .rr-shot-shell { padding: 20px 14px 16px; }
       .rr-shot-kpis { grid-template-columns: 1fr; }
+      .rr-shot-tools { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -223,72 +266,92 @@
       <button onclick="window.history.back()" class="back-arrow-btn" aria-label="Go back" style="margin:12px 0 0 12px;background:none;border:none;cursor:pointer;font-size:1.6em;color:#2563eb;"><span aria-hidden="true">&#8592;</span> Back</button>
       <section class="rr-shot-shell" aria-label="Modern dashboard shell">
         <header class="rr-shot-header">
+          <div class="rr-shot-badge" id="rrShotBadge" style="display:none;">🇯🇲 Jamaica Workforce Accelerator Mode</div>
           <h2 id="rrShotWelcome">Welcome back, Arjun 👋</h2>
-          <p>Here's your career progress today.</p>
+          <p id="rrShotLead">Here's your career progress today.</p>
         </header>
 
         <div class="rr-shot-kpis">
           <article class="rr-shot-kpi">
-            <div class="label">Job Match Score</div>
+            <div class="label" id="rrShotMatchLabel">Job Match Score</div>
             <div class="value" id="rrShotMatchScore">92%</div>
             <div class="sub" id="rrShotMatchStatus">Excellent Match</div>
           </article>
           <article class="rr-shot-kpi">
             <div class="label">Applications Sent</div>
             <div class="value" id="rrShotApplied">24</div>
-            <div class="sub">+8 this week</div>
+            <div class="sub" id="rrShotAppliedSub">+8 this week</div>
           </article>
           <article class="rr-shot-kpi">
             <div class="label">Interview Requests</div>
             <div class="value" id="rrShotInterview">6</div>
-            <div class="sub">+2 this week</div>
+            <div class="sub" id="rrShotInterviewSub">+2 this week</div>
           </article>
           <article class="rr-shot-kpi">
-            <div class="label">Profile Strength</div>
+            <div class="label" id="rrShotProfileLabel">Profile Strength</div>
             <div class="value" id="rrShotProfile">85%</div>
-            <div class="sub">Strong</div>
+            <div class="sub" id="rrShotProfileSub">Strong</div>
           </article>
         </div>
 
         <div class="rr-shot-main">
           <article class="rr-shot-card">
-            <h3>Top Job Matches for You <a href="job-tracking.html" class="rr-shot-viewall">View all</a></h3>
+            <h3><span id="rrShotPanelTitle">Top Job Matches for You</span> <a href="job-tracking.html" class="rr-shot-viewall" id="rrShotPanelLink">View all</a></h3>
             <div class="rr-shot-list" id="rrShotJobMatches">
               <div class="rr-shot-row">
                 <div>
-                  <div class="title">Product Manager</div>
-                  <div class="meta">Google · 91% Match</div>
+                  <div class="title">Customer Service Representative</div>
+                  <div class="meta">Scotiabank Jamaica · Kingston · 93% Match</div>
                 </div>
-                <a class="rr-shot-apply" href="https://www.linkedin.com/jobs/search/?keywords=Product+Manager&f_C=1441" target="_blank" rel="noopener noreferrer">Apply</a>
+                <a class="rr-shot-apply" href="https://www.linkedin.com/jobs/search/?keywords=Customer+Service+Representative&location=Jamaica" target="_blank" rel="noopener noreferrer">Apply</a>
               </div>
               <div class="rr-shot-row">
                 <div>
-                  <div class="title">AI/ML Engineer</div>
-                  <div class="meta">Microsoft · 89% Match</div>
+                  <div class="title">Marketing Coordinator</div>
+                  <div class="meta">GraceKennedy · Kingston · 90% Match</div>
                 </div>
-                <a class="rr-shot-apply" href="https://www.linkedin.com/jobs/search/?keywords=AI+ML+Engineer&f_C=1035" target="_blank" rel="noopener noreferrer">Apply</a>
+                <a class="rr-shot-apply" href="https://www.linkedin.com/jobs/search/?keywords=Marketing+Coordinator&location=Jamaica" target="_blank" rel="noopener noreferrer">Apply</a>
               </div>
               <div class="rr-shot-row">
                 <div>
-                  <div class="title">Software Engineer</div>
-                  <div class="meta">Amazon · 87% Match</div>
+                  <div class="title">IT Support Analyst</div>
+                  <div class="meta">Digicel Jamaica · New Kingston · 88% Match</div>
                 </div>
-                <a class="rr-shot-apply" href="https://www.linkedin.com/jobs/search/?keywords=Software+Engineer&f_C=1586" target="_blank" rel="noopener noreferrer">Apply</a>
+                <a class="rr-shot-apply" href="https://www.linkedin.com/jobs/search/?keywords=IT+Support+Analyst&location=Jamaica" target="_blank" rel="noopener noreferrer">Apply</a>
               </div>
             </div>
           </article>
 
           <article class="rr-shot-card rr-shot-ats-wrap">
-            <h3 style="justify-content:center;">ATS Score</h3>
+            <h3 style="justify-content:center;" id="rrShotAtsTitle">ATS Score</h3>
             <div class="rr-shot-ats-ring" id="rrShotAtsRing" style="--rr-ats-angle:338deg;">
               <div class="rr-shot-ats-core">
                 <div class="rr-shot-ats-score" id="rrShotAtsScore">94</div>
                 <div class="rr-shot-ats-grade">Excellent</div>
               </div>
             </div>
-            <p class="rr-shot-ats-msg">Keep it up!</p>
-            <a class="rr-shot-btn" href="optimizer.html">Improve Score</a>
+            <p class="rr-shot-ats-msg" id="rrShotAtsMsg">Keep it up!</p>
+            <a class="rr-shot-btn" href="optimizer.html" id="rrShotAtsBtn">Improve Score</a>
           </article>
+        </div>
+
+        <div class="rr-shot-tools" id="rrShotTools">
+          <a class="rr-shot-tool" href="jamaica-workforce-accelerator.html">
+            <div class="rr-shot-tool-title">🇯🇲 Jamaica Workforce Accelerator</div>
+            <div class="rr-shot-tool-sub">Explore Jamaica job trends, market radar, and local opportunity pathways.</div>
+          </a>
+          <a class="rr-shot-tool" href="job-alerts-sms.html">
+            <div class="rr-shot-tool-title">📱 Jamaica Job Alerts</div>
+            <div class="rr-shot-tool-sub">Get SMS and WhatsApp alerts for Kingston, Montego Bay, Portmore, and more.</div>
+          </a>
+          <a class="rr-shot-tool" href="interview-prep-ai.html">
+            <div class="rr-shot-tool-title">🎤 Interview Prep</div>
+            <div class="rr-shot-tool-sub">Practice smart questions and answers for Jamaican and Caribbean job roles.</div>
+          </a>
+          <a class="rr-shot-tool" href="resume-generator.html">
+            <div class="rr-shot-tool-title">📄 Resume Generator</div>
+            <div class="rr-shot-tool-sub">Build an ATS-ready resume tailored for Jamaican employers and regional roles.</div>
+          </a>
         </div>
       </section>
       <div class="grid dashboard-grid">
@@ -468,7 +531,40 @@
   <script src="js/dashboard.js"></script>
   <script>
     (function initScreenshotStyleDashboard() {
+      function text(elId, value) {
+        var el = document.getElementById(elId);
+        if (el) el.textContent = value;
+      }
+
+      function isJamaicaAudience(user, params) {
+        if ((params.get('market') || '').toLowerCase() === 'jamaica') return true;
+        var institution = String((user && user.institutionName) || params.get('institutionName') || '').toLowerCase();
+        return /uwi|jamaica|heart|caribbean/.test(institution);
+      }
+
+      function applyJamaicaVariant() {
+        var badge = document.getElementById('rrShotBadge');
+        if (badge) badge.style.display = 'inline-flex';
+        text('rrShotLead', 'Track your progress across Jamaican and regional opportunities with the right next step every day.');
+        text('rrShotMatchLabel', 'Jamaica Job Match');
+        text('rrShotMatchStatus', 'Strong fit for Kingston roles');
+        text('rrShotAppliedSub', '+6 this week');
+        text('rrShotInterviewSub', '2 with local employers');
+        text('rrShotProfileLabel', 'Career Readiness');
+        text('rrShotProfileSub', 'ATS-ready and interview-active');
+        text('rrShotPanelTitle', 'Top Job Matches in Jamaica');
+        text('rrShotAtsTitle', 'Jamaica Readiness Score');
+        text('rrShotAtsMsg', 'Strong for Jamaican employers and regional roles.');
+        text('rrShotAtsBtn', 'Open Jamaica Hub');
+        var atsBtn = document.getElementById('rrShotAtsBtn');
+        if (atsBtn) atsBtn.href = 'jamaica-workforce-accelerator.html';
+      }
+
       async function loadSnapshotData() {
+        var params = new URLSearchParams(window.location.search);
+        var forcedJamaicaMode = (params.get('market') || '').toLowerCase() === 'jamaica';
+        if (forcedJamaicaMode) applyJamaicaVariant();
+
         var token = (typeof getStoredToken === 'function' ? getStoredToken() : '') || localStorage.getItem('token') || sessionStorage.getItem('token') || '';
         if (!token) return;
 
@@ -480,6 +576,10 @@
             if (name) {
               var welcome = document.getElementById('rrShotWelcome');
               if (welcome) welcome.textContent = 'Welcome back, ' + name + ' 👋';
+            }
+            if (isJamaicaAudience(me && me.user, params)) {
+              applyJamaicaVariant();
+              forcedJamaicaMode = true;
             }
           }
         } catch (_e) {}
@@ -518,9 +618,11 @@
                 var applyLink = (j.link && /^https?:\/\//i.test(String(j.link).trim())) ? String(j.link).trim() :
                   'https://www.linkedin.com/jobs/search/?keywords=' + encodeURIComponent(j.title || '') + '&company=' + encodeURIComponent(j.company || '');
                 var esc = function(s){ return String(s).replace(/[&<>"]/g, function(c){ return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]); }); };
+                var metaBits = [j.company || 'Company'];
+                if (forcedJamaicaMode && j.location) metaBits.push(j.location);
                 return '<div class="rr-shot-row">' +
                   '<div><div class="title">' + esc(j.title || 'Role') + '</div>' +
-                  '<div class="meta">' + esc(j.company || 'Company') + ' · ' + score + '% Match</div></div>' +
+                  '<div class="meta">' + esc(metaBits.join(' · ')) + ' · ' + score + '% Match</div></div>' +
                   '<a class="rr-shot-apply" href="' + esc(applyLink) + '" target="_blank" rel="noopener noreferrer">Apply</a>' +
                 '</div>';
               }).join('');

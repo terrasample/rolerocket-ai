@@ -395,7 +395,7 @@
         <h2>Launch the right tool for your students</h2>
         <p>After reviewing cohort activity, send students to the exact tool they need next.</p>
         <div class="icm-workspace-grid">
-          <a class="icm-workspace-link" href="dashboard.html?preview=student" target="_blank">👀 Student Dashboard Preview<small>See the student dashboard experience as admins will present it.</small></a>
+          <a class="icm-workspace-link" href="dashboard.html?preview=student&market=jamaica&institutionName=UWI%20Mona" target="_blank">👀 Student Dashboard Preview<small>See the student dashboard experience as admins will present it.</small></a>
           <a class="icm-workspace-link" href="interview-prep-ai.html?from=cohort" target="_blank">&#127908; Interview Prep<small>Generate likely interview questions and themes.</small></a>
           <a class="icm-workspace-link" href="resume-generator.html">&#128221; Resume Generator<small>Create or refresh ATS-ready resumes.</small></a>
           <a class="icm-workspace-link" href="cover-letter-generator.html">&#128196; Cover Letter Generator<small>Generate tailored letters by role.</small></a>
@@ -927,7 +927,7 @@
         var appUses=(s.autopilotUsage||[]).reduce(function(sum,d){return sum+(d.count||0);},0);
         var act=relativeTime(s.updatedAt||s.createdAt);
         var checked=selectedEmails.has(s.email)?'checked':'';
-        var studentPreviewUrl = 'dashboard.html?preview=student&studentName='+encodeURIComponent(s.name||'Student')+'&studentEmail='+encodeURIComponent(s.email||'')+'&studentPlan='+encodeURIComponent(s.plan||'free');
+        var studentPreviewUrl = 'dashboard.html?preview=student&market=jamaica&institutionName='+encodeURIComponent(institutionName || 'UWI Mona')+'&studentName='+encodeURIComponent(s.name||'Student')+'&studentEmail='+encodeURIComponent(s.email||'')+'&studentPlan='+encodeURIComponent(s.plan||'free');
         var interviewPrepUrl = 'interview-prep-ai.html?from=cohort&student='+encodeURIComponent(s.email||'')+'&studentName='+encodeURIComponent(s.name||'Student');
         return '<tr><td style="padding-left:10px;"><input type="checkbox" class="icm-row-check" data-email="'+esc(s.email)+'" '+checked+'/></td><td>'+esc(s.name)+'</td><td style="color:#94a3b8;font-size:.82rem;">'+esc(s.email)+'</td><td><span class="icm-plan-badge '+planClass(s.plan)+'">'+esc(s.plan||'free')+'</span></td><td style="text-align:center;">'+aiUses+'</td><td style="text-align:center;">'+appUses+'</td><td><span class="icm-active-badge '+act.cls+'">'+act.label+'</span></td><td><div class="icm-row-actions"><a class="icm-row-btn" href="'+studentPreviewUrl+'" target="_blank">Dashboard</a><a class="icm-row-btn" href="'+interviewPrepUrl+'" target="_blank">Interview Prep</a><a class="icm-row-btn" href="resume-generator.html" target="_blank">Resume</a><a class="icm-row-btn" href="job-alerts-sms.html" target="_blank">Alerts</a></div></td></tr>';
       }).join('');
