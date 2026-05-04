@@ -2885,6 +2885,71 @@ function detectEmploymentTypes(job) {
   return matches;
 }
 
+function parseSalaryTargetNumber(value) {
+  const digits = String(value || '').replace(/[^0-9]/g, '');
+  const parsed = parseInt(digits, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
+
+async function getUserRecommendationThresholds(userId) {
+  if (!userId) {
+    return { salaryMin: 0, workModes: [], employmentTypes: [] };
+  }
+
+  const [user, profile] = await Promise.all([
+    User.findById(userId).select('jobAlertDefaults').lean(),
+    RoleProfile.findOne({ userId }).sort({ updatedAt: -1 }).lean()
+  ]);
+
+  const defaults = normalizeJobAlertDefaults(user?.jobAlertDefaults || {});
+  const roleProfileSalary = parseSalaryTargetNumber(profile?.salaryTarget || '');
+  const salaryMin = Math.max(Number(defaults.salaryMin || 0), roleProfileSalary);
+
+  const workModes = Array.isArray(defaults.workModes) ? defaults.workModes.filter(Boolean) : [];
+  const employmentTypes = Array.isArray(defaults.employmentTypes) ? defaults.employmentTypes.filter(Boolean) : [];
+
+  if (profile?.workPreference && profile.workPreference !== 'flexible' && !workModes.length) {
+    workModes.push(String(profile.workPreference));
+  }
+
+  return {
+    salaryMin,
+    workModes: [...new Set(workModes.map((item) => String(item).toLowerCase().trim()).filter(Boolean))],
+    employmentTypes: [...new Set(employmentTypes.map((item) => String(item).toLowerCase().trim()).filter(Boolean))]
+  };
+}
+
+function jobMatchesRecommendationThresholds(job, thresholds) {
+  const activeThresholds = thresholds || { salaryMin: 0, workModes: [], employmentTypes: [] };
+
+  if (Number(activeThresholds.salaryMin || 0) > 0) {
+    const salaryMax = Number((job.salaryRange && job.salaryRange.max) || 0);
+    const salaryMin = Number((job.salaryRange && job.salaryRange.min) || 0);
+    if (salaryMax <= 0 && salaryMin <= 0) {
+      return false;
+    }
+    if (Math.max(salaryMax, salaryMin) < Number(activeThresholds.salaryMin || 0)) {
+      return false;
+    }
+  }
+
+  if (Array.isArray(activeThresholds.workModes) && activeThresholds.workModes.length) {
+    const jobWorkModes = detectWorkModes(job);
+    if (!jobWorkModes.length || !jobWorkModes.some((item) => activeThresholds.workModes.includes(item))) {
+      return false;
+    }
+  }
+
+  if (Array.isArray(activeThresholds.employmentTypes) && activeThresholds.employmentTypes.length) {
+    const jobEmployment = detectEmploymentTypes(job);
+    if (!jobEmployment.length || !jobEmployment.some((item) => activeThresholds.employmentTypes.includes(item))) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 function detectSeniority(job) {
   const haystack = `${job.title || ''} ${job.description || ''}`.toLowerCase();
   const matches = [];
@@ -7116,11 +7181,33 @@ app.get('/api/jobs/scout', async (req, res) => {
     const location = String(req.query.location || 'remote').trim();
     const preferences = String(req.query.preferences || '').trim();
     const { jobs } = await searchJobsFast({ title, location, resume: preferences });
-    const topJobs = jobs;
+    let topJobs = jobs;
+    let thresholdSummary = null;
+
+    const bearer = String(req.headers.authorization || '').trim();
+    if (/^Bearer\s+/i.test(bearer)) {
+      try {
+        const token = bearer.replace(/^Bearer\s+/i, '').trim();
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const userId = decoded.userId || decoded.id || decoded._id || decoded.sub || null;
+
+        if (userId) {
+          const thresholds = await getUserRecommendationThresholds(String(userId));
+          thresholdSummary = thresholds;
+          const hasActiveThreshold = Number(thresholds.salaryMin || 0) > 0 || thresholds.workModes.length > 0 || thresholds.employmentTypes.length > 0;
+          if (hasActiveThreshold) {
+            topJobs = topJobs.filter((job) => jobMatchesRecommendationThresholds(job, thresholds));
+          }
+        }
+      } catch (_tokenErr) {
+        // Keep this endpoint usable anonymously even if an invalid token is supplied.
+      }
+    }
 
     return res.json({
       query: { title, location, preferences },
       jobs: topJobs,
+      thresholdSummary,
       report: buildJobScoutReport({ title, location, preferences, jobs: topJobs })
     });
   } catch (error) {
@@ -7884,7 +7971,23 @@ app.post('/api/apply/one-click', authenticateToken, async (req, res) => {
       status: { $in: ['ready', 'saved'] }
     }).sort({ matchScore: -1, createdAt: -1 });
 
-    const eligibleJobs = jobs.filter(isEligibleTopMatchJob);
+    const thresholds = await getUserRecommendationThresholds(req.user.userId);
+    const hasActiveThreshold = Number(thresholds.salaryMin || 0) > 0 || thresholds.workModes.length > 0 || thresholds.employmentTypes.length > 0;
+
+    const eligibleJobs = jobs.filter((job) => {
+      if (!isEligibleTopMatchJob(job)) return false;
+      if (!hasActiveThreshold) return true;
+
+      const normalizedForThresholds = {
+        title: job.title,
+        company: job.company,
+        location: job.location,
+        description: job.description,
+        salaryRange: estimateSalaryRange(job.title, job.location, 'OneClickQueue', job.description)
+      };
+
+      return jobMatchesRecommendationThresholds(normalizedForThresholds, thresholds);
+    });
 
     const topJobs = eligibleJobs.slice(0, 3).map((job) => ({
       title: job.title,
@@ -7893,7 +7996,7 @@ app.post('/api/apply/one-click', authenticateToken, async (req, res) => {
       matchScore: job.matchScore || 0
     }));
 
-    return res.json({ topJobs });
+    return res.json({ topJobs, thresholdsApplied: hasActiveThreshold });
   } catch (err) {
     console.error('1-click apply error:', err);
     return res.status(500).json({ error: 'Failed to run 1-click apply' });
