@@ -42,6 +42,10 @@
       <section class="marketing-hero-card" style="text-align:center;">
         <h2>Feature demos built for faster execution</h2>
         <p>Each module below shows what RoleRocket AI does and how it changes your daily job search workflow.</p>
+        <div style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:16px;">
+          <a href="#featuresDemoVideo" style="display:inline-block;padding:10px 18px;border-radius:999px;background:#0ea5e9;color:#001a2f;font-weight:700;text-decoration:none;">Watch Product Tour</a>
+          <a href="#quickDemoPath" style="display:inline-block;padding:10px 18px;border-radius:999px;border:1px solid #0ea5e9;color:#7dd3fc;font-weight:700;text-decoration:none;">Start Here: 3 Quick Demos</a>
+        </div>
       </section>
 
       <section class="marketing-card premium" style="max-width:1120px;width:min(1120px, calc(100vw - 64px));margin:0 auto 32px auto;text-align:center;">
@@ -53,12 +57,26 @@
         <p style="margin-top:10px;color:#7dd3fc;font-size:0.98rem;">Click to play a fast walkthrough of all major features in action.</p>
       </section>
 
+      <section id="quickDemoPath" class="marketing-card" style="max-width:1120px;width:min(1120px, calc(100vw - 64px));margin:0 auto 28px auto;">
+        <h3 style="margin:0 0 8px 0;">Start Here: Learn RoleRocket in 3 Quick Demos</h3>
+        <p style="margin:0 0 14px 0;color:#c7defd;">New users convert fastest when they watch these in order: setup, tailor, then interview support.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <a href="#resumeDemoVideo" style="display:inline-block;padding:9px 14px;border-radius:999px;border:1px solid #38bdf8;color:#7dd3fc;text-decoration:none;font-weight:700;">1. Resume Setup Demo</a>
+          <a href="#coverLetterDemoVideo" style="display:inline-block;padding:9px 14px;border-radius:999px;border:1px solid #38bdf8;color:#7dd3fc;text-decoration:none;font-weight:700;">2. Tailor for One Role Demo</a>
+          <a href="#jobSearchDemoVideo" style="display:inline-block;padding:9px 14px;border-radius:999px;border:1px solid #38bdf8;color:#7dd3fc;text-decoration:none;font-weight:700;">3. Pipeline + Tracking Demo</a>
+        </div>
+      </section>
+
       <section class="marketing-grid features-page-grid" aria-label="Feature snippets">
         <!-- FREE TIER -->
         <article class="marketing-card tier-feature free">
           <h3 class="feature-title">Resume Generator</h3>
           <p>Turn your baseline resume into role-targeted versions without rewriting from scratch.</p>
-          <video controls style="width:100%;border-radius:8px;margin-top:12px;" preload="metadata">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px;">
+            <span style="font-size:0.8rem;color:#67e8f9;border:1px solid #0ea5e955;border-radius:999px;padding:4px 10px;">Video Demo</span>
+            <a href="#resumeDemoVideo" style="font-size:0.9rem;color:#7dd3fc;font-weight:700;text-decoration:none;">Watch this demo</a>
+          </div>
+          <video id="resumeDemoVideo" controls style="width:100%;border-radius:8px;margin-top:12px;" preload="metadata">
             <source src="assets/resume-generator-demo.mp4" type="video/mp4" />
             Your browser does not support the video tag.
           </video>
@@ -66,7 +84,11 @@
         <article class="marketing-card tier-feature free">
           <h3 class="feature-title">Cover Letter Generator</h3>
           <p>Generate role-specific, high-conversion cover letters aligned to your resume and target job.</p>
-          <video controls style="width:100%;border-radius:8px;margin-top:12px;" preload="metadata">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px;">
+            <span style="font-size:0.8rem;color:#67e8f9;border:1px solid #0ea5e955;border-radius:999px;padding:4px 10px;">Video Demo</span>
+            <a href="#coverLetterDemoVideo" style="font-size:0.9rem;color:#7dd3fc;font-weight:700;text-decoration:none;">Watch this demo</a>
+          </div>
+          <video id="coverLetterDemoVideo" controls style="width:100%;border-radius:8px;margin-top:12px;" preload="metadata">
             <source src="assets/cover-letter-generator-demo.mp4" type="video/mp4" />
             Your browser does not support the video tag.
           </video>
@@ -74,7 +96,11 @@
         <article class="marketing-card tier-feature free">
           <h3 class="feature-title">Job Search &amp; Tracking</h3>
           <p>Find jobs, track applications, and organize your job search pipeline.</p>
-          <video controls style="width:100%;border-radius:8px;margin-top:12px;" preload="metadata">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px;">
+            <span style="font-size:0.8rem;color:#67e8f9;border:1px solid #0ea5e955;border-radius:999px;padding:4px 10px;">Video Demo</span>
+            <a href="#jobSearchDemoVideo" style="font-size:0.9rem;color:#7dd3fc;font-weight:700;text-decoration:none;">Watch this demo</a>
+          </div>
+          <video id="jobSearchDemoVideo" controls style="width:100%;border-radius:8px;margin-top:12px;" preload="metadata">
             <source src="assets/job-search-tracking-demo.mp4" type="video/mp4" />
             Your browser does not support the video tag.
           </video>
