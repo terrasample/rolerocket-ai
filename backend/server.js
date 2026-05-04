@@ -1001,7 +1001,8 @@ app.use('/api/resume', require('./routes/resume'));
 const PORT = process.env.PORT || 5001;
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
+  apiKey: process.env.OPENAI_API_KEY,
+  timeout: 40 * 1000 // 40 seconds for API calls
 });
 
 
@@ -5114,7 +5115,6 @@ app.post('/api/interview-prep', authenticateToken, async (req, res) => {
       model: 'gpt-4o-mini',
       max_tokens: 1600,
       temperature: 0.35,
-      timeout: 40000,
       messages: wantsAnswers
         ? [
             {
