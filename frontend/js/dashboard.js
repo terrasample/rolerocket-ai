@@ -3098,7 +3098,7 @@ interviewPrepBtn?.addEventListener('click', async () => {
         mode: nextMode,
         questions: nextMode === 'answers' ? lastInterviewPrepQuestions : undefined
       })
-    });
+    }, { retries: 0, timeoutMs: 45000 });
 
     const generatedText = data.result || 'No result returned.';
     renderAIOutput(generatedText, result);

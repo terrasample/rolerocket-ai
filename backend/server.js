@@ -5114,6 +5114,7 @@ app.post('/api/interview-prep', authenticateToken, async (req, res) => {
       model: 'gpt-4o-mini',
       max_tokens: 1600,
       temperature: 0.35,
+      timeout: 40000,
       messages: wantsAnswers
         ? [
             {
