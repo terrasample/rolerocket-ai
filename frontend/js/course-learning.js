@@ -37,6 +37,7 @@ document.addEventListener('DOMContentLoaded', function () {
     learnerName: 'Learner',
     sessionToken: '',
     moduleNarration: [],
+    moduleNarrationSegments: [],
     answerKey: [],
     answerExplanations: [],
     assessmentCompleted: false,
@@ -68,7 +69,10 @@ document.addEventListener('DOMContentLoaded', function () {
     isPaused: false,
     rate: 0.96,
     voices: [],
-    selectedVoice: ''
+    selectedVoice: '',
+    followAlongSegments: [],
+    followAlongPartKey: '',
+    followAlongElements: []
   };
   const AUDIO_VOICE_PREF_KEY = 'courseAudioVoicePreference';
   const COURSE_PROGRESS_PREFIX = 'rr:course-progress:cert-v4:';
@@ -1668,13 +1672,71 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
+  function clearFollowAlongHighlights() {
+    if (audioState.followAlongElements.length) {
+      audioState.followAlongElements.forEach((el) => {
+        el.style.boxShadow = '';
+        el.style.backgroundColor = '';
+      });
+    }
+    audioState.followAlongElements = [];
+    audioState.followAlongPartKey = '';
+  }
+
+  function setFollowAlongStatus(idx, text) {
+    const followStatus = document.querySelector(`div[data-module-audio-follow-status="${idx}"]`);
+    if (followStatus) followStatus.textContent = text;
+  }
+
+  function setFollowAlongHighlight(idx, partKey) {
+    if (!Number.isInteger(idx) || idx < 0 || !partKey) return;
+    if (audioState.followAlongPartKey === partKey) return;
+
+    clearFollowAlongHighlights();
+
+    const targets = Array.from(document.querySelectorAll(`[data-module-follow-idx="${idx}"][data-module-follow-part="${partKey}"]`));
+    if (!targets.length) return;
+
+    targets.forEach((el) => {
+      el.style.boxShadow = '0 0 0 2px rgba(56, 189, 248, 0.45)';
+      el.style.backgroundColor = 'rgba(14, 116, 144, 0.18)';
+    });
+    audioState.followAlongElements = targets;
+    audioState.followAlongPartKey = partKey;
+
+    const labelMap = {
+      title: 'Title',
+      objective: 'Objective',
+      lesson: 'Lesson',
+      workedExample: 'Worked Example',
+      commonMistake: 'Common Mistake',
+      practiceTask: 'Practice Task',
+      progressCheck: 'Progress Check'
+    };
+    setFollowAlongStatus(idx, `Follow along: ${labelMap[partKey] || 'Section'}.`);
+    targets[0].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function getFollowAlongPartForChar(segments, charIndex) {
+    const numericCharIndex = Number(charIndex);
+    if (!Array.isArray(segments) || !Number.isFinite(numericCharIndex) || numericCharIndex < 0) return '';
+    const match = segments.find((segment) => numericCharIndex >= Number(segment.start) && numericCharIndex < Number(segment.end));
+    return match ? String(match.key || '') : '';
+  }
+
   function stopModuleAudio() {
+    const previousModuleIndex = audioState.activeModuleIndex;
     if (window.speechSynthesis) {
       window.speechSynthesis.cancel();
     }
     audioState.activeModuleIndex = null;
     audioState.utterance = null;
     audioState.isPaused = false;
+    audioState.followAlongSegments = [];
+    clearFollowAlongHighlights();
+    if (Number.isInteger(previousModuleIndex)) {
+      setFollowAlongStatus(previousModuleIndex, 'Follow along: Audio stopped.');
+    }
     resetModuleAudioButtons();
   }
 
@@ -1696,12 +1758,23 @@ document.addEventListener('DOMContentLoaded', function () {
     utterance.voice = getSelectedVoice();
     utterance.onend = stopModuleAudio;
     utterance.onerror = stopModuleAudio;
+    utterance.onboundary = function onBoundary(event) {
+      const partKey = getFollowAlongPartForChar(audioState.followAlongSegments, event?.charIndex);
+      if (!partKey) return;
+      setFollowAlongHighlight(idx, partKey);
+    };
 
     audioState.activeModuleIndex = idx;
     audioState.utterance = utterance;
     audioState.isPaused = false;
+    audioState.followAlongSegments = Array.isArray(progressState.moduleNarrationSegments?.[idx])
+      ? progressState.moduleNarrationSegments[idx]
+      : [];
+    clearFollowAlongHighlights();
     if (playButton) playButton.textContent = 'Stop Audio';
     setModuleAudioControls(idx, true);
+    setFollowAlongHighlight(idx, 'title');
+    setFollowAlongStatus(idx, 'Follow along: Playing...');
     window.speechSynthesis.speak(utterance);
   }
 
@@ -1722,9 +1795,11 @@ document.addEventListener('DOMContentLoaded', function () {
     if (window.speechSynthesis.paused || audioState.isPaused) {
       window.speechSynthesis.resume();
       audioState.isPaused = false;
+      setFollowAlongStatus(idx, 'Follow along: Playing...');
     } else {
       window.speechSynthesis.pause();
       audioState.isPaused = true;
+      setFollowAlongStatus(idx, 'Follow along: Paused.');
     }
 
     setModuleAudioControls(idx, true);
@@ -2306,6 +2381,38 @@ document.addEventListener('DOMContentLoaded', function () {
     return String(assessmentItem?.answer || '').slice(0, 200);
   }
 
+  function buildModuleNarrationEntry(moduleItem, index) {
+    const options = asArray(moduleItem?.progressCheckOptions)
+      .map((option, optionIndex) => `Option ${optionIndex + 1}. ${String(option)}`)
+      .join(' ');
+
+    const segmentsSource = [
+      { key: 'title', text: `Module ${index + 1}. ${String(moduleItem?.title || `Module ${index + 1}`)}.` },
+      { key: 'objective', text: `Objective. ${String(moduleItem?.objective || '')}` },
+      { key: 'lesson', text: `Lesson. ${String(moduleItem?.lesson || '')}` },
+      { key: 'workedExample', text: `Worked example. ${String(moduleItem?.workedExample || '')}` },
+      { key: 'commonMistake', text: `Common mistake. ${String(moduleItem?.commonMistake || '')}` },
+      { key: 'practiceTask', text: `Practice task. ${String(moduleItem?.practiceTask || '')}` },
+      { key: 'progressCheck', text: `Progress check. ${String(moduleItem?.progressCheckQuestion || '')}` },
+      { key: 'progressCheck', text: options }
+    ].filter((item) => String(item.text || '').trim());
+
+    const segments = [];
+    let narration = '';
+
+    segmentsSource.forEach((item) => {
+      const segmentText = String(item.text || '').trim();
+      if (!segmentText) return;
+      const nextText = narration ? `${narration} ${segmentText}` : segmentText;
+      const start = narration ? narration.length + 1 : 0;
+      const end = nextText.length;
+      segments.push({ key: item.key, start, end });
+      narration = nextText;
+    });
+
+    return { narration, segments };
+  }
+
   function renderModules(modulesData) {
     const list = asArray(modulesData);
     if (!modules) return;
@@ -2325,21 +2432,9 @@ document.addEventListener('DOMContentLoaded', function () {
     progressState.practiceBankPage = 1;
     progressState.practiceRevealState = {};
     progressState.activeMockExam = null;
-    progressState.moduleNarration = list.map((moduleItem, index) => {
-      const options = asArray(moduleItem?.progressCheckOptions)
-        .map((option, optionIndex) => `Option ${optionIndex + 1}. ${String(option)}`)
-        .join(' ');
-      return [
-        `Module ${index + 1}. ${String(moduleItem?.title || `Module ${index + 1}`)}.`,
-        `Objective. ${String(moduleItem?.objective || '')}`,
-        `Lesson. ${String(moduleItem?.lesson || '')}`,
-        `Worked example. ${String(moduleItem?.workedExample || '')}`,
-        `Common mistake. ${String(moduleItem?.commonMistake || '')}`,
-        `Practice task. ${String(moduleItem?.practiceTask || '')}`,
-        `Progress check. ${String(moduleItem?.progressCheckQuestion || '')}`,
-        options
-      ].filter(Boolean).join(' ');
-    });
+    const narrationData = list.map((moduleItem, index) => buildModuleNarrationEntry(moduleItem, index));
+    progressState.moduleNarration = narrationData.map((entry) => entry.narration);
+    progressState.moduleNarrationSegments = narrationData.map((entry) => entry.segments);
     progressState.allModules = list;
     updateProgressUi();
     renderProgressiveContent();
@@ -2415,18 +2510,20 @@ document.addEventListener('DOMContentLoaded', function () {
       html += `
         <section class="module-item">
           <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:10px;margin-bottom:8px;">
-            <h4 style="margin:0;min-width:0;">Module ${index + 1} of ${list.length}: ${title}</h4>
+            <h4 data-module-follow-idx="${index}" data-module-follow-part="title" style="margin:0;min-width:0;">Module ${index + 1} of ${list.length}: ${title}</h4>
             <div style="display:inline-flex;align-items:center;gap:8px;justify-self:end;max-width:100%;color:#93c5fd;font-size:0.82rem;padding:6px 10px;border-radius:999px;background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.35);">
               <span aria-hidden="true" style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;flex:0 0 14px;border-radius:50%;background:#60a5fa;color:#fff;font-size:0.7rem;font-weight:700;">↓</span>
               <span style="white-space:normal;word-break:break-word;line-height:1.2;">Current</span>
             </div>
           </div>
-          <p><strong style="color:#93c5fd;">Objective:</strong> ${objective}</p>
-          <p><strong style="color:#93c5fd;">Lesson:</strong> ${lesson}</p>
-          <p><strong style="color:#93c5fd;">Worked Example:</strong> ${workedExample}</p>
-          ${workedExampleStepsHtml}
-          <p><strong style="color:#fda4af;">Common Mistake:</strong> ${commonMistake}</p>
-          <p><strong style="color:#86efac;">Practice Task:</strong> ${practiceTask}</p>
+          <p data-module-follow-idx="${index}" data-module-follow-part="objective"><strong style="color:#93c5fd;">Objective:</strong> ${objective}</p>
+          <p data-module-follow-idx="${index}" data-module-follow-part="lesson"><strong style="color:#93c5fd;">Lesson:</strong> ${lesson}</p>
+          <div data-module-follow-idx="${index}" data-module-follow-part="workedExample">
+            <p><strong style="color:#93c5fd;">Worked Example:</strong> ${workedExample}</p>
+            ${workedExampleStepsHtml}
+          </div>
+          <p data-module-follow-idx="${index}" data-module-follow-part="commonMistake"><strong style="color:#fda4af;">Common Mistake:</strong> ${commonMistake}</p>
+          <p data-module-follow-idx="${index}" data-module-follow-part="practiceTask"><strong style="color:#86efac;">Practice Task:</strong> ${practiceTask}</p>
           <div style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 12px 0;">
             <button type="button" data-module-audio-play-btn="${index}" style="background:#0f766e;border:1px solid #14b8a6;color:#ecfeff;border-radius:8px;padding:8px 12px;cursor:pointer;font-size:0.82rem;font-weight:700;">Play Audio</button>
             <button type="button" data-module-audio-pause-btn="${index}" disabled style="background:#1e293b;border:1px solid #475569;color:#e2e8f0;border-radius:8px;padding:8px 12px;cursor:default;font-size:0.82rem;font-weight:700;opacity:0.65;">Pause</button>
@@ -2440,7 +2537,8 @@ document.addEventListener('DOMContentLoaded', function () {
               </select>
             </label>
           </div>
-          <div style="margin-top:12px;padding:10px;border-radius:8px;background:#0b1220;border:1px solid #273449;">
+          <div data-module-audio-follow-status="${index}" style="margin:-6px 0 10px;color:#7dd3fc;font-size:0.8rem;font-weight:700;">Follow along: Play audio to highlight each section.</div>
+          <div data-module-follow-idx="${index}" data-module-follow-part="progressCheck" style="margin-top:12px;padding:10px;border-radius:8px;background:#0b1220;border:1px solid #273449;">
             <div style="font-size:0.82rem;color:#c4b5fd;font-weight:700;margin-bottom:6px;">End-of-Module Practice</div>
             <div style="color:#d0d9e7;font-size:calc(0.9rem + 2pt);line-height:1.55;margin-bottom:8px;">${progressCheckQuestion}</div>
             <div style="display:grid;gap:8px;margin-bottom:10px;">${optionMarkup}</div>
