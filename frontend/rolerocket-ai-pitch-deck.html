@@ -24,6 +24,8 @@
     font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
     background: #e2e8f0;
     color: var(--navy);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
 
   /* ── Print / PDF ───────────────────────────── */
@@ -59,7 +61,7 @@
   .download-btn:hover { background: #0284c7; }
 
   /* ── Slide wrapper ────────────────────────── */
-  .deck { width: 100%; margin: 0 auto; padding: 48px 0 80px 0; display: flex; flex-direction: column; gap: 0; }
+  .deck { width: 100%; margin: 0 auto; padding: 40px 18px 80px; display: flex; flex-direction: column; gap: 24px; }
 
   .slide {
     width: 100%; aspect-ratio: 16/9;
@@ -67,6 +69,7 @@
     box-shadow: 0 4px 32px rgba(15,23,42,.12);
     overflow: hidden; position: relative;
     display: flex; flex-direction: column; margin: 0;
+    border-radius: 14px;
   }
   .nav-btn {
     position: fixed; top: 50%; transform: translateY(-50%);
@@ -101,8 +104,9 @@
     position: absolute; top: 18px; left: 24px;
     display: flex; align-items: center; gap: 8px;
   }
+  .slide-logo img { width: 34px; height: 34px; object-fit: contain; }
   .slide-logo svg { width: 32px; height: 32px; }
-  .slide-logo span { font-size: .82rem; font-weight: 800; color: var(--indigo); }
+  .slide-logo span { font-size: .86rem; font-weight: 800; color: var(--indigo); letter-spacing: .01em; }
 
   /* ════════════════════════════════════════════
      SLIDE 1 — COVER
@@ -118,11 +122,12 @@
   .cover-logo-area { display: flex; flex-direction: column; align-items: center; gap: 16px; }
 
   .cover-rocket {
-    width: 90px; height: 90px;
+    width: 96px; height: 96px;
     background: rgba(255,255,255,.08);
     border-radius: 50%; display: flex; align-items: center; justify-content: center;
     border: 2px solid rgba(255,255,255,.18);
   }
+  .cover-rocket img { width: 68px; height: 68px; object-fit: contain; filter: drop-shadow(0 6px 14px rgba(56,189,248,.35)); }
   .cover-rocket svg { width: 54px; height: 54px; }
 
   .cover-title {
@@ -151,16 +156,17 @@
   /* ════════════════════════════════════════════
      SLIDE 2 — PROBLEM
   ════════════════════════════════════════════ */
-  .s-body { padding: 48px 56px 40px; flex: 1; display: flex; flex-direction: column; }
+  .s-body { padding: 52px 64px 46px; flex: 1; display: flex; flex-direction: column; }
 
   .slide-title {
-    font-size: 1.6rem; font-weight: 800; color: var(--navy);
+    font-size: 1.78rem; font-weight: 800; color: var(--navy);
     margin-bottom: 6px; margin-top: 44px;
+    letter-spacing: -.01em;
   }
   .slide-title .accent { color: var(--indigo); }
 
   .slide-subtitle {
-    font-size: .92rem; font-weight: 500; color: var(--slate);
+    font-size: 1rem; font-weight: 600; color: #334155;
     margin-bottom: 28px;
   }
 
@@ -173,7 +179,7 @@
   }
   .pain-card .icon { font-size: 1.6rem; margin-bottom: 10px; }
   .pain-card h4 { font-size: .92rem; font-weight: 700; margin-bottom: 6px; }
-  .pain-card p { font-size: .78rem; color: var(--slate); line-height: 1.5; }
+  .pain-card p { font-size: .86rem; color: #334155; line-height: 1.55; }
 
   /* ════════════════════════════════════════════
      SLIDE 3 — SOLUTION
@@ -187,12 +193,12 @@
     margin-bottom: 14px;
   }
   .solution-left h2 em { color: var(--indigo); font-style: normal; }
-  .solution-left p { font-size: .88rem; color: var(--slate); line-height: 1.6; }
+  .solution-left p { font-size: .96rem; color: #334155; line-height: 1.62; }
 
   .feature-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
   .feature-list li {
     display: flex; align-items: flex-start; gap: 10px;
-    font-size: .84rem; font-weight: 500;
+    font-size: .91rem; font-weight: 500;
   }
   .feature-list li .check {
     width: 20px; height: 20px; border-radius: 50%;
@@ -217,7 +223,7 @@
     font-size: 1.5rem;
   }
   .feat-card h4 { font-size: .88rem; font-weight: 700; }
-  .feat-card p { font-size: .75rem; color: var(--slate); line-height: 1.45; flex: 1; }
+  .feat-card p { font-size: .84rem; color: #334155; line-height: 1.5; flex: 1; }
   .feat-card .badge {
     align-self: flex-start;
     background: var(--indigo); color: white;
@@ -236,7 +242,7 @@
   .inst-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
   .inst-list li {
     display: flex; gap: 12px; align-items: flex-start;
-    font-size: .84rem;
+    font-size: .9rem;
   }
   .inst-list li .num {
     width: 26px; height: 26px; border-radius: 50%;
@@ -246,7 +252,7 @@
     flex-shrink: 0;
   }
   .inst-list li strong { font-weight: 700; display: block; margin-bottom: 2px; }
-  .inst-list li span { color: var(--slate); }
+  .inst-list li span { color: #334155; }
 
   .kpi-panel {
     background: var(--navy); border-radius: 14px; padding: 20px 22px;
@@ -255,7 +261,7 @@
   .kpi-panel h4 { font-size: .8rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: .07em; margin-bottom: 4px; }
   .kpi-row { display: flex; justify-content: space-between; align-items: center; }
   .kpi-value { font-size: 1.6rem; font-weight: 800; color: var(--blue); }
-  .kpi-label { font-size: .75rem; color: #94a3b8; }
+  .kpi-label { font-size: .82rem; color: #cbd5e1; }
 
   /* ════════════════════════════════════════════
      SLIDE 6 — OUTCOMES / STATS
@@ -273,12 +279,12 @@
     font-size: 2.2rem; font-weight: 800; color: var(--indigo);
     line-height: 1;
   }
-  .stat-card .stat-lbl { font-size: .75rem; color: var(--slate); margin-top: 6px; }
+  .stat-card .stat-lbl { font-size: .82rem; color: #334155; margin-top: 8px; line-height: 1.45; }
 
   .testimonial {
     background: #f8fafc; border-radius: 12px; padding: 18px 22px;
     border-left: 4px solid var(--green);
-    font-size: .85rem; color: var(--navy); line-height: 1.55; font-style: italic;
+    font-size: .92rem; color: #1e293b; line-height: 1.58; font-style: italic;
   }
   .testimonial cite {
     display: block; margin-top: 10px; font-size: .78rem;
@@ -312,7 +318,7 @@
     margin-bottom: 6px;
   }
   .price-card ul { list-style: none; display: flex; flex-direction: column; gap: 6px; flex: 1; }
-  .price-card ul li { font-size: .76rem; color: var(--slate); }
+  .price-card ul li { font-size: .84rem; color: #334155; }
   .price-card ul li::before { content: '✓ '; color: var(--green); font-weight: 700; }
 
   /* ════════════════════════════════════════════
@@ -341,7 +347,7 @@
     box-shadow: 0 4px 12px rgba(37,99,235,.3);
   }
   .step h4 { font-size: .88rem; font-weight: 700; margin-bottom: 6px; }
-  .step p { font-size: .75rem; color: var(--slate); line-height: 1.45; }
+  .step p { font-size: .82rem; color: #334155; line-height: 1.5; }
 
   /* ════════════════════════════════════════════
      SLIDE 9 — CALL TO ACTION
@@ -371,7 +377,7 @@
     box-shadow: 0 3px 14px rgba(14,165,233,.45);
   }
 
-  .cta-contact { font-size: .82rem; color: #64748b; margin-top: 6px; }
+  .cta-contact { font-size: .9rem; color: #475569; margin-top: 8px; }
   .cta-contact a { color: #38BDF8; text-decoration: none; }
 </style>
 </head>
@@ -798,6 +804,19 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
+  function applyBrandLogo() {
+    const logoSrc = 'assets/rolerocket-logo-new.png';
+
+    const coverLogo = document.querySelector('.cover-rocket');
+    if (coverLogo) {
+      coverLogo.innerHTML = '<img src="' + logoSrc + '" alt="RoleRocket AI logo" />';
+    }
+
+    document.querySelectorAll('.slide-logo').forEach((node) => {
+      node.innerHTML = '<img src="' + logoSrc + '" alt="RoleRocket AI logo" /><span>RoleRocket AI</span>';
+    });
+  }
+
   async function exportDeckPdf() {
     const btn = document.getElementById('downloadPdfBtn');
     if (!btn) return;
@@ -815,7 +834,7 @@
         orientation: 'landscape',
         unit: 'pt',
         format: 'a4',
-        compress: true
+        compress: false
       });
 
       const pageWidth = pdf.internal.pageSize.getWidth();
@@ -834,14 +853,14 @@
       for (let i = 0; i < slides.length; i++) {
         const slide = slides[i];
         const canvas = await html2canvas(slide, {
-          scale: 2,
+          scale: 3,
           useCORS: true,
           backgroundColor: '#ffffff'
         });
 
-        const imgData = canvas.toDataURL('image/jpeg', 0.92);
+        const imgData = canvas.toDataURL('image/png');
         if (i > 0) pdf.addPage();
-        pdf.addImage(imgData, 'JPEG', x, y, contentWidth, contentHeight);
+        pdf.addImage(imgData, 'PNG', x, y, contentWidth, contentHeight);
       }
 
       pdf.save('RoleRocketAI-Customer-Presentation.pdf');
@@ -854,6 +873,7 @@
     }
   }
 
+  applyBrandLogo();
   document.getElementById('downloadPdfBtn')?.addEventListener('click', exportDeckPdf);
 </script>
 </body>
