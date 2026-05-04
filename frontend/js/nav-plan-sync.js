@@ -78,8 +78,7 @@
     // Inject "My Profile" link if not already present in this nav.
     ensureProfileLink(nav);
 
-    // Keep all tabs in a fixed canonical position regardless of current page.
-    stabilizeNavOrder(nav);
+    // Do not auto-reorder tabs; preserve page-defined order to prevent visual reshuffling.
   }
 
   function stabilizeNavOrder(nav) {
@@ -172,13 +171,12 @@
       existing.className = 'sidebar-link-btn';
       existing.href = 'profile.html';
 
-      // Insert before Jamaica Hub section label, or before the Jamaica link, or before account, or append as fallback.
-      const jamaicaLabel = nav.querySelector('.sidebar-section-label[data-section="jamaica"]');
-      const jamaicaLink = Array.from(nav.querySelectorAll('a.sidebar-link-btn'))
-        .find((l) => normalizePath(l.getAttribute('href') || '') === 'jamaica-workforce-accelerator.html');
+      // Insert near account/logout so adding this link does not reshuffle primary nav order.
       const accountLink = Array.from(nav.querySelectorAll('a.sidebar-link-btn'))
         .find((l) => normalizePath(l.getAttribute('href') || '') === 'account.html');
-      const anchor = jamaicaLabel || jamaicaLink || accountLink;
+      const logoutLink = Array.from(nav.querySelectorAll('a.sidebar-link-btn'))
+        .find((l) => normalizePath(l.getAttribute('href') || '') === 'login.html');
+      const anchor = accountLink || logoutLink;
       if (anchor) {
         nav.insertBefore(existing, anchor);
       } else {
