@@ -642,6 +642,10 @@ h3,
   background: linear-gradient(135deg, #0f172a, #0c4a6e);
   border-color: rgba(103, 232, 249, 0.5);
   box-shadow: 0 10px 22px rgba(12, 74, 110, 0.35);
+  color: #f8fdff;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
 }
 
 .sidebar-section-label {

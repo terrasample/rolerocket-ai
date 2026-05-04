@@ -124,7 +124,6 @@
       const messageEl = document.getElementById('recruiterAccessMessage');
       const subscribeActions = document.getElementById('recruiterSubscribeActions');
       const dashboardBtn = document.getElementById('recruiterDashboardBtn');
-      const sidebarDashboardLink = document.getElementById('recruiterSidebarDashboardLink');
       const recruiterDashboardSection = document.getElementById('recruiterDashboardSection');
       const recruiterButtons = document.querySelectorAll('[data-recruiter-nav]');
       const recruiterPanels = document.querySelectorAll('.recruiter-panel');
@@ -301,14 +300,6 @@
           : 'Your recruiter access is active. You can use Top Candidate Ranking, AI-Powered Screening, and Smart Messaging on this page.';
         dashboardBtn.style.display = 'inline-flex';
         dashboardBtn.textContent = 'Open Recruiter Dashboard';
-        if (sidebarDashboardLink) {
-          sidebarDashboardLink.textContent = 'Recruiter Dashboard';
-          sidebarDashboardLink.href = '#recruiterDashboardSection';
-          sidebarDashboardLink.addEventListener('click', function (event) {
-            event.preventDefault();
-            recruiterDashboardSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          });
-        }
       } catch (_error) {
         // Leave the marketing state intact if the session check fails.
       }
