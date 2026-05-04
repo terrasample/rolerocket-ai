@@ -692,48 +692,96 @@
 
           var esc = function(s){ return String(s).replace(/[&<>"]/g, function(c){ return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]); }); };
 
-          var pool = jobs.slice(0, 3);
           var list = document.getElementById('rrShotJobMatches');
-          if (pool.length) {
-            if (list) {
-              list.innerHTML = pool.map(function (j) {
-                var applyLink = (j.link && /^https?:\/\//i.test(String(j.link).trim())) ? String(j.link).trim() :
-                  'https://www.linkedin.com/jobs/search/?keywords=' + encodeURIComponent(j.title || '') + '&company=' + encodeURIComponent(j.company || '');
-                var metaBits = [j.company || 'Company'];
-                if (j.location) metaBits.push(j.location);
-                return '<div class="rr-shot-row">' +
-                  '<div><div class="title">' + esc(j.title || 'Role') + '</div>' +
-                  '<div class="meta">' + esc(metaBits.join(' \u00b7 ')) + '</div></div>' +
-                  '<a class="rr-shot-apply" href="' + esc(applyLink) + '" target="_blank" rel="noopener noreferrer">Apply</a>' +
-                '</div>';
-              }).join('');
-            }
-          } else if (list) {
+          if (list) {
             try {
-              var scoutTitle = (meUser && meUser.jobAlertDefaults && meUser.jobAlertDefaults.includeKeywords && meUser.jobAlertDefaults.includeKeywords.length)
-                ? meUser.jobAlertDefaults.includeKeywords[0] : 'Software Engineer';
+              var jad = (meUser && meUser.jobAlertDefaults) ? meUser.jobAlertDefaults : {};
+              var prefKeywords = Array.isArray(jad.includeKeywords) ? jad.includeKeywords.filter(Boolean) : [];
+              var prefIndustries = Array.isArray(jad.industries) ? jad.industries.map(function(v){ return String(v || '').toLowerCase().trim(); }).filter(Boolean) : [];
+              var prefEmploymentTypes = Array.isArray(jad.employmentTypes) ? jad.employmentTypes.map(function(v){ return String(v || '').toLowerCase().trim(); }).filter(Boolean) : [];
+
+              var scoutTitle = prefKeywords.length ? prefKeywords[0] : 'Software Engineer';
               var scoutLocation = forcedJamaicaMode ? 'Jamaica'
-                : (meUser && meUser.jobAlertDefaults && meUser.jobAlertDefaults.location && meUser.jobAlertDefaults.location !== 'Remote')
-                  ? meUser.jobAlertDefaults.location : 'United States';
+                : (jad.location && jad.location !== 'Remote') ? jad.location : 'United States';
+
               var scoutRes = await fetch(apiUrl('/api/jobs/scout?title=' + encodeURIComponent(scoutTitle) + '&location=' + encodeURIComponent(scoutLocation)), { headers: { Authorization: 'Bearer ' + token } });
+              var scopedJobs = [];
+
               if (scoutRes.ok) {
                 var scoutData = await scoutRes.json();
-                var scoutJobs = Array.isArray(scoutData.jobs) ? scoutData.jobs.slice(0, 3) : [];
-                if (scoutJobs.length) {
-                  list.innerHTML = scoutJobs.map(function(j) {
-                    var applyLink = (j.link && /^https?:\/\//i.test(String(j.link).trim())) ? String(j.link).trim()
-                      : 'https://www.linkedin.com/jobs/search/?keywords=' + encodeURIComponent(j.title || '');
-                    var metaBits = [j.company || 'Company'];
-                    if (j.location) metaBits.push(j.location);
-                    return '<div class="rr-shot-row">' +
-                      '<div><div class="title">' + esc(j.title || 'Role') + '</div>' +
-                      '<div class="meta">' + esc(metaBits.join(' \u00b7 ')) + '</div></div>' +
-                      '<a class="rr-shot-apply" href="' + esc(applyLink) + '" target="_blank" rel="noopener noreferrer">Apply</a>' +
-                    '</div>';
-                  }).join('');
-                }
+                var scoutJobs = Array.isArray(scoutData.jobs) ? scoutData.jobs : [];
+
+                var normEmployment = function (value) {
+                  var v = String(value || '').toLowerCase();
+                  if (!v) return '';
+                  if (v.indexOf('full') !== -1) return 'full-time';
+                  if (v.indexOf('part') !== -1) return 'part-time';
+                  if (v.indexOf('contract') !== -1) return 'contract';
+                  if (v.indexOf('intern') !== -1) return 'internship';
+                  if (v.indexOf('temporary') !== -1 || v.indexOf('temp') !== -1) return 'temporary';
+                  return v.trim();
+                };
+
+                var ranked = scoutJobs.map(function(job) {
+                  var haystack = [job.title, job.company, job.description, job.location].join(' ').toLowerCase();
+                  var score = Number(job.matchScore || 0);
+
+                  if (prefKeywords.length) {
+                    var titleHit = prefKeywords.some(function(k) {
+                      var kw = String(k || '').toLowerCase().trim();
+                      return kw && haystack.indexOf(kw) !== -1;
+                    });
+                    if (titleHit) score += 30;
+                  }
+
+                  if (prefIndustries.length) {
+                    var industryHit = prefIndustries.some(function(ind) { return ind && haystack.indexOf(ind) !== -1; });
+                    if (industryHit) score += 25;
+                  }
+
+                  if (prefEmploymentTypes.length) {
+                    var jobType = normEmployment(job.employmentType || job.type || job.jobType || '');
+                    var typeHit = prefEmploymentTypes.some(function(t) { return normEmployment(t) === jobType; });
+                    if (typeHit) score += 20;
+                  }
+
+                  return { job: job, score: score };
+                }).sort(function(a, b) { return b.score - a.score; });
+
+                scopedJobs = ranked.slice(0, 3).map(function(item) { return item.job; });
               }
-            } catch (_scoutErr) {}
+
+              if (!scopedJobs.length) scopedJobs = jobs.slice(0, 3);
+
+              if (scopedJobs.length) {
+                list.innerHTML = scopedJobs.map(function(j) {
+                  var applyLink = (j.link && /^https?:\/\//i.test(String(j.link).trim())) ? String(j.link).trim()
+                    : 'https://www.linkedin.com/jobs/search/?keywords=' + encodeURIComponent(j.title || '');
+                  var metaBits = [j.company || 'Company'];
+                  if (j.location) metaBits.push(j.location);
+                  return '<div class="rr-shot-row">' +
+                    '<div><div class="title">' + esc(j.title || 'Role') + '</div>' +
+                    '<div class="meta">' + esc(metaBits.join(' \u00b7 ')) + '</div></div>' +
+                    '<a class="rr-shot-apply" href="' + esc(applyLink) + '" target="_blank" rel="noopener noreferrer">Apply</a>' +
+                  '</div>';
+                }).join('');
+              }
+            } catch (_scoutErr) {
+              var fallback = jobs.slice(0, 3);
+              if (fallback.length) {
+                list.innerHTML = fallback.map(function(j) {
+                  var applyLink = (j.link && /^https?:\/\//i.test(String(j.link).trim())) ? String(j.link).trim()
+                    : 'https://www.linkedin.com/jobs/search/?keywords=' + encodeURIComponent(j.title || '');
+                  var metaBits = [j.company || 'Company'];
+                  if (j.location) metaBits.push(j.location);
+                  return '<div class="rr-shot-row">' +
+                    '<div><div class="title">' + esc(j.title || 'Role') + '</div>' +
+                    '<div class="meta">' + esc(metaBits.join(' \u00b7 ')) + '</div></div>' +
+                    '<a class="rr-shot-apply" href="' + esc(applyLink) + '" target="_blank" rel="noopener noreferrer">Apply</a>' +
+                  '</div>';
+                }).join('');
+              }
+            }
           }
         } catch (_e2) {}
 
