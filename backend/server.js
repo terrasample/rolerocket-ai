@@ -2707,7 +2707,6 @@ function buildSourceTasks({ title, location, resume, radiusMiles = 100 }) {
   return tasks;
 }
 
-async function fetchAllSourcesSettled({ title, location, resume }) {
 async function fetchAllSourcesSettled({ title, location, resume, radiusMiles = 100 }) {
   return Promise.allSettled(buildSourceTasks({ title, location, resume, radiusMiles }));
 }
