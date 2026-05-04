@@ -782,19 +782,9 @@
           return actor;
         }
         
-        // Allow students linked to a cohort (have institutionId or institutionName)
-        if (actor.accountType === 'individual' && (actor.institutionId || actor.institutionName)) {
-          institutionName = actor.institutionName || '';
-          if (institutionName) {
-            var pill = document.getElementById('icmInstitutionPill');
-            if (pill) { pill.textContent='Cohort: '+institutionName; pill.style.display='inline-block'; }
-          }
-          return actor;
-        }
-        
-        // Deny: regular users without cohort linking
-        if (actor.accountType === 'individual') {
-          renderAccessDeniedState('Cohort Manager is for institution administrators and linked students. Join a cohort or contact your institution.');
+        // Deny: all individual/non-institution users
+        if (actor.accountType === 'individual' || actor.accountType !== 'institution') {
+          renderAccessDeniedState('Cohort Manager is for institution administrators only. Please log in with an institution account.');
           return null;
         }
         

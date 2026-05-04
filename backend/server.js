@@ -252,13 +252,9 @@ async function generateUniqueInstitutionInviteCode(institutionName, activationTy
 }
 
 async function ensureInstitutionOrLinkedStudentAccess(actor) {
-  // Allow institution admins
+  // Allow institution admins only
   if (actor && actor.accountType === 'institution') {
     return hasInstitutionAccess(actor);
-  }
-  // Allow students linked to an institution (has institutionId or institutionName)
-  if (actor && actor.accountType === 'individual' && (actor.institutionId || actor.institutionName)) {
-    return true;
   }
   return false;
 }
