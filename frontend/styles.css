@@ -3208,12 +3208,15 @@ pre {
 
 .landing-badge {
   display: inline-block;
-  padding: 8px 12px;
+  padding: 12px 22px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.1);
-  font-size: 12px;
-  font-weight: 700;
-  margin-bottom: 14px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  color: #f1f5f9;
+  margin-bottom: 18px;
 }
 
 .landing-copy h1 {
