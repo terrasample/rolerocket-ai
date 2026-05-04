@@ -3054,6 +3054,17 @@ const interviewPrepBtn = document.getElementById('interviewPrepBtn');
 const interviewRoleInput = document.getElementById('interviewRole');
 const interviewJobDescriptionInput = document.getElementById('interviewJobDescription');
 
+function cleanInterviewMarkdown(value) {
+  return String(value || '')
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/__(.*?)__/g, '$1')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/^\s*[-•*✦]\s*/, '')
+    .replace(/^\s*"|"\s*$/g, '')
+    .replace(/^\s*\*+|\*+\s*$/g, '')
+    .trim();
+}
+
 /* ─── Interview Prep Two-Stage Renderers ─── */
 function renderInterviewPrepStage1(text, el) {
   if (!el) return;
@@ -3094,19 +3105,20 @@ function renderInterviewPrepStage1(text, el) {
   lines.forEach((rawLine) => {
     const line = rawLine.trim();
     if (!line) return;
+    const normalizedLine = cleanInterviewMarkdown(line);
 
     // Detect mode switches
-    if (/question.*ask.*interviewer|reverse|counter.*question/i.test(line)) {
+    if (/question.*ask.*interviewer|reverse|counter.*question/i.test(normalizedLine)) {
       inReverseMode = true;
       inChecklistMode = false;
       return;
     }
-    if (/24.*hour|prep.*checklist|final.*24/i.test(line)) {
+    if (/24.*hour|prep.*checklist|final.*24/i.test(normalizedLine)) {
       inChecklistMode = true;
       inReverseMode = false;
       return;
     }
-    if (/answer.*theme|theme.*answer/i.test(line)) {
+    if (/answer.*theme|theme.*answer/i.test(normalizedLine)) {
       inChecklistMode = false;
       inReverseMode = false;
       return;
@@ -3115,7 +3127,7 @@ function renderInterviewPrepStage1(text, el) {
     // Parse category heading (e.g., "### Behavioral Questions")
     if (/^#+\s+(.+)/i.test(line)) {
       const match = line.match(/^#+\s+(.+)/);
-      const catName = match[1].trim();
+      const catName = cleanInterviewMarkdown(match[1]);
       currentCategory = catName;
       if (!questionsByCategory[currentCategory]) {
         questionsByCategory[currentCategory] = [];
@@ -3125,9 +3137,20 @@ function renderInterviewPrepStage1(text, el) {
       return;
     }
 
+    // Parse lettered category lines, e.g. "A. Teaching Philosophy and Approach"
+    if (/^[A-Z]\.\s+/.test(normalizedLine)) {
+      currentCategory = normalizedLine.replace(/^[A-Z]\.\s+/, '').trim();
+      if (currentCategory && !questionsByCategory[currentCategory]) {
+        questionsByCategory[currentCategory] = [];
+      }
+      inReverseMode = false;
+      inChecklistMode = false;
+      return;
+    }
+
     // Collect questions by category
     if (!inReverseMode && !inChecklistMode && currentCategory && /^\d+\.|^[-•*✦]/.test(line)) {
-      const cleanedQ = line.replace(/^\d+\.\s*/, '').replace(/^[-•*✦]\s*/, '');
+      const cleanedQ = cleanInterviewMarkdown(line.replace(/^\d+\.\s*/, '').replace(/^[-•*✦]\s*/, ''));
       if (cleanedQ.length > 10) {
         questionsByCategory[currentCategory].push(cleanedQ);
       }
@@ -3136,7 +3159,7 @@ function renderInterviewPrepStage1(text, el) {
 
     // Collect answer themes
     if (!inReverseMode && !inChecklistMode && !currentCategory && /^\d+\.|^[-•*✦]/.test(line)) {
-      const cleanedTheme = line.replace(/^\d+\.\s*/, '').replace(/^[-•*✦]\s*/, '');
+      const cleanedTheme = cleanInterviewMarkdown(line.replace(/^\d+\.\s*/, '').replace(/^[-•*✦]\s*/, ''));
       if (cleanedTheme.length > 5) {
         answerThemes.push(cleanedTheme);
       }
@@ -3145,7 +3168,7 @@ function renderInterviewPrepStage1(text, el) {
 
     // Collect reverse questions
     if (inReverseMode && /^[-•*✦]/.test(line)) {
-      const cleanedRev = line.replace(/^[-•*✦]\s*/, '');
+      const cleanedRev = cleanInterviewMarkdown(line.replace(/^[-•*✦]\s*/, ''));
       if (cleanedRev.length > 5) {
         reverseQuestions.push(cleanedRev);
       }
@@ -3154,7 +3177,7 @@ function renderInterviewPrepStage1(text, el) {
 
     // Collect checklist items
     if (inChecklistMode && /^[-•*✦]|^✓|^☐/.test(line)) {
-      const cleanedItem = line.replace(/^[-•*✦]\s*/, '').replace(/^✓\s*/, '').replace(/^☐\s*/, '');
+      const cleanedItem = cleanInterviewMarkdown(line.replace(/^[-•*✦]\s*/, '').replace(/^✓\s*/, '').replace(/^☐\s*/, ''));
       if (cleanedItem.length > 5) {
         checklistItems.push(cleanedItem);
       }
@@ -3302,14 +3325,14 @@ function renderInterviewPrepStage2(text, el) {
         answerBlocks.push(currentBlock);
       }
       currentBlock = {
-        question: line.replace(/^#+\s*/, '').replace(/\*\*/g, ''),
+        question: cleanInterviewMarkdown(line.replace(/^#+\s*/, '')),
         content: ''
       };
       return;
     }
 
     if (currentBlock && line) {
-      currentBlock.content += line + '\n';
+      currentBlock.content += cleanInterviewMarkdown(line) + '\n';
     }
   });
 
