@@ -3455,21 +3455,21 @@ pre {
 .auth-left h1 {
   font-size: 2.8rem;
   line-height: 1.05;
-  margin: 0 0 14px;
+  margin: 0 0 6px;
   letter-spacing: -0.03em;
 }
 
 .login-title-with-logo {
   display: flex;
-  align-items: center;
-  gap: 14px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
 }
 
 .login-title-logo {
-  width: clamp(44px, 5vw, 62px);
-  height: clamp(44px, 5vw, 62px);
-  border-radius: 12px;
+  width: clamp(176px, 20vw, 248px);
+  height: clamp(176px, 20vw, 248px);
+  border-radius: 20px;
   flex: 0 0 auto;
   box-shadow: 0 10px 24px rgba(2, 6, 23, 0.45);
 }
