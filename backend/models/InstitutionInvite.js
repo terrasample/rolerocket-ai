@@ -1,6 +1,8 @@
 const mongoose = require('mongoose');
 
 const ORGANIZATION_TYPES = ['university', 'workplace', 'institution', 'other'];
+const ACTIVATION_TYPES = ['trial', 'pilot', 'paid'];
+const INCLUDED_PLANS = ['free', 'pro', 'premium', 'elite', 'lifetime'];
 
 const InstitutionInviteSchema = new mongoose.Schema(
   {
@@ -38,10 +40,20 @@ const InstitutionInviteSchema = new mongoose.Schema(
       enum: ORGANIZATION_TYPES,
       default: 'institution'
     },
+    activationType: {
+      type: String,
+      enum: ACTIVATION_TYPES,
+      default: 'trial'
+    },
+    includedPlan: {
+      type: String,
+      enum: INCLUDED_PLANS,
+      default: 'elite'
+    },
     trialDays: {
       type: Number,
       default: 30,
-      min: 1,
+      min: 0,
       max: 365
     },
     maxUses: {

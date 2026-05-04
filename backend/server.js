@@ -158,8 +158,19 @@ function normalizeInstitutionInviteCode(value) {
   return String(value || '').trim().toUpperCase().replace(/[^A-Z0-9-]/g, '');
 }
 
+function normalizeInstitutionActivationType(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  return ['trial', 'pilot', 'paid'].includes(normalized) ? normalized : 'trial';
+}
+
+function normalizeInstitutionIncludedPlan(value) {
+  const normalized = normalizePlan(String(value || '').trim().toLowerCase());
+  return ['free', 'pro', 'premium', 'elite', 'lifetime'].includes(normalized) ? normalized : 'elite';
+}
+
 function isInstitutionTrialActive(actor) {
-  if (!actor || actor.accountType !== 'institution' || !actor.institutionTrialEndsAt) {
+  const accessType = String(actor?.institutionAccessType || '').toLowerCase();
+  if (!actor || actor.accountType !== 'institution' || !['trial', 'pilot'].includes(accessType) || !actor.institutionTrialEndsAt) {
     return false;
   }
   const endsAt = new Date(actor.institutionTrialEndsAt);
@@ -180,8 +191,13 @@ function hasInstitutionAccess(actor) {
     return false;
   }
 
-  // Keep legacy institution accounts working until they are migrated to invites.
-  if (!actor.institutionTrialEndsAt) {
+  const accessType = String(actor.institutionAccessType || '').toLowerCase();
+  if (accessType === 'paid') {
+    return hasPaidInstitutionAccess(actor);
+  }
+
+  // Keep legacy institution accounts working until they are migrated to typed activation codes.
+  if (!actor.institutionTrialEndsAt && !accessType) {
     return true;
   }
 
@@ -189,6 +205,18 @@ function hasInstitutionAccess(actor) {
 }
 
 function applyInstitutionTrialEntitlements(actor) {
+  const accessType = String(actor?.institutionAccessType || '').toLowerCase();
+  const licensedPlan = normalizeInstitutionIncludedPlan(actor?.institutionLicensedPlan || actor?.plan || 'elite');
+
+  if (accessType === 'paid') {
+    return {
+      plan: licensedPlan,
+      isSubscribed: true,
+      institutionTrialActive: false,
+      institutionTrialEndsAt: actor?.institutionTrialEndsAt || null
+    };
+  }
+
   const trialActive = isInstitutionTrialActive(actor);
   if (!trialActive) {
     return {
@@ -200,21 +228,21 @@ function applyInstitutionTrialEntitlements(actor) {
   }
 
   return {
-    plan: normalizePlan(String(actor?.plan || 'free')) === 'free' ? 'elite' : actor.plan,
+    plan: licensedPlan,
     isSubscribed: true,
     institutionTrialActive: true,
     institutionTrialEndsAt: actor?.institutionTrialEndsAt || null
   };
 }
 
-function buildInstitutionInviteCodePrefix(institutionName) {
+function buildInstitutionInviteCodePrefix(institutionName, activationType) {
   const compact = String(institutionName || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
   const prefix = compact.slice(0, 6) || 'INST';
-  return `${prefix}-TRIAL`;
+  return `${prefix}-${normalizeInstitutionActivationType(activationType).toUpperCase()}`;
 }
 
-async function generateUniqueInstitutionInviteCode(institutionName, maxAttempts = 12) {
-  const prefix = buildInstitutionInviteCodePrefix(institutionName);
+async function generateUniqueInstitutionInviteCode(institutionName, activationType, maxAttempts = 12) {
+  const prefix = buildInstitutionInviteCodePrefix(institutionName, activationType);
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     const candidate = `${prefix}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
     const exists = await InstitutionInvite.exists({ code: candidate });
@@ -458,6 +486,8 @@ app.post('/api/admin/institution-invites', authenticateToken, requireAdminAccess
     const {
       institutionName,
       organizationType,
+      activationType,
+      includedPlan,
       trialDays,
       maxUses,
       expiresInDays,
@@ -473,7 +503,11 @@ app.post('/api/admin/institution-invites', authenticateToken, requireAdminAccess
     const normalizedOrganizationType = ['university', 'workplace', 'institution', 'other'].includes(String(organizationType || '').toLowerCase())
       ? String(organizationType).toLowerCase()
       : 'institution';
-    const normalizedTrialDays = Math.max(1, Math.min(365, Number(trialDays || DEFAULT_INSTITUTION_TRIAL_DAYS)));
+    const normalizedActivationType = normalizeInstitutionActivationType(activationType);
+    const normalizedIncludedPlan = normalizeInstitutionIncludedPlan(includedPlan);
+    const normalizedTrialDays = normalizedActivationType === 'paid'
+      ? 0
+      : Math.max(1, Math.min(365, Number(trialDays || DEFAULT_INSTITUTION_TRIAL_DAYS)));
     const normalizedMaxUses = Math.max(1, Math.min(10000, Number(maxUses || 1)));
     const normalizedExpiresInDays = Number.isFinite(Number(expiresInDays))
       ? Math.max(1, Math.min(3650, Number(expiresInDays)))
@@ -481,7 +515,7 @@ app.post('/api/admin/institution-invites', authenticateToken, requireAdminAccess
     const expiresAt = normalizedExpiresInDays ? new Date(Date.now() + normalizedExpiresInDays * 24 * 60 * 60 * 1000) : null;
 
     const institutionRecord = await findOrCreateInstitutionByName(normalizedInstitutionName);
-    const chosenCode = normalizeInstitutionInviteCode(code) || await generateUniqueInstitutionInviteCode(institutionRecord.name);
+    const chosenCode = normalizeInstitutionInviteCode(code) || await generateUniqueInstitutionInviteCode(institutionRecord.name, normalizedActivationType);
 
     const existing = await InstitutionInvite.findOne({ code: chosenCode }).select('_id').lean();
     if (existing) {
@@ -494,6 +528,8 @@ app.post('/api/admin/institution-invites', authenticateToken, requireAdminAccess
       institutionKey: institutionRecord.key,
       institutionId: institutionRecord._id,
       organizationType: normalizedOrganizationType,
+      activationType: normalizedActivationType,
+      includedPlan: normalizedIncludedPlan,
       trialDays: normalizedTrialDays,
       maxUses: normalizedMaxUses,
       expiresAt,
@@ -510,6 +546,8 @@ app.post('/api/admin/institution-invites', authenticateToken, requireAdminAccess
         code: invite.code,
         institutionName: invite.institutionName,
         organizationType: invite.organizationType,
+        activationType: invite.activationType,
+        includedPlan: invite.includedPlan,
         trialDays: invite.trialDays,
         maxUses: invite.maxUses,
         usedCount: invite.usedCount,
@@ -636,7 +674,7 @@ app.get('/api/institution/pilot-kpis', authenticateToken, async (req, res) => {
       ? { institutionName: { $regex: new RegExp('^' + actor.institutionName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i') } }
       : {};
     const invites = await InstitutionInvite.find(institutionQuery)
-      .select('usedCount maxUses active expiresAt code trialDays createdAt')
+      .select('usedCount maxUses active expiresAt code trialDays createdAt activationType includedPlan')
       .lean();
     const totalInviteSlots = invites.reduce((s, i) => s + (i.maxUses || 1), 0);
     const totalInviteUsed  = invites.reduce((s, i) => s + (i.usedCount || 0), 0);
@@ -3518,6 +3556,10 @@ app.post('/api/auth/signup', authLimiter, async (req, res) => {
     let institutionTrialStartsAt = null;
     let institutionTrialEndsAt = null;
     let institutionInviteCode = null;
+    let institutionAccessType = null;
+    let institutionLicensedPlan = null;
+    let initialPlan = 'free';
+    let initialSubscribed = false;
 
     if (!normalizedName || !normalizedEmail || !rawPassword) {
       return res.status(400).json({ error: 'Name, email, and password are required' });
@@ -3558,10 +3600,18 @@ app.post('/api/auth/signup', authLimiter, async (req, res) => {
         return res.status(400).json({ error: 'Invitation code does not match the selected institution name' });
       }
 
-      const trialDays = Math.max(1, Number(inviteRecord.trialDays || DEFAULT_INSTITUTION_TRIAL_DAYS));
-      institutionTrialStartsAt = new Date();
-      institutionTrialEndsAt = new Date(institutionTrialStartsAt.getTime() + trialDays * 24 * 60 * 60 * 1000);
+      institutionAccessType = normalizeInstitutionActivationType(inviteRecord.activationType);
+      institutionLicensedPlan = normalizeInstitutionIncludedPlan(inviteRecord.includedPlan || 'elite');
       institutionInviteCode = normalizedInvitationCode;
+
+      if (institutionAccessType === 'paid') {
+        initialPlan = institutionLicensedPlan;
+        initialSubscribed = true;
+      } else {
+        const trialDays = Math.max(1, Number(inviteRecord.trialDays || DEFAULT_INSTITUTION_TRIAL_DAYS));
+        institutionTrialStartsAt = new Date();
+        institutionTrialEndsAt = new Date(institutionTrialStartsAt.getTime() + trialDays * 24 * 60 * 60 * 1000);
+      }
     }
 
     // Allow individual students to optionally link themselves to an institution
@@ -3582,14 +3632,16 @@ app.post('/api/auth/signup', authLimiter, async (req, res) => {
           name: normalizedName,
           email: normalizedEmail,
           password: hashedPassword,
-          isSubscribed: false,
-          plan: 'free',
+          isSubscribed: initialSubscribed,
+          plan: initialPlan,
           accountType: normalizedAccountType,
           institutionName: normalizedInstitutionName,
           institutionId: normalizedInstitutionId,
           institutionTrialStartsAt,
           institutionTrialEndsAt,
           institutionInviteCode,
+          institutionAccessType,
+          institutionLicensedPlan,
           referralCode: generateReferralCode(),
           referredBy: normalizedReferralCode || null,
           emailVerified: false,
@@ -3600,7 +3652,7 @@ app.post('/api/auth/signup', authLimiter, async (req, res) => {
       } catch (err) {
         if (err?.code === 11000 && err?.keyPattern?.email) {
           const existingUser = await User.findOne({ email: normalizedEmail })
-            .select('_id name email password isSubscribed plan referralCode referralCount emailVerified institutionTrialStartsAt institutionTrialEndsAt')
+            .select('_id name email password isSubscribed plan referralCode referralCount emailVerified institutionTrialStartsAt institutionTrialEndsAt institutionAccessType institutionLicensedPlan')
             .lean();
 
           if (existingUser) {
@@ -3647,6 +3699,8 @@ app.post('/api/auth/signup', authLimiter, async (req, res) => {
                   plan: existingUser.plan,
                   institutionTrialStartsAt: existingUser.institutionTrialStartsAt || null,
                   institutionTrialEndsAt: existingUser.institutionTrialEndsAt || null,
+                  institutionAccessType: existingUser.institutionAccessType || null,
+                  institutionLicensedPlan: existingUser.institutionLicensedPlan || null,
                   institutionTrialActive: isInstitutionTrialActive(existingUser),
                   referralCode: existingUser.referralCode,
                   referralCount: existingUser.referralCount
@@ -3739,6 +3793,8 @@ app.post('/api/auth/signup', authLimiter, async (req, res) => {
         plan: user.plan,
         institutionTrialEndsAt: user.institutionTrialEndsAt || null,
         institutionTrialStartsAt: user.institutionTrialStartsAt || null,
+        institutionAccessType: user.institutionAccessType || null,
+        institutionLicensedPlan: user.institutionLicensedPlan || null,
         institutionTrialActive: isInstitutionTrialActive(user),
         referralCode: user.referralCode,
         referralCount: user.referralCount,
@@ -3764,7 +3820,7 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
     }
 
     const user = await User.findOne({ email: normalizedEmail })
-      .select('_id name email password isSubscribed plan referralCode referralCount emailVerified accountType institutionName institutionId institutionTrialEndsAt institutionTrialStartsAt institutionInviteCode')
+      .select('_id name email password isSubscribed plan referralCode referralCount emailVerified accountType institutionName institutionId institutionTrialEndsAt institutionTrialStartsAt institutionInviteCode institutionAccessType institutionLicensedPlan')
       .lean();
 
     if (!user) {
@@ -3814,6 +3870,8 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
         institutionId: userWithInstitution.institutionId || null,
         institutionTrialStartsAt: user.institutionTrialStartsAt || null,
         institutionTrialEndsAt: user.institutionTrialEndsAt || null,
+        institutionAccessType: user.institutionAccessType || null,
+        institutionLicensedPlan: user.institutionLicensedPlan || null,
         institutionTrialActive: trialEntitlements.institutionTrialActive,
         referralCode: user.referralCode,
         referralCount: user.referralCount,

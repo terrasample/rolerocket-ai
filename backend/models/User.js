@@ -21,6 +21,16 @@ const UserSchema = new mongoose.Schema(
     institutionTrialStartsAt: { type: Date, default: null },
     institutionTrialEndsAt: { type: Date, default: null },
     institutionInviteCode: { type: String, default: null, trim: true },
+    institutionAccessType: {
+      type: String,
+      enum: ['trial', 'pilot', 'paid'],
+      default: null
+    },
+    institutionLicensedPlan: {
+      type: String,
+      enum: ['free', 'pro', 'premium', 'elite', 'lifetime'],
+      default: null
+    },
 
     isSubscribed: { type: Boolean, default: false },
     plan: {

@@ -142,8 +142,28 @@
 
           <div class="aim-form-row">
             <div>
-              <label>Trial Days (default 30)</label>
-              <input id="aimTrialDays" type="number" value="30" min="1" max="365" />
+              <label>Activation Type</label>
+              <select id="aimActivationType">
+                <option value="trial" selected>Trial</option>
+                <option value="pilot">Pilot</option>
+                <option value="paid">Paid</option>
+              </select>
+            </div>
+            <div>
+              <label>Included Plan</label>
+              <select id="aimIncludedPlan">
+                <option value="elite" selected>Elite</option>
+                <option value="premium">Premium</option>
+                <option value="pro">Pro</option>
+                <option value="free">Free</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="aim-form-row">
+            <div>
+              <label id="aimDaysLabel">Access Days (default 30)</label>
+              <input id="aimTrialDays" type="number" value="30" min="0" max="365" />
             </div>
             <div>
               <label>Max Uses (default 1)</label>
@@ -186,7 +206,9 @@
                 <span id="rcInst" style="font-size:.92rem;"></span>
               </div>
               <div style="display:flex;gap:16px;flex-wrap:wrap;">
-                <div><span style="font-size:.76rem;color:#94a3b8;">Trial</span><br><strong id="rcTrial"></strong></div>
+                <div><span style="font-size:.76rem;color:#94a3b8;">Activation</span><br><strong id="rcActivation"></strong></div>
+                <div><span style="font-size:.76rem;color:#94a3b8;">Plan</span><br><strong id="rcPlan"></strong></div>
+                <div><span style="font-size:.76rem;color:#94a3b8;">Access Days</span><br><strong id="rcTrial"></strong></div>
                 <div><span style="font-size:.76rem;color:#94a3b8;">Max Uses</span><br><strong id="rcMaxUses"></strong></div>
                 <div><span style="font-size:.76rem;color:#94a3b8;">Expires</span><br><strong id="rcExpires"></strong></div>
               </div>
@@ -226,8 +248,9 @@
             <tr>
               <th>Code</th>
               <th>Institution</th>
-              <th>Type</th>
-              <th>Trial</th>
+              <th>Org</th>
+              <th>Activation</th>
+              <th>Days</th>
               <th>Used</th>
               <th>Status</th>
               <th>Expires</th>
@@ -236,7 +259,7 @@
             </tr>
           </thead>
           <tbody id="aimTableBody">
-            <tr><td colspan="9" class="aim-empty">Loading…</td></tr>
+            <tr><td colspan="10" class="aim-empty">Loading…</td></tr>
           </tbody>
         </table>
       </div>
@@ -253,10 +276,12 @@
     var mon = String(today.getMonth() + 1).padStart(2, '0');
     var code = 'UWI-MONA-' + year;
     var el = function(id) { return document.getElementById(id); };
-    if (el('aimInstName'))      el('aimInstName').value      = 'UWI Mona';
-    if (el('aimOrgType'))       el('aimOrgType').value       = 'university';
-    if (el('aimTrialDays'))     el('aimTrialDays').value     = '30';
-    if (el('aimMaxUses'))       el('aimMaxUses').value       = '150';
+    if (el('aimInstName'))       el('aimInstName').value       = 'UWI Mona';
+    if (el('aimOrgType'))        el('aimOrgType').value        = 'university';
+    if (el('aimActivationType')) el('aimActivationType').value = 'pilot';
+    if (el('aimIncludedPlan'))   el('aimIncludedPlan').value   = 'elite';
+    if (el('aimTrialDays'))      el('aimTrialDays').value      = '30';
+    if (el('aimMaxUses'))        el('aimMaxUses').value        = '150';
     if (el('aimCustomCode'))    el('aimCustomCode').value    = code;
     if (el('aimExpiresInDays')) el('aimExpiresInDays').value = '90';
     if (el('aimNotes'))         el('aimNotes').value         = 'UWI Mona pilot — May 2026. Contact: Dean of Student Affairs. Cohort: final-year + internship-track students.';
@@ -264,6 +289,18 @@
 
   (function() {
     'use strict';
+
+    function updateAccessDaysUi() {
+      var typeEl = document.getElementById('aimActivationType');
+      var daysLabel = document.getElementById('aimDaysLabel');
+      var daysInput = document.getElementById('aimTrialDays');
+      if (!typeEl || !daysLabel || !daysInput) return;
+      var isPaid = typeEl.value === 'paid';
+      daysLabel.textContent = isPaid ? 'Access Days (not used for paid)' : 'Access Days (default 30)';
+      daysInput.disabled = isPaid;
+      if (isPaid) daysInput.value = '0';
+      else if (!Number(daysInput.value)) daysInput.value = '30';
+    }
 
     /* ── Auth guard ── */
     function getAuthToken() {
@@ -313,7 +350,9 @@
 
       const institutionName = document.getElementById('aimInstName').value.trim();
       const organizationType = document.getElementById('aimOrgType').value;
-      const trialDays = Number(document.getElementById('aimTrialDays').value) || 30;
+      const activationType = document.getElementById('aimActivationType').value;
+      const includedPlan = document.getElementById('aimIncludedPlan').value;
+      const trialDays = Number(document.getElementById('aimTrialDays').value) || 0;
       const maxUses = Number(document.getElementById('aimMaxUses').value) || 1;
       const code = document.getElementById('aimCustomCode').value.trim().toUpperCase().replace(/[^A-Z0-9-]/g, '') || undefined;
       const expiresInDaysRaw = document.getElementById('aimExpiresInDays').value.trim();
@@ -324,7 +363,7 @@
         const res = await fetch(apiUrl('/api/admin/institution-invites'), {
           method: 'POST',
           headers: authHeaders(),
-          body: JSON.stringify({ institutionName, organizationType, trialDays, maxUses, code, expiresInDays, notes })
+          body: JSON.stringify({ institutionName, organizationType, activationType, includedPlan, trialDays, maxUses, code, expiresInDays, notes })
         });
         const data = await safeJson(res);
         if (!res.ok) {
@@ -335,7 +374,9 @@
         const inv = data.invite;
         document.getElementById('rcCode').textContent = inv.code;
         document.getElementById('rcInst').textContent = inv.institutionName;
-        document.getElementById('rcTrial').textContent = inv.trialDays + ' days';
+        document.getElementById('rcActivation').textContent = String(inv.activationType || 'trial').toUpperCase();
+        document.getElementById('rcPlan').textContent = String(inv.includedPlan || 'elite').toUpperCase();
+        document.getElementById('rcTrial').textContent = Number(inv.trialDays || 0) > 0 ? inv.trialDays + ' days' : '—';
         document.getElementById('rcMaxUses').textContent = inv.maxUses;
         document.getElementById('rcExpires').textContent = inv.expiresAt ? new Date(inv.expiresAt).toLocaleDateString() : 'None';
         document.getElementById('rcUrl').textContent = inv.signupUrl;
@@ -343,8 +384,11 @@
         msg.className = 'aim-msg success';
         msg.textContent = 'Invite created! Copy the signup link and send it to the institution.';
         document.getElementById('aimCreateForm').reset();
+        document.getElementById('aimActivationType').value = 'trial';
+        document.getElementById('aimIncludedPlan').value = 'elite';
         document.getElementById('aimTrialDays').value = 30;
         document.getElementById('aimMaxUses').value = 1;
+        updateAccessDaysUi();
         await loadInvites();
       } catch (err) {
         msg.className = 'aim-msg error';
@@ -358,6 +402,7 @@
     document.getElementById('aimCustomCode').addEventListener('input', (e) => {
       e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, '');
     });
+    document.getElementById('aimActivationType').addEventListener('change', updateAccessDaysUi);
 
     /* ── Load invites ── */
     window.loadInvites = async function() {
@@ -379,12 +424,12 @@
         });
         const data = await safeJson(res);
         if (!res.ok) {
-          tbody.innerHTML = '<tr><td colspan="9" class="aim-empty" style="color:#f87171;">' + escHtml(data.error || 'Failed to load') + '</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="10" class="aim-empty" style="color:#f87171;">' + escHtml(data.error || 'Failed to load') + '</td></tr>';
           return;
         }
         const invites = data.invites || [];
         if (!invites.length) {
-          tbody.innerHTML = '<tr><td colspan="9" class="aim-empty">No invitation codes found.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="10" class="aim-empty">No invitation codes found.</td></tr>';
           return;
         }
         tbody.innerHTML = invites.map(renderRow).join('');
@@ -410,6 +455,8 @@
       const createdText = new Date(inv.createdAt).toLocaleDateString();
       const orgTypeLabels = { university: 'University', workplace: 'Workplace', institution: 'Institution', other: 'Other' };
       const typeLabel = orgTypeLabels[inv.organizationType] || inv.organizationType || '—';
+      const activationLabel = String(inv.activationType || 'trial').toUpperCase();
+      const daysLabel = Number(inv.trialDays || 0) > 0 ? (String(inv.trialDays) + 'd') : '—';
 
       const canRevoke = inv.active && !expired && !exhausted;
 
@@ -420,7 +467,8 @@
         </td>
         <td style="max-width:180px;word-break:break-word;">${escHtml(inv.institutionName)}</td>
         <td><span style="font-size:.78rem;color:#94a3b8;">${escHtml(typeLabel)}</span></td>
-        <td>${escHtml(String(inv.trialDays))}d</td>
+        <td><span style="font-size:.78rem;color:#c4b5fd;font-weight:700;">${escHtml(activationLabel)}</span><br><span style="font-size:.72rem;color:#94a3b8;">${escHtml(String(inv.includedPlan || 'elite').toUpperCase())}</span></td>
+        <td>${escHtml(daysLabel)}</td>
         <td>${escHtml(String(inv.usedCount))} / ${escHtml(String(inv.maxUses))}</td>
         <td>${statusBadge}</td>
         <td style="font-size:.8rem;color:#94a3b8;">${escHtml(expiresText)}</td>
@@ -483,6 +531,7 @@
     }
 
     /* ── Boot ── */
+    updateAccessDaysUi();
     init();
   })();
   </script>
