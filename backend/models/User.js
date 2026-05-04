@@ -33,6 +33,7 @@ const UserSchema = new mongoose.Schema(
     },
 
     isSubscribed: { type: Boolean, default: false },
+    isAdmin: { type: Boolean, default: false },
     plan: {
       type: String,
       enum: ['free', 'pro', 'premium', 'elite', 'lifetime'],
