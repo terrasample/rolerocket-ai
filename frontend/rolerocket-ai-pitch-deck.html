@@ -21,20 +21,17 @@
   }
 
   html, body {
-    height: 100%; overflow: hidden;
     font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
-    background: #0a1120;
+    background: #e2e8f0;
     color: var(--navy);
   }
 
   /* ── Print / PDF ───────────────────────────── */
   @media print {
-    html, body { overflow: visible; height: auto; background: white; }
-    .deck { height: auto; background: white; }
-    .slide { display: flex !important; page-break-after: always; box-shadow: none; border-radius: 0;
-      width: 100%; height: auto; aspect-ratio: 16/9; transform: none !important; position: relative; }
+    body { background: white; }
+    .slide { page-break-after: always; box-shadow: none; border-radius: 0; }
     .slide:last-child { page-break-after: avoid; }
-    .controls, .nav-btn, .slide-counter { display: none !important; }
+    .print-btn { display: none !important; }
   }
 
   /* ── Controls ─────────────────────────────── */
@@ -52,32 +49,16 @@
   }
   .print-btn:hover { background: #1d4ed8; }
 
-  /* ── Slide deck (fullscreen) ──────────────── */
-  .deck {
-    width: 100vw; height: 100vh;
-    display: flex; align-items: center; justify-content: center;
-    position: relative;
-  }
+  /* ── Slide wrapper ────────────────────────── */
+  .deck { width: 100%; margin: 0; padding: 32px 0 60px 0; display: flex; flex-direction: column; gap: 0; }
 
   .slide {
-    display: none;
-    width: min(96vw, calc(96vh * 16 / 9));
-    height: min(96vh, calc(96vw * 9 / 16));
-    aspect-ratio: 16/9;
-    background: white; border-radius: 18px;
-    box-shadow: 0 8px 60px rgba(0,0,0,.6);
-    overflow: hidden; position: absolute;
-    flex-direction: column;
-    animation: fadeIn .3s ease;
+    width: 100%; aspect-ratio: 16/9;
+    background: white;
+    box-shadow: 0 4px 32px rgba(15,23,42,.12);
+    overflow: hidden; position: relative;
+    display: flex; flex-direction: column;
   }
-  .slide.active { display: flex; }
-
-  @keyframes fadeIn {
-    from { opacity: 0; transform: scale(.97); }
-    to   { opacity: 1; transform: scale(1); }
-  }
-
-  /* ── Nav arrows ───────────────────────────── */
   .nav-btn {
     position: fixed; top: 50%; transform: translateY(-50%);
     background: rgba(255,255,255,.12); backdrop-filter: blur(6px);
@@ -91,18 +72,6 @@
   .nav-btn.prev { left: 16px; }
   .nav-btn.next { right: 16px; }
   .nav-btn:disabled { opacity: .25; cursor: default; }
-
-  /* ── Slide counter ────────────────────────── */
-  .slide-counter {
-    position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%);
-    display: flex; gap: 8px; z-index: 90;
-  }
-  .dot {
-    width: 8px; height: 8px; border-radius: 50%;
-    background: rgba(255,255,255,.3); cursor: pointer;
-    transition: background .2s, transform .2s;
-  }
-  .dot.active { background: white; transform: scale(1.3); }
 
   /* ── Accent strip ─────────────────────────── */
   .slide::before {
@@ -133,6 +102,7 @@
     background: linear-gradient(135deg, #0F172A 0%, #1e3a5f 60%, #0369A1 100%);
     justify-content: center; align-items: center;
     text-align: center; padding: 48px;
+    border-radius: 0;
   }
   .s-cover::before { background: linear-gradient(90deg, #38BDF8, #818CF8); }
 
@@ -402,11 +372,7 @@
   <button class="print-btn" onclick="window.print()">⬇ Save as PDF</button>
 </div>
 
-<button class="nav-btn prev" id="prevBtn" onclick="changeSlide(-1)" disabled>&#8592;</button>
-<button class="nav-btn next" id="nextBtn" onclick="changeSlide(1)">&#8594;</button>
-<div class="slide-counter" id="dotContainer"></div>
-
-<div class="deck" onclick="changeSlide(1)">
+<div class="deck">
 
   <!-- ══ SLIDE 1 — COVER ══════════════════════════════ -->
   <div class="slide s-cover">
@@ -819,46 +785,6 @@
 
 </div><!-- /deck -->
 
-<script>
-  const slides = document.querySelectorAll('.slide');
-  const dotContainer = document.getElementById('dotContainer');
-  const prevBtn = document.getElementById('prevBtn');
-  const nextBtn = document.getElementById('nextBtn');
-  let current = 0;
-
-  // Build dots
-  slides.forEach((_, i) => {
-    const d = document.createElement('div');
-    d.className = 'dot' + (i === 0 ? ' active' : '');
-    d.onclick = (e) => { e.stopPropagation(); goTo(i); };
-    dotContainer.appendChild(d);
-  });
-
-  slides[0].classList.add('active');
-
-  function goTo(n) {
-    slides[current].classList.remove('active');
-    dotContainer.children[current].classList.remove('active');
-    current = Math.max(0, Math.min(n, slides.length - 1));
-    slides[current].classList.add('active');
-    dotContainer.children[current].classList.add('active');
-    prevBtn.disabled = current === 0;
-    nextBtn.disabled = current === slides.length - 1;
-  }
-
-  function changeSlide(dir) {
-    goTo(current + dir);
-  }
-
-  // Keyboard navigation
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); changeSlide(1); }
-    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')                    { e.preventDefault(); changeSlide(-1); }
-  });
-
-  // Stop nav-btn clicks from also triggering the deck's onclick
-  prevBtn.addEventListener('click', (e) => e.stopPropagation());
-  nextBtn.addEventListener('click', (e) => e.stopPropagation());
-</script>
+<!-- Slideshow is now a scrollable presentation like UWI -->
 </body>
 </html>
