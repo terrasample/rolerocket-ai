@@ -80,7 +80,7 @@ app.post('/api/dev/create-admin-token', async (req, res) => {
   }
 });
 
-// --- PATCH: Always return isAdmin for admin emails in /api/me ---
+// --- PATCH: Always return isAdmin from DB flag (or admin-email allowlist) in /api/me ---
 app.get('/api/me', async (req, res) => {
   try {
     const authHeader = req.headers.authorization || '';
@@ -97,7 +97,7 @@ app.get('/api/me', async (req, res) => {
     const user = await User.findById(decoded.userId).lean();
     if (!user) return res.status(404).json({ error: 'User not found' });
     const email = String(user.email || '').toLowerCase();
-    const isAdmin = ADMIN_EMAILS.length && ADMIN_EMAILS.includes(email);
+    const isAdmin = user.isAdmin === true || (ADMIN_EMAILS.length && ADMIN_EMAILS.includes(email));
     const trialEntitlements = applyInstitutionTrialEntitlements(user);
     return res.json({
       user: {
@@ -1508,14 +1508,15 @@ if (process.env.NODE_ENV !== 'test') {
 
 async function requireAnalyticsAccess(req, res, next) {
   try {
-    const user = await User.findById(req.user.userId).select('email plan');
+    const user = await User.findById(req.user.userId).select('email plan isAdmin');
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     const email = String(user.email || '').toLowerCase();
     const isAdminEmail = ADMIN_EMAILS.length ? ADMIN_EMAILS.includes(email) : false;
+    const isAdmin = user.isAdmin === true || isAdminEmail;
     const allowByPlan = !ADMIN_EMAILS.length && hasRequiredPlan(user, 'elite');
 
-    if (!isAdminEmail && !allowByPlan) {
+    if (!isAdmin && !allowByPlan) {
       return res.status(403).json({ error: 'Analytics access denied' });
     }
 
@@ -1528,12 +1529,13 @@ async function requireAnalyticsAccess(req, res, next) {
 
 async function requireAdminAccess(req, res, next) {
   try {
-    const user = await User.findById(req.user.userId).select('email');
+    const user = await User.findById(req.user.userId).select('email isAdmin');
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     const email = String(user.email || '').toLowerCase();
     const isAdminEmail = ADMIN_EMAILS.length ? ADMIN_EMAILS.includes(email) : false;
-    if (!isAdminEmail) {
+    const isAdmin = user.isAdmin === true || isAdminEmail;
+    if (!isAdmin) {
       return res.status(403).json({ error: 'Admin access required' });
     }
 
@@ -1566,8 +1568,9 @@ function hasRequiredPlan(user, requiredPlan) {
   // Admins always have access to everything
   const email = String(user.email || '').toLowerCase();
   const isConfiguredAdmin = ADMIN_EMAILS.length && ADMIN_EMAILS.includes(email);
+  const isDbAdmin = user.isAdmin === true;
   const isInternalAdmin = email.endsWith('@rolerocketai.com');
-  if (isConfiguredAdmin || isInternalAdmin) {
+  if (isConfiguredAdmin || isDbAdmin || isInternalAdmin) {
     return true;
   }
   return getPlanLevel(user.plan || 'free') >= getPlanLevel(requiredPlan);
@@ -3995,7 +3998,7 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
     }
 
     const user = await User.findOne({ email: normalizedEmail })
-      .select('_id name email password isSubscribed plan referralCode referralCount emailVerified accountType institutionName institutionId institutionTrialEndsAt institutionTrialStartsAt institutionInviteCode institutionAccessType institutionLicensedPlan')
+      .select('_id name email password isSubscribed plan referralCode referralCount emailVerified accountType institutionName institutionId institutionTrialEndsAt institutionTrialStartsAt institutionInviteCode institutionAccessType institutionLicensedPlan isAdmin')
       .lean();
 
     if (!user) {
@@ -4020,7 +4023,7 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
     const trialEntitlements = applyInstitutionTrialEntitlements(user);
     let plan = trialEntitlements.plan;
     let isSubscribed = trialEntitlements.isSubscribed;
-    const isAdmin = ADMIN_EMAILS.length && ADMIN_EMAILS.includes(normalizedEmail);
+    const isAdmin = user.isAdmin === true || (ADMIN_EMAILS.length && ADMIN_EMAILS.includes(normalizedEmail));
     if (isAdmin) {
       plan = 'lifetime';
       isSubscribed = true;
@@ -8168,9 +8171,9 @@ app.post('/api/create-checkout-session', paymentLimiter, authenticateToken, asyn
       return res.status(400).json({ error: 'Unknown plan. Check your .env Stripe price IDs.' });
     }
 
-    const user = await User.findById(userId).select('email plan veteranVerified');
+    const user = await User.findById(userId).select('email plan veteranVerified isAdmin');
     const email = String(user?.email || '').toLowerCase();
-    const isAdmin = ADMIN_EMAILS && ADMIN_EMAILS.includes(email);
+    const isAdmin = user?.isAdmin === true || (ADMIN_EMAILS && ADMIN_EMAILS.includes(email));
     const isLifetime = (user?.plan || '').toLowerCase() === 'lifetime';
     // DEBUG LOGGING
     console.log('[CHECKOUT DEBUG]', {
@@ -8263,9 +8266,9 @@ app.post('/api/create-lifetime-checkout', paymentLimiter, authenticateToken, asy
       return res.status(400).json({ error: `Lifetime price must be a one-time price, but Stripe says it is "${price.type}".` });
     }
 
-    const user = await User.findById(req.user.userId).select('email plan veteranVerified');
+    const user = await User.findById(req.user.userId).select('email plan veteranVerified isAdmin');
     const email = String(user?.email || '').toLowerCase();
-    const isAdmin = ADMIN_EMAILS && ADMIN_EMAILS.includes(email);
+    const isAdmin = user?.isAdmin === true || (ADMIN_EMAILS && ADMIN_EMAILS.includes(email));
     const isLifetime = (user?.plan || '').toLowerCase() === 'lifetime';
     if (isAdmin || isLifetime) {
       return res.status(403).json({ error: 'Already Unlocked' });
