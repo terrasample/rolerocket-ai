@@ -100,23 +100,32 @@
       'ai-recruiter-assist.html',
       'pricing.html',
       'contact-us.html',
-      'jamaica-workforce-accelerator.html',
-      'institution-cohort-manager.html'
+      'jamaica-workforce-accelerator.html'
     ];
+
+    const firstSecondaryLink =
+      findByPath('institution-cohort-manager.html') ||
+      findByPath('profile.html') ||
+      findByPath('dashboard.html') ||
+      findByPath('job-alerts-sms.html') ||
+      findByPath('account.html') ||
+      findByPath('admin-institution-invites.html') ||
+      logoutLink;
+
+    const coreAnchor = hr || planBadge || firstSecondaryLink || null;
 
     // Keep core links before the plan divider in a fixed order.
     prePlanOrder.forEach((path) => {
       const link = findByPath(path);
       if (!link) return;
-      if (hr) {
-        nav.insertBefore(link, hr);
-      } else if (planBadge) {
-        nav.insertBefore(link, planBadge);
+      if (coreAnchor) {
+        nav.insertBefore(link, coreAnchor);
       }
     });
 
     // Keep account-area links in a fixed order below plan badge and before logout.
     const accountOrder = [
+      'institution-cohort-manager.html',
       'profile.html',
       'dashboard.html',
       'job-alerts-sms.html',
