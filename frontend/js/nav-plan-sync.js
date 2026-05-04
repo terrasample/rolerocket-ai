@@ -77,9 +77,8 @@
     if (jamaica) {
       ensureSectionLabel(nav, jamaica, 'jamaica', 'JAMAICA HUB');
 
-      // Keep Jamaica tools clustered directly after the hub entry.
-      if (jobAlerts) insertAfter(jobAlerts, jamaica);
-      if (cohort) insertAfter(cohort, jobAlerts || jamaica);
+      // Only cluster the cohort manager under Jamaica Hub — Job Alerts is a general feature.
+      if (cohort) insertAfter(cohort, jamaica);
     }
 
     if (account) {
