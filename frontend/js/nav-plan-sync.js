@@ -70,48 +70,80 @@
     const findByPath = (p) => links.find((l) => normalizePath(l.getAttribute('href') || '') === p);
 
     const jamaica = findByPath('jamaica-workforce-accelerator.html');
-    const jobAlerts = findByPath('job-alerts-sms.html');
-    const cohort = findByPath('institution-cohort-manager.html');
     const account = findByPath('account.html');
 
-    if (jamaica) {
-      ensureSectionLabel(nav, jamaica, 'jamaica', 'JAMAICA HUB');
-
-      // Only cluster the cohort manager under Jamaica Hub — Job Alerts is a general feature.
-      if (cohort) insertAfter(cohort, jamaica);
-    }
-
-    if (account) {
-      ensureSectionLabel(nav, account, 'account', 'ACCOUNT');
-    }
+    if (jamaica) ensureSectionLabel(nav, jamaica, 'jamaica', 'JAMAICA HUB');
+    if (account) ensureSectionLabel(nav, account, 'account', 'ACCOUNT');
 
     // Inject "My Profile" link if not already present in this nav.
     ensureProfileLink(nav);
 
-    // Keep signed-in navigation order stable across pages.
-    stabilizeDashboardPlacement(nav);
+    // Keep all tabs in a fixed canonical position regardless of current page.
+    stabilizeNavOrder(nav);
   }
 
-  function stabilizeDashboardPlacement(nav) {
+  function stabilizeNavOrder(nav) {
     if (!nav) return;
-    const accountLink = Array.from(nav.querySelectorAll('a.sidebar-link-btn'))
-      .find((l) => normalizePath(l.getAttribute('href') || '') === 'account.html');
-    const dashboardLink = Array.from(nav.querySelectorAll('a.sidebar-link-btn'))
-      .find((l) => normalizePath(l.getAttribute('href') || '') === 'dashboard.html');
-    const logoutLink = Array.from(nav.querySelectorAll('a.sidebar-link-btn'))
-      .find((l) => normalizePath(l.getAttribute('href') || '') === 'login.html');
 
-    if (!dashboardLink) return;
+    const links = Array.from(nav.querySelectorAll('a.sidebar-link-btn'));
+    const findByPath = (p) => links.find((l) => normalizePath(l.getAttribute('href') || '') === p);
 
-    // Canonical placement: keep My Dashboard in the signed-in account area,
-    // directly after Account and before Logout.
-    if (accountLink) {
-      insertAfter(dashboardLink, accountLink);
-      return;
+    const hr = nav.querySelector('hr');
+    const planBadge = nav.querySelector('#planBadge');
+    const logoutLink = findByPath('login.html');
+
+    const prePlanOrder = [
+      'index.html',
+      'about-us.html',
+      'features.html',
+      'job-tracking.html',
+      'ai-recruiter-assist.html',
+      'pricing.html',
+      'contact-us.html',
+      'jamaica-workforce-accelerator.html',
+      'institution-cohort-manager.html',
+      'dashboard.html'
+    ];
+
+    // Keep core links before the plan divider in a fixed order.
+    prePlanOrder.forEach((path) => {
+      const link = findByPath(path);
+      if (!link) return;
+      if (hr) {
+        nav.insertBefore(link, hr);
+      } else if (planBadge) {
+        nav.insertBefore(link, planBadge);
+      }
+    });
+
+    // Keep account-area links in a fixed order below plan badge and before logout.
+    const accountOrder = [
+      'profile.html',
+      'job-alerts-sms.html',
+      'account.html',
+      'admin-institution-invites.html'
+    ];
+
+    accountOrder.forEach((path) => {
+      const link = findByPath(path);
+      if (!link) return;
+      if (logoutLink) {
+        nav.insertBefore(link, logoutLink);
+      } else {
+        nav.appendChild(link);
+      }
+    });
+
+    // Keep section labels attached to their first link after reordering.
+    const jamaicaLink = findByPath('jamaica-workforce-accelerator.html');
+    if (jamaicaLink) {
+      const jamaicaLabel = nav.querySelector('.sidebar-section-label[data-section="jamaica"]');
+      if (jamaicaLabel) nav.insertBefore(jamaicaLabel, jamaicaLink);
     }
-
-    if (logoutLink) {
-      nav.insertBefore(dashboardLink, logoutLink);
+    const profileLink = findByPath('profile.html');
+    if (profileLink) {
+      const accountLabel = nav.querySelector('.sidebar-section-label[data-section="account"]');
+      if (accountLabel) nav.insertBefore(accountLabel, profileLink);
     }
   }
 
