@@ -72,8 +72,10 @@
     const jamaica = findByPath('jamaica-workforce-accelerator.html');
     const account = findByPath('account.html');
 
+    // Section labels are now baked into every page's HTML; only inject if missing.
     if (jamaica) ensureSectionLabel(nav, jamaica, 'jamaica', 'JAMAICA HUB');
-    if (account) ensureSectionLabel(nav, account, 'account', 'ACCOUNT');
+    const profileLink = findByPath('profile.html');
+    if (profileLink) ensureSectionLabel(nav, profileLink, 'account', 'ACCOUNT');
 
     // Inject "My Profile" link if not already present in this nav.
     ensureProfileLink(nav);
@@ -214,10 +216,11 @@
     adminLink.textContent = '🔑 Admin Invites';
     adminLink.style.display = '';
 
-    const accountLink = Array.from(nav.querySelectorAll('a.sidebar-link-btn'))
-      .find((l) => normalizePath(l.getAttribute('href') || '') === 'account.html');
-    if (accountLink) {
-      nav.insertBefore(adminLink, accountLink);
+    // Place admin link after Account, before Logout — matching canonical HTML order.
+    const logoutLink = Array.from(nav.querySelectorAll('a.sidebar-link-btn'))
+      .find((l) => normalizePath(l.getAttribute('href') || '').startsWith('login.html'));
+    if (logoutLink) {
+      nav.insertBefore(adminLink, logoutLink);
     } else if (!adminLink.parentNode) {
       nav.appendChild(adminLink);
     }
