@@ -797,12 +797,82 @@
               var scoutLocation = forcedJamaicaMode ? 'Jamaica'
                 : (jad.location && jad.location !== 'Remote') ? jad.location : 'United States';
 
-              var scoutRes = await fetch(apiUrl('/api/jobs/scout?title=' + encodeURIComponent(scoutTitle) + '&location=' + encodeURIComponent(scoutLocation)), { headers: { Authorization: 'Bearer ' + token } });
+              var buildExpandedScoutLocations = function(baseLocation) {
+                var seed = String(baseLocation || '').trim();
+                if (!seed) return ['United States'];
+
+                var normalized = seed.toLowerCase();
+                var locations = [seed];
+
+                if (normalized.indexOf('jacksonville') !== -1) {
+                  locations = locations.concat([
+                    'Jacksonville, FL',
+                    'Orlando, FL',
+                    'Tampa, FL',
+                    'Miami, FL',
+                    'Atlanta, GA'
+                  ]);
+                } else if (normalized.indexOf(', fl') !== -1 || normalized.indexOf('florida') !== -1) {
+                  locations = locations.concat([
+                    'Jacksonville, FL',
+                    'Orlando, FL',
+                    'Tampa, FL',
+                    'Miami, FL',
+                    'Atlanta, GA'
+                  ]);
+                }
+
+                if (!forcedJamaicaMode && normalized !== 'united states' && normalized.indexOf('remote') === -1) {
+                  locations.push('United States');
+                }
+
+                var seen = new Set();
+                return locations.filter(function(loc) {
+                  var key = String(loc || '').toLowerCase().trim();
+                  if (!key || seen.has(key)) return false;
+                  seen.add(key);
+                  return true;
+                });
+              };
+
+              var scoutLocations = buildExpandedScoutLocations(scoutLocation);
+              var scoutResponses = await Promise.all(scoutLocations.map(function(loc) {
+                return fetch(apiUrl('/api/jobs/scout?title=' + encodeURIComponent(scoutTitle) + '&location=' + encodeURIComponent(loc)), {
+                  headers: { Authorization: 'Bearer ' + token }
+                }).then(function(res) {
+                  return { ok: res.ok, res: res, location: loc };
+                }).catch(function() {
+                  return { ok: false, res: null, location: loc };
+                });
+              }));
+
+              var scoutJobs = [];
+              for (var srIdx = 0; srIdx < scoutResponses.length; srIdx += 1) {
+                var scoutResponse = scoutResponses[srIdx];
+                if (!scoutResponse.ok || !scoutResponse.res) continue;
+                try {
+                  var scoutData = await scoutResponse.res.json();
+                  var scopedList = Array.isArray(scoutData.jobs) ? scoutData.jobs : [];
+                  scoutJobs = scoutJobs.concat(scopedList);
+                } catch (_jsonErr) {
+                  // Ignore malformed response and continue with other locations.
+                }
+              }
+
+              // Dedupe jobs gathered from multiple nearby-location queries.
+              if (scoutJobs.length > 1) {
+                var seenScoutJobs = new Set();
+                scoutJobs = scoutJobs.filter(function(job) {
+                  var key = [job && job.link, job && job.title, job && job.company, job && job.location].join('|').toLowerCase();
+                  if (seenScoutJobs.has(key)) return false;
+                  seenScoutJobs.add(key);
+                  return true;
+                });
+              }
+
               var scopedJobs = [];
 
-              if (scoutRes.ok) {
-                var scoutData = await scoutRes.json();
-                var scoutJobs = Array.isArray(scoutData.jobs) ? scoutData.jobs : [];
+              if (scoutJobs.length) {
 
                 var normEmployment = function (value) {
                   var v = String(value || '').toLowerCase();
@@ -896,7 +966,7 @@
                   '</div>';
                 }).join('');
               } else if (prefSalaryMin > 0) {
-                list.innerHTML = '<div class="rr-shot-row"><div><div class="title">No current matches meet your minimum salary</div><div class="meta">Lower your salary floor or broaden role/location preferences to see more matches.</div></div></div>';
+                list.innerHTML = '<div class="rr-shot-row"><div><div class="title">No current matches meet your minimum salary</div><div class="meta">We checked your preferred market plus nearby metros. Try lowering your salary floor or widening role keywords to surface more matches.</div></div></div>';
               }
             } catch (_scoutErr) {
               var fallback = jobs.filter(function(job) {
@@ -919,7 +989,7 @@
                   '</div>';
                 }).join('');
               } else if (prefSalaryMin > 0) {
-                list.innerHTML = '<div class="rr-shot-row"><div><div class="title">No current matches meet your minimum salary</div><div class="meta">Lower your salary floor or broaden role/location preferences to see more matches.</div></div></div>';
+                list.innerHTML = '<div class="rr-shot-row"><div><div class="title">No current matches meet your minimum salary</div><div class="meta">We checked your preferred market plus nearby metros. Try lowering your salary floor or widening role keywords to surface more matches.</div></div></div>';
               }
             }
           }
