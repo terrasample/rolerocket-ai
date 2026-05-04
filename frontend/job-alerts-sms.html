@@ -247,10 +247,17 @@
         const data = await res.json();
         if (!res.ok) { setStatus('alertRegStatus', data.error || 'Registration failed.', 'error'); btn.disabled = false; btn.textContent = 'Register Alerts'; return; }
 
-        pendingAlertId = data.alertId;
-        setStatus('alertRegStatus', '✅ Code sent! Check your phone.', 'success');
-        document.getElementById('alertVerifySection').style.display = 'block';
-        document.getElementById('alertVerifyCode').focus();
+        if (data.verified || !data.requiresVerification) {
+          // SMS not configured server-side — alert is active immediately, no code needed
+          document.getElementById('alertSuccessCard').style.display = 'block';
+          document.getElementById('alertSuccessCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+          setStatus('alertRegStatus', '');
+        } else {
+          pendingAlertId = data.alertId;
+          setStatus('alertRegStatus', '✅ Code sent! Check your phone.', 'success');
+          document.getElementById('alertVerifySection').style.display = 'block';
+          document.getElementById('alertVerifyCode').focus();
+        }
       } catch (err) {
         setStatus('alertRegStatus', 'Network error. Please try again.', 'error');
       } finally {

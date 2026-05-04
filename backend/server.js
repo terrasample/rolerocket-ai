@@ -8782,10 +8782,13 @@ app.get('/api/diaspora-employers/search', async (req, res) => {
 app.post('/api/alerts/sms/register', authenticateToken, async (req, res) => {
   try {
     const { phoneNumber, alertType, frequency, rolePreferences, locationPreferences } = req.body;
-    
+
     if (!phoneNumber) {
       return res.status(400).json({ error: 'Phone number required' });
     }
+
+    const smsConfigured = !!(TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN && TWILIO_PHONE_NUMBER);
+    const verificationCode = Math.random().toString().slice(2, 8);
 
     let alert = await SMSJobAlert.findOne({ userId: req.user.userId, phoneNumber });
     if (alert) {
@@ -8794,6 +8797,10 @@ app.post('/api/alerts/sms/register', authenticateToken, async (req, res) => {
       alert.rolePreferences = rolePreferences || alert.rolePreferences;
       alert.locationPreferences = locationPreferences || alert.locationPreferences;
       alert.isActive = true;
+      if (smsConfigured) {
+        alert.phoneVerified = false;
+        alert.verificationCode = verificationCode;
+      }
     } else {
       alert = new SMSJobAlert({
         userId: req.user.userId,
@@ -8802,12 +8809,25 @@ app.post('/api/alerts/sms/register', authenticateToken, async (req, res) => {
         frequency,
         rolePreferences,
         locationPreferences,
-        verificationCode: Math.random().toString().slice(2, 8)
+        verificationCode: smsConfigured ? verificationCode : null,
+        phoneVerified: !smsConfigured,
+        isActive: true
       });
     }
 
     await alert.save();
-    return res.json({ success: true, alertId: alert._id, message: 'Verification code sent via SMS' });
+
+    if (smsConfigured) {
+      const alertTypeLabel = alertType === 'whatsapp' ? 'WhatsApp' : 'SMS';
+      await sendSMS({
+        to: phoneNumber,
+        message: `Your RoleRocket AI job alert verification code is: ${verificationCode}. Enter this code to activate your ${alertTypeLabel} alerts.`
+      });
+      return res.json({ success: true, alertId: alert._id, requiresVerification: true, message: 'Verification code sent via SMS' });
+    }
+
+    // SMS not configured — activate immediately without phone verification
+    return res.json({ success: true, alertId: alert._id, requiresVerification: false, verified: true });
   } catch (err) {
     console.error('SMS alert registration error:', err);
     return res.status(500).json({ error: 'Failed to register SMS alert' });
