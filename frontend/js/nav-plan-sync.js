@@ -78,31 +78,8 @@
     // Inject "My Profile" link if not already present in this nav.
     ensureProfileLink(nav);
 
-    // Hide cohort manager link by default — only revealed for institution accounts.
-    hideCohortManagerLink(nav);
-
     // Keep all tabs in a fixed canonical position regardless of current page.
     stabilizeNavOrder(nav);
-  }
-
-  function hideCohortManagerLink(nav) {
-    const target = nav || document.querySelector('#sidebarNav nav, .sidebar nav');
-    if (!target) return;
-    Array.from(target.querySelectorAll('a.sidebar-link-btn')).forEach(function (link) {
-      if (normalizePath(link.getAttribute('href') || '') === 'institution-cohort-manager.html') {
-        link.style.display = 'none';
-        link.setAttribute('data-nav-cohort', '1');
-      }
-    });
-  }
-
-  function upsertCohortManagerLink(isInstitution) {
-    const nav = document.querySelector('#sidebarNav nav, .sidebar nav');
-    if (!nav) return;
-    const link = Array.from(nav.querySelectorAll('a.sidebar-link-btn'))
-      .find(function (l) { return normalizePath(l.getAttribute('href') || '') === 'institution-cohort-manager.html'; });
-    if (!link) return;
-    link.style.display = isInstitution ? '' : 'none';
   }
 
   function stabilizeNavOrder(nav) {
@@ -276,10 +253,8 @@
       const data = await res.json();
       const plan = (data.user && data.user.plan) || 'free';
       const isAdmin = !!(data.user && data.user.isAdmin);
-      const isInstitution = !!(data.user && data.user.accountType === 'institution');
       badge.textContent = formatPlanLabel(plan);
       upsertAdminInvitesLink(isAdmin);
-      upsertCohortManagerLink(isInstitution);
     } catch (_) {
       upsertAdminInvitesLink(false);
       // Silently ignore — badge stays at default

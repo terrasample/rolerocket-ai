@@ -706,6 +706,79 @@ app.get('/api/institution/pilot-kpis', authenticateToken, async (req, res) => {
   }
 });
 
+// Redeem an institution access code — upgrades the authenticated user to an institution admin account
+app.post('/api/institution/redeem-access-code', authenticateToken, async (req, res) => {
+  try {
+    if (ensureDbReady(res, 'Redeem institution access code') !== true) return;
+
+    const rawCode = String(req.body?.code || '').trim();
+    const normalizedCode = normalizeInstitutionInviteCode(rawCode);
+    if (!normalizedCode) {
+      return res.status(400).json({ error: 'Access code is required.' });
+    }
+
+    // Validate the invite code
+    const invite = await InstitutionInvite.findOne({ code: normalizedCode, active: true }).lean();
+    if (!invite) {
+      return res.status(404).json({ error: 'Invalid or inactive access code. Please check the code and try again.' });
+    }
+    if (invite.expiresAt && new Date(invite.expiresAt) < new Date()) {
+      return res.status(400).json({ error: 'This access code has expired. Please contact your institution for a new code.' });
+    }
+    if (invite.usedCount >= invite.maxUses) {
+      return res.status(400).json({ error: 'This access code has reached its maximum number of uses.' });
+    }
+
+    const userId = req.user.userId;
+    const user = await User.findById(userId).select('accountType institutionName institutionId institutionInviteCode').lean();
+    if (!user) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    // Already an institution admin — no need to redeem
+    if (user.accountType === 'institution') {
+      return res.status(400).json({ error: 'Your account is already an institution account.' });
+    }
+
+    const trialEndsAt = invite.activationType === 'trial'
+      ? new Date(Date.now() + (invite.accessDays || 30) * 24 * 60 * 60 * 1000)
+      : null;
+
+    // Upgrade user to institution admin
+    await User.updateOne({ _id: userId }, {
+      $set: {
+        accountType: 'institution',
+        institutionName: invite.institutionName,
+        institutionId: invite.institutionId || null,
+        institutionInviteCode: normalizedCode,
+        institutionAccessType: invite.activationType,
+        institutionLicensedPlan: invite.includedPlan,
+        institutionTrialStartsAt: invite.activationType === 'trial' ? new Date() : null,
+        institutionTrialEndsAt: trialEndsAt,
+        plan: invite.includedPlan,
+        isSubscribed: invite.activationType === 'paid' ? true : undefined,
+      }
+    });
+
+    // Record usage on the invite
+    await InstitutionInvite.updateOne({ _id: invite._id }, {
+      $inc: { usedCount: 1 },
+      $set: { lastUsedAt: new Date(), lastUsedByUserId: userId }
+    });
+
+    return res.json({
+      success: true,
+      institutionName: invite.institutionName,
+      activationType: invite.activationType,
+      plan: invite.includedPlan,
+      trialEndsAt
+    });
+  } catch (err) {
+    console.error('POST /api/institution/redeem-access-code', err);
+    return res.status(500).json({ error: 'Server error. Please try again.' });
+  }
+});
+
 // Start the Express server
 // Start the Express server (must be at the end)
 // Start the Express server (must be at the end)
