@@ -865,7 +865,7 @@
 
               var buildExpandedScoutLocations = function(baseLocation) {
                 var seed = String(baseLocation || '').trim();
-                if (!seed) return ['United States'];
+                if (!seed) return ['Remote'];
 
                 var normalized = seed.toLowerCase();
                 var locations = [seed];
@@ -888,8 +888,10 @@
                   ]);
                 }
 
-                if (!forcedJamaicaMode && normalized !== 'united states' && normalized.indexOf('remote') === -1) {
-                  locations.push('United States');
+                // Add Remote as a secondary source but never bare "United States"
+                // which pulls in geographically irrelevant results (Hawaii, Alaska, territories).
+                if (!forcedJamaicaMode && normalized.indexOf('remote') === -1) {
+                  locations.push('Remote');
                 }
 
                 var seen = new Set();
@@ -951,6 +953,19 @@
                   if (seenScoutJobs.has(key)) return false;
                   seenScoutJobs.add(key);
                   return true;
+                });
+              }
+
+              // Remove geographically irrelevant outlier locations unless the user
+              // is specifically targeting them.
+              var OUTLIER_REGIONS = ['hawaii', 'alaska', 'wake island', 'guam', 'puerto rico', 'virgin islands', 'american samoa', 'northern mariana'];
+              var userTargetsOutlier = OUTLIER_REGIONS.some(function(r) {
+                return scoutLocation.toLowerCase().indexOf(r) !== -1;
+              });
+              if (!userTargetsOutlier) {
+                scoutJobs = scoutJobs.filter(function(job) {
+                  var loc = String(job && job.location || '').toLowerCase();
+                  return !OUTLIER_REGIONS.some(function(r) { return loc.indexOf(r) !== -1; });
                 });
               }
 
