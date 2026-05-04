@@ -106,6 +106,54 @@ const DISPLAY_CANONICAL_MAP = new Map([
   ['projects simultaneously', 'multi project management']
 ]);
 
+const LEADING_ACTION_WORDS = new Set([
+  'leads', 'lead', 'manages', 'manage', 'supports', 'support', 'identifies', 'identify',
+  'facilitates', 'facilitate', 'provides', 'provide', 'verifies', 'verify',
+  'creates', 'create', 'demonstrates', 'demonstrate', 'demonstrating',
+  'coordinates', 'coordinate', 'ensures', 'ensure', 'prepares', 'prepare',
+  'completes', 'complete', 'develops', 'develop', 'updates', 'update',
+  'reviews', 'review', 'approves', 'approve', 'gathers', 'gather',
+  'evaluates', 'evaluate', 'disseminates', 'disseminate', 'investigates', 'investigate',
+  'retrains', 'retrain', 'confers', 'confer', 'employs', 'employ',
+  'participates', 'participate', 'interfaces', 'interface', 'obtains', 'obtain'
+]);
+
+const TRAILING_FILLER_WORDS = new Set([
+  'this', 'these', 'those', 'various', 'appropriate', 'overall', 'needed', 'as', 'well'
+]);
+
+function cleanExtractedPhrase(text) {
+  const normalized = normalizeText(text);
+  if (!normalized) return '';
+
+  const tokens = normalized.split(' ').filter(Boolean);
+  if (!tokens.length) return '';
+
+  // Remove leading stop/action words until the phrase starts at the requirement core.
+  let removed = true;
+  while (tokens.length > 2 && removed) {
+    removed = false;
+    if (LEADING_ACTION_WORDS.has(tokens[0])) {
+      tokens.shift();
+      removed = true;
+    }
+    if (tokens.length > 2 && STOP_WORDS.has(tokens[0])) {
+      tokens.shift();
+      removed = true;
+    }
+  }
+
+  // Remove weak trailing fillers that create awkward fragments.
+  while (tokens.length > 2 && (TRAILING_FILLER_WORDS.has(tokens[tokens.length - 1]) || STOP_WORDS.has(tokens[tokens.length - 1]))) {
+    tokens.pop();
+  }
+
+  if (tokens.length < 2) return '';
+  if (tokens.length > 8) return '';
+
+  return tokens.join(' ');
+}
+
 function toDisplayTerm(term) {
   const isMustHave = /\(must-have\)$/i.test(String(term || ''));
   const raw = String(term || '').replace(/\s*\(must-have\)$/i, '').trim();
@@ -349,15 +397,9 @@ function extractMustHaveTerms(jobDescription) {
     const parts = cleaned.split(/,|;|\//i).map((p) => p.trim()).filter(Boolean);
 
     for (const part of parts) {
-      const partTokens = tokenize(part).filter((w) => w.length >= 4 && !STOP_WORDS.has(w));
-      if (!partTokens.length) continue;
-
-      const phrase = partTokens.slice(0, 4).join(' ');
-      if (phrase.length >= 5) terms.push(phrase);
-
-      for (const token of partTokens) {
-        if (token.length >= 6) terms.push(token);
-      }
+      const phrase = cleanExtractedPhrase(part);
+      if (!phrase) continue;
+      terms.push(phrase);
     }
   }
 
@@ -401,8 +443,16 @@ function termMatchInText(term, text) {
 function buildTrueLikeTerms(jobDescription) {
   const jobTokens = tokenize(jobDescription);
   const keywords = uniqueOrdered(jobTokens.filter((w) => w.length >= 5 && !STOP_WORDS.has(w))).slice(0, 35);
-  const bigrams = uniqueOrdered(extractNGramsFromText(jobDescription, 2).filter((term) => !isLowSignalTerm(term))).slice(0, 20);
-  const trigrams = uniqueOrdered(extractNGramsFromText(jobDescription, 3).filter((term) => !isLowSignalTerm(term))).slice(0, 12);
+  const bigrams = uniqueOrdered(
+    extractNGramsFromText(jobDescription, 2)
+      .map(cleanExtractedPhrase)
+      .filter((term) => term && !isLowSignalTerm(term))
+  ).slice(0, 20);
+  const trigrams = uniqueOrdered(
+    extractNGramsFromText(jobDescription, 3)
+      .map(cleanExtractedPhrase)
+      .filter((term) => term && !isLowSignalTerm(term))
+  ).slice(0, 12);
   const mustHave = extractMustHaveTerms(jobDescription);
 
   const weightedTerms = [];
