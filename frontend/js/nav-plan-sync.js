@@ -101,8 +101,7 @@
       'pricing.html',
       'contact-us.html',
       'jamaica-workforce-accelerator.html',
-      'institution-cohort-manager.html',
-      'dashboard.html'
+      'institution-cohort-manager.html'
     ];
 
     // Keep core links before the plan divider in a fixed order.
@@ -119,6 +118,7 @@
     // Keep account-area links in a fixed order below plan badge and before logout.
     const accountOrder = [
       'profile.html',
+      'dashboard.html',
       'job-alerts-sms.html',
       'account.html',
       'admin-institution-invites.html'
