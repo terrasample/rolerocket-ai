@@ -566,6 +566,21 @@ h3,
   margin-top: 0;
   margin-bottom: 18px;
   letter-spacing: -0.02em;
+  height: 44px;
+  background-image: url('assets/rolerocket-logo-new.png');
+  background-repeat: no-repeat;
+  background-size: 44px 44px;
+  background-position: left center;
+  padding-left: 56px;
+  display: flex;
+  align-items: center;
+  font-size: 1.02rem;
+  font-weight: 800;
+}
+
+.sidebar h2::after {
+  content: 'RoleRocket AI';
+  color: #67e8f9;
 }
 
 .sidebar hr {

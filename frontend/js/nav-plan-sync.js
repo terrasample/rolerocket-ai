@@ -197,30 +197,9 @@
       const isAdmin = !!(data.user && data.user.isAdmin);
       badge.textContent = formatPlanLabel(plan);
       upsertAdminInvitesLink(isAdmin);
-      syncJamaicaNavLink(data.user);
     } catch (_) {
       upsertAdminInvitesLink(false);
       // Silently ignore — badge stays at default
-    }
-  }
-
-  function syncJamaicaNavLink(user) {
-    const nav = document.querySelector('#sidebarNav nav, .sidebar nav');
-    if (!nav) return;
-
-    // Detect Jamaica audience: explicit market param OR institutionName matches Caribbean institutions
-    const marketParam = new URLSearchParams(window.location.search).get('market');
-    const institutionName = String((user && user.institutionName) || '').toLowerCase();
-    const isJamaica = marketParam === 'jamaica' || /uwi|jamaica|heart|caribbean/.test(institutionName);
-
-    const jamaicaLink = Array.from(nav.querySelectorAll('a.sidebar-link-btn'))
-      .find((l) => normalizePath(l.getAttribute('href') || '') === 'jamaica-workforce-accelerator.html');
-
-    if (jamaicaLink) {
-      jamaicaLink.style.display = isJamaica ? '' : 'none';
-      // Also hide/show the section label
-      const sectionLabel = nav.querySelector('.sidebar-section-label[data-section="jamaica"]');
-      if (sectionLabel) sectionLabel.style.display = isJamaica ? '' : 'none';
     }
   }
 
