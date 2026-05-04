@@ -160,7 +160,7 @@ function normalizeInstitutionInviteCode(value) {
 
 function normalizeInstitutionActivationType(value) {
   const normalized = String(value || '').trim().toLowerCase();
-  return ['trial', 'pilot', 'paid'].includes(normalized) ? normalized : 'trial';
+  return ['trial', 'paid'].includes(normalized) ? normalized : 'trial';
 }
 
 function normalizeInstitutionIncludedPlan(value) {
@@ -170,7 +170,7 @@ function normalizeInstitutionIncludedPlan(value) {
 
 function isInstitutionTrialActive(actor) {
   const accessType = String(actor?.institutionAccessType || '').toLowerCase();
-  if (!actor || actor.accountType !== 'institution' || !['trial', 'pilot'].includes(accessType) || !actor.institutionTrialEndsAt) {
+  if (!actor || actor.accountType !== 'institution' || accessType !== 'trial' || !actor.institutionTrialEndsAt) {
     return false;
   }
   const endsAt = new Date(actor.institutionTrialEndsAt);
@@ -583,7 +583,7 @@ app.get('/api/admin/institution-invites', authenticateToken, requireAdminAccess,
     } else if (activeFilterRaw === 'false') {
       query.active = false;
     }
-    if (['trial', 'pilot', 'paid'].includes(activationTypeFilter)) {
+    if (['trial', 'paid'].includes(activationTypeFilter)) {
       query.activationType = activationTypeFilter;
     }
 

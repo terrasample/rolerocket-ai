@@ -145,7 +145,6 @@
               <label>Activation Type</label>
               <select id="aimActivationType">
                 <option value="trial" selected>Trial</option>
-                <option value="pilot">Pilot</option>
                 <option value="paid">Paid</option>
               </select>
             </div>
@@ -239,7 +238,6 @@
         <select id="aimFilterActivationType">
           <option value="">All types</option>
           <option value="trial">Trial</option>
-          <option value="pilot">Pilot</option>
           <option value="paid">Paid</option>
         </select>
         <button class="aim-btn-primary" style="padding:7px 16px;font-size:.85rem;" onclick="loadInvites()">Search</button>
@@ -284,13 +282,13 @@
     var el = function(id) { return document.getElementById(id); };
     if (el('aimInstName'))       el('aimInstName').value       = 'UWI Mona';
     if (el('aimOrgType'))        el('aimOrgType').value        = 'university';
-    if (el('aimActivationType')) el('aimActivationType').value = 'pilot';
+    if (el('aimActivationType')) el('aimActivationType').value = 'trial';
     if (el('aimIncludedPlan'))   el('aimIncludedPlan').value   = 'elite';
     if (el('aimTrialDays'))      el('aimTrialDays').value      = '30';
     if (el('aimMaxUses'))        el('aimMaxUses').value        = '150';
     if (el('aimCustomCode'))    el('aimCustomCode').value    = code;
     if (el('aimExpiresInDays')) el('aimExpiresInDays').value = '90';
-    if (el('aimNotes'))         el('aimNotes').value         = 'UWI Mona pilot — May 2026. Contact: Dean of Student Affairs. Cohort: final-year + internship-track students.';
+    if (el('aimNotes'))         el('aimNotes').value         = 'UWI Mona trial — May 2026. Contact: Dean of Student Affairs. Cohort: final-year + internship-track students.';
   }
 
   (function() {

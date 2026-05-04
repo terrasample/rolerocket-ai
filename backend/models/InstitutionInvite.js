@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const ORGANIZATION_TYPES = ['university', 'workplace', 'institution', 'other'];
-const ACTIVATION_TYPES = ['trial', 'pilot', 'paid'];
+const ACTIVATION_TYPES = ['trial', 'paid'];
 const INCLUDED_PLANS = ['free', 'pro', 'premium', 'elite', 'lifetime'];
 
 const InstitutionInviteSchema = new mongoose.Schema(
