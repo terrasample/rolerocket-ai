@@ -585,6 +585,8 @@
       var industries = [];
       var activityScore = 0;
       var outcomeScore = 0;
+      var PROFILE_DRAFT_KEY = 'rr_profile_draft_v1';
+      var currentUserId = '';
 
       // ── Helpers ─────────────────────────────────────────────────────────────
       function esc(s) {
@@ -599,6 +601,73 @@
         if (s >= 50) return 'Active';
         if (s >= 30) return 'Building';
         return 'Getting Started';
+      }
+
+      function snapshotFormState() {
+        return {
+          userId: currentUserId || '',
+          name: (document.getElementById('rrFieldName').value || '').trim(),
+          location: (document.getElementById('rrFieldLocation').value || '').trim(),
+          salaryMin: (document.getElementById('rrSalaryMin').value || '').trim(),
+          includeKeywords: keywords.slice(0, 12),
+          industries: industries.slice(0, 8),
+          seniorityLevels: Array.from(document.querySelectorAll('#rrSeniorityTags .rr-tag.active')).map(function (t) { return t.dataset.val; }),
+          workModes: Array.from(document.querySelectorAll('#rrWorkModeTags .rr-tag.active')).map(function (t) { return t.dataset.val; }),
+          employmentTypes: Array.from(document.querySelectorAll('#rrEmploymentTags .rr-tag.active')).map(function (t) { return t.dataset.val; }),
+          updatedAt: Date.now()
+        };
+      }
+
+      function persistDraft() {
+        try {
+          localStorage.setItem(PROFILE_DRAFT_KEY, JSON.stringify(snapshotFormState()));
+        } catch (_) {}
+      }
+
+      function loadDraft() {
+        try {
+          var raw = localStorage.getItem(PROFILE_DRAFT_KEY);
+          if (!raw) return null;
+          var parsed = JSON.parse(raw);
+          if (!parsed || typeof parsed !== 'object') return null;
+          if (currentUserId && parsed.userId && parsed.userId !== currentUserId) return null;
+          return parsed;
+        } catch (_) {
+          return null;
+        }
+      }
+
+      function clearDraft() {
+        try { localStorage.removeItem(PROFILE_DRAFT_KEY); } catch (_) {}
+      }
+
+      function applyTagSelection(containerId, values) {
+        var wanted = Array.isArray(values) ? values : [];
+        var tags = document.querySelectorAll('#' + containerId + ' .rr-tag');
+        tags.forEach(function (tag) {
+          var isOn = wanted.indexOf(tag.dataset.val) !== -1;
+          tag.classList.toggle('active', isOn);
+        });
+      }
+
+      function applyDraftToForm(draft) {
+        if (!draft) return;
+        var nameEl = document.getElementById('rrFieldName');
+        var locEl = document.getElementById('rrFieldLocation');
+        var salEl = document.getElementById('rrSalaryMin');
+
+        if (nameEl && typeof draft.name === 'string') nameEl.value = draft.name;
+        if (locEl && typeof draft.location === 'string') locEl.value = draft.location;
+        if (salEl && typeof draft.salaryMin === 'string') salEl.value = draft.salaryMin;
+
+        keywords = Array.isArray(draft.includeKeywords) ? draft.includeKeywords.slice(0, 12) : keywords;
+        industries = Array.isArray(draft.industries) ? draft.industries.slice(0, 8) : industries;
+        renderKeywordChips();
+        renderIndustryChips();
+
+        applyTagSelection('rrSeniorityTags', draft.seniorityLevels);
+        applyTagSelection('rrWorkModeTags', draft.workModes);
+        applyTagSelection('rrEmploymentTags', draft.employmentTypes);
       }
 
       function computeCompleteness() {
@@ -664,6 +733,7 @@
           if (!tag) return;
           tag.classList.toggle('active');
           updateStrengthDisplay();
+          persistDraft();
         });
       }
       bindTagGroup('rrSeniorityTags');
@@ -673,7 +743,20 @@
       // ── Live update on location change ────────────────────────────────────
       var locField = document.getElementById('rrFieldLocation');
       if (locField) {
-        locField.addEventListener('input', updateStrengthDisplay);
+        locField.addEventListener('input', function () {
+          updateStrengthDisplay();
+          persistDraft();
+        });
+      }
+
+      var nameField = document.getElementById('rrFieldName');
+      if (nameField) {
+        nameField.addEventListener('input', persistDraft);
+      }
+
+      var salaryField = document.getElementById('rrSalaryMin');
+      if (salaryField) {
+        salaryField.addEventListener('input', persistDraft);
       }
 
       // ── Keyword chips ───────────────────────────────────────────────────────
@@ -692,6 +775,7 @@
         keywords.push(trimmed);
         renderKeywordChips();
         updateStrengthDisplay();
+        persistDraft();
         return true;
       }
 
@@ -711,6 +795,7 @@
         keywords.splice(Number(btn.dataset.ki), 1);
         renderKeywordChips();
         updateStrengthDisplay();
+        persistDraft();
       });
 
       // ── Industry chips ──────────────────────────────────────────────────────
@@ -729,6 +814,7 @@
         industries.push(trimmed);
         renderIndustryChips();
         updateStrengthDisplay();
+        persistDraft();
         return true;
       }
 
@@ -748,6 +834,7 @@
         industries.splice(Number(btn.dataset.ii), 1);
         renderIndustryChips();
         updateStrengthDisplay();
+        persistDraft();
       });
 
       // ── Load saved data ─────────────────────────────────────────────────────
@@ -769,6 +856,7 @@
           if (meRes.ok) {
             var meData = await meRes.json();
             var u = meData.user || {};
+            currentUserId = String(u._id || u.id || u.email || '');
             var nameField = document.getElementById('rrFieldName');
             if (nameField && u.name) nameField.value = u.name;
             var welcomeEl = document.getElementById('rrProfileWelcome');
@@ -835,6 +923,7 @@
 
         } catch (_e) {}
 
+        applyDraftToForm(loadDraft());
         updateStrengthDisplay();
       }
 
@@ -886,6 +975,7 @@
           var allOk = results.every(function (r) { return r.ok; });
 
           if (allOk) {
+            clearDraft();
             var msgEl = document.getElementById('rrSaveMsg');
             if (msgEl) {
               msgEl.classList.add('visible');
