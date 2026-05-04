@@ -44,7 +44,7 @@
   }
 
   function decorateSidebarNav() {
-    const nav = document.querySelector('#sidebarNav nav, .sidebar nav');
+    const nav = document.querySelector('#sidebarNav nav, .sidebar nav, #sidebarNav, .sidebar');
     if (!nav) return;
 
     const allLinks = Array.from(nav.querySelectorAll('a.sidebar-link-btn'));
@@ -100,7 +100,8 @@
       'ai-recruiter-assist.html',
       'pricing.html',
       'contact-us.html',
-      'jamaica-workforce-accelerator.html'
+      'jamaica-workforce-accelerator.html',
+      'institution-cohort-manager.html'
     ];
 
     const firstSecondaryLink =
@@ -125,7 +126,6 @@
 
     // Keep account-area links in a fixed order below plan badge and before logout.
     const accountOrder = [
-      'institution-cohort-manager.html',
       'profile.html',
       'dashboard.html',
       'job-alerts-sms.html',
@@ -193,7 +193,7 @@
   }
 
   function upsertAdminInvitesLink(isAdmin) {
-    const nav = document.querySelector('#sidebarNav nav, .sidebar nav');
+    const nav = document.querySelector('#sidebarNav nav, .sidebar nav, #sidebarNav, .sidebar');
     if (!nav) return;
 
     let adminLink = nav.querySelector('a.sidebar-link-btn[data-nav-admin="1"]')
