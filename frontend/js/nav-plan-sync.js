@@ -106,13 +106,12 @@
       existing.className = 'sidebar-link-btn';
       existing.href = 'profile.html';
 
-      // Insert before Jamaica Hub, or before account.html, or append as fallback.
+      // Insert before Jamaica Hub section label, or before the Jamaica link, or before account, or append as fallback.
+      const jamaicaLabel = nav.querySelector('.sidebar-section-label[data-section="jamaica"]');
       const jamaicaLink = Array.from(nav.querySelectorAll('a.sidebar-link-btn'))
         .find((l) => normalizePath(l.getAttribute('href') || '') === 'jamaica-workforce-accelerator.html');
       const accountLink = Array.from(nav.querySelectorAll('a.sidebar-link-btn'))
         .find((l) => normalizePath(l.getAttribute('href') || '') === 'account.html');
-      // Also check for the Jamaica section label so we insert before it
-      const jamaicaLabel = nav.querySelector('.nav-section-label[data-section="jamaica"]');
       const anchor = jamaicaLabel || jamaicaLink || accountLink;
       if (anchor) {
         nav.insertBefore(existing, anchor);
