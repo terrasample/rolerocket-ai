@@ -815,7 +815,37 @@
                   return v.trim();
                 };
 
+                var parseSalaryNumber = function(value) {
+                  if (value == null) return 0;
+                  if (typeof value === 'number') return Number(value) || 0;
+                  var raw = String(value || '').toLowerCase().replace(/,/g, '');
+                  var multiplier = raw.indexOf('k') !== -1 ? 1000 : 1;
+                  var parsed = parseFloat(raw.replace(/[^0-9.]/g, ''));
+                  return isNaN(parsed) ? 0 : Math.round(parsed * multiplier);
+                };
+
+                var jobMeetsSalaryFloor = function(job) {
+                  if (!(prefSalaryMin > 0)) return true;
+
+                  var jobSalaryMax = Number((job.salaryRange && job.salaryRange.max) || job.salaryMax || 0);
+                  var jobSalaryMin = Number((job.salaryRange && job.salaryRange.min) || job.salaryMin || 0);
+
+                  if (jobSalaryMax <= 0 && jobSalaryMin <= 0) {
+                    var parsedSalary = parseSalaryNumber(job.salary || job.compensation || '');
+                    if (parsedSalary > 0) {
+                      jobSalaryMax = parsedSalary;
+                    }
+                  }
+
+                  // If we cannot determine salary, hide it when a floor is set.
+                  if (jobSalaryMax <= 0 && jobSalaryMin <= 0) return false;
+
+                  return Math.max(jobSalaryMax, jobSalaryMin) >= prefSalaryMin;
+                };
+
                 var ranked = scoutJobs.map(function(job) {
+                  if (!jobMeetsSalaryFloor(job)) return null;
+
                   var haystack = [job.title, job.company, job.description, job.location].join(' ').toLowerCase();
                   var score = Number(job.matchScore || 0);
 
@@ -839,22 +869,19 @@
                   }
 
                   if (prefSalaryMin > 0) {
-                    var jobSalaryMax = Number((job.salaryRange && job.salaryRange.max) || 0);
-                    var jobSalaryMin = Number((job.salaryRange && job.salaryRange.min) || 0);
-                    if (jobSalaryMax > 0 && jobSalaryMax < prefSalaryMin) {
-                      score -= 60; // strongly penalise below-target roles
-                    } else if (jobSalaryMin >= prefSalaryMin) {
+                    var matchedFloorMin = Number((job.salaryRange && job.salaryRange.min) || 0);
+                    if (matchedFloorMin >= prefSalaryMin) {
                       score += 15; // bonus for confirmed salary-meets-target
                     }
                   }
 
                   return { job: job, score: score };
-                }).sort(function(a, b) { return b.score - a.score; });
+                }).filter(Boolean).sort(function(a, b) { return b.score - a.score; });
 
                 scopedJobs = ranked.slice(0, 3).map(function(item) { return item.job; });
               }
 
-              if (!scopedJobs.length) scopedJobs = jobs.slice(0, 3);
+              if (!scopedJobs.length) scopedJobs = jobs.filter(jobMeetsSalaryFloor).slice(0, 3);
 
               if (scopedJobs.length) {
                 list.innerHTML = scopedJobs.map(function(j) {
@@ -868,9 +895,17 @@
                     '<a class="rr-shot-apply" href="' + esc(applyLink) + '" target="_blank" rel="noopener noreferrer">Apply</a>' +
                   '</div>';
                 }).join('');
+              } else if (prefSalaryMin > 0) {
+                list.innerHTML = '<div class="rr-shot-row"><div><div class="title">No current matches meet your minimum salary</div><div class="meta">Lower your salary floor or broaden role/location preferences to see more matches.</div></div></div>';
               }
             } catch (_scoutErr) {
-              var fallback = jobs.slice(0, 3);
+              var fallback = jobs.filter(function(job) {
+                if (!(prefSalaryMin > 0)) return true;
+                var max = Number((job.salaryRange && job.salaryRange.max) || job.salaryMax || 0);
+                var min = Number((job.salaryRange && job.salaryRange.min) || job.salaryMin || 0);
+                if (max <= 0 && min <= 0) return false;
+                return Math.max(max, min) >= prefSalaryMin;
+              }).slice(0, 3);
               if (fallback.length) {
                 list.innerHTML = fallback.map(function(j) {
                   var applyLink = (j.link && /^https?:\/\//i.test(String(j.link).trim())) ? String(j.link).trim()
@@ -883,6 +918,8 @@
                     '<a class="rr-shot-apply" href="' + esc(applyLink) + '" target="_blank" rel="noopener noreferrer">Apply</a>' +
                   '</div>';
                 }).join('');
+              } else if (prefSalaryMin > 0) {
+                list.innerHTML = '<div class="rr-shot-row"><div><div class="title">No current matches meet your minimum salary</div><div class="meta">Lower your salary floor or broaden role/location preferences to see more matches.</div></div></div>';
               }
             }
           }
