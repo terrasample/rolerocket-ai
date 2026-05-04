@@ -898,6 +898,7 @@ const UserCredential = require('./models/UserCredential');
 const DiasporaEmployer = require('./models/DiasporaEmployer');
 const SMSJobAlert = require('./models/SMSJobAlert');
 const CommunityHub = require('./models/CommunityHub');
+const PlacementOutcome = require('./models/PlacementOutcome');
 
 const LEARNING_CATALOG_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const LEARNING_CATALOG_FAILURE_COOLDOWN_MS = 12 * 60 * 60 * 1000;
@@ -4666,6 +4667,51 @@ app.get('/api/outcomes/proof', authenticateToken, async (req, res) => {
   } catch (err) {
     console.error('Outcome proof error:', err);
     return res.status(500).json({ error: 'Failed to load outcome proof' });
+  }
+});
+
+// POST /api/outcomes/hired — student self-reports a job placement
+app.post('/api/outcomes/hired', authenticateToken, async (req, res) => {
+  try {
+    const { roleTitle, companyName, sourceOfJob, country, notes } = req.body || {};
+    if (!roleTitle || !String(roleTitle).trim()) {
+      return res.status(400).json({ error: 'roleTitle is required' });
+    }
+
+    // Look up user for institutionName context
+    const user = await User.findById(req.user.userId).select('name email institutionName').lean();
+
+    const outcome = new PlacementOutcome({
+      userId: req.user.userId,
+      roleTitle: String(roleTitle).trim().slice(0, 160),
+      status: 'hired',
+      hiredAt: new Date(),
+      sourceLayer: 'self-service',
+      institutionName: (user && user.institutionName) ? String(user.institutionName).trim() : '',
+      country: country ? String(country).trim().slice(0, 80) : 'Jamaica',
+      notes: [
+        companyName ? 'Company: ' + String(companyName).trim() : '',
+        sourceOfJob ? 'Found via: ' + String(sourceOfJob).trim() : '',
+        notes ? String(notes).trim() : ''
+      ].filter(Boolean).join(' | ').slice(0, 2000)
+    });
+    await outcome.save();
+
+    return res.json({ ok: true, outcomeId: outcome._id });
+  } catch (err) {
+    console.error('Outcome hired error:', err);
+    return res.status(500).json({ error: 'Failed to record outcome' });
+  }
+});
+
+// GET /api/outcomes/hired — get the user's own hire records
+app.get('/api/outcomes/hired', authenticateToken, async (req, res) => {
+  try {
+    const outcomes = await PlacementOutcome.find({ userId: req.user.userId, status: 'hired' })
+      .sort({ hiredAt: -1 }).limit(10).lean();
+    return res.json({ outcomes });
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to load outcomes' });
   }
 });
 

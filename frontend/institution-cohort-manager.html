@@ -356,6 +356,15 @@
             <div class="kpi-label">Invite Codes Used</div>
             <div class="kpi-sub" id="kpiInviteUsedSub">of available slots</div>
           </div>
+          <div class="kpi-card">
+            <span class="kpi-num kpi-green" id="kpiHiredCount">—</span>
+            <div class="kpi-label">Employment Outcomes</div>
+            <div class="kpi-sub" id="kpiHiredSub">students who reported being hired</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;">
+          <button type="button" class="icm-demo-btn alt" id="icmExportKpiCsvBtn">📊 Export KPI Report (CSV)</button>
+          <button type="button" class="icm-demo-btn" id="icmPrintKpiBtn">🖨 Print KPI Report</button>
         </div>
       </div>
 
@@ -541,6 +550,21 @@
     </div>
   </div>
 
+  <style>
+    @media print {
+      .sidebar, .icm-tab-nav, .icm-demo-actions, .icm-controls, .icm-bulk-bar,
+      .icm-panel:not(.active), .icm-onboard-banner, .icm-workspace, .icm-wizard-overlay,
+      .mobile-menu-btn, .sidebar-overlay, button:not(.no-print-hide) { display: none !important; }
+      .kpi-panel { border: 1px solid #ddd !important; background: #fff !important; color: #111 !important; }
+      .kpi-num { color: #1e3a8a !important; }
+      .kpi-label { color: #111 !important; }
+      .kpi-sub { color: #555 !important; }
+      .kpi-panel-title { color: #1e3a8a !important; }
+      body { background: #fff !important; color: #111 !important; }
+      .main { padding: 0 !important; }
+      .icm-hero { background: #1e3a8a !important; }
+    }
+  </style>
   <script src="js/auth-storage.js"></script>
   <script src="js/api-base.js"></script>
   <script src="js/nav-plan-sync.js"></script>
@@ -625,6 +649,8 @@
       document.getElementById('kpiInviteUsed').textContent = '148 / 200';
       document.getElementById('kpiInviteUsedSub').textContent = '3 active codes';
       document.getElementById('kpiLastUpdated').textContent = '· demo snapshot for UWI presentation';
+      document.getElementById('kpiHiredCount').textContent = '34';
+      document.getElementById('kpiHiredSub').textContent = '23% hired within 90 days of using RoleRocket AI';
 
       var noResume = {
         count: 11,
@@ -979,6 +1005,46 @@
       document.getElementById('icmSelectAll').checked=false;
       updateBulkBar();
     });
+
+    // ── KPI CSV Export ──
+    function exportKpiCsv() {
+      var inst = institutionName || 'Institution';
+      var date = new Date().toLocaleDateString('en-JM');
+      var rows = [
+        ['KPI Report — ' + inst, date],
+        [],
+        ['Metric', 'Value', 'Notes'],
+        ['Activation Rate',     getText('kpiActivationRate'), getText('kpiActivationSub')],
+        ['Weekly Active Users', getText('kpiWeeklyActive'),   getText('kpiWeeklyActiveSub')],
+        ['Week 3 Retention',    getText('kpiRetentionW3'),    getText('kpiRetentionW3Sub')],
+        ['Week 4 Retention',    getText('kpiRetentionW4'),    getText('kpiRetentionW4Sub')],
+        ['Career Readiness Actions', getText('kpiCareerActions'), getText('kpiCareerActionsSub')],
+        ['Invite Codes Used',   getText('kpiInviteUsed'),     getText('kpiInviteUsedSub')],
+        ['Employment Outcomes', getText('kpiHiredCount'),     getText('kpiHiredSub')],
+        [],
+        ['Total Students',  getText('icmStatTotal')],
+        ['Subscribed',      getText('icmStatSubscribed')],
+        ['Free Tier',       getText('icmStatFree')],
+        ['Active (7 days)', getText('icmStatActiveWeek')]
+      ];
+      function getText(id) { var el=document.getElementById(id); return el?el.textContent.trim():'—'; }
+      var csv = rows.map(function(r){
+        return r.map(function(c){ return '"'+String(c||'').replace(/"/g,'""')+'"'; }).join(',');
+      }).join('\n');
+      var blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'kpi-report-' + (inst||'cohort').replace(/\s+/g,'-').toLowerCase() + '-' + new Date().toISOString().slice(0,10) + '.csv';
+      a.click();
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 5000);
+    }
+
+    var kpiCsvBtn = document.getElementById('icmExportKpiCsvBtn');
+    if (kpiCsvBtn) kpiCsvBtn.addEventListener('click', exportKpiCsv);
+
+    var printBtn = document.getElementById('icmPrintKpiBtn');
+    if (printBtn) printBtn.addEventListener('click', function(){ window.print(); });
 
     function exportCSV(students, filename) {
       if (!students.length) { alert('No students to export.'); return; }
