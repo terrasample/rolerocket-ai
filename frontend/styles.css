@@ -3461,9 +3461,10 @@ pre {
 
 .login-title-with-logo {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 10px;
+  flex-direction: row;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: nowrap;
 }
 
 .login-title-logo {
@@ -3612,6 +3613,7 @@ pre {
   font-size: 1.02rem;
   line-height: 1.6;
   max-width: 620px;
+  margin-top: 2px;
 }
 
 .auth-proof-row {
