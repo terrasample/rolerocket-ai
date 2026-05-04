@@ -359,16 +359,29 @@ function renderTags(containerId, items, emptyMessage) {
   const container = document.getElementById(containerId);
   if (!container) return;
 
+  const isMatchedList = containerId === 'matchedKeywords';
+  const isMissingList = containerId === 'missingKeywords';
+
+  const explainer = isMatchedList
+    ? '<div style="font-size:0.9em;color:#64748b;margin-bottom:10px;line-height:1.5;">Matched keywords are job-description terms that were found in your resume text after normalization. It is possible to have zero matches if wording is very different.</div>'
+    : (isMissingList
+      ? '<div style="font-size:0.9em;color:#64748b;margin-bottom:10px;line-height:1.5;">Missing keywords are terms the ATS extractor expects from the job description but did not detect in your resume. Some extracted phrases can look awkward; use them as guidance, not exact copy-and-paste text.</div>'
+      : '');
+
   if (!items || !items.length) {
-    container.innerHTML = `<div class="urgency-empty">${emptyMessage}</div>`;
+    const matchedEmptyNote = isMatchedList
+      ? '<div style="margin-top:8px;font-size:0.88em;color:#64748b;line-height:1.45;">Try adding explicit role terms from the job description into your summary, experience bullets, and skills section.</div>'
+      : '';
+    container.innerHTML = `${explainer}<div class="urgency-empty">${emptyMessage}</div>${matchedEmptyNote}`;
     return;
   }
 
   container.innerHTML = `
+    ${explainer}
     <ol style="margin:0;padding-left:20px;display:grid;gap:8px;">
       ${items.map((item) => `
-        <li style="font-size:0.95em;line-height:1.5;color:#0f172a;">
-          <span style="display:inline-block;background:#f8fafc;border:1px solid #e2e8f0;border-radius:999px;padding:4px 10px;font-weight:600;">${item}</span>
+        <li style="font-size:0.95em;line-height:1.5;color:#0f172a;overflow-wrap:anywhere;">
+          <span style="display:inline-block;max-width:100%;background:#f8fafc;border:1px solid #e2e8f0;border-radius:999px;padding:4px 10px;font-weight:600;white-space:normal;overflow-wrap:anywhere;word-break:break-word;">${item}</span>
         </li>
       `).join('')}
     </ol>
@@ -471,6 +484,7 @@ function renderScoreBreakdown(analysis) {
       <div>Section health: <strong>${b.sectionHealth || 0}</strong> / 10</div>
       <div>Formatting health: <strong>${b.formattingHealth || 0}</strong> / 15</div>
       <div>Depth bonus: <strong>${b.depthBonus || 0}</strong> / 2</div>
+      <div style="margin-top:6px;color:#64748b;">A zero matched-keyword result means the analyzer could not find overlapping terms between the job description and your resume wording. This is common when phrasing differs even if experience is relevant.</div>
       <div style="margin-top:6px;color:#64748b;">Final ATS score is rounded to the nearest whole number.</div>
     `;
     return;
@@ -483,6 +497,7 @@ function renderScoreBreakdown(analysis) {
     <div>Section score: <strong>${b.sectionScore || 0}</strong> / 20</div>
     <div>Formatting score: <strong>${b.formattingScore || 0}</strong> / 15</div>
     <div>Depth score: <strong>${b.depthScore || 0}</strong></div>
+    <div style="margin-top:6px;color:#64748b;">A zero matched-keyword result means the analyzer could not find overlapping terms between the job description and your resume wording. This can happen when equivalent skills are written with different phrasing.</div>
     <div style="margin-top:6px;color:#64748b;">Final ATS score is rounded to the nearest whole number.</div>
   `;
 }

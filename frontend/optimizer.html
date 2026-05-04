@@ -8,6 +8,50 @@
   <link rel="icon" type="image/png" href="assets/rolerocket-logo-new.png" />
   <link rel="stylesheet" href="styles.css" />
   <script src="js/jspdf-loader.js"></script>
+  <style>
+    .ats-container {
+      max-width: 1120px;
+      width: min(1120px, calc(100% - 24px));
+      margin: 0 auto 28px;
+      box-sizing: border-box;
+      overflow-x: clip;
+    }
+
+    .ats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .tag-container,
+    .tag-container ol,
+    .tag-container li {
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+
+    .ats-score-section,
+    .score-circle {
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+
+    @media (max-width: 860px) {
+      .ats-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .ats-container {
+        width: calc(100% - 12px);
+      }
+
+      .card {
+        padding: 14px;
+      }
+    }
+  </style>
 </head>
 <body>
   <a class="skip-link" href="#optimizerMain">Skip to main content</a>
