@@ -160,6 +160,18 @@
         <input class="alerts-input" type="text" id="alertLocations" placeholder="e.g. New York, London, Remote" />
       </div>
 
+      <div class="alerts-field">
+        <label for="alertRadius">Search Radius <span style="color:#64748b;font-weight:400;">(from your preferred location)</span></label>
+        <select class="alerts-select" id="alertRadius">
+          <option value="25">25 miles</option>
+          <option value="50">50 miles</option>
+          <option value="100" selected>100 miles</option>
+          <option value="150">150 miles</option>
+          <option value="200">200 miles</option>
+          <option value="500">Nationwide / any distance</option>
+        </select>
+      </div>
+
       <button class="alerts-btn" id="alertRegisterBtn" type="button">Register Alerts</button>
       <div class="alerts-status" id="alertRegStatus"></div>
 
@@ -231,6 +243,8 @@
       const frequency = document.getElementById('alertFrequency').value;
       const roles     = document.getElementById('alertRoles').value.split(',').map(s => s.trim()).filter(Boolean);
       const locations = document.getElementById('alertLocations').value.split(',').map(s => s.trim()).filter(Boolean);
+      const searchRadius = Number(document.getElementById('alertRadius').value) || 100;
+      const primaryLocation = locations[0] || '';
 
       if (!phone) { setStatus('alertRegStatus', 'Please enter your phone number.', 'error'); return; }
 
@@ -242,10 +256,21 @@
         const res = await fetch(apiUrl('/api/alerts/sms/register'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` },
-          body: JSON.stringify({ phoneNumber: phone, alertType, frequency, rolePreferences: roles, locationPreferences: locations })
+          body: JSON.stringify({ phoneNumber: phone, alertType, frequency, rolePreferences: roles, locationPreferences: locations, searchRadius })
         });
         const data = await res.json();
         if (!res.ok) { setStatus('alertRegStatus', data.error || 'Registration failed.', 'error'); btn.disabled = false; btn.textContent = 'Register Alerts'; return; }
+
+        // Save location + radius to job-alert defaults so the dashboard scout uses them.
+        if (primaryLocation || searchRadius) {
+          try {
+            await fetch(apiUrl('/api/job-alerts/defaults'), {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` },
+              body: JSON.stringify({ location: primaryLocation || 'Remote', searchRadius, includeKeywords: roles, frequency })
+            });
+          } catch (_) { /* non-critical — don't block the main flow */ }
+        }
 
         if (data.verified || !data.requiresVerification) {
           // SMS not configured server-side — alert is active immediately, no code needed
@@ -304,6 +329,33 @@
       if (role) document.getElementById('alertRoles').value = role;
       const loc = params.get('location');
       if (loc) document.getElementById('alertLocations').value = loc;
+    })();
+
+    // ── Pre-fill from saved job-alert defaults ────────────────────────────
+    (async function() {
+      try {
+        const tok = token();
+        if (!tok) return;
+        const res = await fetch(apiUrl('/api/job-alerts/defaults'), {
+          headers: { Authorization: `Bearer ${tok}` }
+        });
+        if (!res.ok) return;
+        const jad = await res.json();
+        if (jad.location && !document.getElementById('alertLocations').value) {
+          document.getElementById('alertLocations').value = jad.location;
+        }
+        if (jad.searchRadius) {
+          const sel = document.getElementById('alertRadius');
+          const opt = [...sel.options].find(o => Number(o.value) === Number(jad.searchRadius));
+          if (opt) sel.value = String(jad.searchRadius);
+        }
+        if (jad.includeKeywords && jad.includeKeywords.length && !document.getElementById('alertRoles').value) {
+          document.getElementById('alertRoles').value = jad.includeKeywords.join(', ');
+        }
+        if (jad.frequency) {
+          document.getElementById('alertFrequency').value = jad.frequency;
+        }
+      } catch (_) { /* non-critical */ }
     })();
   </script>
 </body>

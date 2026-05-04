@@ -857,7 +857,8 @@
               var primaryScoutTitle = scoutTitles.length ? scoutTitles[0] : 'Software Engineer';
 
               var scoutLocation = forcedJamaicaMode ? 'Jamaica'
-                : (jad.location && jad.location !== 'Remote') ? jad.location : 'United States';
+                : (jad.location && jad.location !== 'Remote') ? jad.location : 'Remote';
+              var scoutRadiusMiles = Number(jad.searchRadius) > 0 ? Number(jad.searchRadius) : 100;
 
               if (panelLink && !forcedJamaicaMode) {
                 panelLink.href = 'job-search.html?query=' + encodeURIComponent(primaryScoutTitle) + '&location=' + encodeURIComponent(scoutLocation) + '&source=market';
@@ -923,7 +924,7 @@
               if (scoutRequests.length > 24) scoutRequests = scoutRequests.slice(0, 24);
 
               var scoutResponses = await Promise.all(scoutRequests.map(function(request) {
-                return fetch(apiUrl('/api/jobs/scout?title=' + encodeURIComponent(request.title) + '&location=' + encodeURIComponent(request.location) + '&preferences=' + encodeURIComponent(profilePreferenceText)), {
+                return fetch(apiUrl('/api/jobs/scout?title=' + encodeURIComponent(request.title) + '&location=' + encodeURIComponent(request.location) + '&preferences=' + encodeURIComponent(profilePreferenceText) + '&radius=' + encodeURIComponent(String(scoutRadiusMiles))), {
                   headers: { Authorization: 'Bearer ' + token }
                 }).then(function(res) {
                   return { ok: res.ok, res: res, location: request.location, title: request.title };

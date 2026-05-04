@@ -2044,13 +2044,18 @@ function locationToAdzunaCountries(location) {
   return [ADZUNA_COUNTRY];
 }
 
-async function fetchAdzunaJobs(title, location, resume) {
+async function fetchAdzunaJobs(title, location, resume, radiusMiles = 100) {
   if (!ADZUNA_APP_ID || !ADZUNA_APP_KEY) return [];
 
   const COUNTRY_LABELS = { gb: 'United Kingdom', us: 'United States', ca: 'Canada', au: 'Australia', de: 'Germany', fr: 'France', nz: 'New Zealand' };
   const countries = locationToAdzunaCountries(location);
   const ADZUNA_PAGES = 4;
   const ADZUNA_RESULTS_PER_PAGE = 50;
+  // Adzuna uses km; 1 mile ≈ 1.60934 km. Only send where+distance when a specific
+  // city/region is given (not bare country names or Remote).
+  const radiusKm = Math.round(radiusMiles * 1.60934);
+  const locationLower = String(location || '').toLowerCase().trim();
+  const isBroadLocation = !locationLower || locationLower === 'remote' || locationLower === 'united states' || locationLower === 'united kingdom' || locationLower === 'canada' || locationLower === 'australia' || locationLower === 'jamaica';
 
   const adzunaRequests = [];
   countries.forEach((country) => {
@@ -2061,11 +2066,18 @@ async function fetchAdzunaJobs(title, location, resume) {
 
   const allResults = await Promise.allSettled(
     adzunaRequests.map(({ country, page }) => {
-      const url = `https://api.adzuna.com/v1/api/jobs/${country}/search/${page}?app_id=${encodeURIComponent(
-        ADZUNA_APP_ID
-      )}&app_key=${encodeURIComponent(ADZUNA_APP_KEY)}&results_per_page=${ADZUNA_RESULTS_PER_PAGE}&what=${encodeURIComponent(
-        title
-      )}&content-type=application/json`;
+      const params = new URLSearchParams({
+        app_id: ADZUNA_APP_ID,
+        app_key: ADZUNA_APP_KEY,
+        results_per_page: String(ADZUNA_RESULTS_PER_PAGE),
+        what: title,
+        'content-type': 'application/json'
+      });
+      if (!isBroadLocation) {
+        params.set('where', location);
+        params.set('distance', String(radiusKm));
+      }
+      const url = `https://api.adzuna.com/v1/api/jobs/${country}/search/${page}?${params.toString()}`;
       return fetchJson(url, {}, 2200).then((data) => ({ data, country }));
     })
   );
@@ -2659,13 +2671,13 @@ function getSourceConfigSnapshot() {
   };
 }
 
-function buildSourceTasks({ title, location, resume }) {
+function buildSourceTasks({ title, location, resume, radiusMiles = 100 }) {
   const q = String(location || '').trim().toLowerCase();
   const isJamaica = /\bjamaica\b/.test(q);
   const isCaribbean = /caribbean|trinidad|tobago|barbados|bahamas|aruba|antigua|st\.?\s*martin|saint\s*martin|sint\s*maarten|guyana|st\s*lucia|grenada|dominica|st\s*kitts|nevis|belize|suriname|cayman|bermuda|martinique|guadeloupe/.test(q);
 
   const tasks = [
-    timeoutPromise(fetchAdzunaJobs(title, location, resume), 7000),
+    timeoutPromise(fetchAdzunaJobs(title, location, resume, radiusMiles), 7000),
     timeoutPromise(fetchGreenhouseJobs(title, location, resume), 2200),
     timeoutPromise(fetchLeverJobs(title, location, resume), 2200),
     timeoutPromise(fetchRemotiveJobs(title, location, resume), 2500),
@@ -2696,7 +2708,8 @@ function buildSourceTasks({ title, location, resume }) {
 }
 
 async function fetchAllSourcesSettled({ title, location, resume }) {
-  return Promise.allSettled(buildSourceTasks({ title, location, resume }));
+async function fetchAllSourcesSettled({ title, location, resume, radiusMiles = 100 }) {
+  return Promise.allSettled(buildSourceTasks({ title, location, resume, radiusMiles }));
 }
 
 async function fetchJamaicaMarketFallbackJobs(title, resume) {
@@ -2725,7 +2738,7 @@ async function fetchJamaicaMarketFallbackJobs(title, resume) {
   }));
 }
 
-async function searchJobsFast({ title, location, resume }) {
+async function searchJobsFast({ title, location, resume, radiusMiles = 100 }) {
   const cacheKey = `${title}::${location}::${resume || ''}`.toLowerCase().trim();
   const cached = jobSearchCache.get(cacheKey);
 
@@ -2733,7 +2746,7 @@ async function searchJobsFast({ title, location, resume }) {
     return { jobs: cached.jobs, fromCache: true };
   }
 
-  const settled = await fetchAllSourcesSettled({ title, location, resume });
+  const settled = await fetchAllSourcesSettled({ title, location, resume, radiusMiles });
 
   const combined = [];
   settled.forEach((r) => {
@@ -2841,9 +2854,11 @@ function toAllowedList(value, allowed) {
 function normalizeJobAlertDefaults(input = {}) {
   const frequency = cleanAlertString(input.frequency || 'daily', 20).toLowerCase();
   const salaryMinRaw = Number(input.salaryMin);
+  const searchRadiusRaw = Number(input.searchRadius);
   return {
     location: cleanAlertString(input.location || 'Remote', 120) || 'Remote',
     frequency: JOB_ALERT_FREQUENCIES.includes(frequency) ? frequency : 'daily',
+    searchRadius: Number.isFinite(searchRadiusRaw) && searchRadiusRaw > 0 ? Math.min(Math.round(searchRadiusRaw), 500) : 100,
     workModes: toAllowedList((input.workModes || []).map ? input.workModes.map((item) => String(item).toLowerCase()) : input.workModes, JOB_ALERT_WORK_MODES),
     employmentTypes: toAllowedList((input.employmentTypes || []).map ? input.employmentTypes.map((item) => String(item).toLowerCase()) : input.employmentTypes, JOB_ALERT_EMPLOYMENT_TYPES),
     seniorityLevels: toAllowedList((input.seniorityLevels || []).map ? input.seniorityLevels.map((item) => String(item).toLowerCase()) : input.seniorityLevels, JOB_ALERT_SENIORITY_LEVELS),
@@ -7253,7 +7268,9 @@ app.get('/api/jobs/scout', async (req, res) => {
     const title = String(req.query.title || 'software engineer').trim();
     const location = String(req.query.location || 'remote').trim();
     const preferences = String(req.query.preferences || '').trim();
-    const { jobs } = await searchJobsFast({ title, location, resume: preferences });
+    const radiusRaw = Number(req.query.radius);
+    const radiusMiles = Number.isFinite(radiusRaw) && radiusRaw > 0 ? Math.min(Math.round(radiusRaw), 500) : 100;
+    const { jobs } = await searchJobsFast({ title, location, resume: preferences, radiusMiles });
     let topJobs = jobs;
     let thresholdSummary = null;
 
