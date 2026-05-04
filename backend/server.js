@@ -2997,24 +2997,25 @@ function jobMatchesRecommendationThresholds(job, thresholds) {
   if (Number(activeThresholds.salaryMin || 0) > 0) {
     const salaryMax = Number((job.salaryRange && job.salaryRange.max) || 0);
     const salaryMin = Number((job.salaryRange && job.salaryRange.min) || 0);
-    if (salaryMax <= 0 && salaryMin <= 0) {
-      return false;
-    }
-    if (Math.max(salaryMax, salaryMin) < Number(activeThresholds.salaryMin || 0)) {
+    // Do not reject jobs with missing salary metadata.
+    // Many feeds omit salary for otherwise valid postings.
+    if ((salaryMax > 0 || salaryMin > 0) && Math.max(salaryMax, salaryMin) < Number(activeThresholds.salaryMin || 0)) {
       return false;
     }
   }
 
   if (Array.isArray(activeThresholds.workModes) && activeThresholds.workModes.length) {
     const jobWorkModes = detectWorkModes(job);
-    if (!jobWorkModes.length || !jobWorkModes.some((item) => activeThresholds.workModes.includes(item))) {
+    // Only enforce when job work-mode metadata is actually present.
+    if (jobWorkModes.length && !jobWorkModes.some((item) => activeThresholds.workModes.includes(item))) {
       return false;
     }
   }
 
   if (Array.isArray(activeThresholds.employmentTypes) && activeThresholds.employmentTypes.length) {
     const jobEmployment = detectEmploymentTypes(job);
-    if (!jobEmployment.length || !jobEmployment.some((item) => activeThresholds.employmentTypes.includes(item))) {
+    // Only enforce when job employment-type metadata is actually present.
+    if (jobEmployment.length && !jobEmployment.some((item) => activeThresholds.employmentTypes.includes(item))) {
       return false;
     }
   }
