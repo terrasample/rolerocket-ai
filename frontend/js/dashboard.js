@@ -3054,10 +3054,379 @@ const interviewPrepBtn = document.getElementById('interviewPrepBtn');
 const interviewRoleInput = document.getElementById('interviewRole');
 const interviewJobDescriptionInput = document.getElementById('interviewJobDescription');
 
+/* ─── Interview Prep Two-Stage Renderers ─── */
+function renderInterviewPrepStage1(text, el) {
+  if (!el) return;
+  el.innerHTML = '';
+
+  const stage1 = document.createElement('div');
+  stage1.className = 'interview-stage stage-1';
+
+  const header = document.createElement('div');
+  header.className = 'stage-header';
+
+  const badge = document.createElement('span');
+  badge.className = 'stage-badge';
+  badge.textContent = '🎯 Stage 1: Strategy & Questions';
+
+  const title = document.createElement('h2');
+  title.className = 'stage-title';
+  title.textContent = 'Master the Likely Questions';
+
+  header.append(badge, title);
+  stage1.appendChild(header);
+
+  const desc = document.createElement('p');
+  desc.className = 'stage-description';
+  desc.textContent = 'Study these questions grouped by category, learn what themes the interviewer will explore, and prepare counter-questions to ask them. Then move to Stage 2 to craft your answers.';
+  stage1.appendChild(desc);
+
+  // Parse sections: look for major headings
+  const lines = String(text || '').split('\n');
+  let currentCategory = null;
+  let questionsByCategory = {};
+  let answerThemes = [];
+  let reverseQuestions = [];
+  let checklistItems = [];
+  let inChecklistMode = false;
+  let inReverseMode = false;
+
+  lines.forEach((rawLine) => {
+    const line = rawLine.trim();
+    if (!line) return;
+
+    // Detect mode switches
+    if (/question.*ask.*interviewer|reverse|counter.*question/i.test(line)) {
+      inReverseMode = true;
+      inChecklistMode = false;
+      return;
+    }
+    if (/24.*hour|prep.*checklist|final.*24/i.test(line)) {
+      inChecklistMode = true;
+      inReverseMode = false;
+      return;
+    }
+    if (/answer.*theme|theme.*answer/i.test(line)) {
+      inChecklistMode = false;
+      inReverseMode = false;
+      return;
+    }
+
+    // Parse category heading (e.g., "### Behavioral Questions")
+    if (/^#+\s+(.+)/i.test(line)) {
+      const match = line.match(/^#+\s+(.+)/);
+      const catName = match[1].trim();
+      currentCategory = catName;
+      if (!questionsByCategory[currentCategory]) {
+        questionsByCategory[currentCategory] = [];
+      }
+      inReverseMode = false;
+      inChecklistMode = false;
+      return;
+    }
+
+    // Collect questions by category
+    if (!inReverseMode && !inChecklistMode && currentCategory && /^\d+\.|^[-•*✦]/.test(line)) {
+      const cleanedQ = line.replace(/^\d+\.\s*/, '').replace(/^[-•*✦]\s*/, '');
+      if (cleanedQ.length > 10) {
+        questionsByCategory[currentCategory].push(cleanedQ);
+      }
+      return;
+    }
+
+    // Collect answer themes
+    if (!inReverseMode && !inChecklistMode && !currentCategory && /^\d+\.|^[-•*✦]/.test(line)) {
+      const cleanedTheme = line.replace(/^\d+\.\s*/, '').replace(/^[-•*✦]\s*/, '');
+      if (cleanedTheme.length > 5) {
+        answerThemes.push(cleanedTheme);
+      }
+      return;
+    }
+
+    // Collect reverse questions
+    if (inReverseMode && /^[-•*✦]/.test(line)) {
+      const cleanedRev = line.replace(/^[-•*✦]\s*/, '');
+      if (cleanedRev.length > 5) {
+        reverseQuestions.push(cleanedRev);
+      }
+      return;
+    }
+
+    // Collect checklist items
+    if (inChecklistMode && /^[-•*✦]|^✓|^☐/.test(line)) {
+      const cleanedItem = line.replace(/^[-•*✦]\s*/, '').replace(/^✓\s*/, '').replace(/^☐\s*/, '');
+      if (cleanedItem.length > 5) {
+        checklistItems.push(cleanedItem);
+      }
+      return;
+    }
+  });
+
+  // Render questions by category
+  if (Object.keys(questionsByCategory).length > 0) {
+    const categorySection = document.createElement('div');
+    categorySection.className = 'questions-by-category';
+
+    Object.entries(questionsByCategory).forEach(([catName, questions]) => {
+      const catDiv = document.createElement('div');
+      catDiv.className = 'category-section';
+
+      const catTitle = document.createElement('div');
+      catTitle.className = 'category-name';
+      catTitle.innerHTML = `<span style="color:#0ea5e9;font-size:1.2em;">📌</span> ${escapeHtml(catName)}`;
+
+      const questionsList = document.createElement('div');
+      questionsList.className = 'category-questions';
+
+      questions.forEach((q, idx) => {
+        const qDiv = document.createElement('div');
+        qDiv.className = 'question-item';
+        qDiv.innerHTML = `<span class="question-number">${idx + 1}.</span> ${escapeHtml(q)}`;
+        questionsList.appendChild(qDiv);
+      });
+
+      catDiv.append(catTitle, questionsList);
+      categorySection.appendChild(catDiv);
+    });
+
+    stage1.appendChild(categorySection);
+  }
+
+  // Render answer themes
+  if (answerThemes.length > 0) {
+    const themesDiv = document.createElement('div');
+    themesDiv.className = 'answer-themes-section';
+
+    const themesHeader = document.createElement('div');
+    themesHeader.className = 'themes-header';
+    themesHeader.textContent = '💡 Answer Themes';
+
+    themesDiv.appendChild(themesHeader);
+
+    answerThemes.slice(0, 8).forEach((theme) => {
+      const themeItem = document.createElement('div');
+      themeItem.className = 'theme-item';
+      themeItem.textContent = theme;
+      themesDiv.appendChild(themeItem);
+    });
+
+    stage1.appendChild(themesDiv);
+  }
+
+  // Render reverse questions
+  if (reverseQuestions.length > 0) {
+    const revDiv = document.createElement('div');
+    revDiv.className = 'reverse-questions-section';
+
+    const revHeader = document.createElement('div');
+    revHeader.className = 'reverse-header';
+    revHeader.innerHTML = '<span style="color:#0ea5e9;font-size:1.1em;">❓</span> Questions to Ask Them';
+
+    revDiv.appendChild(revHeader);
+
+    reverseQuestions.forEach((q) => {
+      const qDiv = document.createElement('div');
+      qDiv.className = 'reverse-question';
+      qDiv.textContent = q;
+      revDiv.appendChild(qDiv);
+    });
+
+    stage1.appendChild(revDiv);
+  }
+
+  // Render 24-hour checklist
+  if (checklistItems.length > 0) {
+    const checklistDiv = document.createElement('div');
+    checklistDiv.className = 'checklist-section';
+
+    const checklistHeader = document.createElement('div');
+    checklistHeader.className = 'checklist-header';
+    checklistHeader.innerHTML = '<span style="color:#10b981;font-size:1.1em;">⏰</span> Final 24 Hours Checklist';
+
+    checklistDiv.appendChild(checklistHeader);
+
+    const checklistItemsDiv = document.createElement('div');
+    checklistItemsDiv.className = 'checklist-items';
+
+    checklistItems.forEach((item) => {
+      const itemDiv = document.createElement('div');
+      itemDiv.className = 'checklist-item';
+      itemDiv.textContent = item;
+      checklistItemsDiv.appendChild(itemDiv);
+    });
+
+    checklistDiv.appendChild(checklistItemsDiv);
+    stage1.appendChild(checklistDiv);
+  }
+
+  el.appendChild(stage1);
+}
+
+function renderInterviewPrepStage2(text, el) {
+  if (!el) return;
+  el.innerHTML = '';
+
+  const stage2 = document.createElement('div');
+  stage2.className = 'interview-stage stage-2';
+
+  const header = document.createElement('div');
+  header.className = 'stage-header';
+
+  const badge = document.createElement('span');
+  badge.className = 'stage-badge';
+  badge.textContent = '🎤 Stage 2: Detailed Answers';
+
+  const title = document.createElement('h2');
+  title.className = 'stage-title';
+  title.textContent = 'Craft Your STAR/CAR Answers';
+
+  header.append(badge, title);
+  stage2.appendChild(header);
+
+  const desc = document.createElement('p');
+  desc.className = 'stage-description';
+  desc.textContent = 'Below is a detailed sample answer for each question using the STAR (Situation, Task, Action, Result) or CAR (Challenge, Action, Result) format. Practice these out loud to internalize your delivery.';
+  stage2.appendChild(desc);
+
+  // Parse detailed answers
+  const answerBlocks = [];
+  let currentBlock = null;
+  const lines = String(text || '').split('\n');
+
+  lines.forEach((rawLine) => {
+    const line = rawLine.trim();
+
+    // New question heading (e.g., "### Question 1:" or "**Q1: Tell me about...**")
+    if (/^#+\s*question|\*\*\s*q\d+:|^\d+\.\s+[A-Z"]/i.test(line)) {
+      if (currentBlock && currentBlock.question) {
+        answerBlocks.push(currentBlock);
+      }
+      currentBlock = {
+        question: line.replace(/^#+\s*/, '').replace(/\*\*/g, ''),
+        content: ''
+      };
+      return;
+    }
+
+    if (currentBlock && line) {
+      currentBlock.content += line + '\n';
+    }
+  });
+
+  if (currentBlock && currentBlock.question) {
+    answerBlocks.push(currentBlock);
+  }
+
+  // Render each answer block
+  answerBlocks.forEach((block, idx) => {
+    const answerDiv = document.createElement('div');
+    answerDiv.className = 'detailed-answer';
+
+    const questionDiv = document.createElement('div');
+    questionDiv.className = 'answer-question';
+    questionDiv.textContent = `Question ${idx + 1}: ${block.question}`;
+    answerDiv.appendChild(questionDiv);
+
+    // Parse the content to identify sections (Sample Answer, Why It Works, Metrics, Refinement)
+    const contentLines = block.content.split('\n').filter(Boolean);
+    let sectionType = null;
+    let sectionContent = [];
+
+    contentLines.forEach((contentLine) => {
+      // Detect section headers
+      if (/sample.*answer|star|car|situation.*task|challenge.*action/i.test(contentLine)) {
+        if (sectionContent.length > 0) {
+          appendAnswerSection(answerDiv, sectionType, sectionContent);
+        }
+        sectionType = 'sample';
+        sectionContent = [];
+        return;
+      }
+      if (/why.*work|impact|strength/i.test(contentLine)) {
+        if (sectionContent.length > 0) {
+          appendAnswerSection(answerDiv, sectionType, sectionContent);
+        }
+        sectionType = 'works';
+        sectionContent = [];
+        return;
+      }
+      if (/metric|result|number|data|concrete|achieved/i.test(contentLine)) {
+        if (sectionContent.length > 0) {
+          appendAnswerSection(answerDiv, sectionType, sectionContent);
+        }
+        sectionType = 'metrics';
+        sectionContent = [];
+        return;
+      }
+      if (/refinement|improvement|tip|delivery|practice|note/i.test(contentLine)) {
+        if (sectionContent.length > 0) {
+          appendAnswerSection(answerDiv, sectionType, sectionContent);
+        }
+        sectionType = 'refinement';
+        sectionContent = [];
+        return;
+      }
+
+      sectionContent.push(contentLine);
+    });
+
+    if (sectionContent.length > 0) {
+      appendAnswerSection(answerDiv, sectionType, sectionContent);
+    }
+
+    el.appendChild(answerDiv);
+  });
+
+  // If no detailed answers parsed, render raw text
+  if (answerBlocks.length === 0) {
+    const fallback = document.createElement('div');
+    fallback.className = 'answer-section-content';
+    fallback.textContent = text || 'No answer content available.';
+    stage2.appendChild(fallback);
+    el.appendChild(stage2);
+  }
+}
+
+function appendAnswerSection(parentDiv, sectionType, lines) {
+  const section = document.createElement('div');
+  section.className = 'answer-section';
+
+  const label = document.createElement('div');
+  label.className = 'answer-section-label';
+
+  const content = document.createElement('div');
+  content.className = 'answer-section-content';
+
+  const text = lines.join(' ').trim();
+
+  if (sectionType === 'sample') {
+    label.textContent = '📝 Sample Answer (STAR/CAR format)';
+    content.classList.add('star-answer');
+    content.textContent = text;
+  } else if (sectionType === 'works') {
+    label.textContent = '✓ Why This Answer Works';
+    content.classList.add('why-works');
+    content.textContent = text;
+  } else if (sectionType === 'metrics') {
+    label.textContent = '📊 Concrete Metric';
+    content.classList.add('metrics-line');
+    content.textContent = text;
+  } else if (sectionType === 'refinement') {
+    label.textContent = '💡 Refinement Tip';
+    content.classList.add('refinement-tip');
+    content.textContent = text;
+  } else {
+    content.textContent = text;
+  }
+
+  section.append(label, content);
+  parentDiv.appendChild(section);
+}
+
 function setInterviewPrepButtonMode(mode) {
   if (!interviewPrepBtn) return;
   interviewPrepBtn.dataset.mode = mode;
-  interviewPrepBtn.textContent = mode === 'answers' ? 'Generate Answers' : 'Generate Questions';
+  interviewPrepBtn.textContent = mode === 'answers' ? '🎤 Generate Answers' : '📋 Generate Questions';
 }
 
 interviewRoleInput?.addEventListener('input', () => {
@@ -3101,13 +3470,14 @@ interviewPrepBtn?.addEventListener('click', async () => {
     }, { retries: 0, timeoutMs: 45000 });
 
     const generatedText = data.result || 'No result returned.';
-    renderAIOutput(generatedText, result);
-
+    
     if (nextMode === 'questions') {
       lastInterviewPrepQuestions = generatedText;
+      renderInterviewPrepStage1(generatedText, result);
       setInterviewPrepButtonMode('answers');
       showToast('Questions generated. Next step: Generate Answers.', 'success');
     } else {
+      renderInterviewPrepStage2(generatedText, result);
       setInterviewPrepButtonMode('questions');
       showToast('Answers generated for your interview questions.', 'success');
     }
