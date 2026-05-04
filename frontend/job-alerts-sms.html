@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Job Alerts (SMS & WhatsApp) | RoleRocket AI</title>
+  <title>Job Alerts | RoleRocket AI</title>
   <link rel="stylesheet" href="styles.css" />
   <style>
     body, .main-content { background: #0c1120 !important; color: #e2e8f0; }
@@ -16,7 +16,7 @@
     .alerts-hero p { font-size: .97rem; opacity: .88; max-width: 580px; margin: 0 auto; }
     .alerts-card {
       background: #1e293b; border-radius: 16px; padding: 28px 32px;
-      max-width: 600px; margin: 0 auto 24px; border: 1px solid rgba(255,255,255,.07);
+      max-width: 100%; margin: 0 0 24px; border: 1px solid rgba(255,255,255,.07);
     }
     .alerts-card h2 { font-size: 1.05rem; font-weight: 700; margin: 0 0 18px; color: #e2e8f0; }
     .alerts-field { margin-bottom: 16px; }
@@ -110,12 +110,12 @@
 
     <div class="alerts-hero">
       <h1>📱 Job Alerts — SMS & WhatsApp</h1>
-      <p>Get instant job alerts sent directly to your phone. Choose SMS, WhatsApp, or both — and never miss an opportunity.</p>
+      <p>Get instant job alerts sent directly to your phone for any role, anywhere. Choose SMS, WhatsApp, or both — and never miss an opportunity.</p>
     </div>
 
     <!-- Alert type card -->
     <div class="alerts-card">
-      <div class="alerts-info-chip">🇯🇲 Jamaica & Caribbean alerts available</div>
+      <div class="alerts-info-chip">� Alerts available worldwide</div>
       <h2>Set Up Your Job Alerts</h2>
 
       <div class="alerts-field">
@@ -138,7 +138,7 @@
 
       <div class="alerts-field">
         <label for="alertPhone">Phone Number (include country code)</label>
-        <input class="alerts-input" type="tel" id="alertPhone" placeholder="+1876XXXXXXX" autocomplete="tel" />
+        <input class="alerts-input" type="tel" id="alertPhone" placeholder="+1XXXXXXXXXX" autocomplete="tel" />
       </div>
 
       <div class="alerts-field">
@@ -157,7 +157,7 @@
 
       <div class="alerts-field">
         <label for="alertLocations">Preferred Locations (comma-separated)</label>
-        <input class="alerts-input" type="text" id="alertLocations" placeholder="e.g. Kingston, Jamaica, Remote" />
+        <input class="alerts-input" type="text" id="alertLocations" placeholder="e.g. New York, London, Remote" />
       </div>
 
       <button class="alerts-btn" id="alertRegisterBtn" type="button">Register Alerts</button>
@@ -181,7 +181,7 @@
     <div class="alerts-card" id="alertSuccessCard" style="display:none;border-color:rgba(34,197,94,.35);">
       <h2 style="color:#22c55e;">✅ Job Alerts Active!</h2>
       <p style="color:#94a3b8;font-size:.92rem;">You'll receive job alerts matching your preferences. You can update or pause your alerts any time by returning to this page.</p>
-      <a href="jamaica-workforce-accelerator.html" class="alerts-btn" style="display:block;text-align:center;text-decoration:none;margin-top:14px;">🇯🇲 Back to Jamaica Workforce Accelerator</a>
+      <a href="dashboard.html" class="alerts-btn" style="display:block;text-align:center;text-decoration:none;margin-top:14px;">🧑‍💼 Go to My Dashboard</a>
     </div>
 
   </main>
@@ -239,7 +239,7 @@
       setStatus('alertRegStatus', 'Sending verification code…');
 
       try {
-        const res = await fetch(`${apiUrl()}/api/alerts/sms/register`, {
+        const res = await fetch(apiUrl('/api/alerts/sms/register'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` },
           body: JSON.stringify({ phoneNumber: phone, alertType, frequency, rolePreferences: roles, locationPreferences: locations })
@@ -270,7 +270,7 @@
       setStatus('alertVerifyStatus', 'Verifying…');
 
       try {
-        const res = await fetch(`${apiUrl()}/api/alerts/sms/verify`, {
+        const res = await fetch(apiUrl('/api/alerts/sms/verify'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` },
           body: JSON.stringify({ alertId: pendingAlertId, verificationCode: code })
