@@ -1,5 +1,5 @@
 (function initAuthStorage(global) {
-  const IDLE_TIMEOUT_MS = 5 * 60 * 1000;
+  const IDLE_TIMEOUT_MS = 60 * 60 * 1000; // 60 minutes
   const LAST_ACTIVITY_KEY = 'rr_last_activity_at';
 
   function safeGet(storage, key) {
@@ -54,7 +54,9 @@
 
   function isSessionExpired() {
     const last = readLastActivity();
-    if (!last) return hasAnyToken();
+    // If there is no stored timestamp, give the user the benefit of the doubt
+    // rather than treating the absence of a timestamp as an expired session.
+    if (!last) return false;
     return (nowMs() - last) > IDLE_TIMEOUT_MS;
   }
 
@@ -137,9 +139,10 @@
     if (!hasAnyToken()) return;
 
     if (!readLastActivity()) {
-      clearStoredToken();
-      redirectToSessionExpired();
-      return;
+      // No timestamp stored yet — write the current time rather than kicking the
+      // user out. This handles cases where the token was persisted but the
+      // activity timestamp was cleared (e.g. partial storage wipe).
+      writeLastActivity(nowMs());
     }
 
     ['mousedown', 'keydown', 'scroll', 'touchstart', 'click'].forEach(function (eventName) {

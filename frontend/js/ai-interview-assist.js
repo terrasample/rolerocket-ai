@@ -606,27 +606,9 @@ document.addEventListener('DOMContentLoaded', () => {
       setLiveButtons(true);
       setLiveStatus('Choose the interview tab or audio source and enable Share audio.', '#0f766e');
 
-      // Start browser speech recognition in parallel as a resilient fallback path.
-      if (window.AIInterviewAudio?.startLiveQuestionCapture) {
-        try {
-          window.AIInterviewAudio.startLiveQuestionCapture({
-            onInterim(text) {
-              if (!liveListenerEnabled || !text) return;
-              appendTranscriptForDetection(text);
-            },
-            onFinal(text) {
-              if (!liveListenerEnabled || !text) return;
-              appendTranscriptForDetection(text);
-            },
-            onError() {
-              // Ignore browser recognition errors and continue with shared audio capture.
-            }
-          });
-        } catch {
-          // Ignore unsupported/permission errors and continue with shared audio capture.
-        }
-      }
-
+      // Call getDisplayMedia first so the user gesture activation is not consumed
+      // by SpeechRecognition.start() beforehand — some browsers reject getDisplayMedia
+      // if another privileged API was already called in the same gesture chain.
       await window.AIInterviewAudio.startSharedAudioCapture({
         onChunk(blob) {
           queueLiveTranscription(blob);
@@ -654,6 +636,28 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         }
       });
+
+      // Start browser speech recognition AFTER getDisplayMedia has been granted,
+      // so its user-gesture requirement does not interfere with the display-media picker.
+      if (window.AIInterviewAudio?.startLiveQuestionCapture) {
+        try {
+          window.AIInterviewAudio.startLiveQuestionCapture({
+            onInterim(text) {
+              if (!liveListenerEnabled || !text) return;
+              appendTranscriptForDetection(text);
+            },
+            onFinal(text) {
+              if (!liveListenerEnabled || !text) return;
+              appendTranscriptForDetection(text);
+            },
+            onError() {
+              // Ignore browser recognition errors — shared audio capture is still running.
+            }
+          });
+        } catch {
+          // Ignore unsupported/permission errors.
+        }
+      }
     } catch (err) {
       liveListenerEnabled = false;
       setLiveButtons(false);
