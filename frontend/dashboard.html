@@ -298,7 +298,7 @@
         <div class="rr-shot-main">
             <div id="rrShotProfileHint" style="display:none;grid-column:1 / -1;align-self:start;margin:-4px 0 16px;padding:10px 14px;background:rgba(22,163,74,0.08);border-left:3px solid #16a34a;border-radius:6px;font-size:13px;color:#94a3b8;line-height:1.6;"></div>
           <article class="rr-shot-card">
-            <h3><span id="rrShotPanelTitle">Top Job Matches for You</span> <a href="job-tracking.html" class="rr-shot-viewall" id="rrShotPanelLink">View all</a></h3>
+            <h3><span id="rrShotPanelTitle">Top Job Matches for You</span> <a href="job-search.html?source=market" class="rr-shot-viewall" id="rrShotPanelLink">View all</a></h3>
             <div class="rr-shot-list" id="rrShotJobMatches">
               <div class="rr-shot-row">
                 <div>
@@ -744,13 +744,34 @@
           var esc = function(s){ return String(s).replace(/[&<>"]/g, function(c){ return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]); }); };
 
           var list = document.getElementById('rrShotJobMatches');
+          var panelLink = document.getElementById('rrShotPanelLink');
           if (list) {
             try {
               var jad = (meUser && meUser.jobAlertDefaults) ? meUser.jobAlertDefaults : {};
               var prefKeywords = Array.isArray(jad.includeKeywords) ? jad.includeKeywords.filter(Boolean) : [];
               var prefIndustries = Array.isArray(jad.industries) ? jad.industries.map(function(v){ return String(v || '').toLowerCase().trim(); }).filter(Boolean) : [];
               var prefEmploymentTypes = Array.isArray(jad.employmentTypes) ? jad.employmentTypes.map(function(v){ return String(v || '').toLowerCase().trim(); }).filter(Boolean) : [];
+              var prefWorkModes = Array.isArray(jad.workModes) ? jad.workModes.map(function(v){ return String(v || '').toLowerCase().trim(); }).filter(Boolean) : [];
+              var prefSeniorityLevels = Array.isArray(jad.seniorityLevels) ? jad.seniorityLevels.map(function(v){ return String(v || '').toLowerCase().trim(); }).filter(Boolean) : [];
               var prefSalaryMin = Number(jad.salaryMin) || 0;
+              var prefExperienceSignals = [];
+              var roleProfile = null;
+
+              var uniqueLower = function(items) {
+                var seen = new Set();
+                return (Array.isArray(items) ? items : []).filter(function(item) {
+                  var key = String(item || '').toLowerCase().trim();
+                  if (!key || seen.has(key)) return false;
+                  seen.add(key);
+                  return true;
+                });
+              };
+
+              var addPrefExperienceSignal = function(value) {
+                var textVal = String(value || '').trim();
+                if (!textVal) return;
+                prefExperienceSignals.push(textVal);
+              };
 
               // Merge Role Profile signals
               try {
@@ -758,6 +779,7 @@
                 if (rpRes.ok) {
                   var rpData = await rpRes.json();
                   var rp = Array.isArray(rpData.profiles) ? rpData.profiles[0] : null;
+                  roleProfile = rp;
                   if (rp) {
                     // Role Profile industries supplement Job Alerts industries
                     if (Array.isArray(rp.industries)) {
@@ -789,13 +811,55 @@
                     if (rp.workPreference && rp.workPreference !== 'flexible' && !prefEmploymentTypes.length) {
                       prefEmploymentTypes = [rp.workPreference];
                     }
+
+                    if (Array.isArray(rp.employmentTypes) && rp.employmentTypes.length) {
+                      prefEmploymentTypes = uniqueLower(prefEmploymentTypes.concat(rp.employmentTypes));
+                    }
+
+                    if (Array.isArray(rp.workModes) && rp.workModes.length) {
+                      prefWorkModes = uniqueLower(prefWorkModes.concat(rp.workModes));
+                    }
+
+                    if (Array.isArray(rp.seniorityLevels) && rp.seniorityLevels.length) {
+                      prefSeniorityLevels = uniqueLower(prefSeniorityLevels.concat(rp.seniorityLevels));
+                    }
+
+                    addPrefExperienceSignal(rp.experienceLevel);
+                    addPrefExperienceSignal(rp.yearsExperience);
+                    addPrefExperienceSignal(rp.yearsOfExperience);
                   }
                 }
               } catch (_rpErr) {}
 
-              var scoutTitle = prefKeywords.length ? prefKeywords[0] : 'Software Engineer';
+              prefKeywords = uniqueLower(prefKeywords);
+              prefIndustries = uniqueLower(prefIndustries);
+              prefEmploymentTypes = uniqueLower(prefEmploymentTypes);
+              prefWorkModes = uniqueLower(prefWorkModes);
+              prefSeniorityLevels = uniqueLower(prefSeniorityLevels);
+              prefExperienceSignals = uniqueLower(prefExperienceSignals);
+
+              var scoutTitles = [];
+              var addScoutTitle = function(value) {
+                var titleVal = String(value || '').trim();
+                if (!titleVal) return;
+                if (titleVal.length > 90) return;
+                scoutTitles.push(titleVal);
+              };
+
+              if (roleProfile && roleProfile.targetRole) addScoutTitle(roleProfile.targetRole);
+              if (jad.targetRole) addScoutTitle(jad.targetRole);
+              prefKeywords.slice(0, 8).forEach(addScoutTitle);
+              if (!scoutTitles.length) addScoutTitle('Software Engineer');
+              scoutTitles = uniqueLower(scoutTitles);
+
+              var primaryScoutTitle = scoutTitles.length ? scoutTitles[0] : 'Software Engineer';
+
               var scoutLocation = forcedJamaicaMode ? 'Jamaica'
                 : (jad.location && jad.location !== 'Remote') ? jad.location : 'United States';
+
+              if (panelLink && !forcedJamaicaMode) {
+                panelLink.href = 'job-search.html?query=' + encodeURIComponent(primaryScoutTitle) + '&location=' + encodeURIComponent(scoutLocation) + '&source=market';
+              }
 
               var buildExpandedScoutLocations = function(baseLocation) {
                 var seed = String(baseLocation || '').trim();
@@ -836,13 +900,31 @@
               };
 
               var scoutLocations = buildExpandedScoutLocations(scoutLocation);
-              var scoutResponses = await Promise.all(scoutLocations.map(function(loc) {
-                return fetch(apiUrl('/api/jobs/scout?title=' + encodeURIComponent(scoutTitle) + '&location=' + encodeURIComponent(loc)), {
+              var profilePreferenceText = uniqueLower(
+                prefIndustries
+                  .concat(prefEmploymentTypes)
+                  .concat(prefWorkModes)
+                  .concat(prefSeniorityLevels)
+                  .concat(prefExperienceSignals)
+                  .concat(prefKeywords)
+              ).join(', ');
+
+              var scoutRequests = [];
+              scoutTitles.forEach(function(title) {
+                scoutLocations.forEach(function(loc) {
+                  scoutRequests.push({ title: title, location: loc });
+                });
+              });
+
+              if (scoutRequests.length > 24) scoutRequests = scoutRequests.slice(0, 24);
+
+              var scoutResponses = await Promise.all(scoutRequests.map(function(request) {
+                return fetch(apiUrl('/api/jobs/scout?title=' + encodeURIComponent(request.title) + '&location=' + encodeURIComponent(request.location) + '&preferences=' + encodeURIComponent(profilePreferenceText)), {
                   headers: { Authorization: 'Bearer ' + token }
                 }).then(function(res) {
-                  return { ok: res.ok, res: res, location: loc };
+                  return { ok: res.ok, res: res, location: request.location, title: request.title };
                 }).catch(function() {
-                  return { ok: false, res: null, location: loc };
+                  return { ok: false, res: null, location: request.location, title: request.title };
                 });
               }));
 
@@ -907,8 +989,9 @@
                     }
                   }
 
-                  // If we cannot determine salary, hide it when a floor is set.
-                  if (jobSalaryMax <= 0 && jobSalaryMin <= 0) return false;
+                  // Keep unknown-salary jobs in the pool so we can still surface
+                  // potentially relevant matches when market salary metadata is incomplete.
+                  if (jobSalaryMax <= 0 && jobSalaryMin <= 0) return true;
 
                   return Math.max(jobSalaryMax, jobSalaryMin) >= prefSalaryMin;
                 };
@@ -938,6 +1021,30 @@
                     if (typeHit) score += 20;
                   }
 
+                  if (prefWorkModes.length) {
+                    var modeHaystack = [job.workMode, job.remoteType, job.location, job.description].join(' ').toLowerCase();
+                    var modeHit = prefWorkModes.some(function(mode) {
+                      var m = String(mode || '').toLowerCase();
+                      if (!m) return false;
+                      if (m.indexOf('remote') !== -1) return modeHaystack.indexOf('remote') !== -1;
+                      if (m.indexOf('hybrid') !== -1) return modeHaystack.indexOf('hybrid') !== -1;
+                      if (m.indexOf('onsite') !== -1 || m.indexOf('on-site') !== -1 || m.indexOf('in-office') !== -1) {
+                        return modeHaystack.indexOf('onsite') !== -1 || modeHaystack.indexOf('on-site') !== -1 || modeHaystack.indexOf('in office') !== -1;
+                      }
+                      return modeHaystack.indexOf(m) !== -1;
+                    });
+                    if (modeHit) score += 12;
+                  }
+
+                  if (prefSeniorityLevels.length) {
+                    var seniorityHaystack = [job.seniority, job.experienceLevel, job.title, job.description].join(' ').toLowerCase();
+                    var seniorityHit = prefSeniorityLevels.some(function(level) {
+                      var lv = String(level || '').toLowerCase();
+                      return lv && seniorityHaystack.indexOf(lv) !== -1;
+                    });
+                    if (seniorityHit) score += 12;
+                  }
+
                   if (prefSalaryMin > 0) {
                     var matchedFloorMin = Number((job.salaryRange && job.salaryRange.min) || 0);
                     if (matchedFloorMin >= prefSalaryMin) {
@@ -945,13 +1052,18 @@
                     }
                   }
 
+                  if (prefSalaryMin > 0) {
+                    var salaryKnown = Number((job.salaryRange && job.salaryRange.max) || job.salaryMax || 0) > 0 || Number((job.salaryRange && job.salaryRange.min) || job.salaryMin || 0) > 0;
+                    if (!salaryKnown) score -= 6;
+                  }
+
                   return { job: job, score: score };
                 }).filter(Boolean).sort(function(a, b) { return b.score - a.score; });
 
-                scopedJobs = ranked.slice(0, 3).map(function(item) { return item.job; });
+                scopedJobs = ranked.slice(0, 6).map(function(item) { return item.job; });
               }
 
-              if (!scopedJobs.length) scopedJobs = jobs.filter(jobMeetsSalaryFloor).slice(0, 3);
+              if (!scopedJobs.length) scopedJobs = jobs.filter(jobMeetsSalaryFloor).slice(0, 6);
 
               if (scopedJobs.length) {
                 list.innerHTML = scopedJobs.map(function(j) {
@@ -973,9 +1085,9 @@
                 if (!(prefSalaryMin > 0)) return true;
                 var max = Number((job.salaryRange && job.salaryRange.max) || job.salaryMax || 0);
                 var min = Number((job.salaryRange && job.salaryRange.min) || job.salaryMin || 0);
-                if (max <= 0 && min <= 0) return false;
+                if (max <= 0 && min <= 0) return true;
                 return Math.max(max, min) >= prefSalaryMin;
-              }).slice(0, 3);
+              }).slice(0, 6);
               if (fallback.length) {
                 list.innerHTML = fallback.map(function(j) {
                   var applyLink = (j.link && /^https?:\/\//i.test(String(j.link).trim())) ? String(j.link).trim()
