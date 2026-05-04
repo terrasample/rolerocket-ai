@@ -107,12 +107,13 @@
       margin-bottom: 24px;
     }
     .rr-strength-breakdown h3 {
-      margin: 0 0 14px;
+      margin: 0 0 16px;
       font-size: 1.1rem;
       color: #f1f5f9;
     }
-    .rr-strength-bars { display: grid; gap: 10px; }
-    .rr-bar-row { display: grid; grid-template-columns: 130px 1fr 38px; gap: 10px; align-items: center; }
+    .rr-strength-bars { display: grid; gap: 16px; }
+    .rr-bar-block { display: grid; gap: 6px; }
+    .rr-bar-row { display: grid; grid-template-columns: 130px 1fr 52px; gap: 10px; align-items: center; }
     .rr-bar-label { font-size: .88rem; color: #9fb3cf; font-weight: 700; }
     .rr-bar-track {
       height: 8px;
@@ -127,6 +128,20 @@
       transition: width .4s ease;
     }
     .rr-bar-val { font-size: .88rem; color: #e2e8f0; font-weight: 700; text-align: right; }
+    .rr-bar-explain {
+      grid-column: 2 / -1;
+      font-size: .8rem;
+      color: #64748b;
+      line-height: 1.55;
+      padding-left: 2px;
+    }
+    .rr-bar-explain span {
+      display: inline-block;
+      margin-right: 10px;
+      white-space: nowrap;
+    }
+    .rr-bar-explain span.done { color: #22c55e; }
+    .rr-bar-explain span.todo { color: #64748b; }
 
     /* Sections */
     .rr-profile-grid {
@@ -315,7 +330,7 @@
     }
     @media (max-width: 560px) {
       .rr-profile-shell { padding: 20px 14px 18px; }
-      .rr-bar-row { grid-template-columns: 90px 1fr 32px; }
+      .rr-bar-row { grid-template-columns: 80px 1fr 40px; }
       .rr-quick-links { grid-template-columns: 1fr; }
     }
   </style>
@@ -380,20 +395,48 @@
         <div class="rr-strength-breakdown">
           <h3>Score Breakdown</h3>
           <div class="rr-strength-bars">
-            <div class="rr-bar-row">
-              <div class="rr-bar-label">Completeness</div>
-              <div class="rr-bar-track"><div class="rr-bar-fill" id="rrBarCompleteness" style="width:0%"></div></div>
-              <div class="rr-bar-val" id="rrBarCompletenessVal">0/60</div>
+            <div class="rr-bar-block">
+              <div class="rr-bar-row">
+                <div class="rr-bar-label">Completeness</div>
+                <div class="rr-bar-track"><div class="rr-bar-fill" id="rrBarCompleteness" style="width:0%"></div></div>
+                <div class="rr-bar-val" id="rrBarCompletenessVal">0/60</div>
+              </div>
+              <div class="rr-bar-row">
+                <div></div>
+                <div class="rr-bar-explain" id="rrExplainCompleteness">
+                  <span class="done">✓ Account created (+20)</span>
+                  <span class="todo">○ Set job location (+15)</span>
+                  <span class="todo">○ Add role keywords (+15)</span>
+                  <span class="todo">○ Select seniority (+5)</span>
+                  <span class="todo">○ Add industries (+5)</span>
+                </div>
+              </div>
             </div>
-            <div class="rr-bar-row">
-              <div class="rr-bar-label">Activity</div>
-              <div class="rr-bar-track"><div class="rr-bar-fill" id="rrBarActivity" style="width:0%;background:#3b82f6;"></div></div>
-              <div class="rr-bar-val" id="rrBarActivityVal">0/30</div>
+            <div class="rr-bar-block">
+              <div class="rr-bar-row">
+                <div class="rr-bar-label">Activity</div>
+                <div class="rr-bar-track"><div class="rr-bar-fill" id="rrBarActivity" style="width:0%;background:#3b82f6;"></div></div>
+                <div class="rr-bar-val" id="rrBarActivityVal">0/30</div>
+              </div>
+              <div class="rr-bar-row">
+                <div></div>
+                <div class="rr-bar-explain">
+                  Track jobs in your <a href="job-tracking.html" style="color:#60a5fa;">Job Tracker</a>: each tracked job +3 (up to 15) · each applied +2 (up to 10) · each interview +5 (up to 5)
+                </div>
+              </div>
             </div>
-            <div class="rr-bar-row">
-              <div class="rr-bar-label">Outcomes</div>
-              <div class="rr-bar-track"><div class="rr-bar-fill" id="rrBarOutcomes" style="width:0%;background:#a78bfa;"></div></div>
-              <div class="rr-bar-val" id="rrBarOutcomesVal">0/10</div>
+            <div class="rr-bar-block">
+              <div class="rr-bar-row">
+                <div class="rr-bar-label">Outcomes</div>
+                <div class="rr-bar-track"><div class="rr-bar-fill" id="rrBarOutcomes" style="width:0%;background:#a78bfa;"></div></div>
+                <div class="rr-bar-val" id="rrBarOutcomesVal">0/10</div>
+              </div>
+              <div class="rr-bar-row">
+                <div></div>
+                <div class="rr-bar-explain">
+                  Mark a job as <strong style="color:#c4b5fd;">Interview</strong> in your tracker: first interview +5 · two or more interviews +10
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -594,6 +637,22 @@
         if (barAv) barAv.textContent = activityScore + '/30';
         if (barO) barO.style.width = Math.round((outcomeScore / 10) * 100) + '%';
         if (barOv) barOv.textContent = outcomeScore + '/10';
+
+        // Update completeness chip states
+        var loc = (document.getElementById('rrFieldLocation').value || '').trim();
+        var hasLoc = loc && loc.toLowerCase() !== 'remote';
+        var hasKw = keywords.length > 0;
+        var hasSen = document.querySelectorAll('#rrSeniorityTags .rr-tag.active').length > 0;
+        var hasInd = industries.length > 0;
+        var explEl = document.getElementById('rrExplainCompleteness');
+        if (explEl) {
+          explEl.innerHTML =
+            '<span class="done">✓ Account created (+20)</span>' +
+            (hasLoc ? '<span class="done">✓ Job location set (+15)</span>' : '<span class="todo">○ Set job location (+15)</span>') +
+            (hasKw  ? '<span class="done">✓ Role keywords added (+15)</span>' : '<span class="todo">○ Add role keywords (+15)</span>') +
+            (hasSen ? '<span class="done">✓ Seniority selected (+5)</span>' : '<span class="todo">○ Select seniority level (+5)</span>') +
+            (hasInd ? '<span class="done">✓ Industries added (+5)</span>' : '<span class="todo">○ Add industries (+5)</span>');
+        }
       }
 
       // ── Tag toggle ──────────────────────────────────────────────────────────
