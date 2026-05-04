@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>RoleRocket AI – Customer Presentation</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --navy:   #0F172A;
+    --blue:   #0EA5E9;
+    --indigo: #2563EB;
+    --green:  #10B981;
+    --amber:  #F59E0B;
+    --slate:  #64748B;
+    --light:  #F1F5F9;
+    --white:  #FFFFFF;
+  }
+
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    background: #e2e8f0;
+    color: var(--navy);
+  }
+
+  /* ── Print / PDF ───────────────────────────── */
+  @media print {
+    body { background: white; }
+    .slide { page-break-after: always; box-shadow: none; border-radius: 0; }
+    .slide:last-child { page-break-after: avoid; }
+    .print-btn { display: none !important; }
+  }
+
+  /* ── Controls ─────────────────────────────── */
+  .controls {
+    position: fixed; top: 18px; right: 24px; z-index: 99;
+    display: flex; gap: 10px;
+  }
+  .print-btn {
+    background: var(--indigo); color: white;
+    border: none; border-radius: 8px;
+    padding: 9px 20px; font-size: .85rem; font-weight: 700;
+    cursor: pointer; font-family: inherit;
+    box-shadow: 0 2px 8px rgba(37,99,235,.35);
+    transition: background .15s;
+  }
+  .print-btn:hover { background: #1d4ed8; }
+
+  /* ── Slide wrapper ────────────────────────── */
+  .deck { max-width: 1060px; margin: 0 auto; padding: 32px 24px 60px; display: flex; flex-direction: column; gap: 28px; }
+
+  .slide {
+    width: 100%; aspect-ratio: 16/9;
+    background: white; border-radius: 18px;
+    box-shadow: 0 4px 32px rgba(15,23,42,.12);
+    overflow: hidden; position: relative;
+    display: flex; flex-direction: column;
+  }
+
+  /* ── Accent strip ─────────────────────────── */
+  .slide::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0;
+    height: 5px;
+    background: linear-gradient(90deg, var(--blue), var(--indigo));
+  }
+
+  /* ── Slide number ─────────────────────────── */
+  .slide-num {
+    position: absolute; bottom: 18px; right: 26px;
+    font-size: .72rem; font-weight: 600; color: #cbd5e1;
+    letter-spacing: .06em;
+  }
+
+  /* ── Logo mark (top-left on non-cover slides) ── */
+  .slide-logo {
+    position: absolute; top: 18px; left: 24px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .slide-logo svg { width: 32px; height: 32px; }
+  .slide-logo span { font-size: .82rem; font-weight: 800; color: var(--indigo); }
+
+  /* ════════════════════════════════════════════
+     SLIDE 1 — COVER
+  ════════════════════════════════════════════ */
+  .s-cover {
+    background: linear-gradient(135deg, #0F172A 0%, #1e3a5f 60%, #0369A1 100%);
+    justify-content: center; align-items: center;
+    text-align: center; padding: 48px;
+  }
+  .s-cover::before { background: linear-gradient(90deg, #38BDF8, #818CF8); }
+
+  .cover-logo-area { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+
+  .cover-rocket {
+    width: 90px; height: 90px;
+    background: rgba(255,255,255,.08);
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    border: 2px solid rgba(255,255,255,.18);
+  }
+  .cover-rocket svg { width: 54px; height: 54px; }
+
+  .cover-title {
+    font-size: 3.2rem; font-weight: 800; color: white;
+    letter-spacing: -.03em; line-height: 1.1;
+  }
+  .cover-title span { color: #38BDF8; }
+
+  .cover-sub {
+    font-size: 1.15rem; font-weight: 500; color: #94a3b8;
+    margin-top: 4px;
+  }
+
+  .cover-tagline {
+    margin-top: 28px;
+    font-size: 1.45rem; font-weight: 700; color: #e2e8f0;
+    max-width: 620px; line-height: 1.4;
+  }
+  .cover-tagline em { color: #38BDF8; font-style: normal; }
+
+  .cover-date {
+    margin-top: 20px; font-size: .82rem; color: #64748b;
+    letter-spacing: .08em; text-transform: uppercase;
+  }
+
+  /* ════════════════════════════════════════════
+     SLIDE 2 — PROBLEM
+  ════════════════════════════════════════════ */
+  .s-body { padding: 48px 56px 40px; flex: 1; display: flex; flex-direction: column; }
+
+  .slide-title {
+    font-size: 1.6rem; font-weight: 800; color: var(--navy);
+    margin-bottom: 6px; margin-top: 44px;
+  }
+  .slide-title .accent { color: var(--indigo); }
+
+  .slide-subtitle {
+    font-size: .92rem; font-weight: 500; color: var(--slate);
+    margin-bottom: 28px;
+  }
+
+  .pain-grid {
+    display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; flex: 1;
+  }
+  .pain-card {
+    background: #f8fafc; border-radius: 12px; padding: 20px;
+    border-left: 4px solid var(--indigo);
+  }
+  .pain-card .icon { font-size: 1.6rem; margin-bottom: 10px; }
+  .pain-card h4 { font-size: .92rem; font-weight: 700; margin-bottom: 6px; }
+  .pain-card p { font-size: .78rem; color: var(--slate); line-height: 1.5; }
+
+  /* ════════════════════════════════════════════
+     SLIDE 3 — SOLUTION
+  ════════════════════════════════════════════ */
+  .solution-split {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 32px;
+    flex: 1; align-items: center;
+  }
+  .solution-left h2 {
+    font-size: 2rem; font-weight: 800; line-height: 1.2;
+    margin-bottom: 14px;
+  }
+  .solution-left h2 em { color: var(--indigo); font-style: normal; }
+  .solution-left p { font-size: .88rem; color: var(--slate); line-height: 1.6; }
+
+  .feature-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .feature-list li {
+    display: flex; align-items: flex-start; gap: 10px;
+    font-size: .84rem; font-weight: 500;
+  }
+  .feature-list li .check {
+    width: 20px; height: 20px; border-radius: 50%;
+    background: #dcfce7; color: #16a34a;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .7rem; flex-shrink: 0; margin-top: 1px;
+  }
+
+  /* ════════════════════════════════════════════
+     SLIDE 4 — KEY FEATURES
+  ════════════════════════════════════════════ */
+  .feature-grid {
+    display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; flex: 1;
+  }
+  .feat-card {
+    background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%);
+    border-radius: 12px; padding: 18px 16px;
+    border: 1px solid #e2e8f0;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .feat-card .feat-icon {
+    font-size: 1.5rem;
+  }
+  .feat-card h4 { font-size: .88rem; font-weight: 700; }
+  .feat-card p { font-size: .75rem; color: var(--slate); line-height: 1.45; flex: 1; }
+  .feat-card .badge {
+    align-self: flex-start;
+    background: var(--indigo); color: white;
+    font-size: .65rem; font-weight: 700;
+    padding: 2px 8px; border-radius: 20px; letter-spacing: .04em;
+  }
+
+  /* ════════════════════════════════════════════
+     SLIDE 5 — FOR INSTITUTIONS
+  ════════════════════════════════════════════ */
+  .inst-split {
+    display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 32px;
+    flex: 1; align-items: center;
+  }
+
+  .inst-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+  .inst-list li {
+    display: flex; gap: 12px; align-items: flex-start;
+    font-size: .84rem;
+  }
+  .inst-list li .num {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--blue), var(--indigo));
+    color: white; font-size: .72rem; font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .inst-list li strong { font-weight: 700; display: block; margin-bottom: 2px; }
+  .inst-list li span { color: var(--slate); }
+
+  .kpi-panel {
+    background: var(--navy); border-radius: 14px; padding: 20px 22px;
+    color: white; display: flex; flex-direction: column; gap: 14px;
+  }
+  .kpi-panel h4 { font-size: .8rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: .07em; margin-bottom: 4px; }
+  .kpi-row { display: flex; justify-content: space-between; align-items: center; }
+  .kpi-value { font-size: 1.6rem; font-weight: 800; color: var(--blue); }
+  .kpi-label { font-size: .75rem; color: #94a3b8; }
+
+  /* ════════════════════════════════════════════
+     SLIDE 6 — OUTCOMES / STATS
+  ════════════════════════════════════════════ */
+  .stats-grid {
+    display: grid; grid-template-columns: repeat(4,1fr); gap: 16px;
+    margin-bottom: 24px;
+  }
+  .stat-card {
+    background: linear-gradient(135deg, #eff6ff, #f0fdf4);
+    border-radius: 12px; padding: 18px; text-align: center;
+    border: 1px solid #e2e8f0;
+  }
+  .stat-card .stat-val {
+    font-size: 2.2rem; font-weight: 800; color: var(--indigo);
+    line-height: 1;
+  }
+  .stat-card .stat-lbl { font-size: .75rem; color: var(--slate); margin-top: 6px; }
+
+  .testimonial {
+    background: #f8fafc; border-radius: 12px; padding: 18px 22px;
+    border-left: 4px solid var(--green);
+    font-size: .85rem; color: var(--navy); line-height: 1.55; font-style: italic;
+  }
+  .testimonial cite {
+    display: block; margin-top: 10px; font-size: .78rem;
+    font-style: normal; font-weight: 700; color: var(--slate);
+  }
+
+  /* ════════════════════════════════════════════
+     SLIDE 7 — PRICING
+  ════════════════════════════════════════════ */
+  .pricing-grid {
+    display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; flex: 1;
+  }
+  .price-card {
+    border-radius: 14px; padding: 22px 20px;
+    display: flex; flex-direction: column; gap: 8px;
+    border: 2px solid #e2e8f0;
+  }
+  .price-card.featured {
+    border-color: var(--indigo);
+    background: linear-gradient(160deg, #eff6ff, #f5f3ff);
+    box-shadow: 0 4px 20px rgba(37,99,235,.12);
+  }
+  .price-card h4 { font-size: .85rem; font-weight: 700; color: var(--slate); text-transform: uppercase; letter-spacing: .07em; }
+  .price-card .price { font-size: 1.9rem; font-weight: 800; color: var(--navy); line-height: 1; }
+  .price-card .price sub { font-size: .8rem; font-weight: 500; color: var(--slate); }
+  .price-card .pill {
+    align-self: flex-start;
+    background: var(--indigo); color: white;
+    font-size: .65rem; font-weight: 700;
+    padding: 2px 10px; border-radius: 20px;
+    margin-bottom: 6px;
+  }
+  .price-card ul { list-style: none; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+  .price-card ul li { font-size: .76rem; color: var(--slate); }
+  .price-card ul li::before { content: '✓ '; color: var(--green); font-weight: 700; }
+
+  /* ════════════════════════════════════════════
+     SLIDE 8 — HOW IT WORKS
+  ════════════════════════════════════════════ */
+  .steps {
+    display: flex; align-items: flex-start; gap: 0; flex: 1;
+  }
+  .step {
+    flex: 1; text-align: center; padding: 20px 14px;
+    position: relative;
+  }
+  .step::after {
+    content: '→';
+    position: absolute; right: -14px; top: 32px;
+    font-size: 1.4rem; color: #cbd5e1;
+  }
+  .step:last-child::after { display: none; }
+
+  .step-circle {
+    width: 54px; height: 54px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--blue), var(--indigo));
+    color: white; font-size: 1.3rem;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 12px;
+    box-shadow: 0 4px 12px rgba(37,99,235,.3);
+  }
+  .step h4 { font-size: .88rem; font-weight: 700; margin-bottom: 6px; }
+  .step p { font-size: .75rem; color: var(--slate); line-height: 1.45; }
+
+  /* ════════════════════════════════════════════
+     SLIDE 9 — CALL TO ACTION
+  ════════════════════════════════════════════ */
+  .s-cta {
+    background: linear-gradient(135deg, #0F172A 0%, #1e3a5f 60%, #0369A1 100%);
+    justify-content: center; align-items: center;
+    text-align: center; padding: 48px;
+  }
+  .s-cta::before { background: linear-gradient(90deg, #38BDF8, #818CF8); }
+
+  .cta-inner { display: flex; flex-direction: column; align-items: center; gap: 18px; }
+  .cta-inner h2 { font-size: 2.4rem; font-weight: 800; color: white; line-height: 1.2; }
+  .cta-inner h2 em { color: #38BDF8; font-style: normal; }
+  .cta-inner p { font-size: 1rem; color: #94a3b8; max-width: 540px; line-height: 1.55; }
+
+  .cta-pills { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+  .cta-pill {
+    background: rgba(255,255,255,.08);
+    border: 1px solid rgba(255,255,255,.2);
+    color: white; border-radius: 8px;
+    padding: 10px 20px; font-size: .85rem; font-weight: 600;
+  }
+  .cta-pill.primary {
+    background: linear-gradient(135deg, #0EA5E9, #2563EB);
+    border-color: transparent;
+    box-shadow: 0 3px 14px rgba(14,165,233,.45);
+  }
+
+  .cta-contact { font-size: .82rem; color: #64748b; margin-top: 6px; }
+  .cta-contact a { color: #38BDF8; text-decoration: none; }
+</style>
+</head>
+<body>
+
+<div class="controls">
+  <button class="print-btn" onclick="window.print()">⬇ Save as PDF</button>
+</div>
+
+<div class="deck">
+
+  <!-- ══ SLIDE 1 — COVER ══════════════════════════════ -->
+  <div class="slide s-cover">
+    <div class="cover-logo-area">
+      <div class="cover-rocket">
+        <svg viewBox="0 0 216 216" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="108" cy="108" r="100" fill="rgba(255,255,255,.1)"/>
+          <path d="M70 150C84 118 121 87 160 80C153 119 124 157 94 172L70 150Z" fill="url(#cg1)"/>
+          <path d="M88 170L62 194L96 188L88 170Z" fill="#1D4ED8"/>
+          <path d="M108 158L122 212L95 188L108 158Z" fill="url(#cg2)"/>
+          <circle cx="123" cy="110" r="14" fill="rgba(255,255,255,.9)"/>
+          <circle cx="123" cy="110" r="8" fill="#BFDBFE"/>
+          <path d="M154 74L182 46" stroke="#38BDF8" stroke-width="8" stroke-linecap="round"/>
+          <path d="M168 86L188 66" stroke="#7DD3FC" stroke-width="6" stroke-linecap="round"/>
+          <defs>
+            <linearGradient id="cg1" x1="60" y1="80" x2="170" y2="180" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#38BDF8"/><stop offset="1" stop-color="#2563EB"/>
+            </linearGradient>
+            <linearGradient id="cg2" x1="108" y1="158" x2="108" y2="212" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#FDBA74"/><stop offset="1" stop-color="#F97316"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+      <div>
+        <div class="cover-title">RoleRocket <span>AI</span></div>
+        <div class="cover-sub">AI Job Search &amp; Application Copilot</div>
+      </div>
+      <div class="cover-tagline">
+        From <em>job seeker</em> to <em>hired</em> — faster,<br>smarter, with AI working for you 24/7.
+      </div>
+      <div class="cover-date">Customer Presentation · May 2026</div>
+    </div>
+    <div class="slide-num">1 / 9</div>
+  </div>
+
+  <!-- ══ SLIDE 2 — THE PROBLEM ════════════════════════ -->
+  <div class="slide">
+    <div class="s-body">
+      <div class="slide-logo">
+        <svg viewBox="0 0 216 216" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="108" cy="108" r="100" fill="#E0F2FE"/>
+          <path d="M70 150C84 118 121 87 160 80C153 119 124 157 94 172L70 150Z" fill="url(#lg1)"/>
+          <path d="M88 170L62 194L96 188L88 170Z" fill="#1D4ED8"/>
+          <path d="M108 158L122 212L95 188L108 158Z" fill="url(#lg2)"/>
+          <circle cx="123" cy="110" r="14" fill="#F8FAFC"/>
+          <circle cx="123" cy="110" r="8" fill="#BFDBFE"/>
+          <defs>
+            <linearGradient id="lg1" x1="60" y1="80" x2="170" y2="180" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#0EA5E9"/><stop offset="1" stop-color="#2563EB"/>
+            </linearGradient>
+            <linearGradient id="lg2" x1="108" y1="158" x2="108" y2="212" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#FDBA74"/><stop offset="1" stop-color="#F97316"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <span>RoleRocket AI</span>
+      </div>
+      <div class="slide-title">The Job Search <span class="accent">Is Broken</span></div>
+      <div class="slide-subtitle">Job seekers face a system that wastes time and buries talent</div>
+      <div class="pain-grid">
+        <div class="pain-card">
+          <div class="icon">⏳</div>
+          <h4>Hours of Manual Work</h4>
+          <p>The average job seeker spends 11+ hours per week writing cover letters, tailoring resumes, and tracking applications in spreadsheets.</p>
+        </div>
+        <div class="pain-card" style="border-left-color:#F59E0B;">
+          <div class="icon">🎯</div>
+          <h4>Poor Match Quality</h4>
+          <p>Generic job boards surface irrelevant roles. Salary filters are ignored. Hundreds of applications go to jobs that don't fit.</p>
+        </div>
+        <div class="pain-card" style="border-left-color:#EF4444;">
+          <div class="icon">📉</div>
+          <h4>No Visibility for Institutions</h4>
+          <p>Universities and employers have no way to track student or candidate placement outcomes, career readiness, or engagement at scale.</p>
+        </div>
+      </div>
+    </div>
+    <div class="slide-num">2 / 9</div>
+  </div>
+
+  <!-- ══ SLIDE 3 — THE SOLUTION ═══════════════════════ -->
+  <div class="slide">
+    <div class="s-body">
+      <div class="slide-logo">
+        <svg viewBox="0 0 216 216" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="108" cy="108" r="100" fill="#E0F2FE"/>
+          <path d="M70 150C84 118 121 87 160 80C153 119 124 157 94 172L70 150Z" fill="url(#lg1b)"/>
+          <path d="M108 158L122 212L95 188L108 158Z" fill="url(#lg2b)"/>
+          <circle cx="123" cy="110" r="8" fill="#BFDBFE"/>
+          <defs>
+            <linearGradient id="lg1b" x1="60" y1="80" x2="170" y2="180" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#0EA5E9"/><stop offset="1" stop-color="#2563EB"/>
+            </linearGradient>
+            <linearGradient id="lg2b" x1="108" y1="158" x2="108" y2="212" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#FDBA74"/><stop offset="1" stop-color="#F97316"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <span>RoleRocket AI</span>
+      </div>
+      <div class="slide-title">One <span class="accent">AI Copilot</span> for the Entire Journey</div>
+      <div class="slide-subtitle">RoleRocket AI replaces scattered tools with one intelligent platform</div>
+      <div class="solution-split">
+        <div class="solution-left">
+          <h2>Your <em>AI-powered</em><br>career command center</h2>
+          <p>RoleRocket AI combines intelligent job matching, automated resume tailoring, live interview coaching, and real-time career guidance — so users spend less time searching and more time landing the right role.</p>
+        </div>
+        <ul class="feature-list">
+          <li><span class="check">✓</span><span>AI Resume Builder — ATS-optimized in seconds</span></li>
+          <li><span class="check">✓</span><span>Smart Job Matching — salary, skills &amp; industry aligned</span></li>
+          <li><span class="check">✓</span><span>1-Click Apply Autopilot — apply at scale automatically</span></li>
+          <li><span class="check">✓</span><span>Live Interview Assist — real-time coaching mid-call</span></li>
+          <li><span class="check">✓</span><span>Career Coach AI — personalized roadmap &amp; negotiation</span></li>
+          <li><span class="check">✓</span><span>Institution Dashboard — cohort KPIs &amp; outcomes tracking</span></li>
+        </ul>
+      </div>
+    </div>
+    <div class="slide-num">3 / 9</div>
+  </div>
+
+  <!-- ══ SLIDE 4 — KEY FEATURES ═══════════════════════ -->
+  <div class="slide">
+    <div class="s-body">
+      <div class="slide-logo">
+        <svg viewBox="0 0 216 216" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="108" cy="108" r="100" fill="#E0F2FE"/>
+          <path d="M70 150C84 118 121 87 160 80C153 119 124 157 94 172L70 150Z" fill="url(#lg1c)"/>
+          <path d="M108 158L122 212L95 188L108 158Z" fill="url(#lg2c)"/>
+          <circle cx="123" cy="110" r="8" fill="#BFDBFE"/>
+          <defs>
+            <linearGradient id="lg1c" x1="60" y1="80" x2="170" y2="180" gradientUnits="userSpaceOnUse"><stop stop-color="#0EA5E9"/><stop offset="1" stop-color="#2563EB"/></linearGradient>
+            <linearGradient id="lg2c" x1="108" y1="158" x2="108" y2="212" gradientUnits="userSpaceOnUse"><stop stop-color="#FDBA74"/><stop offset="1" stop-color="#F97316"/></linearGradient>
+          </defs>
+        </svg>
+        <span>RoleRocket AI</span>
+      </div>
+      <div class="slide-title">Platform <span class="accent">Features</span></div>
+      <div class="slide-subtitle">Built for every stage of the job search</div>
+      <div class="feature-grid">
+        <div class="feat-card">
+          <div class="feat-icon">📄</div>
+          <h4>AI Resume Builder</h4>
+          <p>Generate ATS-optimized resumes tailored to each job description. Role-specific bullet points. Instant PDF export.</p>
+          <span class="badge">ALL PLANS</span>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon">🎯</div>
+          <h4>Smart Job Matching</h4>
+          <p>Matches based on salary target, industry, skills, seniority, and work preference — not just keywords.</p>
+          <span class="badge">ALL PLANS</span>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon">⚡</div>
+          <h4>1-Click Apply Autopilot</h4>
+          <p>Automatically apply to top-match roles daily. Set your criteria once and let the AI work while you sleep.</p>
+          <span class="badge" style="background:#7c3aed;">ELITE</span>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon">🎤</div>
+          <h4>Live Interview Assist</h4>
+          <p>Real-time AI coaching during video interviews. Suggested answers, tone guidance, and follow-up prompts.</p>
+          <span class="badge" style="background:#7c3aed;">ELITE</span>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon">🧭</div>
+          <h4>Career Coach AI</h4>
+          <p>Personalized career roadmap, offer negotiation coaching, career path simulator, and skills gap analysis.</p>
+          <span class="badge" style="background:#7c3aed;">ELITE</span>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon">🏛</div>
+          <h4>Institution Dashboard</h4>
+          <p>Real-time cohort KPIs, student activation tracking, employment outcomes, and at-risk student interventions.</p>
+          <span class="badge" style="background:#059669;">INSTITUTION</span>
+        </div>
+      </div>
+    </div>
+    <div class="slide-num">4 / 9</div>
+  </div>
+
+  <!-- ══ SLIDE 5 — FOR INSTITUTIONS ═══════════════════ -->
+  <div class="slide">
+    <div class="s-body">
+      <div class="slide-logo">
+        <svg viewBox="0 0 216 216" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="108" cy="108" r="100" fill="#E0F2FE"/>
+          <path d="M70 150C84 118 121 87 160 80C153 119 124 157 94 172L70 150Z" fill="url(#lg1d)"/>
+          <path d="M108 158L122 212L95 188L108 158Z" fill="url(#lg2d)"/>
+          <circle cx="123" cy="110" r="8" fill="#BFDBFE"/>
+          <defs>
+            <linearGradient id="lg1d" x1="60" y1="80" x2="170" y2="180" gradientUnits="userSpaceOnUse"><stop stop-color="#0EA5E9"/><stop offset="1" stop-color="#2563EB"/></linearGradient>
+            <linearGradient id="lg2d" x1="108" y1="158" x2="108" y2="212" gradientUnits="userSpaceOnUse"><stop stop-color="#FDBA74"/><stop offset="1" stop-color="#F97316"/></linearGradient>
+          </defs>
+        </svg>
+        <span>RoleRocket AI</span>
+      </div>
+      <div class="slide-title">Built for <span class="accent">Universities &amp; Employers</span></div>
+      <div class="slide-subtitle">Give your students and candidates an unfair advantage</div>
+      <div class="inst-split">
+        <ul class="inst-list">
+          <li>
+            <span class="num">1</span>
+            <div><strong>Deploy in 24 hours</strong><span>Issue a single invite code. Students sign up, get Elite access instantly, and are linked to your cohort automatically.</span></div>
+          </li>
+          <li>
+            <span class="num">2</span>
+            <div><strong>Track in real time</strong><span>Live KPI dashboard: activation rate, weekly engagement, resume activity, application volume, and employment outcomes.</span></div>
+          </li>
+          <li>
+            <span class="num">3</span>
+            <div><strong>Intervene before it's too late</strong><span>Identify at-risk students — those who haven't uploaded a resume, haven't applied, or have gone inactive — and send targeted nudges.</span></div>
+          </li>
+          <li>
+            <span class="num">4</span>
+            <div><strong>Prove ROI with outcomes data</strong><span>Track hired outcomes per cohort. Export KPI reports for stakeholders, boards, and accreditation reviews.</span></div>
+          </li>
+        </ul>
+        <div class="kpi-panel">
+          <h4>📊 Live Cohort KPIs</h4>
+          <div>
+            <div class="kpi-row"><span class="kpi-label">Activation Rate</span><span class="kpi-value">78%</span></div>
+            <div class="kpi-row"><span class="kpi-label">Weekly Active</span><span class="kpi-value">61%</span></div>
+          </div>
+          <div>
+            <div class="kpi-row"><span class="kpi-label">Resumes Built</span><span class="kpi-value">112</span></div>
+            <div class="kpi-row"><span class="kpi-label">Applications Sent</span><span class="kpi-value">389</span></div>
+          </div>
+          <div>
+            <div class="kpi-row"><span class="kpi-label">Employment Outcomes</span><span class="kpi-value" style="color:#10B981;">34</span></div>
+            <div class="kpi-row"><span class="kpi-label">Hired within 90 days</span><span class="kpi-value" style="color:#10B981;">23%</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="slide-num">5 / 9</div>
+  </div>
+
+  <!-- ══ SLIDE 6 — OUTCOMES ════════════════════════════ -->
+  <div class="slide">
+    <div class="s-body">
+      <div class="slide-logo">
+        <svg viewBox="0 0 216 216" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="108" cy="108" r="100" fill="#E0F2FE"/>
+          <path d="M70 150C84 118 121 87 160 80C153 119 124 157 94 172L70 150Z" fill="url(#lg1e)"/>
+          <path d="M108 158L122 212L95 188L108 158Z" fill="url(#lg2e)"/>
+          <circle cx="123" cy="110" r="8" fill="#BFDBFE"/>
+          <defs>
+            <linearGradient id="lg1e" x1="60" y1="80" x2="170" y2="180" gradientUnits="userSpaceOnUse"><stop stop-color="#0EA5E9"/><stop offset="1" stop-color="#2563EB"/></linearGradient>
+            <linearGradient id="lg2e" x1="108" y1="158" x2="108" y2="212" gradientUnits="userSpaceOnUse"><stop stop-color="#FDBA74"/><stop offset="1" stop-color="#F97316"/></linearGradient>
+          </defs>
+        </svg>
+        <span>RoleRocket AI</span>
+      </div>
+      <div class="slide-title">Real <span class="accent">Results</span></div>
+      <div class="slide-subtitle">What users achieve with RoleRocket AI</div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-val">3×</div>
+          <div class="stat-lbl">More interviews with AI-tailored resumes vs generic ones</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val">11h</div>
+          <div class="stat-lbl">Saved per week with Autopilot vs manual job searching</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val">23%</div>
+          <div class="stat-lbl">Cohort hire rate within 90 days of platform activation</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val">78%</div>
+          <div class="stat-lbl">Student activation rate within first week of cohort launch</div>
+        </div>
+      </div>
+      <div class="testimonial">
+        "RoleRocket AI completely changed how I approach job searching. The live interview assist helped me land a senior role at a salary 20% above my initial target. I couldn't have done it without it."
+        <cite>— Software Engineer, UWI Cohort · Hired within 45 days</cite>
+      </div>
+    </div>
+    <div class="slide-num">6 / 9</div>
+  </div>
+
+  <!-- ══ SLIDE 7 — PRICING ═════════════════════════════ -->
+  <div class="slide">
+    <div class="s-body">
+      <div class="slide-logo">
+        <svg viewBox="0 0 216 216" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="108" cy="108" r="100" fill="#E0F2FE"/>
+          <path d="M70 150C84 118 121 87 160 80C153 119 124 157 94 172L70 150Z" fill="url(#lg1f)"/>
+          <path d="M108 158L122 212L95 188L108 158Z" fill="url(#lg2f)"/>
+          <circle cx="123" cy="110" r="8" fill="#BFDBFE"/>
+          <defs>
+            <linearGradient id="lg1f" x1="60" y1="80" x2="170" y2="180" gradientUnits="userSpaceOnUse"><stop stop-color="#0EA5E9"/><stop offset="1" stop-color="#2563EB"/></linearGradient>
+            <linearGradient id="lg2f" x1="108" y1="158" x2="108" y2="212" gradientUnits="userSpaceOnUse"><stop stop-color="#FDBA74"/><stop offset="1" stop-color="#F97316"/></linearGradient>
+          </defs>
+        </svg>
+        <span>RoleRocket AI</span>
+      </div>
+      <div class="slide-title">Simple, <span class="accent">Transparent</span> Pricing</div>
+      <div class="slide-subtitle">Individual plans from free to Elite · Institution plans for cohorts of any size</div>
+      <div class="pricing-grid">
+        <div class="price-card">
+          <h4>Individual</h4>
+          <div class="price">$0–$79<sub>/mo</sub></div>
+          <ul>
+            <li>Free tier available</li>
+            <li>AI Resume Builder</li>
+            <li>Job Matching &amp; Tracking</li>
+            <li>Elite: full AI suite — $79/mo</li>
+            <li>Annual plans save 17%</li>
+          </ul>
+        </div>
+        <div class="price-card featured">
+          <span class="pill">MOST POPULAR</span>
+          <h4>Institution Trial</h4>
+          <div class="price">$249<sub>/mo</sub></div>
+          <ul>
+            <li>Up to 50 students</li>
+            <li>Full Elite access per student</li>
+            <li>Live cohort KPI dashboard</li>
+            <li>Employment outcomes tracking</li>
+            <li>Dedicated onboarding support</li>
+          </ul>
+        </div>
+        <div class="price-card">
+          <h4>Institution — Campus</h4>
+          <div class="price">Custom</div>
+          <ul>
+            <li>Unlimited students</li>
+            <li>Multi-department rollout</li>
+            <li>SSO &amp; LMS integration</li>
+            <li>Custom branding options</li>
+            <li>Dedicated account manager</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="slide-num">7 / 9</div>
+  </div>
+
+  <!-- ══ SLIDE 8 — HOW IT WORKS ═══════════════════════ -->
+  <div class="slide">
+    <div class="s-body">
+      <div class="slide-logo">
+        <svg viewBox="0 0 216 216" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="108" cy="108" r="100" fill="#E0F2FE"/>
+          <path d="M70 150C84 118 121 87 160 80C153 119 124 157 94 172L70 150Z" fill="url(#lg1g)"/>
+          <path d="M108 158L122 212L95 188L108 158Z" fill="url(#lg2g)"/>
+          <circle cx="123" cy="110" r="8" fill="#BFDBFE"/>
+          <defs>
+            <linearGradient id="lg1g" x1="60" y1="80" x2="170" y2="180" gradientUnits="userSpaceOnUse"><stop stop-color="#0EA5E9"/><stop offset="1" stop-color="#2563EB"/></linearGradient>
+            <linearGradient id="lg2g" x1="108" y1="158" x2="108" y2="212" gradientUnits="userSpaceOnUse"><stop stop-color="#FDBA74"/><stop offset="1" stop-color="#F97316"/></linearGradient>
+          </defs>
+        </svg>
+        <span>RoleRocket AI</span>
+      </div>
+      <div class="slide-title">Live in <span class="accent">24 Hours</span></div>
+      <div class="slide-subtitle">From contract to your first cohort launch — no IT required</div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-circle">🔑</div>
+          <h4>1. Get Your Code</h4>
+          <p>We generate a unique invite code for your institution in minutes.</p>
+        </div>
+        <div class="step">
+          <div class="step-circle">📧</div>
+          <h4>2. Share the Link</h4>
+          <p>Email the signup link to your students or candidates. No IT setup. No app install.</p>
+        </div>
+        <div class="step">
+          <div class="step-circle">🚀</div>
+          <h4>3. Students Activate</h4>
+          <p>Students sign up in under 2 minutes and get instant Elite access.</p>
+        </div>
+        <div class="step">
+          <div class="step-circle">📊</div>
+          <h4>4. You Track Progress</h4>
+          <p>Your live dashboard shows activation, engagement, and outcomes in real time.</p>
+        </div>
+        <div class="step">
+          <div class="step-circle">🎓</div>
+          <h4>5. Outcomes Proven</h4>
+          <p>Export KPI reports. Show placement rates. Demonstrate ROI to stakeholders.</p>
+        </div>
+      </div>
+    </div>
+    <div class="slide-num">8 / 9</div>
+  </div>
+
+  <!-- ══ SLIDE 9 — CALL TO ACTION ══════════════════════ -->
+  <div class="slide s-cta">
+    <div class="cta-inner">
+      <div>
+        <div style="font-size:.78rem;font-weight:700;color:#38BDF8;letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px;">Ready to launch?</div>
+        <h2>Give your cohort an<br><em>unfair advantage</em></h2>
+      </div>
+      <p>Start your institution trial today. Your students get full Elite access. You get real-time outcomes data. No long-term commitment required.</p>
+      <div class="cta-pills">
+        <span class="cta-pill primary">🚀 Start Institution Trial</span>
+        <span class="cta-pill">📅 Book a Demo</span>
+        <span class="cta-pill">💬 Talk to Sales</span>
+      </div>
+      <div class="cta-contact">
+        Visit <a href="https://www.rolerocketai.com">www.rolerocketai.com</a> &nbsp;·&nbsp;
+        Questions? <a href="mailto:hello@rolerocketai.com">hello@rolerocketai.com</a>
+      </div>
+    </div>
+    <div class="slide-num" style="color:#334155;">9 / 9</div>
+  </div>
+
+</div><!-- /deck -->
+</body>
+</html>

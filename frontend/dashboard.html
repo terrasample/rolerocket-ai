@@ -750,6 +750,48 @@
               var prefKeywords = Array.isArray(jad.includeKeywords) ? jad.includeKeywords.filter(Boolean) : [];
               var prefIndustries = Array.isArray(jad.industries) ? jad.industries.map(function(v){ return String(v || '').toLowerCase().trim(); }).filter(Boolean) : [];
               var prefEmploymentTypes = Array.isArray(jad.employmentTypes) ? jad.employmentTypes.map(function(v){ return String(v || '').toLowerCase().trim(); }).filter(Boolean) : [];
+              var prefSalaryMin = Number(jad.salaryMin) || 0;
+
+              // Merge Role Profile signals
+              try {
+                var rpRes = await fetch(apiUrl('/api/role-profiles'), { headers: { Authorization: 'Bearer ' + token } });
+                if (rpRes.ok) {
+                  var rpData = await rpRes.json();
+                  var rp = Array.isArray(rpData.profiles) ? rpData.profiles[0] : null;
+                  if (rp) {
+                    // Role Profile industries supplement Job Alerts industries
+                    if (Array.isArray(rp.industries)) {
+                      rp.industries.forEach(function(ind) {
+                        var v = String(ind || '').toLowerCase().trim();
+                        if (v && prefIndustries.indexOf(v) === -1) prefIndustries.push(v);
+                      });
+                    }
+                    // Role Profile targetRole supplements keywords
+                    if (rp.targetRole) {
+                      var roleKw = String(rp.targetRole).toLowerCase().trim();
+                      if (roleKw && prefKeywords.map(function(k){ return k.toLowerCase(); }).indexOf(roleKw) === -1) {
+                        prefKeywords.unshift(rp.targetRole); // prepend so it drives the scout title
+                      }
+                    }
+                    // Role Profile coreSkills supplement keywords
+                    if (Array.isArray(rp.coreSkills)) {
+                      rp.coreSkills.slice(0, 5).forEach(function(sk) {
+                        var v = String(sk || '').toLowerCase().trim();
+                        if (v && prefKeywords.map(function(k){ return k.toLowerCase(); }).indexOf(v) === -1) prefKeywords.push(sk);
+                      });
+                    }
+                    // Role Profile salaryTarget overrides if higher than Job Alerts salaryMin
+                    if (rp.salaryTarget) {
+                      var rpSalary = parseInt(String(rp.salaryTarget).replace(/[^0-9]/g, ''), 10);
+                      if (!isNaN(rpSalary) && rpSalary > prefSalaryMin) prefSalaryMin = rpSalary;
+                    }
+                    // Role Profile workPreference maps to employment type filter
+                    if (rp.workPreference && rp.workPreference !== 'flexible' && !prefEmploymentTypes.length) {
+                      prefEmploymentTypes = [rp.workPreference];
+                    }
+                  }
+                }
+              } catch (_rpErr) {}
 
               var scoutTitle = prefKeywords.length ? prefKeywords[0] : 'Software Engineer';
               var scoutLocation = forcedJamaicaMode ? 'Jamaica'
@@ -794,6 +836,16 @@
                     var jobType = normEmployment(job.employmentType || job.type || job.jobType || '');
                     var typeHit = prefEmploymentTypes.some(function(t) { return normEmployment(t) === jobType; });
                     if (typeHit) score += 20;
+                  }
+
+                  if (prefSalaryMin > 0) {
+                    var jobSalaryMax = Number((job.salaryRange && job.salaryRange.max) || 0);
+                    var jobSalaryMin = Number((job.salaryRange && job.salaryRange.min) || 0);
+                    if (jobSalaryMax > 0 && jobSalaryMax < prefSalaryMin) {
+                      score -= 60; // strongly penalise below-target roles
+                    } else if (jobSalaryMin >= prefSalaryMin) {
+                      score += 15; // bonus for confirmed salary-meets-target
+                    }
                   }
 
                   return { job: job, score: score };
