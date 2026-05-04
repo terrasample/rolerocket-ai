@@ -87,6 +87,32 @@
 
     // Inject "My Profile" link if not already present in this nav.
     ensureProfileLink(nav);
+
+    // Keep signed-in navigation order stable across pages.
+    stabilizeDashboardPlacement(nav);
+  }
+
+  function stabilizeDashboardPlacement(nav) {
+    if (!nav) return;
+    const accountLink = Array.from(nav.querySelectorAll('a.sidebar-link-btn'))
+      .find((l) => normalizePath(l.getAttribute('href') || '') === 'account.html');
+    const dashboardLink = Array.from(nav.querySelectorAll('a.sidebar-link-btn'))
+      .find((l) => normalizePath(l.getAttribute('href') || '') === 'dashboard.html');
+    const logoutLink = Array.from(nav.querySelectorAll('a.sidebar-link-btn'))
+      .find((l) => normalizePath(l.getAttribute('href') || '') === 'login.html');
+
+    if (!dashboardLink) return;
+
+    // Canonical placement: keep My Dashboard in the signed-in account area,
+    // directly after Account and before Logout.
+    if (accountLink) {
+      insertAfter(dashboardLink, accountLink);
+      return;
+    }
+
+    if (logoutLink) {
+      nav.insertBefore(dashboardLink, logoutLink);
+    }
   }
 
   function ensureProfileLink(nav) {
