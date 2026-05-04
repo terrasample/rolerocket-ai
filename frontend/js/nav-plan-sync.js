@@ -106,12 +106,14 @@
       existing.className = 'sidebar-link-btn';
       existing.href = 'profile.html';
 
-      // Insert before job-alerts-sms.html, or before account.html, or before logout as fallback.
-      const jobAlerts = Array.from(nav.querySelectorAll('a.sidebar-link-btn'))
-        .find((l) => normalizePath(l.getAttribute('href') || '') === 'job-alerts-sms.html');
+      // Insert before Jamaica Hub, or before account.html, or append as fallback.
+      const jamaicaLink = Array.from(nav.querySelectorAll('a.sidebar-link-btn'))
+        .find((l) => normalizePath(l.getAttribute('href') || '') === 'jamaica-workforce-accelerator.html');
       const accountLink = Array.from(nav.querySelectorAll('a.sidebar-link-btn'))
         .find((l) => normalizePath(l.getAttribute('href') || '') === 'account.html');
-      const anchor = jobAlerts || accountLink;
+      // Also check for the Jamaica section label so we insert before it
+      const jamaicaLabel = nav.querySelector('.nav-section-label[data-section="jamaica"]');
+      const anchor = jamaicaLabel || jamaicaLink || accountLink;
       if (anchor) {
         nav.insertBefore(existing, anchor);
       } else {
