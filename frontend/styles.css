@@ -1132,6 +1132,84 @@ h3,
   max-width: 900px;
 }
 
+.home-video-cta-row {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.home-video-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 10px 14px;
+  border: 1px solid rgba(125, 211, 252, 0.35);
+  background: rgba(2, 132, 199, 0.12);
+  color: #dbeafe;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 0.92rem;
+}
+
+.home-video-cta.primary {
+  border-color: rgba(56, 189, 248, 0.58);
+  background: linear-gradient(120deg, rgba(14, 116, 144, 0.5), rgba(2, 132, 199, 0.28));
+  color: #f0f9ff;
+}
+
+.home-video-cta:hover {
+  background: rgba(14, 116, 144, 0.3);
+  color: #f0f9ff;
+}
+
+.demo-start-here {
+  border-color: rgba(56, 189, 248, 0.35);
+  background: linear-gradient(120deg, rgba(14, 116, 144, 0.22), rgba(2, 6, 23, 0.6));
+  margin-bottom: 16px;
+}
+
+.demo-start-here-head h3 {
+  margin: 0 0 6px;
+}
+
+.demo-start-here-head p {
+  margin: 0;
+  color: #bfdbfe;
+}
+
+.demo-start-here-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.demo-start-here-links {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.demo-start-here-links a {
+  display: inline-block;
+  border: 1px solid rgba(125, 211, 252, 0.24);
+  border-radius: 10px;
+  padding: 10px;
+  color: #bae6fd;
+  text-decoration: none;
+  font-size: 0.9rem;
+  background: rgba(15, 23, 42, 0.4);
+}
+
+.demo-start-here-links a:hover {
+  border-color: rgba(125, 211, 252, 0.46);
+  background: rgba(14, 116, 144, 0.24);
+  color: #e0f2fe;
+}
+
 .quickstart-sprint {
   margin-bottom: 18px;
   border-color: rgba(125, 211, 252, 0.35);
@@ -5271,6 +5349,16 @@ pre {
     text-align: center;
     padding: 10px 14px;
     font-size: 0.92rem;
+  }
+
+  .home-video-cta-row,
+  .demo-start-here-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .demo-start-here-links {
+    grid-template-columns: 1fr;
   }
 
   .quickstart-progress {
