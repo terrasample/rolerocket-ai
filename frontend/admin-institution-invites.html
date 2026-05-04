@@ -236,6 +236,12 @@
           <option value="true">Active</option>
           <option value="false">Revoked</option>
         </select>
+        <select id="aimFilterActivationType">
+          <option value="">All types</option>
+          <option value="trial">Trial</option>
+          <option value="pilot">Pilot</option>
+          <option value="paid">Paid</option>
+        </select>
         <button class="aim-btn-primary" style="padding:7px 16px;font-size:.85rem;" onclick="loadInvites()">Search</button>
         <button style="padding:7px 14px;border-radius:8px;border:1px solid #334155;background:none;color:#94a3b8;font-size:.85rem;cursor:pointer;" onclick="clearFilters()">Clear</button>
       </div>
@@ -352,7 +358,7 @@
       const organizationType = document.getElementById('aimOrgType').value;
       const activationType = document.getElementById('aimActivationType').value;
       const includedPlan = document.getElementById('aimIncludedPlan').value;
-      const trialDays = Number(document.getElementById('aimTrialDays').value) || 0;
+      const accessDays = Number(document.getElementById('aimTrialDays').value) || 0;
       const maxUses = Number(document.getElementById('aimMaxUses').value) || 1;
       const code = document.getElementById('aimCustomCode').value.trim().toUpperCase().replace(/[^A-Z0-9-]/g, '') || undefined;
       const expiresInDaysRaw = document.getElementById('aimExpiresInDays').value.trim();
@@ -363,7 +369,7 @@
         const res = await fetch(apiUrl('/api/admin/institution-invites'), {
           method: 'POST',
           headers: authHeaders(),
-          body: JSON.stringify({ institutionName, organizationType, activationType, includedPlan, trialDays, maxUses, code, expiresInDays, notes })
+          body: JSON.stringify({ institutionName, organizationType, activationType, includedPlan, trialDays: accessDays, maxUses, code, expiresInDays, notes })
         });
         const data = await safeJson(res);
         if (!res.ok) {
@@ -376,7 +382,7 @@
         document.getElementById('rcInst').textContent = inv.institutionName;
         document.getElementById('rcActivation').textContent = String(inv.activationType || 'trial').toUpperCase();
         document.getElementById('rcPlan').textContent = String(inv.includedPlan || 'elite').toUpperCase();
-        document.getElementById('rcTrial').textContent = Number(inv.trialDays || 0) > 0 ? inv.trialDays + ' days' : '—';
+        document.getElementById('rcTrial').textContent = Number(inv.accessDays || 0) > 0 ? inv.accessDays + ' days' : '—';
         document.getElementById('rcMaxUses').textContent = inv.maxUses;
         document.getElementById('rcExpires').textContent = inv.expiresAt ? new Date(inv.expiresAt).toLocaleDateString() : 'None';
         document.getElementById('rcUrl').textContent = inv.signupUrl;
@@ -413,10 +419,12 @@
 
       const instFilter = document.getElementById('aimFilterInst').value.trim();
       const activeFilter = document.getElementById('aimFilterActive').value;
+      const activationTypeFilter = document.getElementById('aimFilterActivationType').value;
 
       const params = new URLSearchParams();
       if (instFilter) params.set('institutionName', instFilter);
       if (activeFilter !== '') params.set('active', activeFilter);
+      if (activationTypeFilter !== '') params.set('activationType', activationTypeFilter);
 
       try {
         const res = await fetch(apiUrl('/api/admin/institution-invites') + (params.toString() ? '?' + params : ''), {
@@ -456,7 +464,7 @@
       const orgTypeLabels = { university: 'University', workplace: 'Workplace', institution: 'Institution', other: 'Other' };
       const typeLabel = orgTypeLabels[inv.organizationType] || inv.organizationType || '—';
       const activationLabel = String(inv.activationType || 'trial').toUpperCase();
-      const daysLabel = Number(inv.trialDays || 0) > 0 ? (String(inv.trialDays) + 'd') : '—';
+      const daysLabel = Number(inv.accessDays || 0) > 0 ? (String(inv.accessDays) + 'd') : '—';
 
       const canRevoke = inv.active && !expired && !exhausted;
 
@@ -522,6 +530,7 @@
     window.clearFilters = function() {
       document.getElementById('aimFilterInst').value = '';
       document.getElementById('aimFilterActive').value = '';
+      document.getElementById('aimFilterActivationType').value = '';
       loadInvites();
     };
 

@@ -85,7 +85,7 @@ async function main() {
   const organizationType = ['university', 'workplace', 'institution', 'other'].includes(organizationTypeRaw)
     ? organizationTypeRaw
     : 'institution';
-  const trialDays = Math.max(1, Math.min(365, Number(args.trialDays || 30)));
+  const accessDays = Math.max(1, Math.min(365, Number(args.accessDays || args.trialDays || 30)));
   const maxUses = Math.max(1, Math.min(10000, Number(args.maxUses || 1)));
   const expiresInDays = Number.isFinite(Number(args.expiresInDays))
     ? Math.max(1, Math.min(3650, Number(args.expiresInDays)))
@@ -112,7 +112,7 @@ async function main() {
     institutionKey: institution.key,
     institutionId: institution._id,
     organizationType,
-    trialDays,
+    accessDays,
     maxUses,
     expiresAt,
     notes: String(args.notes || '').trim()
@@ -125,7 +125,7 @@ async function main() {
   console.log('Institution:', invite.institutionName);
   console.log('Code:', invite.code);
   console.log('Organization type:', invite.organizationType);
-  console.log('Trial days:', invite.trialDays);
+  console.log('Access days:', invite.accessDays);
   console.log('Max uses:', invite.maxUses);
   console.log('Expires at:', invite.expiresAt ? invite.expiresAt.toISOString() : 'none');
   console.log('Signup URL:', signupUrl);

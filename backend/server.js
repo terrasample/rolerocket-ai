@@ -505,7 +505,7 @@ app.post('/api/admin/institution-invites', authenticateToken, requireAdminAccess
       : 'institution';
     const normalizedActivationType = normalizeInstitutionActivationType(activationType);
     const normalizedIncludedPlan = normalizeInstitutionIncludedPlan(includedPlan);
-    const normalizedTrialDays = normalizedActivationType === 'paid'
+    const normalizedAccessDays = normalizedActivationType === 'paid'
       ? 0
       : Math.max(1, Math.min(365, Number(trialDays || DEFAULT_INSTITUTION_TRIAL_DAYS)));
     const normalizedMaxUses = Math.max(1, Math.min(10000, Number(maxUses || 1)));
@@ -530,7 +530,7 @@ app.post('/api/admin/institution-invites', authenticateToken, requireAdminAccess
       organizationType: normalizedOrganizationType,
       activationType: normalizedActivationType,
       includedPlan: normalizedIncludedPlan,
-      trialDays: normalizedTrialDays,
+      accessDays: normalizedAccessDays,
       maxUses: normalizedMaxUses,
       expiresAt,
       createdByUserId: req.currentUser?._id || null,
@@ -548,7 +548,7 @@ app.post('/api/admin/institution-invites', authenticateToken, requireAdminAccess
         organizationType: invite.organizationType,
         activationType: invite.activationType,
         includedPlan: invite.includedPlan,
-        trialDays: invite.trialDays,
+        accessDays: invite.accessDays,
         maxUses: invite.maxUses,
         usedCount: invite.usedCount,
         active: invite.active,
@@ -569,6 +569,7 @@ app.get('/api/admin/institution-invites', authenticateToken, requireAdminAccess,
     const normalizedInstitutionName = normalizeInstitutionName(req.query?.institutionName || '');
     const normalizedCode = normalizeInstitutionInviteCode(req.query?.code || '');
     const activeFilterRaw = String(req.query?.active || '').trim().toLowerCase();
+    const activationTypeFilter = normalizeInstitutionActivationType(req.query?.activationType || '');
 
     const query = {};
     if (normalizedInstitutionName) {
@@ -581,6 +582,9 @@ app.get('/api/admin/institution-invites', authenticateToken, requireAdminAccess,
       query.active = true;
     } else if (activeFilterRaw === 'false') {
       query.active = false;
+    }
+    if (['trial', 'pilot', 'paid'].includes(activationTypeFilter)) {
+      query.activationType = activationTypeFilter;
     }
 
     const invites = await InstitutionInvite.find(query)
@@ -674,7 +678,7 @@ app.get('/api/institution/pilot-kpis', authenticateToken, async (req, res) => {
       ? { institutionName: { $regex: new RegExp('^' + actor.institutionName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i') } }
       : {};
     const invites = await InstitutionInvite.find(institutionQuery)
-      .select('usedCount maxUses active expiresAt code trialDays createdAt activationType includedPlan')
+      .select('usedCount maxUses active expiresAt code accessDays createdAt activationType includedPlan')
       .lean();
     const totalInviteSlots = invites.reduce((s, i) => s + (i.maxUses || 1), 0);
     const totalInviteUsed  = invites.reduce((s, i) => s + (i.usedCount || 0), 0);
@@ -3608,9 +3612,45 @@ app.post('/api/auth/signup', authLimiter, async (req, res) => {
         initialPlan = institutionLicensedPlan;
         initialSubscribed = true;
       } else {
-        const trialDays = Math.max(1, Number(inviteRecord.trialDays || DEFAULT_INSTITUTION_TRIAL_DAYS));
+        const accessDays = Math.max(1, Number(inviteRecord.accessDays || DEFAULT_INSTITUTION_TRIAL_DAYS));
         institutionTrialStartsAt = new Date();
-        institutionTrialEndsAt = new Date(institutionTrialStartsAt.getTime() + trialDays * 24 * 60 * 60 * 1000);
+        institutionTrialEndsAt = new Date(institutionTrialStartsAt.getTime() + accessDays * 24 * 60 * 60 * 1000);
+      }
+    }
+
+    // Individual students: if they provide an invite code alongside an institution name,
+    // validate it and apply the includedPlan. Without a code they join free (cohort link only).
+    if (normalizedAccountType === 'individual' && normalizedInvitationCode && normalizedInstitutionName) {
+      const studentInvite = await InstitutionInvite.findOne({
+        code: normalizedInvitationCode,
+        active: true
+      }).lean();
+
+      if (!studentInvite) {
+        return res.status(400).json({ error: 'Invalid invitation code' });
+      }
+      if (studentInvite.expiresAt && new Date(studentInvite.expiresAt).getTime() <= Date.now()) {
+        return res.status(400).json({ error: 'Invitation code has expired' });
+      }
+      if (Number(studentInvite.usedCount || 0) >= Number(studentInvite.maxUses || 0)) {
+        return res.status(400).json({ error: 'Invitation code has already been used' });
+      }
+      const inviteInstName = normalizeInstitutionName(studentInvite.institutionName);
+      if (inviteInstName.toLowerCase() !== normalizedInstitutionName.toLowerCase()) {
+        return res.status(400).json({ error: 'Invitation code does not match the selected institution' });
+      }
+
+      institutionAccessType = normalizeInstitutionActivationType(studentInvite.activationType);
+      institutionLicensedPlan = normalizeInstitutionIncludedPlan(studentInvite.includedPlan || 'elite');
+      institutionInviteCode = normalizedInvitationCode;
+
+      if (institutionAccessType === 'paid') {
+        initialPlan = institutionLicensedPlan;
+        initialSubscribed = true;
+      } else {
+        const accessDays = Math.max(1, Number(studentInvite.accessDays || DEFAULT_INSTITUTION_TRIAL_DAYS));
+        institutionTrialStartsAt = new Date();
+        institutionTrialEndsAt = new Date(institutionTrialStartsAt.getTime() + accessDays * 24 * 60 * 60 * 1000);
       }
     }
 

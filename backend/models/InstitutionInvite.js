@@ -50,7 +50,7 @@ const InstitutionInviteSchema = new mongoose.Schema(
       enum: INCLUDED_PLANS,
       default: 'elite'
     },
-    trialDays: {
+    accessDays: {
       type: Number,
       default: 30,
       min: 0,
