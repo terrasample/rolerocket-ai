@@ -75,21 +75,22 @@
             <option value="individual">Individual Student / Job Seeker</option>
             <option value="institution">Institution (University, HEART/NSTA, College)</option>
           </select>
-            <input id="signupInstitutionName" list="signupInstitutionList" type="text" placeholder="Institution name (choose a suggestion or type your own)" autocomplete="organization" style="display:block;margin-bottom:6px;" />
-            <div style="margin:0 0 10px 0;font-size:.82rem;color:#94a3b8;line-height:1.5;">Choose a suggested institution or type another school, employer, or organization name if it is not listed.</div>
+          <input id="signupInstitutionName" type="text" placeholder="Institution or organization name" autocomplete="organization" style="display:block;margin-bottom:6px;" />
+          <select id="signupInstitutionPreset" style="width:100%;padding:10px 14px;border-radius:8px;border:1px solid #334155;background:#0f172a;color:#fff;font-size:.95rem;margin-bottom:6px;">
+            <option value="">Choose a common institution (optional)</option>
+            <option value="UWI Mona">UWI Mona</option>
+            <option value="UWI Cave Hill">UWI Cave Hill</option>
+            <option value="UWI St. Augustine">UWI St. Augustine</option>
+            <option value="University of Technology, Jamaica">University of Technology, Jamaica</option>
+            <option value="HEART/NSTA Trust">HEART/NSTA Trust</option>
+            <option value="University College of the Caribbean">University College of the Caribbean</option>
+            <option value="Northern Caribbean University">Northern Caribbean University</option>
+            <option value="Mico University College">Mico University College</option>
+            <option value="Caribbean Maritime University">Caribbean Maritime University</option>
+            <option value="The University of the West Indies Open Campus">The University of the West Indies Open Campus</option>
+          </select>
+          <div style="margin:0 0 10px 0;font-size:.82rem;color:#94a3b8;line-height:1.5;">Type any school, employer, or organization name directly. The picker above is optional.</div>
           <input id="signupInvitationCode" type="text" placeholder="Institution invitation code (required for institution accounts)" autocomplete="off" style="display:block;margin-bottom:10px;text-transform:uppercase;" />
-          <datalist id="signupInstitutionList">
-            <option value="UWI Mona"></option>
-            <option value="UWI Cave Hill"></option>
-            <option value="UWI St. Augustine"></option>
-            <option value="University of Technology, Jamaica"></option>
-            <option value="HEART/NSTA Trust"></option>
-            <option value="University College of the Caribbean"></option>
-            <option value="Northern Caribbean University"></option>
-            <option value="Mico University College"></option>
-            <option value="Caribbean Maritime University"></option>
-            <option value="The University of the West Indies Open Campus"></option>
-          </datalist>
           <div id="signupInstitutionHelp" style="background:#0f172a;border:1px solid #334155;border-radius:10px;padding:10px 12px;margin:4px 0 10px;color:#cbd5e1;font-size:.82rem;line-height:1.5;">
             <strong style="color:#e2e8f0;">How institution linking works</strong><br>
             Students: enter your institution name so your account is linked for cohort reporting. If your school is not listed, type it manually.<br>
@@ -130,11 +131,13 @@
           // Show/hide institution name field
           const acctType = document.getElementById('signupAccountType');
           const instInput = document.getElementById('signupInstitutionName');
+          const instPreset = document.getElementById('signupInstitutionPreset');
           const inviteInput = document.getElementById('signupInvitationCode');
           const instHelp = document.getElementById('signupInstitutionHelp');
           if (institution) {
             instInput.value = institution;
             instInput.style.display = 'block';
+            if (instPreset) instPreset.value = institution;
             if (instHelp) {
               instHelp.innerHTML = '<strong style="color:#e2e8f0;">Institution invite detected</strong><br>Prefilled with <strong style="color:#a5b4fc;">' + institution.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</strong>. You can change this if needed.';
             }
@@ -154,6 +157,12 @@
           acctType.addEventListener('change', () => {
             applyInstitutionRequirements();
           });
+
+          if (instPreset) {
+            instPreset.addEventListener('change', () => {
+              if (instPreset.value) instInput.value = instPreset.value;
+            });
+          }
 
           inviteInput.addEventListener('input', () => {
             inviteInput.value = inviteInput.value.toUpperCase().replace(/[^A-Z0-9-]/g, '');
