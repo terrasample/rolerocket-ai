@@ -1608,6 +1608,51 @@ function dedupeJobs(jobs) {
   });
 }
 
+function buildQueryTokens(queryTitle = '') {
+  const stopWords = new Set([
+    'a', 'an', 'and', 'or', 'the', 'for', 'with', 'to', 'of', 'in', 'on', 'at', 'by', 'from', 'job', 'jobs', 'role', 'roles'
+  ]);
+
+  return String(queryTitle || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .map((t) => t.trim())
+    .filter((t) => t.length >= 2 && !stopWords.has(t));
+}
+
+function tokenMatchInHaystack(token, haystack) {
+  if (!token) return false;
+  if (haystack.includes(token)) return true;
+
+  // Cheap singular/plural normalization for common English role terms.
+  if (token.endsWith('s') && token.length > 3) {
+    return haystack.includes(token.slice(0, -1));
+  }
+  if (!token.endsWith('s') && token.length > 3) {
+    return haystack.includes(token + 's');
+  }
+
+  return false;
+}
+
+function isJobRelevantToQuery(job = {}, queryTitle = '') {
+  const rawQuery = String(queryTitle || '').trim().toLowerCase();
+  if (!rawQuery) return true;
+
+  const haystack = `${String(job?.title || '')} ${String(job?.company || '')} ${String(job?.description || '')} ${String(job?.location || '')}`.toLowerCase();
+  if (!haystack.trim()) return false;
+
+  if (haystack.includes(rawQuery)) return true;
+
+  const tokens = buildQueryTokens(rawQuery);
+  if (!tokens.length) return true;
+
+  const matched = tokens.filter((t) => tokenMatchInHaystack(t, haystack)).length;
+  const minRequired = tokens.length === 1 ? 1 : Math.max(1, Math.ceil(tokens.length * 0.5));
+  return matched >= minRequired;
+}
+
 function normalizeDate(input) {
   if (!input) return null;
   const date = new Date(input);
@@ -2323,10 +2368,28 @@ async function fetchIndeedJamaicaJobs(title, _location, resume) {
     for (const m of matches) {
       const jk = String(m[1] || '').trim();
       if (!jk || listingMap.has(jk)) continue;
+
+      // Parse listing context around each match so we don't fabricate title data
+      // from the query itself.
+      const idx = Number(m.index || 0);
+      const snippet = html.slice(Math.max(0, idx - 1200), idx + 2500);
+      const titleMatch = snippet.match(/(?:jobTitle|jobtitle)[\s\S]{0,450}?<a[^>]*>([\s\S]*?)<\/a>/i)
+        || snippet.match(/<a[^>]*data-jk=["'][^"']+["'][^>]*>([\s\S]*?)<\/a>/i)
+        || snippet.match(/<a[^>]*>([\s\S]{2,180}?)<\/a>/i);
+      const companyMatch = snippet.match(/data-testid=["']company-name["'][^>]*>([\s\S]*?)<\/span>/i)
+        || snippet.match(/class=["'][^"']*companyName[^"']*["'][^>]*>([\s\S]*?)<\/span>/i)
+        || snippet.match(/class=["'][^"']*company[^"']*["'][^>]*>([\s\S]*?)<\/span>/i);
+      const locationMatch = snippet.match(/data-testid=["']text-location["'][^>]*>([\s\S]*?)<\/div>/i)
+        || snippet.match(/class=["'][^"']*companyLocation[^"']*["'][^>]*>([\s\S]*?)<\/div>/i)
+        || snippet.match(/class=["'][^"']*location[^"']*["'][^>]*>([\s\S]*?)<\/div>/i);
+
+      const parsedTitle = sanitizeJobField(decodeHtmlLite(titleMatch ? titleMatch[1] : ''), '', 120);
+      if (!parsedTitle) continue;
+
       listingMap.set(jk, {
-        title: queryTitle,
-        company: 'Unknown Company',
-        location: 'Jamaica',
+        title: parsedTitle,
+        company: sanitizeJobField(decodeHtmlLite(companyMatch ? companyMatch[1] : ''), 'Unknown Company', 70),
+        location: sanitizeJobField(decodeHtmlLite(locationMatch ? locationMatch[1] : ''), 'Jamaica', 70),
         link: `https://jm.indeed.com/viewjob?jk=${encodeURIComponent(jk)}`,
         postedAt: new Date().toISOString(),
         source: 'Indeed Jamaica'
@@ -2340,9 +2403,9 @@ async function fetchIndeedJamaicaJobs(title, _location, resume) {
       company: job.company,
       location: job.location,
       link: job.link,
-      description: 'Direct listing from Indeed Jamaica (last 7 days).',
+      description: `${job.title} at ${job.company} in ${job.location}. Direct listing from Indeed Jamaica (last 7 days).`,
       postedAt: job.postedAt,
-      matchScore: estimateMatchScore(job.title, queryTitle, resume),
+      matchScore: estimateMatchScore(job.title, `${job.company} ${job.location} ${queryTitle}`, resume),
       source: job.source
     })
   );
@@ -2761,6 +2824,14 @@ async function searchJobsFast({ title, location, resume, radiusMiles = 100 }) {
   const locationQuery = String(location || '').trim().toLowerCase();
   const allowBroadFallback = !locationQuery || /remote|worldwide|global|anywhere|anywhere in/i.test(locationQuery);
   let jobs = (locationMatched.length || !allowBroadFallback ? locationMatched : ranked);
+
+  // Keep results query-intent specific so unrelated roles do not leak into
+  // narrow searches like tourism vs software. If query tokens exist, enforce
+  // the filter even when it yields zero results.
+  const queryTokens = buildQueryTokens(title);
+  if (queryTokens.length) {
+    jobs = jobs.filter((job) => isJobRelevantToQuery(job, title));
+  }
 
   // For Jamaica, return only Jamaica-matched jobs with recent posted dates
   // and direct posting links (not generic career portal landing pages).
