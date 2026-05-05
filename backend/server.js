@@ -6010,18 +6010,22 @@ Rules:
       }
 
       const generatedFingerprint = createCourseContentFingerprint(course);
-      await CourseContentCache.findOneAndUpdate(
-        { courseKey },
-        {
-          $set: {
-            courseTitle: topic,
-            contentFingerprint: generatedFingerprint,
-            coursePayload: course,
-            expiresAt: new Date(now + COURSE_CONTENT_CACHE_TTL_MS)
-          }
-        },
-        { upsert: true, new: true, setDefaultsOnInsert: true }
-      );
+      try {
+        await CourseContentCache.findOneAndUpdate(
+          { courseKey },
+          {
+            $set: {
+              courseTitle: topic,
+              contentFingerprint: generatedFingerprint,
+              coursePayload: course,
+              expiresAt: new Date(now + COURSE_CONTENT_CACHE_TTL_MS)
+            }
+          },
+          { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+      } catch (cacheWriteError) {
+        console.warn('Course content cache write failed, returning uncached content:', cacheWriteError.message);
+      }
     }
 
     const normalizedModules = Array.isArray(course?.modules)
@@ -6043,49 +6047,53 @@ Rules:
     const sessionToken = crypto.randomBytes(24).toString('hex');
     const expiresAt = new Date(Date.now() + COURSE_CHECK_SESSION_TTL_MS);
 
-    await CourseLearningSession.findOneAndUpdate(
-      { userId: req.user.userId, courseKey },
-      {
-        $set: {
-          courseTitle: topic,
-          contentFingerprint,
-          sessionToken,
-          answers,
-          expiresAt
-        }
-      },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
-    );
-
-    const existingProgress = await CourseProgress.findOne({ userId: req.user.userId, courseKey }).lean();
-    const totalModules = modules.length;
-
-    if (!existingProgress || String(existingProgress.contentFingerprint || '') !== contentFingerprint) {
-      await CourseProgress.findOneAndUpdate(
+    try {
+      await CourseLearningSession.findOneAndUpdate(
         { userId: req.user.userId, courseKey },
         {
           $set: {
             courseTitle: topic,
             contentFingerprint,
-            totalModules,
-            completedModules: [],
-            completedAt: null
+            sessionToken,
+            answers,
+            expiresAt
           }
         },
         { upsert: true, new: true, setDefaultsOnInsert: true }
       );
-    } else if (Number(existingProgress.totalModules || 0) !== totalModules) {
-      await CourseProgress.findOneAndUpdate(
-        { userId: req.user.userId, courseKey },
-        {
-          $set: {
-            courseTitle: topic,
-            contentFingerprint,
-            totalModules
-          }
-        },
-        { new: true }
-      );
+
+      const existingProgress = await CourseProgress.findOne({ userId: req.user.userId, courseKey }).lean();
+      const totalModules = modules.length;
+
+      if (!existingProgress || String(existingProgress.contentFingerprint || '') !== contentFingerprint) {
+        await CourseProgress.findOneAndUpdate(
+          { userId: req.user.userId, courseKey },
+          {
+            $set: {
+              courseTitle: topic,
+              contentFingerprint,
+              totalModules,
+              completedModules: [],
+              completedAt: null
+            }
+          },
+          { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+      } else if (Number(existingProgress.totalModules || 0) !== totalModules) {
+        await CourseProgress.findOneAndUpdate(
+          { userId: req.user.userId, courseKey },
+          {
+            $set: {
+              courseTitle: topic,
+              contentFingerprint,
+              totalModules
+            }
+          },
+          { new: true }
+        );
+      }
+    } catch (progressWriteError) {
+      console.warn('Course learning session write failed, returning content without persisted progress:', progressWriteError.message);
     }
 
     return res.json({
