@@ -75,7 +75,8 @@
             <option value="individual">Individual Student / Job Seeker</option>
             <option value="institution">Institution (University, HEART/NSTA, College)</option>
           </select>
-          <input id="signupInstitutionName" list="signupInstitutionList" type="text" placeholder="Institution name (optional for students, required for institution accounts)" autocomplete="organization" style="display:block;margin-bottom:10px;" />
+            <input id="signupInstitutionName" list="signupInstitutionList" type="text" placeholder="Institution name (choose a suggestion or type your own)" autocomplete="organization" style="display:block;margin-bottom:6px;" />
+            <div style="margin:0 0 10px 0;font-size:.82rem;color:#94a3b8;line-height:1.5;">Choose a suggested institution or type another school, employer, or organization name if it is not listed.</div>
           <input id="signupInvitationCode" type="text" placeholder="Institution invitation code (required for institution accounts)" autocomplete="off" style="display:block;margin-bottom:10px;text-transform:uppercase;" />
           <datalist id="signupInstitutionList">
             <option value="UWI Mona"></option>
@@ -91,8 +92,8 @@
           </datalist>
           <div id="signupInstitutionHelp" style="background:#0f172a;border:1px solid #334155;border-radius:10px;padding:10px 12px;margin:4px 0 10px;color:#cbd5e1;font-size:.82rem;line-height:1.5;">
             <strong style="color:#e2e8f0;">How institution linking works</strong><br>
-            Students: select your institution so your account is linked for cohort reporting.<br>
-            Institutions: choose <strong>Institution</strong> account type and enter your invitation code to activate your 30-day trial.
+            Students: enter your institution name so your account is linked for cohort reporting. If your school is not listed, type it manually.<br>
+            Institutions: choose <strong>Institution</strong> account type, enter your organization name, and use your invitation code to activate your access.
           </div>
           <button id="signupSubmitBtn" type="submit" class="auth-submit-btn" style="margin-top:6px;">Create Free Account</button>
         </form>
