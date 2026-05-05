@@ -586,39 +586,20 @@
   <script src="js/dashboard.js"></script>
   <script>
     (function initScreenshotStyleDashboard() {
-      var DASHBOARD_THEME_PREF_KEY = 'rr_dashboard_theme_pref_v1';
-      var DASHBOARD_THEME_PREF_SOURCE_KEY = 'rr_dashboard_theme_pref_source_v1';
+      // Clear any stale Jamaica theme prefs from localStorage — theme is URL-only now.
+      try { localStorage.removeItem('rr_dashboard_theme_pref_v1'); } catch (_e) {}
+      try { localStorage.removeItem('rr_dashboard_theme_pref_source_v1'); } catch (_e) {}
 
       function text(elId, value) {
         var el = document.getElementById(elId);
         if (el) el.textContent = value;
       }
 
+      // Jamaica mode ONLY activates when ?theme=jamaica is explicitly in the URL.
+      // No localStorage persistence — prevents auto-activation from stale state.
       function readThemePreference(params) {
         var queryTheme = String(params.get('theme') || '').toLowerCase();
-        if (queryTheme === 'jamaica' || queryTheme === 'default') {
-          try {
-            localStorage.setItem(DASHBOARD_THEME_PREF_KEY, queryTheme);
-            localStorage.setItem(DASHBOARD_THEME_PREF_SOURCE_KEY, 'explicit');
-          } catch (_e) {}
-          return queryTheme;
-        }
-
-        var storedTheme = '';
-        var storedSource = '';
-        try { storedTheme = String(localStorage.getItem(DASHBOARD_THEME_PREF_KEY) || '').toLowerCase(); } catch (_e2) {}
-        try { storedSource = String(localStorage.getItem(DASHBOARD_THEME_PREF_SOURCE_KEY) || '').toLowerCase(); } catch (_e3) {}
-        if (storedTheme === 'default') return 'default';
-
-        // Migrate any old/stale Jamaica preference values that were not explicitly set by the user.
-        if (storedTheme === 'jamaica' && storedSource === 'explicit') return 'jamaica';
-        if (storedTheme === 'jamaica' && storedSource !== 'explicit') {
-          try {
-            localStorage.setItem(DASHBOARD_THEME_PREF_KEY, 'default');
-            localStorage.removeItem(DASHBOARD_THEME_PREF_SOURCE_KEY);
-          } catch (_e4) {}
-        }
-
+        if (queryTheme === 'jamaica') return 'jamaica';
         return 'default';
       }
 
