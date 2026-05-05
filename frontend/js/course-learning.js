@@ -1425,7 +1425,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const allModulesComplete = hasModules && progressState.completedModules.size >= progressState.totalModules;
     const assessmentComplete = progressState.assessmentCompleted === true;
 
-    if (practiceSection) practiceSection.hidden = !hasModules;
+    if (practiceSection) practiceSection.hidden = !allModulesComplete;
     if (capstoneSection) capstoneSection.hidden = !allModulesComplete;
     if (mockExamsSection) mockExamsSection.hidden = !allModulesComplete;
     if (assessmentSection) assessmentSection.hidden = !allModulesComplete;
@@ -2658,6 +2658,11 @@ document.addEventListener('DOMContentLoaded', function () {
   function renderPracticeBank(rows) {
     const items = asArray(rows);
     if (!practiceBank) return;
+    const isAllModuleComplete = progressState.totalModules > 0 && progressState.completedModules.size >= progressState.totalModules;
+    if (!isAllModuleComplete) {
+      practiceBank.innerHTML = '<div class="module-item"><p style="color:#9fb0c7;">Practice questions unlock only after you complete all course modules.</p></div>';
+      return;
+    }
     if (!items.length) {
       practiceBank.innerHTML = '<div class="module-item"><p>Practice questions are not available yet.</p></div>';
       return;
