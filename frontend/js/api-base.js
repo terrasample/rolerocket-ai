@@ -1,5 +1,5 @@
 (function initApiBase(global) {
-  const DEFAULT_LOCAL_API = 'http://localhost:5555';
+  const DEFAULT_LOCAL_API = 'http://localhost:5001';
 
   function readOverride() {
     try {
@@ -42,6 +42,12 @@
       hostname === '127.0.0.1' ||
       hostname === '[::1]'
     ) {
+      // Static frontend often runs on :5000 while API runs on :5001.
+      // Prefer backend port explicitly in that common local setup.
+      if (port === '5000') {
+        return `${global.location.protocol}//${hostname}:5001`;
+      }
+
       // Use the same port the page is served from — the Express server serves
       // both static files and API routes on the same port.
       return `${global.location.protocol}//${hostname}${port ? `:${port}` : ''}`;
