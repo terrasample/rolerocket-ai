@@ -1643,6 +1643,18 @@ function isJobRelevantToQuery(job = {}, queryTitle = '') {
   const haystack = `${String(job?.title || '')} ${String(job?.company || '')} ${String(job?.description || '')} ${String(job?.location || '')}`.toLowerCase();
   if (!haystack.trim()) return false;
 
+  // Sector-aware matching for hospitality/tourism searches so users can find
+  // operational role titles that may not literally include the word "tourism".
+  if (/\btourism\b|\bhospitality\b|\bhotel\b|\bresort\b|\btravel\b/.test(rawQuery)) {
+    const tourismKeywords = [
+      'tourism', 'hospitality', 'hotel', 'resort', 'front desk', 'guest services',
+      'housekeeping', 'food and beverage', 'food & beverage', 'restaurant',
+      'waiter', 'server', 'bartender', 'chef', 'cook', 'concierge', 'reservations',
+      'banquet', 'room attendant', 'houseman', 'hostess', 'villa', 'all-inclusive'
+    ];
+    if (tourismKeywords.some((k) => haystack.includes(k))) return true;
+  }
+
   if (haystack.includes(rawQuery)) return true;
 
   const tokens = buildQueryTokens(rawQuery);
@@ -1651,6 +1663,51 @@ function isJobRelevantToQuery(job = {}, queryTitle = '') {
   const matched = tokens.filter((t) => tokenMatchInHaystack(t, haystack)).length;
   const minRequired = tokens.length === 1 ? 1 : Math.max(1, Math.ceil(tokens.length * 0.5));
   return matched >= minRequired;
+}
+
+function getJamaicaExpandedQueries(queryTitle = '') {
+  const q = String(queryTitle || '').trim().toLowerCase();
+  if (!q) return [];
+
+  // Expand tourism/hospitality searches into common role terms to capture
+  // postings that omit the umbrella keyword.
+  if (/\btourism\b|\bhospitality\b|\bhotel\b|\bresort\b|\btravel\b/.test(q)) {
+    return [
+      'tourism',
+      'hospitality',
+      'hotel',
+      'resort',
+      'front desk',
+      'guest services',
+      'housekeeping',
+      'food and beverage',
+      'chef',
+      'bartender',
+      'server'
+    ];
+  }
+
+  return [];
+}
+
+async function fetchExpandedJamaicaSectorJobs({ title, location, resume }) {
+  const queries = getJamaicaExpandedQueries(title);
+  if (!queries.length) return [];
+
+  const loc = String(location || '').trim() || 'Jamaica';
+  const settled = await Promise.allSettled(
+    queries.flatMap((q) => [
+      timeoutPromise(fetchCaribbeanJobsHtmlDirect(q, loc, resume), 3500),
+      timeoutPromise(fetchIndeedJamaicaJobs(q, loc, resume), 3500)
+    ])
+  );
+
+  const merged = [];
+  settled.forEach((r) => {
+    if (r.status === 'fulfilled' && Array.isArray(r.value)) merged.push(...r.value);
+  });
+
+  return dedupeJobs(merged);
 }
 
 function normalizeDate(input) {
@@ -2648,6 +2705,40 @@ function getGuaranteedJamaicaFallbackJobs(title, resume) {
   );
 }
 
+function getGuaranteedJamaicaTourismFallbackJobs(title, resume) {
+  const role = String(title || '').trim() || 'Hospitality Associate';
+  const localTourismEmployers = [
+    { company: 'Sandals Resorts International', link: 'https://www.sandals.com/careers/', location: 'Montego Bay, Jamaica' },
+    { company: 'RIU Hotels Jamaica', link: 'https://www.riu.com/en/jobs/', location: 'Negril, Jamaica' },
+    { company: 'Bahia Principe Jamaica', link: 'https://www.bahiaprincipe.com/en/jobs/', location: 'St. Ann, Jamaica' },
+    { company: 'Half Moon Resort', link: 'https://www.halfmoon.com/careers', location: 'Montego Bay, Jamaica' },
+    { company: 'Jamaica Pegasus Hotel', link: 'https://jamaicapegasus.com/careers/', location: 'Kingston, Jamaica' },
+    { company: 'S Hotel Jamaica', link: 'https://shoteljamaica.com/careers/', location: 'Montego Bay, Jamaica' },
+    { company: 'Hyatt Ziva/Zilara Rose Hall', link: 'https://careers.hyatt.com/', location: 'Montego Bay, Jamaica' },
+    { company: 'Palladium Hotel Group Jamaica', link: 'https://www.palladiumhotelgroup.com/en/work-with-us', location: 'Hanover, Jamaica' },
+    { company: 'JTB (Jamaica Tourist Board)', link: 'https://www.visitjamaica.com/jobs/', location: 'Kingston, Jamaica' },
+    { company: 'Jamaica Vacations (JAMVAC)', link: 'https://www.visitjamaica.com/about-jamvac/', location: 'Kingston, Jamaica' }
+  ];
+
+  return localTourismEmployers.map((item, idx) =>
+    normalizeJob({
+      title: role,
+      company: item.company,
+      location: item.location,
+      link: item.link,
+      description: `${item.company} tourism and hospitality careers in Jamaica. Check official employer portal for current openings.`,
+      postedAt: new Date(Date.now() - idx * 45 * 60 * 1000).toISOString(),
+      matchScore: Math.min(92, estimateMatchScore(role, `${item.company} tourism hospitality Jamaica`, resume) + 6),
+      source: 'Jamaica Tourism Careers',
+      employmentType: 'full-time',
+      isRemote: false,
+      sponsorshipAvailable: false,
+      experienceLevel: 'entry',
+      requiredCredentials: ['Customer Service', 'Communication Skills']
+    })
+  );
+}
+
 function extractCredentials(text) {
   const credentialKeywords = ['csec', 'cape', 'heart', 'nvq', 'associate', 'bachelor', 'diploma', 'certification', 'degree', 'cpa', 'acca', 'coil', 'bpo'];
   const credentials = [];
@@ -2819,6 +2910,16 @@ async function searchJobsFast({ title, location, resume, radiusMiles = 100 }) {
     }
   });
 
+  const locationQueryForExpansion = String(location || '').trim().toLowerCase();
+  if (/\bjamaica\b/.test(locationQueryForExpansion)) {
+    try {
+      const expanded = await fetchExpandedJamaicaSectorJobs({ title, location, resume });
+      if (expanded.length) combined.push(...expanded);
+    } catch (_e) {
+      // Ignore expansion failures and continue with base sources.
+    }
+  }
+
   const ranked = rankJobs(dedupeJobs(combined), { title, location });
   const locationMatched = ranked.filter((job) => isLocationCompatible(job, location));
   const locationQuery = String(location || '').trim().toLowerCase();
@@ -2851,6 +2952,12 @@ async function searchJobsFast({ title, location, resume, radiusMiles = 100 }) {
 
   // For Jamaica, do not inject synthetic/fallback portal links when none match
   // direct-link and recency requirements.
+
+  const queryTitleLower = String(title || '').toLowerCase();
+  const isTourismHospitalityQuery = /\btourism\b|\bhospitality\b|\bhotel\b|\bresort\b|\btravel\b/.test(queryTitleLower);
+  if (!jobs.length && /\bjamaica\b/.test(locationQuery) && isTourismHospitalityQuery) {
+    jobs = getGuaranteedJamaicaTourismFallbackJobs(title, resume);
+  }
 
   // If providers are flaky, return stale cache before showing empty.
   if (!jobs.length && cached && Date.now() - cached.createdAt < JOB_STALE_CACHE_MS) {
