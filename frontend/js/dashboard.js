@@ -3517,6 +3517,9 @@ interviewPrepBtn?.addEventListener('click', async () => {
   }
 });
 
+const isStandaloneCareerCoachPage = /(^|\/)ai-career-coach\.html$/i.test(window.location.pathname);
+
+if (!isStandaloneCareerCoachPage) {
 document.getElementById('careerCoachBtn')?.addEventListener('click', async () => {
   if (!hasPlan('elite')) {
     showToast('Upgrade to Elite to unlock Career Coach.', 'warn');
@@ -3540,6 +3543,7 @@ document.getElementById('careerCoachBtn')?.addEventListener('click', async () =>
     renderAIOutput(`Error: ${err.message}`, result);
   }
 });
+}
 
 const planToPriceIdMap = {
   pro: 'price_1THMq2KtQrGDcYVPvR3OcRyN',

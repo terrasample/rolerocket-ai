@@ -15,8 +15,8 @@ document.addEventListener('DOMContentLoaded', function () {
       .trim();
   }
 
-    if (btn) {
-      btn.onclick = async function () {
+  if (btn) {
+    btn.onclick = async function () {
     const role = roleInput.value.trim();
     const goals = goalsInput.value.trim();
     if (!role) {
@@ -49,23 +49,24 @@ document.addEventListener('DOMContentLoaded', function () {
       lastPlan = '';
       resultDiv.innerHTML = '<span style="color:#dc2626;">Error generating advice.</span>';
     }
-  });
+  };
+  }
 
-    const resumeInput = document.getElementById('resumeUpload');
-    const resumeFileName = document.getElementById('resumeFileName');
-    let resumeFile = null;
+  const resumeInput = document.getElementById('resumeUpload');
+  const resumeFileName = document.getElementById('resumeFileName');
+  let resumeFile = null;
 
-    if (resumeInput) {
-      resumeInput.onchange = function (e) {
-        if (resumeInput.files && resumeInput.files[0]) {
-          resumeFile = resumeInput.files[0];
-          resumeFileName.textContent = `Selected: ${resumeFile.name}`;
-        } else {
-          resumeFile = null;
-          resumeFileName.textContent = '';
-        }
-      };
-    }
+  if (resumeInput) {
+    resumeInput.onchange = function () {
+      if (resumeInput.files && resumeInput.files[0]) {
+        resumeFile = resumeInput.files[0];
+        resumeFileName.textContent = `Selected: ${resumeFile.name}`;
+      } else {
+        resumeFile = null;
+        resumeFileName.textContent = '';
+      }
+    };
+  }
   function formatPlanForPdf(text, doc) {
     // Split by lines and parse markdown-like headers/lists
     const lines = text.split(/\r?\n/);

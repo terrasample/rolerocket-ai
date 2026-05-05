@@ -5071,8 +5071,8 @@ pre {
   align-items: center;
   justify-content: space-between;
   padding: 9px 14px;
-  background: rgba(255, 255, 255, 0.05);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(14, 165, 233, 0.08);
+  border-bottom: 1px solid rgba(14, 165, 233, 0.2);
 }
 
 .ai-output-label {
@@ -5080,13 +5080,13 @@ pre {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #7dd3fc;
+  color: #0c4a6e;
 }
 
 .ai-copy-output-btn {
-  background: rgba(255, 255, 255, 0.09);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #bae6fd;
+  background: #ecfeff;
+  border: 1px solid #7dd3fc;
+  color: #0f172a;
   border-radius: 7px;
   padding: 3px 10px;
   font-size: 0.78rem;
@@ -5095,7 +5095,7 @@ pre {
   transition: background 0.15s;
 }
 
-.ai-copy-output-btn:hover { background: rgba(255, 255, 255, 0.17); }
+.ai-copy-output-btn:hover { background: #cffafe; }
 
 .ai-output-body {
   padding: 16px;
@@ -5116,13 +5116,13 @@ pre {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #94a3b8;
+  color: #334155;
   margin: 2px 0 0;
 }
 
 .ai-paragraph {
   margin: 0;
-  color: #e2e8f0;
+  color: #0f172a;
   line-height: 1.65;
 }
 
@@ -5137,11 +5137,11 @@ pre {
 
 .ai-bullet-item {
   padding: 7px 12px;
-  background: rgba(14, 165, 233, 0.14);
+  background: #ecfeff;
   border-left: 3px solid #0ea5e9;
   border-radius: 0 8px 8px 0;
   font-size: 0.87rem;
-  color: #d1d5db;
+  color: #0f172a;
 }
 
 /* ─── Saved Resume Bar ────────────────────────────────────────────────────── */
