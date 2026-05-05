@@ -219,7 +219,7 @@ document.addEventListener('DOMContentLoaded', function () {
     y += 8;
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(11);
+    doc.setFontSize(12);
     doc.setTextColor(31, 41, 55);
     letter.paragraphs.forEach((paragraph) => {
       const wrapped = doc.splitTextToSize(paragraph, maxWidth);
@@ -273,7 +273,7 @@ document.addEventListener('DOMContentLoaded', function () {
       const company = document.getElementById('coverCompany').value.trim();
       const parsed = parseCoverLetter(lastCover);
       const today = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
-      const html = `<!DOCTYPE html><html><body style="font-family:Calibri, Arial, sans-serif;font-size:11pt;line-height:1.55;color:#1f2937;margin:0;"><div style="max-width:780px;margin:0 auto;padding:20px 24px;"><div style="border-bottom:3px solid #8ec7da;padding-bottom:10px;margin-bottom:12px;"><div style="font-size:22pt;font-weight:800;color:#0e6e98;">${escapeHtml(lastCoverMeta.name || 'Candidate')}</div><div style="font-size:10pt;color:#64748b;">${escapeHtml([lastCoverMeta.phone, lastCoverMeta.email].filter(Boolean).join('  |  '))}</div><div style="font-size:9.5pt;color:#64748b;margin-top:6px;">${escapeHtml(today)}</div></div><div style="font-size:10pt;color:#334155;margin-bottom:10px;"><strong>Role:</strong> ${escapeHtml(roleTitle || 'Target Role')}<br><strong>Company:</strong> ${escapeHtml(company || 'Target Company')}</div><p style="margin:0 0 10px 0;font-weight:700;">${escapeHtml(parsed.greeting)}</p>${parsed.paragraphs.map((p) => `<p style="margin:0 0 12px 0;">${escapeHtml(p)}</p>`).join('')}<p style="margin:12px 0 0 0;">${escapeHtml(parsed.closing)}<br><strong>${escapeHtml(parsed.signature || lastCoverMeta.name || '')}</strong></p></div></body></html>`;
+      const html = `<!DOCTYPE html><html><body style="font-family:Calibri, Arial, sans-serif;font-size:12pt;line-height:1.55;color:#1f2937;margin:0;"><div style="max-width:780px;margin:0 auto;padding:20px 24px;"><div style="border-bottom:3px solid #8ec7da;padding-bottom:10px;margin-bottom:12px;"><div style="font-size:22pt;font-weight:800;color:#0e6e98;">${escapeHtml(lastCoverMeta.name || 'Candidate')}</div><div style="font-size:10pt;color:#64748b;">${escapeHtml([lastCoverMeta.phone, lastCoverMeta.email].filter(Boolean).join('  |  '))}</div><div style="font-size:9.5pt;color:#64748b;margin-top:6px;">${escapeHtml(today)}</div></div><div style="font-size:10pt;color:#334155;margin-bottom:10px;"><strong>Role:</strong> ${escapeHtml(roleTitle || 'Target Role')}<br><strong>Company:</strong> ${escapeHtml(company || 'Target Company')}</div><p style="margin:0 0 10px 0;font-weight:700;">${escapeHtml(parsed.greeting)}</p>${parsed.paragraphs.map((p) => `<p style="margin:0 0 12px 0;">${escapeHtml(p)}</p>`).join('')}<p style="margin:12px 0 0 0;">${escapeHtml(parsed.closing)}<br><strong>${escapeHtml(parsed.signature || lastCoverMeta.name || '')}</strong></p></div></body></html>`;
       const blob = new Blob(['\ufeff', html], { type: 'application/msword;charset=utf-8' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
