@@ -1179,24 +1179,24 @@ document.addEventListener('DOMContentLoaded', function () {
             ${renderSectionHeading('CONTACT', theme, '15px')}
             ${(model.contactLines || []).map((line) => `<div style="font-size:13px;line-height:1.6;color:#1f2937;margin-bottom:6px;">${escapeHtml(line)}</div>`).join('')}
             ${renderSectionHeading('SKILLS', theme, '15px', 'margin-top:22px;')}
-            ${renderBulletListHtml((model.skills || []).slice(0, 8), '13px', '#1f2937', '6px')}
+            ${renderBulletListHtml((model.skills || []).slice(0, 8), '12pt', '#1f2937', '6px')}
             ${renderSectionHeading('CERTIFICATIONS', theme, '15px', 'margin-top:22px;')}
-            ${renderBulletListHtml(model.awards.length ? model.awards : ['N/A'], '13px', '#1f2937', '6px')}
+            ${renderBulletListHtml(model.awards.length ? model.awards : ['N/A'], '12pt', '#1f2937', '6px')}
           </aside>
           <section style="padding:24px 28px 28px 28px;">
             ${renderSectionHeading('PROFILE', theme, '16px')}
-            ${renderBulletListHtml(profileBullets.length ? profileBullets : [model.profile], '14px', '#374151', '8px')}
+            ${renderBulletListHtml(profileBullets.length ? profileBullets : [model.profile], '12pt', '#374151', '8px')}
             <hr style="border:none;border-top:1px solid #d1d5db;margin:18px 0;" />
             ${renderSectionHeading('EXPERIENCE', theme, '16px')}
             ${model.experiences.map((exp) => `
               <div style="margin-bottom:16px;">
                 <div style="font-size:15px;font-weight:700;color:#111827;margin-bottom:2px;">${escapeHtml(exp.title || exp.heading || '')}</div>
                 ${exp.company ? `<div style="font-size:13px;font-weight:400;color:#6b7280;margin-bottom:4px;">${escapeHtml(exp.company)}</div>` : ''}
-                ${renderBulletListHtml(exp.bullets || [], '14px', '#374151', '6px')}
+                ${renderBulletListHtml(exp.bullets || [], '12pt', '#374151', '6px')}
               </div>
             `).join('')}
             ${renderSectionHeading('EDUCATION', theme, '16px', 'margin-top:14px;')}
-            ${renderBulletListHtml(model.education || [], '14px', '#374151', '6px')}
+            ${renderBulletListHtml(model.education || [], '12pt', '#374151', '6px')}
           </section>
         </div>
       </div>
@@ -1216,27 +1216,27 @@ document.addEventListener('DOMContentLoaded', function () {
             ${renderSectionHeading('CONTACT', { ...theme, headingText: '#ffffff' }, '15px')}
             ${(model.contactLines || []).map((line) => `<div style="font-size:13px;line-height:1.6;margin-bottom:6px;">${escapeHtml(line)}</div>`).join('')}
             ${renderSectionHeading('SKILLS', { ...theme, headingText: '#ffffff' }, '15px', 'margin-top:22px;')}
-            ${renderBulletListHtml((model.skills || []).slice(0, 8), '13px', '#ffffff', '6px')}
+            ${renderBulletListHtml((model.skills || []).slice(0, 8), '12pt', '#ffffff', '6px')}
             ${renderSectionHeading('EDUCATION', { ...theme, headingText: '#ffffff' }, '15px', 'margin-top:22px;')}
-            ${renderBulletListHtml(model.education || [], '13px', '#ffffff', '6px')}
+            ${renderBulletListHtml(model.education || [], '12pt', '#ffffff', '6px')}
           </aside>
           <section style="padding:26px 28px;">
             <div style="font-size:38px;line-height:1.05;font-weight:800;color:#111827;">${escapeHtml(name.first)}<span style="font-weight:500;">${escapeHtml(name.rest ? ' ' + name.rest : '')}</span></div>
             <div style="font-size:18px;color:#4b5563;font-weight:600;margin:8px 0 18px 0;">${escapeHtml(model.targetRole || 'Professional Candidate')}</div>
             ${renderSectionHeading('PROFILE', theme, '16px')}
-            ${renderBulletListHtml(profileBullets.length ? profileBullets : [model.profile], '14px', '#4b5563', '8px')}
+            ${renderBulletListHtml(profileBullets.length ? profileBullets : [model.profile], '12pt', '#4b5563', '8px')}
 
             ${renderSectionHeading('EXPERIENCE', theme, '16px', 'margin-top:18px;')}
             ${model.experiences.map((exp) => `
               <div style="margin-bottom:16px;">
                 <div style="font-size:15px;font-weight:700;color:#111827;margin-bottom:2px;">${escapeHtml(exp.title || exp.heading || '')}</div>
                 ${exp.company ? `<div style="font-size:13px;font-weight:400;color:#6b7280;margin-bottom:4px;">${escapeHtml(exp.company)}</div>` : ''}
-                ${renderBulletListHtml(exp.bullets || [], '14px', '#374151', '6px')}
+                ${renderBulletListHtml(exp.bullets || [], '12pt', '#374151', '6px')}
               </div>
             `).join('')}
 
             ${renderSectionHeading('CERTIFICATIONS', theme, '16px', 'margin-top:14px;')}
-            ${renderBulletListHtml(model.awards.length ? model.awards : ['N/A'], '14px', '#374151', '6px')}
+            ${renderBulletListHtml(model.awards.length ? model.awards : ['N/A'], '12pt', '#374151', '6px')}
           </section>
         </div>
       </div>
@@ -1261,23 +1261,23 @@ document.addEventListener('DOMContentLoaded', function () {
             ${renderSectionHeading('CONTACT', theme, '15px', 'margin-bottom:8px;')}
             ${(model.contactLines || []).map((line) => `<div style="font-size:13px;line-height:1.6;color:#1f2937;margin-bottom:6px;">${escapeHtml(line)}</div>`).join('')}
             ${renderSectionHeading('SKILLS', theme, '15px', 'margin:22px 0 8px 0;')}
-            ${renderBulletListHtml((model.skills || []).slice(0, 9), '13px', '#1f2937', '6px')}
+            ${renderBulletListHtml((model.skills || []).slice(0, 9), '12pt', '#1f2937', '6px')}
           </aside>
           <section style="padding:24px 28px;">
             ${renderSectionHeading('PROFILE', theme, '16px', 'margin-bottom:8px;')}
-            ${renderBulletListHtml(profileBullets.length ? profileBullets : [model.profile], '14px', '#374151', '8px')}
+            ${renderBulletListHtml(profileBullets.length ? profileBullets : [model.profile], '12pt', '#374151', '8px')}
             ${renderSectionHeading('EXPERIENCE', theme, '16px', 'margin:18px 0 8px 0;')}
             ${model.experiences.map((exp) => `
               <div style="margin-bottom:16px;">
                 <div style="font-size:15px;font-weight:700;color:#111827;margin-bottom:2px;">${escapeHtml(exp.title || exp.heading || '')}</div>
                 ${exp.company ? `<div style="font-size:13px;font-weight:400;color:#6b7280;margin-bottom:4px;">${escapeHtml(exp.company)}</div>` : ''}
-                ${renderBulletListHtml(exp.bullets || [], '14px', '#374151', '6px')}
+                ${renderBulletListHtml(exp.bullets || [], '12pt', '#374151', '6px')}
               </div>
             `).join('')}
             ${renderSectionHeading('EDUCATION', theme, '16px', 'margin:18px 0 8px 0;')}
-            ${renderBulletListHtml(model.education || [], '14px', '#374151', '6px')}
+            ${renderBulletListHtml(model.education || [], '12pt', '#374151', '6px')}
             ${renderSectionHeading('AWARDS', theme, '16px', 'margin:18px 0 8px 0;')}
-            ${renderBulletListHtml(model.awards.length ? model.awards : ['N/A'], '14px', '#374151', '6px')}
+            ${renderBulletListHtml(model.awards.length ? model.awards : ['N/A'], '12pt', '#374151', '6px')}
           </section>
         </div>
       </div>
@@ -1286,7 +1286,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function renderTemplateBlank(model) {
     const escapeHtml = (v) => String(v || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-    const renderBulletList = (items) => (items || []).map((item) => `<div style="margin-bottom:6px;">• ${escapeHtml(item)}</div>`).join('');
+    const renderBulletList = (items) => (items || []).map((item) => `<div style="margin-bottom:6px;font-size:12pt;">• ${escapeHtml(item)}</div>`).join('');
     
     return `
       <div style="font-family:Arial, sans-serif; max-width:850px; margin:0 auto; padding:40px; background:#fff; color:#000; line-height:1.6;">
