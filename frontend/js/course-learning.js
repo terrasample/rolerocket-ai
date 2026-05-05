@@ -3200,7 +3200,7 @@ document.addEventListener('DOMContentLoaded', function () {
     renderCurriculumMetaPanel(null);
     renderTeachingFrameworkPanel(topic || 'Course', topic || 'Course');
     if (modules) {
-      modules.innerHTML = '<div class="module-item"><p>Sign in with an Elite account to load modules, audio playback, and progress checks.</p></div>';
+      modules.innerHTML = '<div class="module-item"><p>Sign in to load modules, audio playback, and progress checks.</p></div>';
     }
     if (capstone) capstone.innerHTML = '<p>Capstone details will appear after course access is confirmed.</p>';
     if (assessment) assessment.innerHTML = '<div class="module-item"><p>Assessment questions will appear after course access is confirmed.</p></div>';
@@ -3208,6 +3208,15 @@ document.addEventListener('DOMContentLoaded', function () {
     if (capstoneSection) capstoneSection.hidden = true;
     if (assessmentSection) assessmentSection.hidden = true;
     if (interviewPrepSection) interviewPrepSection.hidden = true;
+  }
+
+  function isLikelyAdminViewer() {
+    try {
+      const raw = String(localStorage.getItem('rr_nav_is_admin_v1') || '').toLowerCase();
+      return raw === '1' || raw === 'true';
+    } catch (_) {
+      return false;
+    }
   }
 
   async function loadCourse(forceRefresh = false) {
@@ -3277,8 +3286,18 @@ document.addEventListener('DOMContentLoaded', function () {
       await loadProgress();
     } catch (error) {
       const message = String(error?.message || 'Unable to load course. Please try again.');
-      if (/token|unauthorized|403|401/i.test(message)) {
-        renderAccessMessage('Sign in and upgrade to Elite to open the full course experience for this topic.', 'Sign in required');
+      if (/token|unauthorized|401/i.test(message)) {
+        if (isLikelyAdminViewer()) {
+          renderAccessMessage('Admin account detected. Please sign in again to refresh your session and continue.', 'Admin sign-in required');
+        } else {
+          renderAccessMessage('Please sign in to open the full course experience for this topic.', 'Sign in required');
+        }
+      } else if (/403|upgrade to elite/i.test(message)) {
+        if (isLikelyAdminViewer()) {
+          renderAccessMessage('Admin account detected but learning access was denied by the server. Please sign in again and retry.', 'Admin access check required');
+        } else {
+          renderAccessMessage('This account does not currently have access to full course content.', 'Access restricted');
+        }
       } else {
         titleMain.textContent = topic;
         titleSide.textContent = topic;
