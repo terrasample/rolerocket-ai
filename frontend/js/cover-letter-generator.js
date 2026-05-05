@@ -70,7 +70,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function renderCoverTemplate(letter, contact, roleTitle, company) {
     const today = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
-    const paragraphHtml = letter.paragraphs.map((p) => `<p style="margin:0 0 12px 0;line-height:1.6;color:#1f2937;font-size:16px;">${escapeHtml(p)}</p>`).join('');
+    const paragraphHtml = letter.paragraphs.map((p) => `<p style="margin:0 0 12px 0;line-height:1.6;color:#1f2937;font-size:12pt;">${escapeHtml(p)}</p>`).join('');
 
     return `
       <div style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:24px;box-shadow:0 8px 28px rgba(15,23,42,0.08);">
@@ -88,11 +88,11 @@ document.addEventListener('DOMContentLoaded', function () {
             <strong>Company:</strong> ${escapeHtml(company || 'Target Company')}
           </div>
 
-          <div style="font-size:16px;font-weight:700;color:#0f172a;margin-bottom:10px;">${escapeHtml(letter.greeting)}</div>
+          <div style="font-size:12pt;font-weight:700;color:#0f172a;margin-bottom:10px;">${escapeHtml(letter.greeting)}</div>
 
           ${paragraphHtml}
 
-          <div style="margin-top:12px;font-size:16px;line-height:1.6;color:#1f2937;">
+          <div style="margin-top:12px;font-size:12pt;line-height:1.6;color:#1f2937;">
             <div>${escapeHtml(letter.closing)}</div>
             <div style="margin-top:6px;font-weight:700;">${escapeHtml(letter.signature || contact.name || '')}</div>
           </div>
