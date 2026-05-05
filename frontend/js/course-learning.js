@@ -3290,7 +3290,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (isLikelyAdminViewer()) {
           renderAccessMessage('Admin account detected. Please sign in again to refresh your session and continue.', 'Admin sign-in required');
         } else {
-          renderAccessMessage('Please sign in to open the full course experience for this topic.', 'Sign in required');
+          renderAccessMessage('Please sign in again to continue.', 'Sign in required');
         }
       } else if (/403|upgrade to elite/i.test(message)) {
         if (isLikelyAdminViewer()) {
