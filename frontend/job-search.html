@@ -17,7 +17,9 @@
     <div class="card" style="max-width:1120px;width:min(1120px, calc(100vw - 64px));margin:32px auto;">
       <label for="searchQuery"><strong>Search for a job title or keyword</strong></label>
       <input id="searchQuery" type="text" style="width:100%;margin-bottom:10px;" placeholder="e.g. Product Manager" />
+      <div style="margin:-4px 0 10px 0;color:#64748b;font-size:.92rem;line-height:1.5;">Tip: Search by employer using <strong>company:</strong> or <strong>employer:</strong> (example: <strong>company:GraceKennedy</strong>).</div>
       <button id="searchBtn" class="auth-submit-btn" style="margin-bottom:10px;">Search</button>
+      <div id="followedEmployersBar" style="display:none;margin:4px 0 12px 0;"></div>
       <div id="searchResults" style="margin-top:18px;"></div>
     </div>
   </main>
@@ -27,7 +29,9 @@
     <a href="terms.html">Terms of Service</a>
     <a href="refund-policy.html">Refund Policy</a>
   </footer>
-  <script src="js/job-search.js?v=20260422d"></script>
+  <script src="js/api-base.js"></script>
+  <script src="js/auth-storage.js"></script>
+  <script src="js/job-search.js?v=20260505a"></script>
   <script src="js/return-navigation.js"></script>
 </body>
 </html>
