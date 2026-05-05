@@ -1,6 +1,8 @@
 // nav-plan-sync.js — Updates the plan badge in the sidebar nav on any page
 // Include this script on all public/marketing pages to keep the plan display accurate.
 (function () {
+  const ADMIN_CACHE_KEY = 'rr_nav_is_admin_v1';
+
   const NAV_LABELS = {
     'index.html': '🏠 Home',
     'about-us.html': '📖 About Us',
@@ -271,11 +273,49 @@
     return map[key] || (plan ? plan.charAt(0).toUpperCase() + plan.slice(1) + ' Plan' : 'Free Plan');
   }
 
+  function readCachedAdminState() {
+    try {
+      const raw = String(localStorage.getItem(ADMIN_CACHE_KEY) || '').toLowerCase();
+      if (raw === '1') return true;
+      if (raw === '0') return false;
+    } catch (_) {
+      // ignore storage access failures
+    }
+    return null;
+  }
+
+  function writeCachedAdminState(isAdmin) {
+    try {
+      localStorage.setItem(ADMIN_CACHE_KEY, isAdmin ? '1' : '0');
+    } catch (_) {
+      // ignore storage access failures
+    }
+  }
+
+  function resolveIsAdmin(user) {
+    const role = String((user && user.role) || '').toLowerCase();
+    const roles = Array.isArray(user && user.roles)
+      ? user.roles.map((r) => String(r || '').toLowerCase())
+      : [];
+    return !!(
+      (user && user.isAdmin === true)
+      || (user && user.isInstitutionAdmin === true)
+      || role === 'admin'
+      || roles.includes('admin')
+      || roles.includes('institution_admin')
+      || roles.includes('institution-admin')
+    );
+  }
+
   async function syncNavPlan() {
     const badge = document.getElementById('planBadge');
-    const token = localStorage.getItem('token') || sessionStorage.getItem('token') || '';
+    const token = (typeof getStoredToken === 'function' ? getStoredToken() : '')
+      || localStorage.getItem('token')
+      || sessionStorage.getItem('token')
+      || '';
     if (!token) {
       upsertAdminInvitesLink(false);
+      writeCachedAdminState(false);
       if (badge) badge.textContent = formatPlanLabel('free');
       return;
     }
@@ -286,17 +326,20 @@
         headers: { Authorization: 'Bearer ' + token }
       });
       if (!res.ok) {
-        upsertAdminInvitesLink(false);
+        const cachedAdmin = readCachedAdminState();
+        if (cachedAdmin === true) upsertAdminInvitesLink(true);
         if (badge) badge.textContent = formatPlanLabel('free');
         return;
       }
       const data = await res.json();
       const plan = (data.user && data.user.plan) || 'free';
-      const isAdmin = !!(data.user && data.user.isAdmin);
+      const isAdmin = resolveIsAdmin(data && data.user);
       if (badge) badge.textContent = formatPlanLabel(plan);
       upsertAdminInvitesLink(isAdmin);
+      writeCachedAdminState(isAdmin);
     } catch (_) {
-      upsertAdminInvitesLink(false);
+      const cachedAdmin = readCachedAdminState();
+      if (cachedAdmin === true) upsertAdminInvitesLink(true);
       if (badge) badge.textContent = formatPlanLabel('free');
     }
   }
