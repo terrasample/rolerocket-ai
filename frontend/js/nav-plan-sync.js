@@ -311,12 +311,14 @@
 
   function resolveIsAdmin(user) {
     const role = String((user && user.role) || '').toLowerCase();
+    const accountType = String((user && user.accountType) || '').toLowerCase();
     const roles = Array.isArray(user && user.roles)
       ? user.roles.map((r) => String(r || '').toLowerCase())
       : [];
     return !!(
       (user && user.isAdmin === true)
       || (user && user.isInstitutionAdmin === true)
+      || accountType === 'institution'
       || role === 'admin'
       || roles.includes('admin')
       || roles.includes('institution_admin')
