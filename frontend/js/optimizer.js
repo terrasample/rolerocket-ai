@@ -74,49 +74,150 @@ document.getElementById('analyzeResumeBtn')?.addEventListener('click', async () 
   }
 });
 
-document.getElementById('applyFixBtn')?.addEventListener('click', () => {
-  const resumeField = document.getElementById('atsResume');
-  const rewriteOutput = document.getElementById('rewriteOutput');
-  const resume = resumeField?.value || '';
+function escapeHtml(str) {
+  return String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
 
-  if (!resumeField || !resume.trim()) {
-    setOptimizerStatus('Add your resume before applying fixes.', true);
+function renderMatchedTable(pairs) {
+  const container = document.getElementById('matchedKeywords');
+  if (!container) return;
+
+  const explainer = '<div style="font-size:0.88em;color:#64748b;margin-bottom:12px;line-height:1.5;">Matched keywords are job-description terms that were found in your resume text after normalization. It is possible to have zero matches if wording is very different.</div>';
+
+  if (!pairs || !pairs.length) {
+    container.innerHTML = `${explainer}<div class="urgency-empty">No matched keywords yet.</div>`;
     return;
   }
 
-  if (!latestAtsAnalysis || !latestAtsAnalysis.rewrittenBullets || !latestAtsAnalysis.rewrittenBullets.length) {
-    setOptimizerStatus('Run Analyze Resume first to generate fixes.', true);
+  container.innerHTML = `
+    ${explainer}
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:0.92em;">
+        <thead>
+          <tr style="background:#f1f5f9;">
+            <th style="padding:9px 12px;text-align:left;font-weight:700;color:#1e293b;border-bottom:2px solid #e2e8f0;width:50%;">Resume Term</th>
+            <th style="padding:9px 12px;text-align:left;font-weight:700;color:#1e293b;border-bottom:2px solid #e2e8f0;width:50%;">JD Term</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${pairs.map((pair, i) => `
+            <tr style="background:${i % 2 === 0 ? '#fff' : '#f8fafc'};">
+              <td style="padding:8px 12px;color:#166534;font-weight:600;border-bottom:1px solid #f1f5f9;">${escapeHtml(pair.resumeTerm || '')}</td>
+              <td style="padding:8px 12px;color:#0f172a;border-bottom:1px solid #f1f5f9;">${escapeHtml(pair.jdTerm || '')}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderMissingWithReasons(items) {
+  const container = document.getElementById('missingKeywords');
+  if (!container) return;
+
+  const explainer = '<div style="font-size:0.88em;color:#64748b;margin-bottom:12px;line-height:1.5;">Missing keywords are terms the ATS extractor expects from the job description but did not detect in your resume. Some extracted phrases can look awkward; use them as guidance, not exact copy-and-paste text.</div>';
+
+  if (!items || !items.length) {
+    container.innerHTML = `${explainer}<div class="urgency-empty">No missing keywords found.</div>`;
     return;
   }
 
-  let updatedResume = resume;
-  let appliedCount = 0;
+  container.innerHTML = `
+    ${explainer}
+    <ul style="margin:0;padding-left:22px;display:grid;gap:10px;list-style:disc;">
+      ${items.map((item) => {
+        const keyword = escapeHtml(String(item.keyword || item || ''));
+        const reason = item.reason ? ` <span style="color:#64748b;font-weight:400;">(${escapeHtml(item.reason)})</span>` : '';
+        return `<li style="font-size:0.95em;line-height:1.6;color:#0f172a;"><strong style="color:#dc2626;">${keyword}</strong>${reason}</li>`;
+      }).join('')}
+    </ul>
+  `;
+}
 
-  latestAtsAnalysis.rewrittenBullets.forEach((item) => {
-    if (!item.original || !item.improved) return;
-    if (updatedResume.includes(item.original)) {
-      updatedResume = updatedResume.replace(item.original, item.improved);
-      appliedCount += 1;
+function renderKeyChanges(changes) {
+  const card = document.getElementById('keyChangesCard');
+  const container = document.getElementById('keyChanges');
+  if (!container) return;
+
+  if (!changes || !changes.length) {
+    if (card) card.style.display = 'none';
+    return;
+  }
+
+  if (card) card.style.display = 'block';
+  container.innerHTML = `
+    <ol style="margin:0;padding-left:22px;display:grid;gap:8px;">
+      ${changes.map((change) => `
+        <li style="font-size:0.95em;line-height:1.55;color:#0f172a;">${escapeHtml(String(change || ''))}</li>
+      `).join('')}
+    </ol>
+  `;
+}
+
+document.getElementById('fullAnalysisBtn')?.addEventListener('click', async () => {
+  const jobDescription = document.getElementById('atsJobDescription').value.trim();
+  const resume = document.getElementById('atsResume').value.trim();
+
+  if (!jobDescription || !resume) {
+    alert('Paste both the job description and the resume.');
+    return;
+  }
+
+  setOptimizerStatus('Running full AI analysis…');
+  showLoadingSpinner(true);
+
+  try {
+    const res = await fetch(apiUrl('/api/ats/full-analysis'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ jobDescription, resume })
+    });
+    let data;
+    try { data = await res.json(); } catch (_) { throw new Error('Invalid server response. Please try again.'); }
+    if (!res.ok) throw new Error(data.error || 'Full AI analysis failed.');
+
+    // Analysis header banner
+    const banner = document.getElementById('atsAnalysisBanner');
+    if (banner && data.jobTitle) {
+      banner.textContent = `ATS Analysis: ${data.jobTitle}`;
+      banner.style.display = 'block';
     }
-  });
 
-  if (!appliedCount) {
-    setOptimizerStatus('No matching lines were found to update in the current resume.', true);
-    return;
+    // Score (from rule-based scorer)
+    document.getElementById('atsScore').textContent = data.atsScore || 0;
+    renderScoreBreakdown({ scoreBreakdown: data.scoreBreakdown, analysisMode: data.analysisMode });
+
+    // Matched Keywords — two-column table
+    renderMatchedTable(data.matchedPairs || []);
+
+    // Missing Keywords — bold keyword + reason
+    renderMissingWithReasons(data.missingKeywords || []);
+
+    // Rewritten Resume
+    const rewriteEl = document.getElementById('rewriteOutput');
+    if (rewriteEl) rewriteEl.textContent = data.rewrittenResume || '';
+
+    // Key Changes Made
+    renderKeyChanges(data.keyChanges || []);
+
+    // Red Flags + Bullet Scores from rule-based scorer
+    if (data.redFlags) renderAnalysisWarnings(data.redFlags, [], []);
+    if (data.bulletScores) renderBulletScores(data.bulletScores);
+
+    setOptimizerStatus('Full AI analysis complete. Review the rewritten resume below, then click "Copy Rewrite to Resume Field" to apply it.');
+  } catch (err) {
+    console.error(err);
+    setOptimizerStatus(err.message || 'Full AI analysis failed.', true);
+  } finally {
+    showLoadingSpinner(false);
   }
-
-  resumeField.value = updatedResume;
-  if (rewriteOutput) {
-    rewriteOutput.innerHTML = `
-      <div class="job-result-card">
-        <strong>Applied ${appliedCount} fix${appliedCount === 1 ? '' : 'es'}</strong>
-        <p>Your resume text was updated using the latest ATS rewrite suggestions.</p>
-      </div>
-    `;
-  }
-
-  setOptimizerStatus(`Applied ${appliedCount} ATS fix${appliedCount === 1 ? '' : 'es'} to your resume.`);
 });
+
 
 document.getElementById('saveAtsResumeBtn')?.addEventListener('click', async () => {
   const resume = document.getElementById('atsResume').value.trim();
@@ -619,14 +720,14 @@ document.getElementById('rewriteBtn')?.addEventListener('click', async () => {
   }
 });
 
-document.getElementById('applyFixBtn')?.addEventListener('click', () => {
+document.getElementById('copyRewriteToResumeBtn')?.addEventListener('click', () => {
   const output = document.getElementById('rewriteOutput').textContent.trim();
   if (!output) {
-    alert('No rewritten resume to apply.');
+    alert('No rewritten resume to apply. Run Full AI Analysis first.');
     return;
   }
   document.getElementById('atsResume').value = output;
-  setOptimizerStatus('Applied AI rewrite to resume.');
+  setOptimizerStatus('Rewritten resume copied to Resume field. You can now download it as PDF or Word.');
 });
 
 document.getElementById('saveAtsResumePdfBtn')?.addEventListener('click', () => {
@@ -689,6 +790,13 @@ document.getElementById('clearAtsFieldsBtn')?.addEventListener('click', () => {
   renderTags('missingKeywords', [], 'No missing keywords found.');
   renderAnalysisWarnings([], [], []);
   renderBulletScores([]);
+
+  const analysisBanner = document.getElementById('atsAnalysisBanner');
+  if (analysisBanner) analysisBanner.style.display = 'none';
+  const keyChangesCard = document.getElementById('keyChangesCard');
+  if (keyChangesCard) keyChangesCard.style.display = 'none';
+  const keyChangesEl = document.getElementById('keyChanges');
+  if (keyChangesEl) keyChangesEl.innerHTML = '';
 
   setOptimizerStatus('Fields cleared. Add new details to analyze another resume.');
 });

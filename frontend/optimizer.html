@@ -92,7 +92,7 @@
       <h3>⚡ ATS Actions</h3>
       <div class="ats-actions">
         <button id="analyzeResumeBtn">Analyze Resume</button>
-        <button id="applyFixBtn">⚡ Apply Fix</button>
+        <button id="fullAnalysisBtn" style="background:#16a34a;color:#fff;">🤖 Full AI Analysis</button>
         <button id="clearAtsFieldsBtn">Clear Fields</button>
         <button id="downloadAtsReportBtn" style="background:#f59e42;color:#1e293b;">Download ATS Report</button>
           <button id="saveAtsResumePdfBtn" style="background:#38bdf8;color:#1e293b;">Save as PDF</button>
@@ -100,6 +100,8 @@
       </div>
       <div id="optimizerStatus" class="section-subtitle"></div>
     </div>
+
+    <div id="atsAnalysisBanner" style="display:none;background:linear-gradient(135deg,#1e3a5f,#2563eb);color:#fff;padding:16px 22px;border-radius:12px;margin-bottom:14px;font-size:1.1em;font-weight:700;"></div>
 
     <div class="card">
       <h3>ATS Score</h3>
@@ -138,6 +140,14 @@
     <div class="card premium">
       <h3>🤖 AI Rewrite Output</h3>
       <pre id="rewriteOutput"></pre>
+      <div style="margin-top:14px;">
+        <button id="copyRewriteToResumeBtn" type="button" style="background:#6366f1;color:#fff;">📋 Copy Rewrite to Resume Field</button>
+      </div>
+    </div>
+
+    <div class="card" id="keyChangesCard" style="display:none;">
+      <h3>✏️ Key Changes Made</h3>
+      <div id="keyChanges"></div>
     </div>
 
     <div class="card">
