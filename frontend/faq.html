@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FAQ | RoleRocket AI</title>
+  <meta name="description" content="Frequently asked questions about RoleRocket AI — pricing, features, refunds, data privacy, institution access, and more." />
+  <link rel="canonical" href="https://www.rolerocketai.com/faq.html" />
+  <link rel="stylesheet" href="styles.css" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "What is RoleRocket AI?",
+        "acceptedAnswer": { "@type": "Answer", "text": "RoleRocket AI is an AI-powered career platform that helps you find real jobs, optimize your resume for ATS, generate tailored cover letters, prepare for interviews, track your job pipeline, and build your career with clarity and confidence." }
+      },
+      {
+        "@type": "Question",
+        "name": "Is RoleRocket AI free?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Yes. The Free Starter plan includes the Resume Generator, Cover Letter Generator, and Find, Search & Track at no cost. Paid plans (Pro, Premium, Elite, Lifetime) unlock additional AI-powered tools." }
+      },
+      {
+        "@type": "Question",
+        "name": "What is your refund policy?",
+        "acceptedAnswer": { "@type": "Answer", "text": "We offer refunds on a case-by-case basis. Please contact us within 14 days of your charge with your account email, charge date, and Stripe receipt. See our full Refund Policy for details." }
+      },
+      {
+        "@type": "Question",
+        "name": "How does the ATS Optimizer work?",
+        "acceptedAnswer": { "@type": "Answer", "text": "The ATS Optimizer analyzes your resume against a target job description, scores it for ATS keyword compatibility, and returns prioritized suggestions to increase your callback rate." }
+      },
+      {
+        "@type": "Question",
+        "name": "Do you store my resume data?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Resume data you submit is stored securely in your account and used only to power your personalized tools. We do not sell your data to third parties. See our Privacy Policy for full details." }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I cancel my subscription?",
+        "acceptedAnswer": { "@type": "Answer", "text": "You can cancel your subscription at any time from your Account page. Your access continues until the end of the current billing period. No cancellation fees apply." }
+      }
+    ]
+  }
+  </script>
+  <style>
+    .faq-hero {
+      background: linear-gradient(90deg, #0f172a 0%, #1e293b 100%);
+      color: #facc15;
+      padding: 48px 0 24px 0;
+      text-align: center;
+      border-bottom: 3px solid #facc15;
+      box-shadow: 0 4px 32px #0ea5e930;
+      position: relative;
+    }
+    .faq-hero h1 { margin: 0 0 8px 0; font-size: 2rem; }
+    .faq-hero p { color: #fef9c3; font-size: 1.15em; max-width: 600px; margin: 0 auto; }
+
+    .faq-section-title {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: #facc15;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin: 36px 0 12px 0;
+      padding-bottom: 6px;
+      border-bottom: 2px solid #1e293b;
+    }
+
+    .faq-item {
+      background: #0f172a;
+      border: 1px solid #1e3a5f;
+      border-radius: 12px;
+      margin-bottom: 10px;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+    .faq-item:hover { border-color: #facc15; }
+
+    .faq-question {
+      width: 100%;
+      background: none;
+      border: none;
+      text-align: left;
+      padding: 18px 20px;
+      font-size: 1rem;
+      font-weight: 700;
+      color: #f1f5f9;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+    .faq-question:focus-visible { outline: 2px solid #facc15; outline-offset: -2px; }
+    .faq-question .faq-chevron {
+      flex-shrink: 0;
+      font-size: 1.2em;
+      color: #facc15;
+      transition: transform 0.25s;
+    }
+    .faq-item.open .faq-chevron { transform: rotate(180deg); }
+
+    .faq-answer {
+      display: none;
+      padding: 0 20px 18px 20px;
+      color: #cbd5e1;
+      font-size: 0.97rem;
+      line-height: 1.75;
+    }
+    .faq-answer a { color: #93c5fd; font-weight: 600; }
+    .faq-item.open .faq-answer { display: block; }
+
+    .faq-cta-bar {
+      background: #0f172a;
+      border: 1px solid #1e3a5f;
+      border-radius: 14px;
+      padding: 28px 24px;
+      margin-top: 40px;
+      text-align: center;
+      color: #e2e8f0;
+    }
+    .faq-cta-bar h3 { color: #facc15; margin: 0 0 8px 0; }
+    .faq-cta-bar p { margin: 0 0 16px 0; color: #94a3b8; }
+    .faq-cta-bar .faq-cta-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .faq-cta-btn {
+      padding: 11px 24px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.97rem;
+      text-decoration: none;
+      cursor: pointer;
+      border: none;
+    }
+    .faq-cta-btn.primary { background: linear-gradient(90deg,#facc15,#fef9c3); color: #0f172a; }
+    .faq-cta-btn.secondary { background: #1e293b; color: #e2e8f0; border: 1px solid #334155; }
+
+    .faq-legal-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 20px;
+      margin-top: 32px;
+      padding-top: 20px;
+      border-top: 1px solid #1e293b;
+    }
+    .faq-legal-links a {
+      color: #93c5fd;
+      font-size: 0.92rem;
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .faq-legal-links a:hover { text-decoration: underline; }
+
+    @media (max-width: 600px) {
+      .faq-hero { padding: 32px 12px 16px; }
+      .faq-question { font-size: 0.93rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="faq-hero">
+    <button class="back-arrow-btn" aria-label="Go back" data-back-button="true"
+      style="position:absolute;top:12px;left:12px;background:none;border:none;cursor:pointer;font-size:1.6em;color:#facc15;">
+      &#8592; Back
+    </button>
+    <span style="font-size:2.4em;display:block;margin-bottom:6px;">❓</span>
+    <h1>Frequently Asked Questions</h1>
+    <p>Everything you need to know about RoleRocket AI — features, billing, legal, and more.</p>
+  </div>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebarNav" aria-label="Primary navigation">
+      <h2 aria-label="RoleRocket AI"></h2>
+      <nav>
+        <a class="sidebar-link-btn" href="index.html">🏠 Home</a>
+        <a class="sidebar-link-btn" href="about-us.html">📖 About Us</a>
+        <a class="sidebar-link-btn" href="features.html">✨ Features</a>
+        <a class="sidebar-link-btn" href="job-tracking.html">🔎 Find, Search &amp; Track</a>
+        <a class="sidebar-link-btn" href="ai-recruiter-assist.html">🤖 AI Recruiter Assist</a>
+        <a class="sidebar-link-btn" href="pricing.html">💳 Pricing</a>
+        <a class="sidebar-link-btn" href="contact-us.html">📬 Contact Us</a>
+        <p class="sidebar-section-label" data-section="jamaica">JAMAICA HUB</p>
+        <a class="sidebar-link-btn" href="jamaica-workforce-accelerator.html">🇯🇲 Jamaica Workforce Accelerator</a>
+        <a class="sidebar-link-btn" href="institution-cohort-manager.html">🏫 Cohort Manager</a>
+        <hr />
+        <p id="planBadge">Free Plan</p>
+        <p class="sidebar-section-label" data-section="account">ACCOUNT</p>
+        <a class="sidebar-link-btn" href="profile.html">🧑 My Profile</a>
+        <a class="sidebar-link-btn" href="dashboard.html">🧑‍💼 My Dashboard</a>
+        <a class="sidebar-link-btn" href="job-alerts-sms.html">📱 Job Alerts</a>
+        <a class="sidebar-link-btn" href="account.html">👤 Account</a>
+        <a class="sidebar-link-btn active" href="faq.html">❓ FAQ</a>
+        <a class="sidebar-link-btn" id="adminInvitesLink" href="admin-institution-invites.html" style="display:none;">🔑 Admin Invites</a>
+        <a class="sidebar-link-btn" href="login.html?relogin=1">🚪 Logout</a>
+      </nav>
+    </aside>
+
+    <main class="main marketing-main" id="mainContent" tabindex="-1">
+      <button class="back-arrow-btn" aria-label="Go back" data-back-button="true"
+        style="margin:12px 0 12px 0;background:none;border:none;cursor:pointer;font-size:1.6em;color:#2563eb;">
+        &#8592; Back
+      </button>
+
+      <!-- ── GENERAL ─────────────────────────────────────────────────── -->
+      <p class="faq-section-title">General</p>
+
+      <div class="faq-item">
+        <button class="faq-question" aria-expanded="false">
+          What is RoleRocket AI?
+          <span class="faq-chevron" aria-hidden="true">&#8964;</span>
+        </button>
+        <div class="faq-answer">
+          RoleRocket AI is an AI-powered career platform that helps you find real jobs, optimize your resume for ATS, generate tailored cover letters, prepare for interviews, track your job pipeline, and build your career with clarity and confidence. It is designed for active job seekers, career changers, students, veterans, and institution cohorts.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" aria-expanded="false">
+          Who is RoleRocket AI for?
+          <span class="faq-chevron" aria-hidden="true">&#8964;</span>
+        </button>
+        <div class="faq-answer">
+          RoleRocket AI serves individual job seekers at all career levels, students (including CSEC/CAPE learners), veterans, recruiters, and educational institutions looking to track and support student career outcomes. We also have dedicated tools for the Jamaican and Caribbean job market.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" aria-expanded="false">
+          Is RoleRocket AI free to use?
+          <span class="faq-chevron" aria-hidden="true">&#8964;</span>
+        </button>
+        <div class="faq-answer">
+          Yes. The <strong>Free Starter</strong> plan includes the Resume Generator, Cover Letter Generator, and Find, Search &amp; Track at no cost — no credit card required. Paid plans (Pro, Premium, Elite, Lifetime) unlock the full suite of AI-powered tools. See <a href="pricing.html">Pricing</a> for full details.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" aria-expanded="false">
+          How is RoleRocket AI different from other job search tools?
+          <span class="faq-chevron" aria-hidden="true">&#8964;</span>
+        </button>
+        <div class="faq-answer">
+          Unlike mass auto-apply tools, RoleRocket AI focuses on quality over quantity. We help you become the strongest candidate for the roles you target — through ATS optimization, AI coaching, interview prep, career path simulation, and learning tools. We also serve markets (like Jamaica and the Caribbean) that most platforms ignore, and we offer institutional cohort management for schools and workforce programs.
+        </div>
+      </div>
+
+      <!-- ── FEATURES ────────────────────────────────────────────────── -->
+      <p class="faq-section-title">Features</p>
+
+      <div class="faq-item">
+        <button class="faq-question" aria-expanded="false">
+          How does the ATS Optimizer work?
+          <span class="faq-chevron" aria-hidden="true">&#8964;</span>
+        </button>
+        <div class="faq-answer">
+          The ATS Optimizer analyzes your resume against a target job description, scores it for keyword compatibility and formatting, then returns prioritized suggestions to maximize your chance of passing Applicant Tracking System filters before a recruiter sees your application.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" aria-expanded="false">
+          What does the AI Career Coach do?
+          <span class="faq-chevron" aria-hidden="true">&#8964;</span>
+        </button>
+        <div class="faq-answer">
+          The AI Career Coach provides personalized, structured coaching sessions that turn your background and goals into a clear, winning strategy. It helps you identify skill gaps, craft your professional narrative, and build a plan to reach your next role.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" aria-expanded="false">
+          What is the Jamaica Workforce Accelerator?
+          <span class="faq-chevron" aria-hidden="true">&#8964;</span>
+        </button>
+        <div class="faq-answer">
+          The <a href="jamaica-workforce-accelerator.html">Jamaica Workforce Accelerator</a> is a dedicated hub for Jamaican and Caribbean job seekers. It includes Jamaica-specific job market radar, resume localization scoring, interview prep for regional employers, career pathway guides, scholarship finders, and a skills-gap report tool.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" aria-expanded="false">
+          What is the Cohort Manager for institutions?
+          <span class="faq-chevron" aria-hidden="true">&#8964;</span>
+        </button>
+        <div class="faq-answer">
+          The <a href="institution-cohort-manager.html">Cohort Manager</a> lets universities, training programs, and workforce agencies track their student cohorts on the platform. Admins can view activation rates, job tracking activity, ATS scores, and overall cohort readiness — all from a single dashboard. Institutions get unique invite codes to onboard students directly.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" aria-expanded="false">
+          Does RoleRocket AI integrate with LinkedIn or Indeed?
+          <span class="faq-chevron" aria-hidden="true">&#8964;</span>
+        </button>
+        <div class="faq-answer">
+          Our job search surfaces relevant listings from major job boards including LinkedIn and Indeed. We do not automate applications on your behalf — you apply deliberately to roles you choose, which protects your account reputation and ensures each application is quality-controlled.
+        </div>
+      </div>
+
+      <!-- ── BILLING & PLANS ─────────────────────────────────────────── -->
+      <p class="faq-section-title">Billing &amp; Plans</p>
+
+      <div class="faq-item">
+        <button class="faq-question" aria-expanded="false">
+          What plans are available and what do they cost?
+          <span class="faq-chevron" aria-hidden="true">&#8964;</span>
+        </button>
+        <div class="faq-answer">
+          <strong>Free Starter</strong> — $0/mo (Resume Generator, Cover Letter, Job Tracker)<br>
+          <strong>Pro Builder</strong> — $19/mo or $190/yr (adds ATS Optimizer, Resume Optimizer, Job Market Radar)<br>
+          <strong>Premium Performance</strong> — $39/mo or $390/yr (adds Interview Prep, 1-Click Apply, AI Portfolio Builder, Networking AI, Reference Generator)<br>
+          <strong>Elite Strategy</strong> — $79/mo or $790/yr (adds Live Interview Assist, Career Coach, Career Path Simulator, Offer Negotiation, Video Interview Practice, AI Job Agent, Outcome Command Center)<br>
+          <strong>Lifetime Membership</strong> — $299 one-time (all Elite features, permanent access)<br><br>
+          See the full <a href="pricing.html">Pricing page</a> for current details.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" aria-expanded="false">
+          Is there a discount for veterans?
+          <span class="faq-chevron" aria-hidden="true">&#8964;</span>
+        </button>
+        <div class="faq-answer">
+          Yes. We proudly offer <strong>10% off all paid plans</strong> for verified veterans. Verify your status through <a href="https://www.id.me/individuals/military" target="_blank" rel="noopener noreferrer">ID.me</a> and contact us at <a href="contact-us.html">Contact Us</a> to apply the discount to your account.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" aria-expanded="false">
+          How do I cancel my subscription?
+          <span class="faq-chevron" aria-hidden="true">&#8964;</span>
+        </button>
+        <div class="faq-answer">
+          You can cancel at any time from your <a href="account.html">Account</a> page. Your access continues until the end of the current billing period. There are no cancellation fees and no questions asked.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" aria-expanded="false">
+          Can I upgrade or downgrade my plan?
+          <span class="faq-chevron" aria-hidden="true">&#8964;</span>
+        </button>
+        <div class="faq-answer">
+          Yes. You can upgrade your plan at any time from your <a href="billing.html">Billing</a> page. Upgrades take effect immediately. Downgrades take effect at the start of the next billing cycle.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" aria-expanded="false">
+          What payment methods do you accept?
+          <span class="faq-chevron" aria-hidden="true">&#8964;</span>
+        </button>
+        <div class="faq-answer">
+          We accept all major credit and debit cards (Visa, Mastercard, American Express, Discover) processed securely through <strong>Stripe</strong>. We do not store your card details — all payment information is handled entirely by Stripe's PCI-compliant infrastructure.
+        </div>
+      </div>
+
+      <!-- ── REFUNDS ─────────────────────────────────────────────────── -->
+      <p class="faq-section-title">Refunds</p>
+
+      <div class="faq-item">
+        <button class="faq-question" aria-expanded="false">
+          What is your refund policy?
+          <span class="faq-chevron" aria-hidden="true">&#8964;</span>
+        </button>
+        <div class="faq-answer">
+          Refunds are reviewed on a case-by-case basis. To request a refund, contact us within <strong>14 days</strong> of your charge with your account email, the charge date, and your Stripe receipt or invoice number. Read the full <a href="refund-policy.html">Refund Policy</a>.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" aria-expanded="false">
+          Are Lifetime Membership purchases refundable?
+          <span class="faq-chevron" aria-hidden="true">&#8964;</span>
+        </button>
+        <div class="faq-answer">
+          Lifetime Membership purchases are eligible for a refund request within <strong>14 days</strong> of purchase, provided the account has not been substantially used. Please contact us with your Stripe receipt and account email to begin a review. See the <a href="refund-policy.html">Refund Policy</a> for full terms.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" aria-expanded="false">
+          How long does a refund take to process?
+          <span class="faq-chevron" aria-hidden="true">&#8964;</span>
+        </button>
+        <div class="faq-answer">
+          Once approved, refunds are issued through Stripe and typically appear on your statement within <strong>5–10 business days</strong> depending on your card issuer.
+        </div>
+      </div>
+
+      <!-- ── DATA & PRIVACY ──────────────────────────────────────────── -->
+      <p class="faq-section-title">Data &amp; Privacy</p>
+
+      <div class="faq-item">
+        <button class="faq-question" aria-expanded="false">
+          Do you sell my data?
+          <span class="faq-chevron" aria-hidden="true">&#8964;</span>
+        </button>
+        <div class="faq-answer">
+          No. We do not sell, rent, or share your personal data with third parties for marketing or advertising purposes. Your data is used only to operate and improve your experience on RoleRocket AI. See our <a href="privacy.html">Privacy Policy</a> for full details.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" aria-expanded="false">
+          How is my resume data stored and protected?
+          <span class="faq-chevron" aria-hidden="true">&#8964;</span>
+        </button>
+        <div class="faq-answer">
+          Resume data is stored securely in your account and encrypted in transit (TLS). It is used only to power your personalized tools (ATS scoring, cover letter generation, etc.) and is never shared externally without your consent. You can delete your account and associated data at any time from <a href="account.html">Account Settings</a>.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" aria-expanded="false">
+          Can I delete my account and data?
+          <span class="faq-chevron" aria-hidden="true">&#8964;</span>
+        </button>
+        <div class="faq-answer">
+          Yes. You can permanently delete your account from the <a href="account.html">Account</a> page. This removes your profile, resume data, job tracking history, and all associated records. Deletion is irreversible.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" aria-expanded="false">
+          Do you use cookies?
+          <span class="faq-chevron" aria-hidden="true">&#8964;</span>
+        </button>
+        <div class="faq-answer">
+          We use session-based authentication tokens stored in your browser's localStorage to keep you logged in. We do not use third-party advertising cookies or tracking pixels. See our <a href="privacy.html">Privacy Policy</a> for full cookie disclosure.
+        </div>
+      </div>
+
+      <!-- ── ACCOUNT & ACCESS ────────────────────────────────────────── -->
+      <p class="faq-section-title">Account &amp; Access</p>
+
+      <div class="faq-item">
+        <button class="faq-question" aria-expanded="false">
+          How do I reset my password?
+          <span class="faq-chevron" aria-hidden="true">&#8964;</span>
+        </button>
+        <div class="faq-answer">
+          On the login page, click <strong>Forgot password?</strong> and enter your account email. You will receive a reset link valid for 1 hour. If you don't see the email, check your spam folder. Contact <a href="contact-us.html">Support</a> if you still can't access your account.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" aria-expanded="false">
+          Why was I logged out automatically?
+          <span class="faq-chevron" aria-hidden="true">&#8964;</span>
+        </button>
+        <div class="faq-answer">
+          For security, RoleRocket AI automatically logs you out after <strong>60 minutes of inactivity</strong>. This protects your account if you step away from a shared or public device. Simply log back in to resume your session.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" aria-expanded="false">
+          How do I sign up through an institution invite code?
+          <span class="faq-chevron" aria-hidden="true">&#8964;</span>
+        </button>
+        <div class="faq-answer">
+          If your university, training program, or employer provided you with an institution invite code, use the link they gave you or visit <a href="signup.html">Sign Up</a> and enter the invite code in the "Institution Invite Code" field. This links your account to your cohort and may unlock Elite-level access for the duration of your institution's program.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" aria-expanded="false">
+          I'm an institution admin. How do I manage my cohort?
+          <span class="faq-chevron" aria-hidden="true">&#8964;</span>
+        </button>
+        <div class="faq-answer">
+          Institution administrators have access to the <a href="institution-cohort-manager.html">Cohort Manager</a> and <a href="admin-institution-invites.html">Admin Invites</a> pages via the sidebar. From there you can generate invite codes, monitor student activation and activity, view cohort KPIs, and export data. Contact <a href="contact-us.html">Support</a> if you need your admin access enabled.
+        </div>
+      </div>
+
+      <!-- ── LEGAL ───────────────────────────────────────────────────── -->
+      <p class="faq-section-title">Legal</p>
+
+      <div class="faq-item">
+        <button class="faq-question" aria-expanded="false">
+          Where can I read your Terms of Service?
+          <span class="faq-chevron" aria-hidden="true">&#8964;</span>
+        </button>
+        <div class="faq-answer">
+          Our full Terms of Service are available at <a href="terms.html">rolerocketai.com/terms</a>. By creating an account or using RoleRocket AI, you agree to those terms.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" aria-expanded="false">
+          Where can I read your Privacy Policy?
+          <span class="faq-chevron" aria-hidden="true">&#8964;</span>
+        </button>
+        <div class="faq-answer">
+          Our Privacy Policy is available at <a href="privacy.html">rolerocketai.com/privacy</a>. It covers what data we collect, how we use it, your rights, and how to contact us with privacy concerns.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" aria-expanded="false">
+          Does RoleRocket AI comply with GDPR or CCPA?
+          <span class="faq-chevron" aria-hidden="true">&#8964;</span>
+        </button>
+        <div class="faq-answer">
+          We take data rights seriously. Users may request access to, correction of, or deletion of their personal data at any time via <a href="account.html">Account Settings</a> or by contacting us at <a href="contact-us.html">Contact Us</a>. We process data only as necessary to operate the service and do not engage in data brokering. For specific regulatory inquiries, please contact us directly.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" aria-expanded="false">
+          Who owns the content I create on RoleRocket AI?
+          <span class="faq-chevron" aria-hidden="true">&#8964;</span>
+        </button>
+        <div class="faq-answer">
+          You retain full ownership of all content you create, including resumes, cover letters, and application materials generated through RoleRocket AI. By using the platform, you grant us a limited, non-exclusive license to process that content solely to deliver the service to you. We make no claim of ownership over your career materials.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" aria-expanded="false">
+          What AI models power RoleRocket AI?
+          <span class="faq-chevron" aria-hidden="true">&#8964;</span>
+        </button>
+        <div class="faq-answer">
+          RoleRocket AI uses large language models (including OpenAI's GPT-4o family) to power features like resume generation, cover letter writing, career coaching, and interview prep. AI-generated content is a starting point — you should always review and personalize outputs before submitting them to employers.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" aria-expanded="false">
+          Is the Interview Prep AI ethical to use?
+          <span class="faq-chevron" aria-hidden="true">&#8964;</span>
+        </button>
+        <div class="faq-answer">
+          Yes. Our Interview Prep AI is a <strong>practice and preparation tool</strong> — it helps you build confidence, structure your answers, and prepare for real questions before your interview. It is not a live interview cheating tool. We do not endorse or support using AI to deceive employers during live interviews.
+        </div>
+      </div>
+
+      <!-- ── CTA ─────────────────────────────────────────────────────── -->
+      <div class="faq-cta-bar">
+        <h3>Still have questions?</h3>
+        <p>Our team is here to help. Reach out and we'll get back to you quickly.</p>
+        <div class="faq-cta-btns">
+          <a class="faq-cta-btn primary" href="contact-us.html">📬 Contact Support</a>
+          <a class="faq-cta-btn secondary" href="pricing.html">💳 View Pricing</a>
+          <a class="faq-cta-btn secondary" href="signup.html">🚀 Get Started Free</a>
+        </div>
+      </div>
+
+      <!-- ── Legal quick-links ──────────────────────────────────────── -->
+      <div class="faq-legal-links">
+        <a href="privacy.html">Privacy Policy</a>
+        <a href="terms.html">Terms of Service</a>
+        <a href="refund-policy.html">Refund Policy</a>
+        <a href="contact-us.html">Contact Us</a>
+        <a href="pricing.html">Pricing</a>
+        <a href="about-us.html">About Us</a>
+      </div>
+
+    </main>
+  </div>
+
+  <script>
+    // Accordion toggle
+    document.querySelectorAll('.faq-question').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var item = btn.closest('.faq-item');
+        var isOpen = item.classList.contains('open');
+        // Close all
+        document.querySelectorAll('.faq-item.open').forEach(function (el) {
+          el.classList.remove('open');
+          el.querySelector('.faq-question').setAttribute('aria-expanded', 'false');
+        });
+        // Open clicked if it was closed
+        if (!isOpen) {
+          item.classList.add('open');
+          btn.setAttribute('aria-expanded', 'true');
+        }
+      });
+    });
+  </script>
+  <script src="js/api-base.js"></script>
+  <script src="js/auth-storage.js"></script>
+  <script src="js/nav-plan-sync.js"></script>
+  <script src="js/return-navigation.js"></script>
+</body>
+</html>
