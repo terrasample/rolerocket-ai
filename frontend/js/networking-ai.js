@@ -49,6 +49,39 @@
       .toUpperCase();
   }
 
+  function isJoinedNetwork() {
+    return !!(myProfile && myProfile.optedIn);
+  }
+
+  function updateDirectoryAccess() {
+    const joinRequired = document.getElementById('dirJoinRequired');
+    const prompt = document.getElementById('dirOptInPrompt');
+    const status = document.getElementById('dirStatus');
+    const grid = document.getElementById('dirGrid');
+    const pagination = document.getElementById('dirPagination');
+    const searchIds = ['dirSearchRole', 'dirSearchIndustry', 'dirSearchLocation', 'dirSearchBtn'];
+
+    if (!isJoinedNetwork()) {
+      if (joinRequired) joinRequired.style.display = '';
+      if (prompt) prompt.style.display = '';
+      searchIds.forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.disabled = true;
+      });
+      if (status) status.textContent = 'Complete your networking signup in My Profile to unlock directory search.';
+      if (grid) grid.innerHTML = '';
+      if (pagination) pagination.innerHTML = '';
+      return;
+    }
+
+    if (joinRequired) joinRequired.style.display = 'none';
+    if (prompt) prompt.style.display = 'none';
+    searchIds.forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.disabled = false;
+    });
+  }
+
   // ── Tab switching ──────────────────────────────────────────────────────────
   function switchTab(tab) {
     currentTab = tab;
@@ -76,6 +109,11 @@
     const location = document.getElementById('dirSearchLocation').value.trim();
     const status   = document.getElementById('dirStatus');
     const grid     = document.getElementById('dirGrid');
+
+    if (!isJoinedNetwork()) {
+      updateDirectoryAccess();
+      return;
+    }
 
     status.textContent = 'Loading…';
     grid.innerHTML = '';
@@ -110,11 +148,7 @@
       });
 
       renderPagination();
-
-      // Show opt-in prompt if user not in directory
-      if (myProfile && !myProfile.optedIn) {
-        document.getElementById('dirOptInPrompt').style.display = '';
-      }
+      updateDirectoryAccess();
     } catch (err) {
       status.textContent = 'Error: ' + err.message;
     }
@@ -179,6 +213,16 @@
   }
 
   async function sendConnect(userId, btn) {
+    if (!isJoinedNetwork()) {
+      switchTab('my-profile');
+      const statusEl = document.getElementById('profileStatus');
+      if (statusEl) {
+        statusEl.style.color = '#f59e0b';
+        statusEl.textContent = 'Enable directory visibility to start connecting with professionals.';
+      }
+      return;
+    }
+
     btn.disabled = true;
     btn.textContent = 'Sending…';
     try {
@@ -365,6 +409,7 @@
       document.getElementById('profileBio').value          = myProfile.bio || '';
       document.getElementById('profileSkills').value       = (myProfile.skills || []).join(', ');
       document.getElementById('profileLinkedIn').value     = myProfile.linkedIn || '';
+      updateDirectoryAccess();
     } catch (err) {
       document.getElementById('profileStatus').textContent = 'Error loading profile: ' + err.message;
     }
@@ -393,6 +438,10 @@
       statusEl.style.color = '#4ade80';
       statusEl.textContent = 'Profile saved!';
       await loadMyProfile(); // refresh
+      if (isJoinedNetwork()) {
+        switchTab('directory');
+        loadDirectory(1);
+      }
     } catch (err) {
       statusEl.style.color = '#f87171';
       statusEl.textContent = 'Error: ' + err.message;
@@ -458,16 +507,32 @@
     // Save profile
     document.getElementById('saveProfileBtn').addEventListener('click', saveProfile);
 
-    // Load initial tab
-    loadDirectory(1);
-    // Pre-fetch own profile for opt-in prompt logic
-    apiFetch('/api/networking/profile').then((d) => {
-      myProfile = d.profile || {};
-      myUserId  = d.userId || myUserId;
-      if (myProfile && !myProfile.optedIn) {
-        document.getElementById('dirOptInPrompt').style.display = '';
+    document.getElementById('joinNetworkBtn')?.addEventListener('click', () => {
+      switchTab('my-profile');
+      const statusEl = document.getElementById('profileStatus');
+      if (statusEl) {
+        statusEl.style.color = '#60a5fa';
+        statusEl.textContent = 'Turn on "Appear in the professional directory" and save your profile to join.';
       }
-    }).catch(() => {});
+    });
+
+    // Load profile first and route users through onboarding if they have not joined yet.
+    loadMyProfile().then(() => {
+      if (!isJoinedNetwork()) {
+        switchTab('my-profile');
+        const statusEl = document.getElementById('profileStatus');
+        if (statusEl) {
+          statusEl.style.color = '#60a5fa';
+          statusEl.textContent = 'Welcome to Networking Hub. Complete your profile and enable directory visibility to start searching professionals.';
+        }
+      } else {
+        switchTab('directory');
+        loadDirectory(1);
+      }
+    }).catch(() => {
+      switchTab('directory');
+      loadDirectory(1);
+    });
   }
 
   if (document.readyState === 'loading') {

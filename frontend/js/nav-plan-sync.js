@@ -5,6 +5,7 @@
     'index.html': '🏠 Home',
     'about-us.html': '📖 About Us',
     'features.html': '✨ Features',
+    'networking-ai.html': '🤝 Networking Hub',
     'job-tracking.html': '🔎 Find, Search & Track',
     'ai-recruiter-assist.html': '🤖 AI Recruiter Assist',
     'pricing.html': '💳 Pricing',
@@ -69,8 +70,8 @@
     const links = Array.from(nav.querySelectorAll('a.sidebar-link-btn'));
     const findByPath = (p) => links.find((l) => normalizePath(l.getAttribute('href') || '') === p);
 
+    ensureNetworkingHubLink(nav);
     const jamaica = findByPath('jamaica-workforce-accelerator.html');
-    const account = findByPath('account.html');
 
     // Section labels are now baked into every page's HTML; only inject if missing.
     if (jamaica) ensureSectionLabel(nav, jamaica, 'jamaica', 'JAMAICA HUB');
@@ -97,6 +98,7 @@
       'index.html',
       'about-us.html',
       'features.html',
+      'networking-ai.html',
       'job-tracking.html',
       'ai-recruiter-assist.html',
       'pricing.html',
@@ -190,6 +192,36 @@
     if (currentPage === 'profile.html') {
       existing.classList.add('active');
     }
+  }
+
+  function ensureNetworkingHubLink(nav) {
+    if (!nav) return null;
+
+    const currentPage = normalizePath(window.location.href) || 'index.html';
+    let existing = Array.from(nav.querySelectorAll('a.sidebar-link-btn'))
+      .find((l) => normalizePath(l.getAttribute('href') || '') === 'networking-ai.html');
+
+    if (!existing) {
+      existing = document.createElement('a');
+      existing.className = 'sidebar-link-btn';
+      existing.href = 'networking-ai.html';
+
+      const allLinks = Array.from(nav.querySelectorAll('a.sidebar-link-btn'));
+      const featuresLink = allLinks.find((l) => normalizePath(l.getAttribute('href') || '') === 'features.html');
+      const jobTrackingLink = allLinks.find((l) => normalizePath(l.getAttribute('href') || '') === 'job-tracking.html');
+
+      if (jobTrackingLink) {
+        nav.insertBefore(existing, jobTrackingLink);
+      } else if (featuresLink) {
+        insertAfter(existing, featuresLink);
+      } else {
+        nav.appendChild(existing);
+      }
+    }
+
+    existing.textContent = '🤝 Networking Hub';
+    existing.classList.toggle('active', currentPage === 'networking-ai.html');
+    return existing;
   }
 
   function upsertAdminInvitesLink(isAdmin) {
