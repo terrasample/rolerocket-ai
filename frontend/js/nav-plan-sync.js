@@ -47,7 +47,7 @@
   }
 
   function decorateSidebarNav() {
-    const nav = document.querySelector('#sidebarNav nav, .sidebar nav, #sidebarNav, .sidebar');
+    const nav = document.querySelector('#sidebarNav nav, .sidebar nav');
     if (!nav) return;
 
     const allLinks = Array.from(nav.querySelectorAll('a.sidebar-link-btn'));
@@ -228,7 +228,7 @@
   }
 
   function upsertAdminInvitesLink(isAdmin) {
-    const nav = document.querySelector('#sidebarNav nav, .sidebar nav, #sidebarNav, .sidebar');
+    const nav = document.querySelector('#sidebarNav nav, .sidebar nav');
     if (!nav) return;
 
     let adminLink = nav.querySelector('a.sidebar-link-btn[data-nav-admin="1"]')
