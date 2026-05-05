@@ -1518,7 +1518,7 @@ document.addEventListener('DOMContentLoaded', function () {
     leftY += 6;
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
+    doc.setFontSize(12);
     (model.contactLines || []).forEach((line) => {
       const wrapped = doc.splitTextToSize(line, leftW - 4);
       doc.text(wrapped, leftX, leftY);
@@ -1532,7 +1532,7 @@ document.addEventListener('DOMContentLoaded', function () {
     leftY += 6;
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
+    doc.setFontSize(12);
     (model.skills || []).slice(0, 10).forEach((skill) => {
       const cleanSkill = normalizeBulletText(skill);
       if (!cleanSkill) return;
@@ -1558,7 +1558,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     drawTitle('PROFILE');
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9.5);
+    doc.setFontSize(12);
     let wrapped = [];
     sentenceBullets(model.profile).forEach((line) => {
       const cleanLine = normalizeBulletText(line);
@@ -1594,7 +1594,7 @@ document.addEventListener('DOMContentLoaded', function () {
         doc.setTextColor(31, 41, 55);
       }
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9.5);
+      doc.setFontSize(12);
       (exp.bullets || []).forEach((bullet) => {
         const cleanBullet = normalizeBulletText(bullet);
         if (!cleanBullet) return;
@@ -1606,6 +1606,8 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     drawTitle('EDUCATION');
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(12);
     (model.education || []).forEach((line) => {
       const cleanLine = normalizeBulletText(line);
       if (!cleanLine) return;
@@ -1616,6 +1618,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     rightY += 2;
     drawTitle('CERTIFICATIONS');
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(12);
     (model.awards.length ? model.awards : ['N/A']).forEach((line) => {
       const cleanLine = normalizeBulletText(line);
       if (!cleanLine) return;
