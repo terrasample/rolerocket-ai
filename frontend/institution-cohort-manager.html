@@ -41,6 +41,17 @@
       background: rgba(129, 140, 248, .14);
       color: #c7d2fe;
     }
+    .icm-logout-btn {
+      border: 1px solid rgba(248, 113, 113, .45);
+      background: rgba(127, 29, 29, .26);
+      color: #fecaca;
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: .78rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .icm-logout-btn:hover { background: rgba(185, 28, 28, .35); }
     .icm-demo-pill {
       display: inline-block; margin-top: 10px; margin-left: 8px;
       background: rgba(250, 204, 21, .18); border: 1px solid rgba(250, 204, 21, .4);
@@ -316,6 +327,7 @@
       <div class="icm-demo-actions">
         <button type="button" class="icm-demo-btn" id="icmLoadUWIDemoBtn">🎓 Load UWI Mockup Data</button>
         <button type="button" class="icm-demo-btn alt" id="icmExitUWIDemoBtn" style="display:none;">↺ Back to Live Data</button>
+        <button type="button" class="icm-logout-btn" id="icmAdminLogoutBtn">🚪 Log out (Admin Session)</button>
       </div>
     </div>
 
@@ -753,6 +765,21 @@
     function redirectToLogin() {
       window.location.replace('login.html?redirect='+encodeURIComponent('institution-cohort-manager.html'));
     }
+
+    function performCohortLogout() {
+      var shouldLogout = window.confirm('End admin session and log out now?');
+      if (!shouldLogout) return;
+
+      if (typeof clearStoredToken === 'function') {
+        clearStoredToken();
+      }
+      localStorage.removeItem('token');
+      sessionStorage.removeItem('token');
+      localStorage.removeItem('authToken');
+      sessionStorage.removeItem('authToken');
+
+      window.location.replace('login.html?logged-out=1&redirect=' + encodeURIComponent('institution-cohort-manager.html'));
+    }
     function renderInstitutionOnlyState() {
       setStatus('Institution account required.','#dc2626');
       var tbody=document.getElementById('icmTableBody');
@@ -1149,6 +1176,7 @@
       applyUWIDemoData();
     });
     document.getElementById('icmExitUWIDemoBtn').addEventListener('click', exitUWIDemoMode);
+    document.getElementById('icmAdminLogoutBtn').addEventListener('click', performCohortLogout);
 
     async function loadPilotKPIs() {
       try {
