@@ -363,9 +363,9 @@ function renderTags(containerId, items, emptyMessage) {
   const isMissingList = containerId === 'missingKeywords';
 
   const explainer = isMatchedList
-    ? '<div style="font-size:0.9em;color:#64748b;margin-bottom:10px;line-height:1.5;">Matched keywords are job-description terms that were found in your resume text after normalization. It is possible to have zero matches if wording is very different.</div>'
+    ? '<div style="font-size:0.88em;color:#64748b;margin-bottom:12px;line-height:1.5;">Matched keywords are job-description terms that were found in your resume text after normalization. It is possible to have zero matches if wording is very different.</div>'
     : (isMissingList
-      ? '<div style="font-size:0.9em;color:#64748b;margin-bottom:10px;line-height:1.5;">Missing keywords are terms the ATS extractor expects from the job description but did not detect in your resume. Some extracted phrases can look awkward; use them as guidance, not exact copy-and-paste text.</div>'
+      ? '<div style="font-size:0.88em;color:#64748b;margin-bottom:12px;line-height:1.5;">Missing keywords are terms the ATS extractor expects from the job description but did not detect in your resume. Some extracted phrases can look awkward; use them as guidance, not exact copy-and-paste text.</div>'
       : '');
 
   if (!items || !items.length) {
@@ -376,14 +376,35 @@ function renderTags(containerId, items, emptyMessage) {
     return;
   }
 
+  function renderItem(item, index) {
+    const isMustHave = /\(must-have\)$/i.test(String(item || ''));
+    const termText = String(item || '').replace(/\s*\(must-have\)$/i, '').trim();
+
+    if (isMatchedList) {
+      // Matched: clean pill chip, light background, no must-have label needed
+      return `
+        <li style="font-size:0.95em;line-height:1.5;color:#0f172a;overflow-wrap:anywhere;">
+          <span style="display:inline-block;max-width:100%;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:999px;padding:5px 14px;font-weight:600;white-space:normal;overflow-wrap:anywhere;word-break:break-word;color:#15803d;">${termText}</span>
+        </li>`;
+    }
+
+    // Missing: pill chip with bold term + distinct (must-have) label when applicable
+    const mustHaveBadge = isMustHave
+      ? ` <span style="display:inline-block;font-size:0.78em;font-weight:700;color:#b45309;background:#fef3c7;border:1px solid #fde68a;border-radius:999px;padding:1px 8px;vertical-align:middle;white-space:nowrap;">(must-have)</span>`
+      : '';
+
+    return `
+      <li style="font-size:0.95em;line-height:1.5;color:#0f172a;overflow-wrap:anywhere;">
+        <span style="display:inline-flex;align-items:center;flex-wrap:wrap;gap:6px;max-width:100%;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:6px 12px;white-space:normal;overflow-wrap:anywhere;word-break:break-word;">
+          <strong style="font-weight:700;color:#0f172a;">${termText}</strong>${mustHaveBadge}
+        </span>
+      </li>`;
+  }
+
   container.innerHTML = `
     ${explainer}
-    <ol style="margin:0;padding-left:20px;display:grid;gap:8px;">
-      ${items.map((item) => `
-        <li style="font-size:0.95em;line-height:1.5;color:#0f172a;overflow-wrap:anywhere;">
-          <span style="display:inline-block;max-width:100%;background:#f8fafc;border:1px solid #e2e8f0;border-radius:999px;padding:4px 10px;font-weight:600;white-space:normal;overflow-wrap:anywhere;word-break:break-word;">${item}</span>
-        </li>
-      `).join('')}
+    <ol style="margin:0;padding-left:22px;display:grid;gap:10px;">
+      ${items.map((item, i) => renderItem(item, i)).join('')}
     </ol>
   `;
 }
