@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const demand = document.getElementById('courseDemand');
   const overview = document.getElementById('courseOverview');
   const curriculumMeta = document.getElementById('courseCurriculumMeta');
+  const teachingFramework = document.getElementById('courseTeachingFramework');
   const outcomes = document.getElementById('courseOutcomeList');
   const resumeSignals = document.getElementById('courseResumeSignals');
   const modules = document.getElementById('courseModules');
@@ -482,8 +483,141 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   ];
 
+  const ROLEROCKET_LEARNING_ACADEMIES = [
+    {
+      name: 'AI + Data Academy',
+      keywords: ['ai', 'machine learning', 'data', 'analytics', 'sql', 'bi', 'dashboard', 'python'],
+      courses: ['AI Foundations', 'Prompt Engineering', 'Data Analytics', 'SQL for Business', 'BI Dashboards']
+    },
+    {
+      name: 'Software + Cloud Academy',
+      keywords: ['web', 'frontend', 'backend', 'api', 'git', 'github', 'cloud', 'devops'],
+      courses: ['Web Development', 'API Development', 'Git and GitHub', 'Cloud Fundamentals', 'DevOps Basics']
+    },
+    {
+      name: 'Cyber + IT Academy',
+      keywords: ['it support', 'network', 'security', 'soc', 'cyber', 'cloud security'],
+      courses: ['IT Support', 'Networking Fundamentals', 'Cybersecurity Foundations', 'SOC Analyst Basics', 'Cloud Security']
+    },
+    {
+      name: 'Business + Operations Academy',
+      keywords: ['project management', 'agile', 'scrum', 'business analysis', 'operations', 'process'],
+      courses: ['Project Management', 'Agile and Scrum', 'Business Analysis', 'Operations Management', 'Process Automation']
+    },
+    {
+      name: 'Marketing + Sales Academy',
+      keywords: ['marketing', 'content', 'seo', 'crm', 'sales', 'brand', 'communications'],
+      courses: ['Digital Marketing', 'Content Strategy', 'SEO and SEM', 'CRM Workflows', 'Sales Enablement']
+    },
+    {
+      name: 'Career + Leadership Academy',
+      keywords: ['communication', 'interview', 'resume', 'linkedin', 'leadership', 'teamwork'],
+      courses: ['Professional Communication', 'Interview Mastery', 'Resume and LinkedIn', 'Team Collaboration', 'Leadership Essentials']
+    }
+  ];
+
+  const ROLEROCKET_LESSON_MODEL = {
+    moduleBlueprint: [
+      'Why this skill matters',
+      'Core concepts',
+      'Tool fluency',
+      'Guided project',
+      'Industry simulation',
+      'Career proof'
+    ],
+    lessonRhythm: [
+      '10 minutes: warm-up and recap quiz',
+      '15 minutes: concept mini-lesson',
+      '20 minutes: live demonstration',
+      '30 minutes: hands-on lab or scenario',
+      '10 minutes: debrief and exit ticket'
+    ],
+    assessmentModel: [
+      'Knowledge checks and concept accuracy',
+      'Execution quality in labs and assignments',
+      'Problem-solving under constraints',
+      'Communication and decision rationale',
+      'Portfolio-ready deliverable for each course'
+    ]
+  };
+
   function normalizeTopic(topicName) {
     return String(topicName || '').trim().toLowerCase();
+  }
+
+  function getRoleRocketAcademy(courseTitle, fallbackTopic) {
+    const name = normalizeTopic(courseTitle || fallbackTopic);
+    if (!name) return null;
+
+    let best = null;
+    let bestScore = 0;
+
+    ROLEROCKET_LEARNING_ACADEMIES.forEach((academy) => {
+      let score = 0;
+      asArray(academy.keywords).forEach((keyword) => {
+        const token = normalizeTopic(keyword);
+        if (token && name.includes(token)) score += 2;
+      });
+      asArray(academy.courses).forEach((course) => {
+        const token = normalizeTopic(course);
+        if (token && name.includes(token)) score += 3;
+      });
+      if (score > bestScore) {
+        bestScore = score;
+        best = academy;
+      }
+    });
+
+    return best;
+  }
+
+  function renderTeachingFrameworkPanel(courseTitle, fallbackTopic) {
+    if (!teachingFramework) return;
+
+    const academy = getRoleRocketAcademy(courseTitle, fallbackTopic);
+    const academyName = academy ? academy.name : 'RoleRocket Professional Academy';
+    const academyCourses = academy ? asArray(academy.courses) : [];
+
+    const academyCoursesHtml = academyCourses.length
+      ? academyCourses.map((item) => `<li>${escapeHtml(String(item))}</li>`).join('')
+      : '<li>Course map adapts automatically based on learner pathway.</li>';
+
+    const moduleBlueprintHtml = asArray(ROLEROCKET_LESSON_MODEL.moduleBlueprint)
+      .map((item) => `<li>${escapeHtml(String(item))}</li>`)
+      .join('');
+    const lessonRhythmHtml = asArray(ROLEROCKET_LESSON_MODEL.lessonRhythm)
+      .map((item) => `<li>${escapeHtml(String(item))}</li>`)
+      .join('');
+    const assessmentModelHtml = asArray(ROLEROCKET_LESSON_MODEL.assessmentModel)
+      .map((item) => `<li>${escapeHtml(String(item))}</li>`)
+      .join('');
+
+    teachingFramework.innerHTML = `
+      <div style="font-size:0.82rem;color:#7dd3fc;text-transform:uppercase;letter-spacing:0.04em;font-weight:700;margin-bottom:8px;">RoleRocket Learning System</div>
+      <div style="margin-bottom:6px;"><strong style="color:#bfdbfe;">Program model:</strong> 30 high-demand courses organized as 6 academies x 5 courses.</div>
+      <div style="margin-bottom:6px;"><strong style="color:#bfdbfe;">Current academy:</strong> ${escapeHtml(String(academyName))}</div>
+      <div style="margin-bottom:12px;color:#cbd5e1;">Every course uses the same teaching sequence so learners get a predictable, career-focused learning experience while projects stay role-specific.</div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;">
+        <div style="padding:10px;border-radius:8px;background:#0f2235;border:1px solid #1f4c6d;">
+          <div style="color:#93c5fd;font-weight:700;margin-bottom:6px;">Academy Course Track</div>
+          <ul style="margin:0;padding-left:18px;line-height:1.5;">${academyCoursesHtml}</ul>
+        </div>
+        <div style="padding:10px;border-radius:8px;background:#0f2235;border:1px solid #1f4c6d;">
+          <div style="color:#93c5fd;font-weight:700;margin-bottom:6px;">6-Part Course Blueprint</div>
+          <ul style="margin:0;padding-left:18px;line-height:1.5;">${moduleBlueprintHtml}</ul>
+        </div>
+        <div style="padding:10px;border-radius:8px;background:#0f2235;border:1px solid #1f4c6d;">
+          <div style="color:#93c5fd;font-weight:700;margin-bottom:6px;">Lesson Rhythm (75-90 min)</div>
+          <ul style="margin:0;padding-left:18px;line-height:1.5;">${lessonRhythmHtml}</ul>
+        </div>
+      </div>
+
+      <div style="margin-top:10px;padding:10px;border-radius:8px;background:#0f2235;border:1px solid #1f4c6d;">
+        <div style="color:#93c5fd;font-weight:700;margin-bottom:6px;">Assessment and Outcomes</div>
+        <ul style="margin:0;padding-left:18px;line-height:1.5;">${assessmentModelHtml}</ul>
+      </div>
+    `;
   }
 
   function inferCourseFocus(courseTitle, fallbackTopic) {
@@ -2952,6 +3086,7 @@ document.addEventListener('DOMContentLoaded', function () {
     demand.textContent = String(normalizedCourse?.marketDemand || 'High demand in current job market.');
     overview.textContent = String(normalizedCourse?.overview || 'Overview not available.');
     renderCurriculumMetaPanel(getJamaicaCurriculumMeta(courseTitle, topic));
+    renderTeachingFrameworkPanel(courseTitle, topic);
 
     renderList(outcomes, normalizedCourse?.learningOutcomes);
     renderList(resumeSignals, normalizedCourse?.resumeSignals);
@@ -3063,6 +3198,7 @@ document.addEventListener('DOMContentLoaded', function () {
     subtitleSide.textContent = subtitle || 'Course access required';
     overview.textContent = message;
     renderCurriculumMetaPanel(null);
+    renderTeachingFrameworkPanel(topic || 'Course', topic || 'Course');
     if (modules) {
       modules.innerHTML = '<div class="module-item"><p>Sign in with an Elite account to load modules, audio playback, and progress checks.</p></div>';
     }
@@ -3079,6 +3215,7 @@ document.addEventListener('DOMContentLoaded', function () {
       titleMain.textContent = 'No course selected';
       titleSide.textContent = 'No course selected';
       overview.textContent = 'Return to the course catalog and choose a course card.';
+      renderTeachingFrameworkPanel('Course', 'Course');
       return;
     }
 
@@ -3102,6 +3239,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (outcomes) outcomes.innerHTML = '';
     if (resumeSignals) resumeSignals.innerHTML = '';
     renderCurriculumMetaPanel(null);
+    renderTeachingFrameworkPanel(topic, topic);
 
     // Local curriculum packs take priority for known CSEC/CAPE/HEART/NVQ topics.
     const localCourse = getLocalCurriculumCourse(topic);
@@ -3146,6 +3284,7 @@ document.addEventListener('DOMContentLoaded', function () {
         titleSide.textContent = topic;
         subtitleSide.textContent = 'Course generation failed';
         overview.textContent = message;
+        renderTeachingFrameworkPanel(topic, topic);
       }
     } finally {
       setCourseLoadingState(false);
