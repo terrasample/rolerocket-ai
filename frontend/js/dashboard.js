@@ -1603,6 +1603,11 @@ function setAILoading(el, label = 'Generating\u2026') {
 function renderAIOutput(text, el) {
   if (!el) return;
   const rawText = String(text || '');
+  const normalizedText = rawText
+    .replace(/\r\n/g, '\n')
+    .replace(/^\s{0,3}#{1,6}\s*/gm, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
   const regionLabel = el.getAttribute('aria-label') || 'AI result';
 
   el.innerHTML = '';
@@ -1618,12 +1623,12 @@ function renderAIOutput(text, el) {
   copyBtn.className = 'ai-copy-output-btn';
   copyBtn.textContent = 'Copy';
   copyBtn.addEventListener('click', () => {
-    navigator.clipboard?.writeText(rawText).then(() => {
+    navigator.clipboard?.writeText(normalizedText).then(() => {
       copyBtn.textContent = 'Copied ✓';
       setTimeout(() => { copyBtn.textContent = 'Copy'; }, 2000);
     }).catch(() => {
       const ta = document.createElement('textarea');
-      ta.value = rawText;
+      ta.value = normalizedText;
       document.body.appendChild(ta);
       ta.select();
       document.execCommand('copy');
@@ -1640,7 +1645,7 @@ function renderAIOutput(text, el) {
 
   let currentList = null;
 
-  rawText.split('\n').forEach((rawLine) => {
+  normalizedText.split('\n').forEach((rawLine) => {
     const line = rawLine.trim();
     if (!line) { currentList = null; return; }
 

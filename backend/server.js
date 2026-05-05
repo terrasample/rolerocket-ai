@@ -6868,7 +6868,7 @@ app.post('/api/career-coach', authenticateToken, async (req, res) => {
         {
           role: 'system',
           content:
-            'Act like an executive career coach. Give a focused career plan, role targets, skill gaps, salary positioning guidance, and next 3 actions.'
+            'Act like an executive career coach. Give a focused career plan, role targets, skill gaps, salary positioning guidance, and next 3 actions. Return plain text only. Do not use markdown syntax. Do not use #, ##, or ### headings. Keep formatting simple and legible with short section titles and concise bullets.'
         },
         {
           role: 'user',
@@ -6877,7 +6877,14 @@ app.post('/api/career-coach', authenticateToken, async (req, res) => {
       ]
     });
 
-    return res.json({ result: completion.choices[0].message.content });
+    const rawResult = String(completion.choices?.[0]?.message?.content || '');
+    const cleanedResult = rawResult
+      .replace(/\r\n/g, '\n')
+      .replace(/^\s{0,3}#{1,6}\s*/gm, '')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+
+    return res.json({ result: cleanedResult });
   } catch (err) {
     console.error('Career coach error:', err);
     return res.status(500).json({ error: 'Career coach failed' });

@@ -7,8 +7,16 @@ document.addEventListener('DOMContentLoaded', function () {
   const resultDiv = document.getElementById('careerCoachResult');
   let lastPlan = '';
 
-    if (coachBtn) {
-      coachBtn.onclick = async function () {
+  function normalizeCoachOutput(text) {
+    return String(text || '')
+      .replace(/\r\n/g, '\n')
+      .replace(/^\s{0,3}#{1,6}\s*/gm, '')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+  }
+
+    if (btn) {
+      btn.onclick = async function () {
     const role = roleInput.value.trim();
     const goals = goalsInput.value.trim();
     if (!role) {
@@ -31,8 +39,8 @@ document.addEventListener('DOMContentLoaded', function () {
       });
       const data = await res.json();
       if (res.ok && data.result) {
-        lastPlan = data.result;
-        resultDiv.innerHTML = `<pre style=\"background:#fffbe6;padding:22px 18px;border-radius:12px;max-height:420px;overflow:auto;font-size:1.18em;line-height:1.7;color:#1e293b;font-family:'Inter', 'Segoe UI', Arial, sans-serif;border:2.5px solid #f59e42;box-shadow:0 2px 16px #facc1530;\">${data.result}</pre>`;
+        lastPlan = normalizeCoachOutput(data.result);
+        resultDiv.innerHTML = `<pre style=\"background:#fffbe6;padding:22px 18px;border-radius:12px;max-height:420px;overflow:auto;font-size:1.06rem;line-height:1.7;color:#1e293b;font-family:'Inter', 'Segoe UI', Arial, sans-serif;border:2.5px solid #f59e42;box-shadow:0 2px 16px #facc1530;white-space:pre-wrap;word-break:break-word;\">${lastPlan}</pre>`;
       } else {
         lastPlan = '';
         resultDiv.innerHTML = `<span style=\"color:#dc2626;\">${data.error || 'Failed to generate advice.'}</span>`;
