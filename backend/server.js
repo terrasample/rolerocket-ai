@@ -2706,7 +2706,32 @@ function getGuaranteedJamaicaFallbackJobs(title, resume) {
 }
 
 function getGuaranteedJamaicaTourismFallbackJobs(title, resume) {
-  const role = String(title || '').trim() || 'Hospitality Associate';
+  const requested = String(title || '').trim();
+  const role = requested || 'Hospitality Associate';
+  const requestedLower = requested.toLowerCase();
+
+  const roleVariants = [
+    role,
+    'Front Desk Agent',
+    'Guest Services Associate',
+    'Housekeeping Attendant',
+    'Food and Beverage Server',
+    'Reservations Agent'
+  ];
+
+  // Prioritize role variants based on the incoming query so fallback results
+  // still feel specific to the user search intent.
+  let prioritizedRoles = roleVariants;
+  if (/housekeeping/.test(requestedLower)) {
+    prioritizedRoles = ['Housekeeping Attendant', 'Room Attendant', role, 'Guest Services Associate'];
+  } else if (/front\s*desk|guest\s*service|reception/.test(requestedLower)) {
+    prioritizedRoles = ['Front Desk Agent', 'Guest Services Associate', role, 'Reservations Agent'];
+  } else if (/food|beverage|restaurant|bartender|server|chef|cook/.test(requestedLower)) {
+    prioritizedRoles = ['Food and Beverage Server', 'Restaurant Host', role, 'Bartender'];
+  } else if (/tourism|hospitality|hotel|resort|travel/.test(requestedLower)) {
+    prioritizedRoles = ['Guest Services Associate', 'Front Desk Agent', 'Food and Beverage Server', 'Housekeeping Attendant', role];
+  }
+
   const localTourismEmployers = [
     { company: 'Sandals Resorts International', link: 'https://www.sandals.com/careers/', location: 'Montego Bay, Jamaica' },
     { company: 'RIU Hotels Jamaica', link: 'https://www.riu.com/en/jobs/', location: 'Negril, Jamaica' },
@@ -2716,27 +2741,39 @@ function getGuaranteedJamaicaTourismFallbackJobs(title, resume) {
     { company: 'S Hotel Jamaica', link: 'https://shoteljamaica.com/careers/', location: 'Montego Bay, Jamaica' },
     { company: 'Hyatt Ziva/Zilara Rose Hall', link: 'https://careers.hyatt.com/', location: 'Montego Bay, Jamaica' },
     { company: 'Palladium Hotel Group Jamaica', link: 'https://www.palladiumhotelgroup.com/en/work-with-us', location: 'Hanover, Jamaica' },
+    { company: 'Grand Palladium Lady Hamilton Resort & Spa', link: 'https://www.palladiumhotelgroup.com/en/work-with-us', location: 'Hanover, Jamaica' },
+    { company: 'Moon Palace Jamaica', link: 'https://www.palaceresorts.com/en/careers', location: 'Ocho Rios, Jamaica' },
+    { company: 'Jamaica Inn', link: 'https://jamaicainn.com/careers/', location: 'Ocho Rios, Jamaica' },
+    { company: 'Round Hill Hotel and Villas', link: 'https://www.roundhill.com/careers', location: 'Montego Bay, Jamaica' },
+    { company: 'Jakes Hotel', link: 'https://www.jakeshotel.com/', location: 'Treasure Beach, Jamaica' },
     { company: 'JTB (Jamaica Tourist Board)', link: 'https://www.visitjamaica.com/jobs/', location: 'Kingston, Jamaica' },
     { company: 'Jamaica Vacations (JAMVAC)', link: 'https://www.visitjamaica.com/about-jamvac/', location: 'Kingston, Jamaica' }
   ];
 
-  return localTourismEmployers.map((item, idx) =>
-    normalizeJob({
-      title: role,
-      company: item.company,
-      location: item.location,
-      link: item.link,
-      description: `${item.company} tourism and hospitality careers in Jamaica. Check official employer portal for current openings.`,
-      postedAt: new Date(Date.now() - idx * 45 * 60 * 1000).toISOString(),
-      matchScore: Math.min(92, estimateMatchScore(role, `${item.company} tourism hospitality Jamaica`, resume) + 6),
-      source: 'Jamaica Tourism Careers',
-      employmentType: 'full-time',
-      isRemote: false,
-      sponsorshipAvailable: false,
-      experienceLevel: 'entry',
-      requiredCredentials: ['Customer Service', 'Communication Skills']
-    })
-  );
+  const jobs = [];
+  localTourismEmployers.forEach((item, idx) => {
+    prioritizedRoles.slice(0, 2).forEach((roleName, roleIdx) => {
+      jobs.push(
+        normalizeJob({
+          title: roleName,
+          company: item.company,
+          location: item.location,
+          link: item.link,
+          description: `${item.company} tourism and hospitality careers in Jamaica. Check official employer portal for current openings in guest services, front office, food and beverage, and hotel operations.`,
+          postedAt: new Date(Date.now() - (idx * 45 + roleIdx * 15) * 60 * 1000).toISOString(),
+          matchScore: Math.min(94, estimateMatchScore(roleName, `${item.company} tourism hospitality Jamaica`, resume) + 8),
+          source: 'Jamaica Tourism Careers',
+          employmentType: 'full-time',
+          isRemote: false,
+          sponsorshipAvailable: false,
+          experienceLevel: 'entry',
+          requiredCredentials: ['Customer Service', 'Communication Skills']
+        })
+      );
+    });
+  });
+
+  return dedupeJobs(jobs);
 }
 
 function extractCredentials(text) {
