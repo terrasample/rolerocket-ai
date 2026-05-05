@@ -15,6 +15,10 @@ document.addEventListener('DOMContentLoaded', function () {
       resultDiv.innerHTML = '<span style="color:#dc2626;">Please enter a target role or path.</span>';
       return;
     }
+    if (!goals) {
+      resultDiv.innerHTML = '<span style="color:#dc2626;">Please describe your career goals.</span>';
+      return;
+    }
     resultDiv.innerHTML = 'Generating career coaching advice...';
     try {
       const token = typeof getStoredToken === 'function' ? getStoredToken() : localStorage.getItem('token');
