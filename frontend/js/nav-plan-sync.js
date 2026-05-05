@@ -292,6 +292,23 @@
     }
   }
 
+  // Separate key to count consecutive non-admin confirmations before hiding the link.
+  // Requires TWO back-to-back successful API calls returning non-admin before the
+  // link is removed — prevents a single transient wrong response from hiding it.
+  const ADMIN_STRIKE_KEY = 'rr_nav_admin_strike_v1';
+
+  function readAdminStrike() {
+    try { return Number(localStorage.getItem(ADMIN_STRIKE_KEY) || '0') || 0; } catch (_) { return 0; }
+  }
+
+  function writeAdminStrike(n) {
+    try { localStorage.setItem(ADMIN_STRIKE_KEY, String(n)); } catch (_) {}
+  }
+
+  function clearAdminStrike() {
+    try { localStorage.removeItem(ADMIN_STRIKE_KEY); } catch (_) {}
+  }
+
   function resolveIsAdmin(user) {
     const role = String((user && user.role) || '').toLowerCase();
     const roles = Array.isArray(user && user.roles)
@@ -313,33 +330,70 @@
       || localStorage.getItem('token')
       || sessionStorage.getItem('token')
       || '';
+
+    // ── Phase 1: apply cached state immediately so the link never flickers ──
+    const cachedAdmin = readCachedAdminState();
+    if (cachedAdmin === true) {
+      upsertAdminInvitesLink(true);
+    }
+
     if (!token) {
-      upsertAdminInvitesLink(false);
-      writeCachedAdminState(false);
+      // No token — user is logged out. Only hide if cache is definitively non-admin.
+      if (cachedAdmin !== true) {
+        upsertAdminInvitesLink(false);
+      }
       if (badge) badge.textContent = formatPlanLabel('free');
       return;
     }
 
+    // ── Phase 2: fetch fresh state from the API ──────────────────────────────
     try {
       const apiBase = (typeof getApiBase === 'function') ? getApiBase() : '';
       const res = await fetch(apiBase + '/api/me', {
         headers: { Authorization: 'Bearer ' + token }
       });
+
       if (!res.ok) {
-        const cachedAdmin = readCachedAdminState();
-        if (cachedAdmin === true) upsertAdminInvitesLink(true);
+        // API error — keep cached state (already applied in Phase 1).
         if (badge) badge.textContent = formatPlanLabel('free');
         return;
       }
+
       const data = await res.json();
       const plan = (data.user && data.user.plan) || 'free';
       const isAdmin = resolveIsAdmin(data && data.user);
       if (badge) badge.textContent = formatPlanLabel(plan);
-      upsertAdminInvitesLink(isAdmin);
-      writeCachedAdminState(isAdmin);
+
+      if (isAdmin) {
+        // Confirmed admin — show link, clear any accumulated strikes.
+        upsertAdminInvitesLink(true);
+        writeCachedAdminState(true);
+        clearAdminStrike();
+      } else {
+        // API says non-admin. Use a two-strike system to protect against a single
+        // transient wrong response wiping out the link for a real admin user.
+        if (cachedAdmin === true) {
+          // Cache says admin but API disagrees — accumulate a strike.
+          const strikes = readAdminStrike() + 1;
+          if (strikes >= 2) {
+            // Two consecutive non-admin responses — trust the API and remove the link.
+            upsertAdminInvitesLink(false);
+            writeCachedAdminState(false);
+            clearAdminStrike();
+          } else {
+            // Only one strike so far — keep the link visible, write the strike count.
+            writeAdminStrike(strikes);
+            // Keep the link showing (it was set in Phase 1 or by previous page load).
+          }
+        } else {
+          // Cache already says non-admin (or unknown) — remove immediately.
+          upsertAdminInvitesLink(false);
+          writeCachedAdminState(false);
+          clearAdminStrike();
+        }
+      }
     } catch (_) {
-      const cachedAdmin = readCachedAdminState();
-      if (cachedAdmin === true) upsertAdminInvitesLink(true);
+      // Network/parse error — cached state already applied in Phase 1, do nothing.
       if (badge) badge.textContent = formatPlanLabel('free');
     }
   }
