@@ -81,7 +81,8 @@
     // Inject "My Profile" link if not already present in this nav.
     ensureProfileLink(nav);
 
-    // Do not auto-reorder tabs; preserve page-defined order to prevent visual reshuffling.
+    // Normalize sidebar order so users see a stable nav across all pages.
+    stabilizeNavOrder(nav);
   }
 
   function stabilizeNavOrder(nav) {
