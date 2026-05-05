@@ -272,15 +272,11 @@
 
   async function syncNavPlan() {
     const badge = document.getElementById('planBadge');
-    if (!badge) {
-      upsertAdminInvitesLink(false);
-      return;
-    }
-
     const token = localStorage.getItem('token') || sessionStorage.getItem('token') || '';
     if (!token) {
       upsertAdminInvitesLink(false);
-      return; // Not logged in — keep "Free Plan" default
+      if (badge) badge.textContent = formatPlanLabel('free');
+      return;
     }
 
     try {
@@ -290,16 +286,17 @@
       });
       if (!res.ok) {
         upsertAdminInvitesLink(false);
+        if (badge) badge.textContent = formatPlanLabel('free');
         return;
       }
       const data = await res.json();
       const plan = (data.user && data.user.plan) || 'free';
       const isAdmin = !!(data.user && data.user.isAdmin);
-      badge.textContent = formatPlanLabel(plan);
+      if (badge) badge.textContent = formatPlanLabel(plan);
       upsertAdminInvitesLink(isAdmin);
     } catch (_) {
       upsertAdminInvitesLink(false);
-      // Silently ignore — badge stays at default
+      if (badge) badge.textContent = formatPlanLabel('free');
     }
   }
 
