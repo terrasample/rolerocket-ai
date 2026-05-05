@@ -69,7 +69,10 @@
         <form id="signupForm" class="auth-form">
           <input id="signupName" type="text" placeholder="Full name" required />
           <input id="signupEmail" type="email" placeholder="Email address" autocomplete="email" required />
-          <input id="signupPassword" type="password" placeholder="Create password" autocomplete="new-password" minlength="8" required />
+          <div style="position:relative;margin-bottom:10px;">
+            <input id="signupPassword" type="password" placeholder="Create password" autocomplete="new-password" minlength="8" required style="padding-right:104px;margin-bottom:0;" />
+            <button id="signupPasswordToggle" type="button" aria-label="Show password" aria-pressed="false" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);border:1px solid #cbd5e1;background:#fff;color:#334155;border-radius:999px;padding:6px 12px;font-size:.84rem;font-weight:700;cursor:pointer;">Show</button>
+          </div>
           <input id="signupReferral" type="text" placeholder="Referral code or referral link (optional)" autocomplete="off" />
           <select id="signupAccountType" style="width:100%;padding:10px 14px;border-radius:8px;border:1px solid #334155;background:#0f172a;color:#fff;font-size:.95rem;margin-bottom:6px;">
             <option value="individual">Individual Student / Job Seeker</option>
@@ -90,7 +93,7 @@
             <option value="The University of the West Indies Open Campus">The University of the West Indies Open Campus</option>
           </select>
           <div style="margin:0 0 10px 0;font-size:.82rem;color:#94a3b8;line-height:1.5;">Type any school, employer, or organization name directly. The picker above is optional.</div>
-          <input id="signupInvitationCode" type="text" placeholder="Institution invitation code (required for institution accounts)" autocomplete="off" style="display:block;margin-bottom:10px;text-transform:uppercase;" />
+          <input id="signupInvitationCode" type="text" placeholder="Institution invitation code or invite link" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" style="display:block;margin-bottom:10px;text-transform:uppercase;" />
           <div id="signupInstitutionHelp" style="background:#0f172a;border:1px solid #334155;border-radius:10px;padding:10px 12px;margin:4px 0 10px;color:#cbd5e1;font-size:.82rem;line-height:1.5;">
             <strong style="color:#e2e8f0;">How institution linking works</strong><br>
             Students: enter your institution name so your account is linked for cohort reporting. If your school is not listed, type it manually.<br>
@@ -119,6 +122,23 @@
           return candidate.replace(/[^a-zA-Z0-9_-]/g, '').toUpperCase().slice(0, 40);
         }
 
+        function extractInvitationCode(input) {
+          const raw = String(input || '').trim();
+          if (!raw) return '';
+
+          try {
+            const url = new URL(raw, window.location.origin);
+            const fromUrl = url.searchParams.get('inviteCode') || url.searchParams.get('invitationCode');
+            if (fromUrl) {
+              return String(fromUrl).trim().toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 64);
+            }
+          } catch {
+            // Not a URL.
+          }
+
+          return raw.toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 64);
+        }
+
         // Autofill referral code and institution from URL
         (function() {
           const params = new URLSearchParams(window.location.search);
@@ -134,6 +154,8 @@
           const instPreset = document.getElementById('signupInstitutionPreset');
           const inviteInput = document.getElementById('signupInvitationCode');
           const instHelp = document.getElementById('signupInstitutionHelp');
+          const passwordInput = document.getElementById('signupPassword');
+          const passwordToggle = document.getElementById('signupPasswordToggle');
           if (institution) {
             instInput.value = institution;
             instInput.style.display = 'block';
@@ -143,7 +165,7 @@
             }
           }
           if (inviteCode) {
-            inviteInput.value = inviteCode;
+            inviteInput.value = extractInvitationCode(inviteCode);
           }
 
           const applyInstitutionRequirements = () => {
@@ -164,8 +186,18 @@
             });
           }
 
+          if (passwordInput && passwordToggle) {
+            passwordToggle.addEventListener('click', () => {
+              const reveal = passwordInput.type === 'password';
+              passwordInput.type = reveal ? 'text' : 'password';
+              passwordToggle.textContent = reveal ? 'Hide' : 'Show';
+              passwordToggle.setAttribute('aria-label', reveal ? 'Hide password' : 'Show password');
+              passwordToggle.setAttribute('aria-pressed', reveal ? 'true' : 'false');
+            });
+          }
+
           inviteInput.addEventListener('input', () => {
-            inviteInput.value = inviteInput.value.toUpperCase().replace(/[^A-Z0-9-]/g, '');
+            inviteInput.value = extractInvitationCode(inviteInput.value);
           });
 
           applyInstitutionRequirements();
@@ -351,7 +383,7 @@
       const referralCode = extractReferralCode(referralInputRaw || referralFromUrl);
       const accountType = document.getElementById('signupAccountType').value;
       const institutionName = document.getElementById('signupInstitutionName').value.trim();
-      const invitationCode = document.getElementById('signupInvitationCode').value.trim().toUpperCase().replace(/[^A-Z0-9-]/g, '');
+      const invitationCode = extractInvitationCode(document.getElementById('signupInvitationCode').value);
 
       if (!name || !email || !password) {
         signupMessage.textContent = 'Please fill in all fields.';
