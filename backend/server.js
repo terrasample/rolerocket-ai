@@ -2776,6 +2776,141 @@ function getGuaranteedJamaicaTourismFallbackJobs(title, resume) {
   return dedupeJobs(jobs);
 }
 
+function getGuaranteedJamaicaSectorFallbackJobs(title, resume) {
+  const query = String(title || '').trim();
+  const q = query.toLowerCase();
+  if (!q) return [];
+
+  const sectors = [
+    {
+      key: 'bpo',
+      match: /\bbpo\b|customer\s*service|call\s*center|collections|contact\s*center/,
+      roles: ['Customer Service Representative', 'Collections Agent', 'Technical Support Representative'],
+      employers: [
+        { company: 'Alorica Jamaica', link: 'https://www.alorica.com/careers', location: 'Kingston, Jamaica' },
+        { company: 'Conduent Jamaica', link: 'https://careers.conduent.com', location: 'Kingston, Jamaica' },
+        { company: 'Concentrix Jamaica', link: 'https://careers.concentrix.com', location: 'Portmore, Jamaica' },
+        { company: 'Teleperformance Jamaica', link: 'https://www.teleperformance.com/careers', location: 'Kingston, Jamaica' },
+        { company: 'Foundever Jamaica', link: 'https://jobs.foundever.com', location: 'Montego Bay, Jamaica' }
+      ]
+    },
+    {
+      key: 'finance',
+      match: /finance|accounting|accountant|banking|financial|auditor|payroll/,
+      roles: ['Accountant', 'Finance Officer', 'Banking Operations Associate'],
+      employers: [
+        { company: 'National Commercial Bank Jamaica (NCB)', link: 'https://www.jncb.com/careers', location: 'Kingston, Jamaica' },
+        { company: 'Sagicor Group Jamaica', link: 'https://www.sagicor.com/en-jm/careers', location: 'Kingston, Jamaica' },
+        { company: 'JMMB Group', link: 'https://jm.jmmb.com/careers', location: 'Kingston, Jamaica' },
+        { company: 'Scotiabank Jamaica', link: 'https://www.scotiabank.com/jm/en/about/careers.html', location: 'Kingston, Jamaica' },
+        { company: 'Victoria Mutual (VM Group)', link: 'https://www.vmgroup.com/careers', location: 'Kingston, Jamaica' }
+      ]
+    },
+    {
+      key: 'marketing',
+      match: /marketing|digital\s*marketing|brand|communications|social\s*media|content\s*creator|copywriter|\bpr\b/,
+      roles: ['Marketing Coordinator', 'Digital Marketing Specialist', 'Brand and Communications Officer'],
+      employers: [
+        { company: 'GraceKennedy Limited', link: 'https://gracekennedy.com/careers/', location: 'Kingston, Jamaica' },
+        { company: 'Digicel Jamaica', link: 'https://www.digicelgroup.com/careers', location: 'Kingston, Jamaica' },
+        { company: 'Flow Jamaica (C&W)', link: 'https://careers.cwc.com', location: 'Kingston, Jamaica' },
+        { company: 'Wisynco Group', link: 'https://wisynco.com/careers/', location: 'St. Catherine, Jamaica' },
+        { company: 'Sagicor Group Jamaica', link: 'https://www.sagicor.com/en-jm/careers', location: 'Kingston, Jamaica' }
+      ]
+    },
+    {
+      key: 'healthcare',
+      match: /healthcare|health\s*care|nurse|registered\s*nurse|clinical|medical|hospital/,
+      roles: ['Registered Nurse', 'Patient Care Assistant', 'Clinical Support Officer'],
+      employers: [
+        { company: 'University Hospital of the West Indies (UHWI)', link: 'https://www.uhwi.gov.jm/careers', location: 'Kingston, Jamaica' },
+        { company: 'Ministry of Health and Wellness', link: 'https://www.moh.gov.jm/', location: 'Kingston, Jamaica' },
+        { company: 'Andrews Memorial Hospital', link: 'https://www.amhosp.org/', location: 'Kingston, Jamaica' },
+        { company: 'Hospiten Montego Bay', link: 'https://hospiten.com/en/careers', location: 'St. James, Jamaica' },
+        { company: 'Cornwall Regional Hospital', link: 'https://www.srha.gov.jm/', location: 'Montego Bay, Jamaica' }
+      ]
+    },
+    {
+      key: 'education',
+      match: /teacher|teaching|education|lecturer|school|tutor|instructor/,
+      roles: ['Teacher', 'Lecturer', 'Education Programme Officer'],
+      employers: [
+        { company: 'Ministry of Education and Youth', link: 'https://moey.gov.jm/', location: 'Kingston, Jamaica' },
+        { company: 'UWI Mona', link: 'https://www.mona.uwi.edu/hrd/jobs', location: 'Kingston, Jamaica' },
+        { company: 'University of Technology, Jamaica', link: 'https://www.utech.edu.jm/careers', location: 'Kingston, Jamaica' },
+        { company: 'HEART/NSTA Trust', link: 'https://www.heart-nsta.org/jobs', location: 'Kingston, Jamaica' },
+        { company: 'Northern Caribbean University', link: 'https://www.ncu.edu.jm/', location: 'Mandeville, Jamaica' }
+      ]
+    },
+    {
+      key: 'tech',
+      match: /software|engineer|developer|it\s*support|help\s*desk|systems|network|cyber/,
+      roles: ['IT Support Specialist', 'Software Developer', 'Systems Administrator'],
+      employers: [
+        { company: 'Digicel Jamaica', link: 'https://www.digicelgroup.com/careers', location: 'Kingston, Jamaica' },
+        { company: 'Flow Jamaica (C&W)', link: 'https://careers.cwc.com', location: 'Kingston, Jamaica' },
+        { company: 'eGov Jamaica', link: 'https://www.egovja.com/', location: 'Kingston, Jamaica' },
+        { company: 'NCB Jamaica', link: 'https://www.jncb.com/careers', location: 'Kingston, Jamaica' },
+        { company: 'Sagicor Group Jamaica', link: 'https://www.sagicor.com/en-jm/careers', location: 'Kingston, Jamaica' }
+      ]
+    },
+    {
+      key: 'construction',
+      match: /construction|civil|site\s*engineer|quantity\s*surveyor|logistics|warehouse|supply\s*chain|procurement/,
+      roles: ['Site Engineer', 'Logistics Coordinator', 'Procurement Officer'],
+      employers: [
+        { company: 'China Harbour Engineering Company Ltd', link: 'https://www.chec.bj.cn/en/', location: 'Kingston, Jamaica' },
+        { company: 'Jamaica Pre-Mix Limited', link: 'https://www.jamaicapremix.com/', location: 'Kingston, Jamaica' },
+        { company: 'Tank-Weld Metals', link: 'https://tankweld.com/', location: 'Kingston, Jamaica' },
+        { company: 'Kingston Wharves', link: 'https://www.kwljamaica.com/careers', location: 'Kingston, Jamaica' },
+        { company: 'Seaboard Jamaica', link: 'https://www.seaboard.com/', location: 'Kingston, Jamaica' }
+      ]
+    },
+    {
+      key: 'hr',
+      match: /human\s*resources|\bhr\b|talent\s*acquisition|recruiter|people\s*operations/,
+      roles: ['Human Resources Officer', 'Talent Acquisition Specialist', 'HR Generalist'],
+      employers: [
+        { company: 'GraceKennedy Limited', link: 'https://gracekennedy.com/careers/', location: 'Kingston, Jamaica' },
+        { company: 'Wisynco Group', link: 'https://wisynco.com/careers/', location: 'St. Catherine, Jamaica' },
+        { company: 'JMMB Group', link: 'https://jm.jmmb.com/careers', location: 'Kingston, Jamaica' },
+        { company: 'Sagicor Group Jamaica', link: 'https://www.sagicor.com/en-jm/careers', location: 'Kingston, Jamaica' },
+        { company: 'National Commercial Bank Jamaica (NCB)', link: 'https://www.jncb.com/careers', location: 'Kingston, Jamaica' }
+      ]
+    }
+  ];
+
+  const selected = sectors.find((s) => s.match.test(q));
+  if (!selected) return [];
+
+  const roles = [query, ...selected.roles].filter(Boolean);
+  const jobs = [];
+
+  selected.employers.forEach((item, employerIdx) => {
+    roles.slice(0, 2).forEach((roleName, roleIdx) => {
+      jobs.push(
+        normalizeJob({
+          title: roleName,
+          company: item.company,
+          location: item.location,
+          link: item.link,
+          description: `${item.company} career opportunities in Jamaica for ${roleName}. Apply through official employer channels.`,
+          postedAt: new Date(Date.now() - (employerIdx * 60 + roleIdx * 20) * 60 * 1000).toISOString(),
+          matchScore: Math.min(94, estimateMatchScore(roleName, `${item.company} ${selected.key} Jamaica`, resume) + 7),
+          source: 'Jamaica Sector Careers',
+          employmentType: 'full-time',
+          isRemote: false,
+          sponsorshipAvailable: false,
+          experienceLevel: 'entry',
+          requiredCredentials: ['Communication Skills', 'Professionalism']
+        })
+      );
+    });
+  });
+
+  return dedupeJobs(jobs);
+}
+
 function extractCredentials(text) {
   const credentialKeywords = ['csec', 'cape', 'heart', 'nvq', 'associate', 'bachelor', 'diploma', 'certification', 'degree', 'cpa', 'acca', 'coil', 'bpo'];
   const credentials = [];
@@ -2994,6 +3129,20 @@ async function searchJobsFast({ title, location, resume, radiusMiles = 100 }) {
   const isTourismHospitalityQuery = /\btourism\b|\bhospitality\b|\bhotel\b|\bresort\b|\btravel\b/.test(queryTitleLower);
   if (!jobs.length && /\bjamaica\b/.test(locationQuery) && isTourismHospitalityQuery) {
     jobs = getGuaranteedJamaicaTourismFallbackJobs(title, resume);
+  }
+
+  if (!jobs.length && /\bjamaica\b/.test(locationQuery) && !isTourismHospitalityQuery) {
+    const sectorFallback = getGuaranteedJamaicaSectorFallbackJobs(title, resume);
+    if (sectorFallback.length) jobs = sectorFallback;
+  }
+
+  // If live feeds return only a handful of sector jobs, top up with curated
+  // Jamaica sector fallbacks so users still get a useful list.
+  if (/\bjamaica\b/.test(locationQuery) && !isTourismHospitalityQuery && jobs.length > 0 && jobs.length < 8) {
+    const sectorFallback = getGuaranteedJamaicaSectorFallbackJobs(title, resume);
+    if (sectorFallback.length) {
+      jobs = rankJobs(dedupeJobs([...jobs, ...sectorFallback]), { title, location });
+    }
   }
 
   // If providers are flaky, return stale cache before showing empty.
