@@ -80,19 +80,76 @@
           </select>
           <input id="signupInstitutionName" type="text" placeholder="Institution or organization name" autocomplete="organization" style="display:block;margin-bottom:6px;" />
           <select id="signupInstitutionPreset" style="width:100%;padding:10px 14px;border-radius:8px;border:1px solid #334155;background:#0f172a;color:#fff;font-size:.95rem;margin-bottom:6px;">
-            <option value="">Choose a common institution (optional)</option>
-            <option value="UWI Mona">UWI Mona</option>
-            <option value="UWI Cave Hill">UWI Cave Hill</option>
-            <option value="UWI St. Augustine">UWI St. Augustine</option>
-            <option value="University of Technology, Jamaica">University of Technology, Jamaica</option>
-            <option value="HEART/NSTA Trust">HEART/NSTA Trust</option>
-            <option value="University College of the Caribbean">University College of the Caribbean</option>
-            <option value="Northern Caribbean University">Northern Caribbean University</option>
-            <option value="Mico University College">Mico University College</option>
-            <option value="Caribbean Maritime University">Caribbean Maritime University</option>
-            <option value="The University of the West Indies Open Campus">The University of the West Indies Open Campus</option>
+            <option value="">Choose a Jamaica organization (optional)</option>
+            <optgroup label="Universities and Colleges">
+              <option value="UWI Mona">UWI Mona</option>
+              <option value="The University of the West Indies Open Campus">The University of the West Indies Open Campus</option>
+              <option value="University of Technology, Jamaica">University of Technology, Jamaica</option>
+              <option value="University College of the Caribbean">University College of the Caribbean</option>
+              <option value="Northern Caribbean University">Northern Caribbean University</option>
+              <option value="Mico University College">Mico University College</option>
+              <option value="Caribbean Maritime University">Caribbean Maritime University</option>
+              <option value="Edna Manley College of the Visual and Performing Arts">Edna Manley College of the Visual and Performing Arts</option>
+              <option value="Jamaica Theological Seminary">Jamaica Theological Seminary</option>
+            </optgroup>
+            <optgroup label="Training and Public Sector">
+              <option value="HEART/NSTA Trust">HEART/NSTA Trust</option>
+              <option value="Ministry of Education and Youth">Ministry of Education and Youth</option>
+              <option value="Jamaica Defence Force">Jamaica Defence Force</option>
+              <option value="Jamaica Constabulary Force">Jamaica Constabulary Force</option>
+              <option value="Passport, Immigration and Citizenship Agency (PICA)">Passport, Immigration and Citizenship Agency (PICA)</option>
+              <option value="Tax Administration Jamaica">Tax Administration Jamaica</option>
+              <option value="National Housing Trust (NHT)">National Housing Trust (NHT)</option>
+              <option value="National Insurance Scheme (NIS)">National Insurance Scheme (NIS)</option>
+              <option value="Jamaica Customs Agency">Jamaica Customs Agency</option>
+            </optgroup>
+            <optgroup label="Finance and Insurance">
+              <option value="National Commercial Bank Jamaica (NCB)">National Commercial Bank Jamaica (NCB)</option>
+              <option value="JMMB Group">JMMB Group</option>
+              <option value="Sagicor Group Jamaica">Sagicor Group Jamaica</option>
+              <option value="Scotiabank Jamaica">Scotiabank Jamaica</option>
+              <option value="Victoria Mutual (VM Group)">Victoria Mutual (VM Group)</option>
+              <option value="JN Bank">JN Bank</option>
+              <option value="First Global Bank">First Global Bank</option>
+              <option value="Proven Group">Proven Group</option>
+            </optgroup>
+            <optgroup label="Retail, Food, and Distribution">
+              <option value="GraceKennedy Limited">GraceKennedy Limited</option>
+              <option value="Wisynco Group">Wisynco Group</option>
+              <option value="Lasco Distributors">Lasco Distributors</option>
+              <option value="Jamaica Broilers Group">Jamaica Broilers Group</option>
+              <option value="Seprod Limited">Seprod Limited</option>
+              <option value="Caribbean Producers Jamaica (CPJ)">Caribbean Producers Jamaica (CPJ)</option>
+              <option value="Fontana Limited">Fontana Limited</option>
+              <option value="MegaMart Jamaica">MegaMart Jamaica</option>
+            </optgroup>
+            <optgroup label="Telecom, Utilities, and Logistics">
+              <option value="Digicel Jamaica">Digicel Jamaica</option>
+              <option value="Flow Jamaica (C&W)">Flow Jamaica (C&W)</option>
+              <option value="JPS (Jamaica Public Service)">JPS (Jamaica Public Service)</option>
+              <option value="Jamaica Urban Transit Company (JUTC)">Jamaica Urban Transit Company (JUTC)</option>
+              <option value="Kingston Wharves">Kingston Wharves</option>
+              <option value="Jamaica Producers Group">Jamaica Producers Group</option>
+            </optgroup>
+            <optgroup label="BPO and Shared Services">
+              <option value="Conduent Jamaica">Conduent Jamaica</option>
+              <option value="Concentrix Jamaica">Concentrix Jamaica</option>
+              <option value="Foundever Jamaica">Foundever Jamaica</option>
+              <option value="Sutherland Jamaica">Sutherland Jamaica</option>
+              <option value="ibex Jamaica">ibex Jamaica</option>
+              <option value="VXI Jamaica">VXI Jamaica</option>
+              <option value="Teleperformance Jamaica">Teleperformance Jamaica</option>
+              <option value="Alorica Jamaica">Alorica Jamaica</option>
+            </optgroup>
+            <optgroup label="Tourism and Hospitality">
+              <option value="Sandals Resorts International">Sandals Resorts International</option>
+              <option value="Jamaica Pegasus Hotel">Jamaica Pegasus Hotel</option>
+              <option value="Half Moon Resort">Half Moon Resort</option>
+              <option value="Bahia Principe Jamaica">Bahia Principe Jamaica</option>
+              <option value="RIU Hotels Jamaica">RIU Hotels Jamaica</option>
+            </optgroup>
           </select>
-          <div style="margin:0 0 10px 0;font-size:.82rem;color:#94a3b8;line-height:1.5;">Type any school, employer, or organization name directly. The picker above is optional.</div>
+          <div style="margin:0 0 10px 0;font-size:.82rem;color:#94a3b8;line-height:1.5;">Type any school, employer, or organization name directly. The list is optional and only provided for faster selection.</div>
           <input id="signupInvitationCode" type="text" placeholder="Institution invitation code or invite link" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" style="display:block;margin-bottom:10px;text-transform:uppercase;" />
           <div id="signupInstitutionHelp" style="background:#0f172a;border:1px solid #334155;border-radius:10px;padding:10px 12px;margin:4px 0 10px;color:#cbd5e1;font-size:.82rem;line-height:1.5;">
             <strong style="color:#e2e8f0;">How institution linking works</strong><br>
