@@ -7,6 +7,13 @@
   <link rel="stylesheet" href="styles.css" />
   <style>
     body, .main-content { background: #0c1120 !important; color: #e2e8f0; }
+    .main-content {
+      flex: 1;
+      width: 100%;
+      max-width: none;
+      padding: 30px;
+      box-sizing: border-box;
+    }
     .alerts-hero {
       background: linear-gradient(135deg, #064e3b 0%, #007847 55%, #22c55e 100%);
       color: #fff; padding: 40px 32px 36px; text-align: center;
@@ -16,7 +23,8 @@
     .alerts-hero p { font-size: .97rem; opacity: .88; max-width: 580px; margin: 0 auto; }
     .alerts-card {
       background: #1e293b; border-radius: 16px; padding: 28px 32px;
-      max-width: 100%; margin: 0 0 24px; border: 1px solid rgba(255,255,255,.07);
+      width: 100%; max-width: 100%; margin: 0 0 24px; border: 1px solid rgba(255,255,255,.07);
+      box-sizing: border-box;
     }
     .alerts-card h2 { font-size: 1.05rem; font-weight: 700; margin: 0 0 18px; color: #e2e8f0; }
     .alerts-field { margin-bottom: 16px; }
@@ -66,6 +74,7 @@
     }
     .alerts-type-opt label .alerts-type-icon { font-size: 1.5rem; }
     @media (max-width: 640px) {
+      .main-content { padding: 16px; }
       .alerts-card { padding: 20px 18px; }
       .alerts-hero { padding: 28px 16px 24px; }
     }
