@@ -121,6 +121,8 @@ app.get('/api/me', async (req, res) => {
 
 // Register ATS API routes
 app.use('/api/ats', require('./routes/ats'));
+// Register Networking routes
+app.use('/api/networking', require('./routes/networking'));
 // Register Cover Letter API route
 app.use('/api/cover-letter', require('./routes/coverLetter'));
 // Register school/university/government/employer integration APIs

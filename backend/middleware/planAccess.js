@@ -10,9 +10,9 @@ const plans = {
 const featurePlanMap = {
   'ats-optimizer': 'pro',
   'job-market-radar': 'pro',
-  'application-quality-score': 'pro',
+
   'resume-optimizer': 'pro',
-  'gamification': 'pro',
+
   'interview-prep': 'premium',
   'one-click-apply': 'premium',
   'ai-portfolio-builder': 'premium',

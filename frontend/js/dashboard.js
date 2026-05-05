@@ -86,9 +86,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         features: [
           { name: 'ATS Optimizer', desc: 'Identify keyword gaps, structure issues, and weak phrasing before you apply.', url: 'optimizer.html' },
           { name: 'Job Market Radar', desc: 'See trending roles, in-demand skills, and market insights tailored to your profile.', url: 'job-market-radar.html' },
-          { name: 'Application Quality Score', desc: 'Get a real-time score and actionable tips to improve your application before submitting.', url: 'application-quality-score.html' },
           { name: 'Resume Optimizer', desc: 'Instantly improve your resume with AI-driven analysis and personalized suggestions.', url: 'resume-optimizer.html' },
-          { name: 'Gamification', desc: 'Earn badges and rewards as you progress through your job search journey.', url: 'gamification.html' },
         ],
       },
       {

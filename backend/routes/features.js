@@ -10,16 +10,9 @@ router.post('/ats-optimizer', planAccess('ats-optimizer'), (req, res) => {
 router.post('/job-market-radar', planAccess('job-market-radar'), (req, res) => {
   res.json({ result: 'Job Market Radar result (stub)' });
 });
-router.post('/application-quality-score', planAccess('application-quality-score'), (req, res) => {
-  res.json({ result: 'Application Quality Score result (stub)' });
-});
 router.post('/resume-optimizer', planAccess('resume-optimizer'), (req, res) => {
   res.json({ result: 'Resume Optimizer result (stub)' });
 });
-router.post('/gamification', planAccess('gamification'), (req, res) => {
-  res.json({ result: 'Gamification result (stub)' });
-});
-
 // PREMIUM Features
 router.post('/interview-prep', planAccess('interview-prep'), (req, res) => {
   res.json({ result: 'Interview Prep result (stub)' });

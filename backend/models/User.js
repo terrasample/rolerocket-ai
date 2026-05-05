@@ -109,6 +109,18 @@ const UserSchema = new mongoose.Schema(
         }
       ],
       default: []
+    },
+
+    networkingProfile: {
+      optedIn:     { type: Boolean, default: false },
+      displayName: { type: String, default: '', trim: true },
+      title:       { type: String, default: '', trim: true },
+      industry:    { type: String, default: '', trim: true },
+      location:    { type: String, default: '', trim: true },
+      bio:         { type: String, default: '', maxlength: 400, trim: true },
+      skills:      { type: [String], default: [] },
+      linkedIn:    { type: String, default: '', trim: true },
+      updatedAt:   { type: Date, default: null }
     }
   },
   { timestamps: true }

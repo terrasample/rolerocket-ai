@@ -12,9 +12,7 @@ window.RoleRocketPricingData = {
         'Everything in Free',
         'ATS Optimizer',
         'Resume Optimizer',
-        'Application Quality Score',
-        'Job Market Radar',
-        'Gamification'
+        'Job Market Radar'
       ]
     },
     premium: {
