@@ -623,6 +623,7 @@ document.addEventListener('DOMContentLoaded', function () {
   function inferCourseFocus(courseTitle, fallbackTopic) {
     const name = normalizeTopic(courseTitle || fallbackTopic);
     if (!name) return 'subject';
+    if (name.includes('ai') || name.includes('machine learning') || name.includes('deep learning') || name.includes('data science') || name.includes('artificial intelligence')) return 'ai and machine learning';
     if (name.includes('mathematics') || name.includes('math')) return 'mathematics';
     if (name.includes('english')) return 'english';
     if (name.includes('information technology') || name.includes('it')) return 'information technology';
@@ -642,6 +643,24 @@ document.addEventListener('DOMContentLoaded', function () {
     const topicLabel = String(focus || 'subject');
 
     const refresherByFocus = {
+      'ai and machine learning': {
+        title: 'Core Concept and Math Refresher for AI + Machine Learning',
+        objective: 'Refresh the essential concepts and math tools needed for modern AI/ML modules.',
+        lesson: 'Revisit vectors and matrices, gradients and optimization, probability/statistics intuition, and key AI distinctions (AI vs ML vs deep learning). This refresher sets up the deeper modules so learners understand why models work, not just how to run tools.',
+        workedExample: 'A model starts with random weights, computes loss, then uses gradients to update weights toward lower error over iterations.',
+        workedExampleSteps: [
+          'Step 1: Define the prediction task and the target variable.',
+          'Step 2: Compute model output and compare to true label using a loss function.',
+          'Step 3: Use gradient information to update model parameters.',
+          'Step 4: Re-evaluate metrics and repeat until performance stabilizes.'
+        ],
+        commonMistake: 'Jumping to frameworks before understanding data quality, objective choice, and evaluation metrics.',
+        practiceTask: 'Write a one-page map of AI vs ML vs deep learning and connect each to one real use case.',
+        progressCheckQuestion: 'Why is this refresher module placed before deep AI/ML modules?',
+        progressCheckOptions: ['To skip fundamentals', 'To build concept and math readiness for later modeling work', 'To replace all projects', 'To avoid evaluation metrics'],
+        correctOptionIndex: 1,
+        progressCheckExplanation: 'Foundational readiness improves model selection, troubleshooting, and project outcomes.'
+      },
       mathematics: {
         title: 'Formula and Method Refresher',
         objective: 'Refresh core formulas and solution habits before starting full modules.',
