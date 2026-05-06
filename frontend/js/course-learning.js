@@ -1065,6 +1065,52 @@ document.addEventListener('DOMContentLoaded', function () {
     };
   }
 
+  function applyUnifiedSubsectionStructure(course, fallbackTopic) {
+    const baseCourse = course || {};
+    const modules = asArray(baseCourse.modules);
+    if (!modules.length) return baseCourse;
+
+    const normalizedModules = modules.map((moduleItem, idx) => {
+      const title = String(moduleItem?.title || `Module ${idx + 1}`).trim();
+      const objective = String(moduleItem?.objective || '').trim();
+      const lesson = String(moduleItem?.lesson || '').trim();
+      const workedExample = String(moduleItem?.workedExample || '').trim();
+      const practiceTask = String(moduleItem?.practiceTask || '').trim();
+      const progressCheckQuestion = String(moduleItem?.progressCheckQuestion || '').trim();
+
+      const hasStructuredSections = /section\s*1\s*[-:]/i.test(lesson);
+      const sectionedLesson = hasStructuredSections
+        ? lesson
+        : [
+            `Section 1 - Core Concepts: ${objective || `Understand the key principles for ${title}.`}`,
+            `Section 2 - Method and Tools: ${lesson || `Learn the method, workflow, and tool choices used in ${title}.`}`,
+            `Section 3 - Applied Practice: ${practiceTask || progressCheckQuestion || `Apply ${title} in a practical scenario with clear reasoning.`}`
+          ].join(' ');
+
+      const existingSteps = asArray(moduleItem?.workedExampleSteps).map((step) => String(step || '').trim()).filter(Boolean);
+      const normalizedSteps = existingSteps.length
+        ? existingSteps
+        : [
+            `Section 1: Identify the core concept and objective for ${title}.`,
+            `Section 2: Apply the method/tool workflow to a guided example.`,
+            `Section 3: Validate the result using a quick check or metric.`,
+            `Section 4: Summarize what to repeat in a real project setting.`
+          ];
+
+      return {
+        ...moduleItem,
+        lesson: sectionedLesson,
+        workedExample: workedExample || `Example application for ${title} in a realistic learning scenario.`,
+        workedExampleSteps: normalizedSteps
+      };
+    });
+
+    return {
+      ...baseCourse,
+      modules: normalizedModules
+    };
+  }
+
   function normalizeCompletedSequence(values, totalModules) {
     const total = Number(totalModules || 0);
     const safeTotal = Number.isInteger(total) && total > 0 ? total : 0;
@@ -3228,7 +3274,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function renderCourse(course) {
     const scaffoldedCourse = applyFromScratchCourseScaffold(course, topic);
-    const normalizedCourse = applyCourseCoverageNormalization(scaffoldedCourse, topic);
+    const sectionedCourse = applyUnifiedSubsectionStructure(scaffoldedCourse, topic);
+    const normalizedCourse = applyCourseCoverageNormalization(sectionedCourse, topic);
     progressState.preferLocalProgressCheck = String(normalizedCourse?.progressCheckMode || '').toLowerCase() === 'local';
     const courseTitle = String(normalizedCourse?.courseTitle || topic || 'Course');
     titleMain.textContent = courseTitle;
