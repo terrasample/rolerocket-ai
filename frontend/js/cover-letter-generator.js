@@ -54,11 +54,13 @@ document.addEventListener('DOMContentLoaded', function () {
       bodyLines = bodyLines.slice(0, bodyEnd);
     }
 
-    const paragraphs = bodyLines
+    const rawParagraphs = bodyLines
       .join('\n')
       .split(/\n{2,}/)
       .map((p) => p.replace(/\n/g, ' ').trim())
       .filter(Boolean);
+
+    const paragraphs = rebalanceCoverParagraphs(rawParagraphs);
 
     return {
       greeting,
@@ -66,6 +68,48 @@ document.addEventListener('DOMContentLoaded', function () {
       closing,
       signature
     };
+  }
+
+  function splitParagraphIntoChunks(paragraph) {
+    const text = String(paragraph || '').replace(/\s+/g, ' ').trim();
+    if (!text) return [];
+
+    const sentences = text.split(/(?<=[.!?])\s+/).map((line) => line.trim()).filter(Boolean);
+    if (sentences.length <= 3) return [text];
+
+    const chunks = [];
+    let current = [];
+
+    sentences.forEach((sentence) => {
+      current.push(sentence);
+      const joined = current.join(' ');
+      const reachedSentenceLimit = current.length >= 3;
+      const reachedLengthLimit = joined.length >= 360;
+
+      if (reachedSentenceLimit || reachedLengthLimit) {
+        chunks.push(joined);
+        current = [];
+      }
+    });
+
+    if (current.length) chunks.push(current.join(' '));
+    return chunks;
+  }
+
+  function rebalanceCoverParagraphs(paragraphs) {
+    const normalized = (paragraphs || [])
+      .map((p) => String(p || '').replace(/\s+/g, ' ').trim())
+      .filter(Boolean);
+
+    if (!normalized.length) return [];
+    if (normalized.length === 1) return splitParagraphIntoChunks(normalized[0]);
+
+    const expanded = normalized.flatMap((paragraph) => {
+      if (paragraph.length < 420) return [paragraph];
+      return splitParagraphIntoChunks(paragraph);
+    });
+
+    return expanded.length ? expanded : normalized;
   }
 
   function renderCoverTemplate(letter, contact, roleTitle, company) {
