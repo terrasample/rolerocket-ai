@@ -794,7 +794,7 @@ document.getElementById('sendAtsResumeEmailBtn')?.addEventListener('click', asyn
   }
 
   if (result.ok) {
-    setOptimizerStatus('Sent to your account email.');
+    setOptimizerStatus('Sent! Check your inbox — if you don\'t see it within a minute, check your spam or junk folder.');
   } else {
     setOptimizerStatus(result.error || 'Could not send email.', true);
   }

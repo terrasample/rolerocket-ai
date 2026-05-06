@@ -1993,7 +1993,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
       output.innerHTML = renderResumeTemplate(lastStructuredResume);
       if (result.ok) {
-        statusBanner('Resume sent to your account email.', true);
+        statusBanner('Sent! Check your inbox — if you don\'t see it within a minute, check your spam or junk folder.', true);
       } else {
         renderError(result.error || 'Could not send resume email.');
       }

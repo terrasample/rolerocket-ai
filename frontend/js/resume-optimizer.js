@@ -223,7 +223,7 @@ document.addEventListener('DOMContentLoaded', function () {
       sendEmailBtn.textContent = 'Send to Email';
 
       output.innerHTML = result.ok
-        ? '<div style="color:#16a34a;">Sent to your account email.</div>'
+        ? '<div style="color:#16a34a;">Sent! Check your inbox — if you don\'t see it within a minute, check your spam or junk folder.</div>'
         : `<div style="color:#dc2626;">${result.error || 'Could not send email.'}</div>`;
     };
   }

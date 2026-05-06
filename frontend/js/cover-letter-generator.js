@@ -423,7 +423,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     output.innerHTML = renderCoverTemplate(parsed, lastCoverMeta, roleTitle, company);
     if (result.ok) {
-      output.insertAdjacentHTML('afterbegin', '<div style="margin-bottom:10px;padding:10px 12px;border-radius:8px;font-size:0.95rem;background:#ecfdf5;color:#166534;border:1px solid #86efac;">Sent to your account email.</div>');
+      output.insertAdjacentHTML('afterbegin', '<div style="margin-bottom:10px;padding:10px 12px;border-radius:8px;font-size:0.95rem;background:#ecfdf5;color:#166534;border:1px solid #86efac;">Sent! Check your inbox — if you don\'t see it within a minute, check your spam or junk folder.</div>');
     } else {
       output.insertAdjacentHTML('afterbegin', `<div style="margin-bottom:10px;padding:10px 12px;border-radius:8px;font-size:0.95rem;background:#fef2f2;color:#991b1b;border:1px solid #fecaca;">${escapeHtml(result.error || 'Could not send email.')}</div>`);
     }
