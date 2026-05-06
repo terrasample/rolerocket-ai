@@ -1,26 +1,6 @@
 # Python Data Science: Proficiency to Production
 ## Course Outline & Teaching Framework
 
-### Course Overview
-**Goal:** Master data science fundamentals from raw Python to business-ready visualizations—without jumping straight to models.
-
-**Example (What This Means in Practice):**
-Load a CSV with Pandas, clean missing values, compute summary statistics with NumPy, then visualize two key features with Matplotlib before any model is trained.
-
----
-
-## Lesson Structure: The Teach-First Flow
-
-Every module follows a proven sequence:
-1. **Concept Lesson** — Understand the "why" and core principles
-2. **Guided Code Walkthrough** — See it working with real data
-3. **Practice Task** — Hands-on application with feedback
-4. **Checkpoint** — Quick quiz to validate mastery
-
-This flow ensures learners build intuition before memorizing syntax.
-
----
-
 ## Five Core Sections
 
 ### Section 1: Python Proficiency
