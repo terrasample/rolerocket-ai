@@ -2810,7 +2810,7 @@ document.addEventListener('DOMContentLoaded', function () {
       const workedExampleSteps = asArray(moduleItem?.workedExampleSteps);
       const workedExampleStepsHtml = workedExampleSteps.length
         ? `<div style="margin-top:8px;padding:10px;border-radius:8px;background:#0b1220;border:1px solid #273449;">
-            <div style="color:#93c5fd;font-weight:700;font-size:0.86rem;margin-bottom:6px;">Step-by-Step Breakdown</div>
+            <div style="color:#93c5fd;font-weight:700;font-size:0.86rem;margin-bottom:6px;">Step-by-Step Example Walkthrough</div>
             <ol style="margin:0;padding-left:18px;color:#d0d9e7;line-height:1.55;display:grid;gap:4px;">
               ${workedExampleSteps.map((step) => `<li>${escapeHtml(String(step))}</li>`).join('')}
             </ol>
@@ -2844,8 +2844,12 @@ document.addEventListener('DOMContentLoaded', function () {
           </div>
           <p data-module-follow-idx="${index}" data-module-follow-part="objective"><strong style="color:#93c5fd;">Objective:</strong> ${objective}</p>
           <p data-module-follow-idx="${index}" data-module-follow-part="lesson"><strong style="color:#93c5fd;">Lesson:</strong> ${lesson}</p>
+          <div style="margin:8px 0 10px 0;padding:10px;border-radius:8px;background:#0f2235;border:1px solid #1f4c6d;color:#cbd5e1;line-height:1.55;font-size:0.9rem;">
+            <strong style="color:#93c5fd;">How to read this section:</strong>
+            You are not expected to know this already. The example below shows one way to apply the lesson in practice, then breaks it into simple steps.
+          </div>
           <div data-module-follow-idx="${index}" data-module-follow-part="workedExample">
-            <p><strong style="color:#93c5fd;">Worked Example:</strong> ${workedExample}</p>
+            <p><strong style="color:#93c5fd;">Example (What this means in practice):</strong> ${workedExample}</p>
             ${workedExampleStepsHtml}
           </div>
           <p data-module-follow-idx="${index}" data-module-follow-part="commonMistake"><strong style="color:#fda4af;">Common Mistake:</strong> ${commonMistake}</p>
