@@ -66,6 +66,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   const audioState = {
     activeModuleIndex: null,
+    activePartKey: '',
     utterance: null,
     isPaused: false,
     rate: 0.96,
@@ -573,51 +574,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function renderTeachingFrameworkPanel(courseTitle, fallbackTopic) {
     if (!teachingFramework) return;
-
-    const academy = getRoleRocketAcademy(courseTitle, fallbackTopic);
-    const academyName = academy ? academy.name : 'RoleRocket Professional Academy';
-    const academyCourses = academy ? asArray(academy.courses) : [];
-
-    const academyCoursesHtml = academyCourses.length
-      ? academyCourses.map((item) => `<li>${escapeHtml(String(item))}</li>`).join('')
-      : '<li>Course map adapts automatically based on learner pathway.</li>';
-
-    const moduleBlueprintHtml = asArray(ROLEROCKET_LESSON_MODEL.moduleBlueprint)
-      .map((item) => `<li>${escapeHtml(String(item))}</li>`)
-      .join('');
-    const lessonRhythmHtml = asArray(ROLEROCKET_LESSON_MODEL.lessonRhythm)
-      .map((item) => `<li>${escapeHtml(String(item))}</li>`)
-      .join('');
-    const assessmentModelHtml = asArray(ROLEROCKET_LESSON_MODEL.assessmentModel)
-      .map((item) => `<li>${escapeHtml(String(item))}</li>`)
-      .join('');
-
-    teachingFramework.innerHTML = `
-      <div style="font-size:0.82rem;color:#7dd3fc;text-transform:uppercase;letter-spacing:0.04em;font-weight:700;margin-bottom:8px;">RoleRocket Learning System</div>
-      <div style="margin-bottom:6px;"><strong style="color:#bfdbfe;">Program model:</strong> 30 high-demand courses organized as 6 academies x 5 courses.</div>
-      <div style="margin-bottom:6px;"><strong style="color:#bfdbfe;">Current academy:</strong> ${escapeHtml(String(academyName))}</div>
-      <div style="margin-bottom:12px;color:#cbd5e1;">Every course uses the same teaching sequence so learners get a predictable, career-focused learning experience while projects stay role-specific.</div>
-
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;">
-        <div style="padding:10px;border-radius:8px;background:#0f2235;border:1px solid #1f4c6d;">
-          <div style="color:#93c5fd;font-weight:700;margin-bottom:6px;">Academy Course Track</div>
-          <ul style="margin:0;padding-left:18px;line-height:1.5;">${academyCoursesHtml}</ul>
-        </div>
-        <div style="padding:10px;border-radius:8px;background:#0f2235;border:1px solid #1f4c6d;">
-          <div style="color:#93c5fd;font-weight:700;margin-bottom:6px;">6-Part Course Blueprint</div>
-          <ul style="margin:0;padding-left:18px;line-height:1.5;">${moduleBlueprintHtml}</ul>
-        </div>
-        <div style="padding:10px;border-radius:8px;background:#0f2235;border:1px solid #1f4c6d;">
-          <div style="color:#93c5fd;font-weight:700;margin-bottom:6px;">Lesson Rhythm (75-90 min)</div>
-          <ul style="margin:0;padding-left:18px;line-height:1.5;">${lessonRhythmHtml}</ul>
-        </div>
-      </div>
-
-      <div style="margin-top:10px;padding:10px;border-radius:8px;background:#0f2235;border:1px solid #1f4c6d;">
-        <div style="color:#93c5fd;font-weight:700;margin-bottom:6px;">Assessment and Outcomes</div>
-        <ul style="margin:0;padding-left:18px;line-height:1.5;">${assessmentModelHtml}</ul>
-      </div>
-    `;
+    teachingFramework.innerHTML = '';
+    teachingFramework.style.display = 'none';
   }
 
   function inferCourseFocus(courseTitle, fallbackTopic) {
@@ -1979,30 +1937,41 @@ document.addEventListener('DOMContentLoaded', function () {
   };
 
   function resetModuleAudioButtons() {
-    document.querySelectorAll('button[data-module-audio-play-btn]').forEach((button) => {
-      button.textContent = 'Play Audio';
-      button.style.opacity = '1';
+    document.querySelectorAll('button[data-module-lesson-btn]').forEach((button) => {
+      button.style.background = '#0f172a';
+      button.style.borderColor = '#2a3954';
+      button.style.color = '#d0d9e7';
     });
-    document.querySelectorAll('button[data-module-audio-pause-btn]').forEach((button) => {
-      button.textContent = 'Pause';
+    document.querySelectorAll('button[data-module-lesson-pause-btn]').forEach((button) => {
+      button.textContent = 'Pause Lesson';
       button.disabled = true;
       button.style.opacity = '0.65';
       button.style.cursor = 'default';
     });
   }
 
-  function setModuleAudioControls(idx, isPlaying) {
-    const playButton = document.querySelector(`button[data-module-audio-play-btn="${idx}"]`);
-    const pauseButton = document.querySelector(`button[data-module-audio-pause-btn="${idx}"]`);
-    if (playButton) {
-      playButton.textContent = isPlaying ? 'Stop Audio' : 'Play Audio';
-    }
+  function setModuleAudioControls(idx, partKey, isPlaying) {
+    document.querySelectorAll(`button[data-module-lesson-btn="${idx}"]`).forEach((button) => {
+      const buttonPartKey = button.getAttribute('data-module-lesson-part');
+      const isActive = isPlaying && buttonPartKey === partKey;
+      button.style.background = isActive ? '#0f766e' : '#0f172a';
+      button.style.borderColor = isActive ? '#14b8a6' : '#2a3954';
+      button.style.color = isActive ? '#ecfeff' : '#d0d9e7';
+    });
+    const pauseButton = document.querySelector(`button[data-module-lesson-pause-btn="${idx}"]`);
     if (pauseButton) {
       pauseButton.disabled = !isPlaying;
       pauseButton.style.opacity = isPlaying ? '1' : '0.65';
       pauseButton.style.cursor = isPlaying ? 'pointer' : 'default';
-      pauseButton.textContent = audioState.isPaused ? 'Resume' : 'Pause';
+      pauseButton.textContent = audioState.isPaused ? 'Resume Lesson' : 'Pause Lesson';
     }
+  }
+
+  function setLessonStage(idx, title, body) {
+    const titleEl = document.querySelector(`div[data-module-lesson-stage-title="${idx}"]`);
+    const bodyEl = document.querySelector(`div[data-module-lesson-stage-body="${idx}"]`);
+    if (titleEl) titleEl.textContent = title;
+    if (bodyEl) bodyEl.textContent = body;
   }
 
   function clearFollowAlongHighlights() {
@@ -2063,61 +2032,57 @@ document.addEventListener('DOMContentLoaded', function () {
       window.speechSynthesis.cancel();
     }
     audioState.activeModuleIndex = null;
+    audioState.activePartKey = '';
     audioState.utterance = null;
     audioState.isPaused = false;
     audioState.followAlongSegments = [];
     clearFollowAlongHighlights();
     if (Number.isInteger(previousModuleIndex)) {
-      setFollowAlongStatus(previousModuleIndex, 'Follow along: Audio stopped.');
+      setFollowAlongStatus(previousModuleIndex, 'Lesson player stopped.');
     }
     resetModuleAudioButtons();
   }
 
-  function playModuleAudio(idx, restart = false) {
-    if (!restart && audioState.activeModuleIndex === idx) {
+  function playModuleAudio(idx, partKey, restart = false) {
+    if (!restart && audioState.activeModuleIndex === idx && audioState.activePartKey === partKey) {
       stopModuleAudio();
       return;
     }
 
-    const narration = String(progressState.moduleNarration[idx] || '').trim();
-    if (!narration) return;
+    const moduleItem = asArray(progressState.allModules)[idx];
+    const lessonSection = getModuleLessonSections(moduleItem).find((section) => section.key === partKey);
+    const narration = String(lessonSection?.narration || '').trim();
+    if (!narration || !lessonSection) return;
 
     stopModuleAudio();
 
-    const playButton = document.querySelector(`button[data-module-audio-play-btn="${idx}"]`);
     const utterance = new SpeechSynthesisUtterance(narration);
     utterance.rate = audioState.rate;
     utterance.pitch = 1;
     utterance.voice = getSelectedVoice();
     utterance.onend = stopModuleAudio;
     utterance.onerror = stopModuleAudio;
-    utterance.onboundary = function onBoundary(event) {
-      const partKey = getFollowAlongPartForChar(audioState.followAlongSegments, event?.charIndex);
-      if (!partKey) return;
-      setFollowAlongHighlight(idx, partKey);
-    };
 
     audioState.activeModuleIndex = idx;
+    audioState.activePartKey = partKey;
     audioState.utterance = utterance;
     audioState.isPaused = false;
-    audioState.followAlongSegments = Array.isArray(progressState.moduleNarrationSegments?.[idx])
-      ? progressState.moduleNarrationSegments[idx]
-      : [];
+    audioState.followAlongSegments = [];
     clearFollowAlongHighlights();
-    if (playButton) playButton.textContent = 'Stop Audio';
-    setModuleAudioControls(idx, true);
-    setFollowAlongHighlight(idx, 'title');
-    setFollowAlongStatus(idx, 'Follow along: Playing...');
+    setModuleAudioControls(idx, partKey, true);
+    setLessonStage(idx, `${lessonSection.label} Lesson`, lessonSection.preview);
+    setFollowAlongHighlight(idx, partKey);
+    setFollowAlongStatus(idx, `Teaching ${lessonSection.label.toLowerCase()}...`);
     window.speechSynthesis.speak(utterance);
   }
 
-  function startModuleAudio(idx) {
+  function startModuleAudio(idx, partKey) {
     if (!window.speechSynthesis || typeof window.SpeechSynthesisUtterance !== 'function') {
-      alert('Audio playback is not supported in this browser.');
+      alert('Lesson playback is not supported in this browser.');
       return;
     }
 
-    playModuleAudio(idx, false);
+    playModuleAudio(idx, partKey, false);
   }
 
   function togglePauseModuleAudio(idx) {
@@ -2128,14 +2093,14 @@ document.addEventListener('DOMContentLoaded', function () {
     if (window.speechSynthesis.paused || audioState.isPaused) {
       window.speechSynthesis.resume();
       audioState.isPaused = false;
-      setFollowAlongStatus(idx, 'Follow along: Playing...');
+      setFollowAlongStatus(idx, 'Lesson player resumed.');
     } else {
       window.speechSynthesis.pause();
       audioState.isPaused = true;
-      setFollowAlongStatus(idx, 'Follow along: Paused.');
+      setFollowAlongStatus(idx, 'Lesson player paused.');
     }
 
-    setModuleAudioControls(idx, true);
+    setModuleAudioControls(idx, audioState.activePartKey, true);
   }
 
   function updateAudioRate(nextRate) {
@@ -2143,8 +2108,8 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!Number.isFinite(parsed) || parsed <= 0) return;
     audioState.rate = parsed;
 
-    if (audioState.activeModuleIndex !== null) {
-      playModuleAudio(audioState.activeModuleIndex, true);
+    if (audioState.activeModuleIndex !== null && audioState.activePartKey) {
+      playModuleAudio(audioState.activeModuleIndex, audioState.activePartKey, true);
     }
   }
 
@@ -2457,22 +2422,23 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
       }
 
-      const playButton = event.target.closest('button[data-module-audio-play-btn]');
-      if (playButton) {
-        const idx = Number(playButton.getAttribute('data-module-audio-play-btn'));
-        startModuleAudio(idx);
+      const lessonButton = event.target.closest('button[data-module-lesson-btn]');
+      if (lessonButton) {
+        const idx = Number(lessonButton.getAttribute('data-module-lesson-btn'));
+        const partKey = String(lessonButton.getAttribute('data-module-lesson-part') || 'lesson');
+        startModuleAudio(idx, partKey);
         return;
       }
 
-      const pauseButton = event.target.closest('button[data-module-audio-pause-btn]');
+      const pauseButton = event.target.closest('button[data-module-lesson-pause-btn]');
       if (pauseButton) {
-        const idx = Number(pauseButton.getAttribute('data-module-audio-pause-btn'));
+        const idx = Number(pauseButton.getAttribute('data-module-lesson-pause-btn'));
         togglePauseModuleAudio(idx);
       }
     });
 
     modules.addEventListener('change', function (event) {
-      const rateSelect = event.target.closest('select[data-module-audio-rate]');
+      const rateSelect = event.target.closest('select[data-module-lesson-rate]');
       if (!rateSelect) return;
       updateAudioRate(rateSelect.value);
     });
@@ -2485,8 +2451,8 @@ document.addEventListener('DOMContentLoaded', function () {
         } catch (error) {
           // Ignore storage failures in restricted browser contexts.
         }
-        if (audioState.activeModuleIndex !== null) {
-          playModuleAudio(audioState.activeModuleIndex, true);
+        if (audioState.activeModuleIndex !== null && audioState.activePartKey) {
+          playModuleAudio(audioState.activeModuleIndex, audioState.activePartKey, true);
         }
       });
     }
@@ -2751,6 +2717,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!modules) return;
 
     progressState.totalModules = list.length;
+    progressState.allModules = list;
     progressState.completedModules = new Set(loadStoredProgress(list.length));
     progressState.currentModuleIndex = Math.min(progressState.completedModules.size, Math.max(0, list.length - 1));
     progressState.answerKey = list.map((moduleItem) => Number(moduleItem?.correctOptionIndex));
@@ -2768,10 +2735,51 @@ document.addEventListener('DOMContentLoaded', function () {
     const narrationData = list.map((moduleItem, index) => buildModuleNarrationEntry(moduleItem, index));
     progressState.moduleNarration = narrationData.map((entry) => entry.narration);
     progressState.moduleNarrationSegments = narrationData.map((entry) => entry.segments);
-    progressState.allModules = list;
     updateProgressUi();
     renderProgressiveContent();
     updateProgressiveSections();
+  }
+
+  function getModuleLessonSections(moduleItem) {
+    const steps = asArray(moduleItem?.workedExampleSteps).map((step, index) => `Step ${index + 1}: ${String(step)}`);
+    return [
+      {
+        key: 'objective',
+        label: 'Objective',
+        preview: String(moduleItem?.objective || 'Understand what this module is designed to teach.'),
+        narration: `Objective. ${String(moduleItem?.objective || 'Understand what this module is designed to teach.')}`
+      },
+      {
+        key: 'lesson',
+        label: 'Lesson',
+        preview: String(moduleItem?.lesson || 'Core lesson content is not available.'),
+        narration: `Lesson. ${String(moduleItem?.lesson || 'Core lesson content is not available.')}`
+      },
+      {
+        key: 'workedExample',
+        label: 'Example',
+        preview: String(moduleItem?.workedExample || 'Worked example is not available.'),
+        narration: `Worked example. ${String(moduleItem?.workedExample || 'Worked example is not available.')} ${steps.join(' ')}`.trim()
+      },
+      {
+        key: 'commonMistake',
+        label: 'Mistake',
+        preview: String(moduleItem?.commonMistake || 'There is no common mistake listed for this module.'),
+        narration: `Common mistake to avoid. ${String(moduleItem?.commonMistake || 'There is no common mistake listed for this module.')}`
+      },
+      {
+        key: 'practiceTask',
+        label: 'Practice',
+        preview: String(moduleItem?.practiceTask || 'Practice task is not available.'),
+        narration: `Practice task. ${String(moduleItem?.practiceTask || 'Practice task is not available.')}`
+      },
+      {
+        key: 'progressCheck',
+        label: 'Checkpoint',
+        preview: String(moduleItem?.progressCheckQuestion || 'Checkpoint question is not available.'),
+        narration: `Checkpoint question. ${String(moduleItem?.progressCheckQuestion || 'Checkpoint question is not available.')}`
+      }
+    ];
   }
 
   function renderProgressiveContent() {
@@ -2851,30 +2859,41 @@ document.addEventListener('DOMContentLoaded', function () {
           </div>
           <p data-module-follow-idx="${index}" data-module-follow-part="objective"><strong style="color:#93c5fd;">Objective:</strong> ${objective}</p>
           <p data-module-follow-idx="${index}" data-module-follow-part="lesson"><strong style="color:#93c5fd;">Lesson:</strong> ${lesson}</p>
-          <div style="margin:8px 0 10px 0;padding:10px;border-radius:8px;background:#0f2235;border:1px solid #1f4c6d;color:#cbd5e1;line-height:1.55;font-size:0.9rem;">
-            <strong style="color:#93c5fd;">How to read this section:</strong>
-            You are not expected to know this already. The example below shows one way to apply the lesson in practice, then breaks it into simple steps.
-          </div>
           <div data-module-follow-idx="${index}" data-module-follow-part="workedExample">
             <p><strong style="color:#93c5fd;">Example (What this means in practice):</strong> ${workedExample}</p>
             ${workedExampleStepsHtml}
           </div>
           <p data-module-follow-idx="${index}" data-module-follow-part="commonMistake"><strong style="color:#fda4af;">Common Mistake:</strong> ${commonMistake}</p>
           <p data-module-follow-idx="${index}" data-module-follow-part="practiceTask"><strong style="color:#86efac;">Practice Task:</strong> ${practiceTask}</p>
-          <div style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 12px 0;">
-            <button type="button" data-module-audio-play-btn="${index}" style="background:#0f766e;border:1px solid #14b8a6;color:#ecfeff;border-radius:8px;padding:8px 12px;cursor:pointer;font-size:0.82rem;font-weight:700;">Play Audio</button>
-            <button type="button" data-module-audio-pause-btn="${index}" disabled style="background:#1e293b;border:1px solid #475569;color:#e2e8f0;border-radius:8px;padding:8px 12px;cursor:default;font-size:0.82rem;font-weight:700;opacity:0.65;">Pause</button>
-            <label style="display:inline-flex;align-items:center;gap:6px;color:#cbd5e1;font-size:0.8rem;">
-              Speed
-              <select data-module-audio-rate="${index}" style="background:#0b1220;border:1px solid #2a3954;color:#f1f5f9;border-radius:8px;padding:7px 10px;">
-                <option value="0.9">0.9x</option>
-                <option value="1" selected>1.0x</option>
-                <option value="1.15">1.15x</option>
-                <option value="1.3">1.3x</option>
-              </select>
-            </label>
+          <div style="margin:10px 0 12px;padding:12px;border-radius:10px;background:#0b1220;border:1px solid #273449;">
+            <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap;margin-bottom:10px;">
+              <div>
+                <div style="font-size:0.82rem;color:#7dd3fc;text-transform:uppercase;letter-spacing:0.04em;font-weight:700;margin-bottom:4px;">Module Lesson Player</div>
+                <div style="color:#cbd5e1;font-size:0.9rem;line-height:1.5;">Each section has its own guided lesson so the learner can watch one concept at a time.</div>
+              </div>
+              <label style="display:inline-flex;align-items:center;gap:6px;color:#cbd5e1;font-size:0.8rem;">
+                Speed
+                <select data-module-lesson-rate="${index}" style="background:#0f172a;border:1px solid #2a3954;color:#f1f5f9;border-radius:8px;padding:7px 10px;">
+                  <option value="0.9">0.9x</option>
+                  <option value="1" selected>1.0x</option>
+                  <option value="1.15">1.15x</option>
+                  <option value="1.3">1.3x</option>
+                </select>
+              </label>
+            </div>
+            <div data-module-lesson-stage="${index}" style="margin-bottom:10px;padding:14px;border-radius:10px;background:linear-gradient(135deg,#0f172a,#10263a);border:1px solid #1f4c6d;min-height:120px;">
+              <div style="font-size:0.78rem;color:#7dd3fc;text-transform:uppercase;letter-spacing:0.04em;font-weight:700;margin-bottom:6px;">Teaching Video</div>
+              <div data-module-lesson-stage-title="${index}" style="font-size:1rem;color:#e2e8f0;font-weight:700;margin-bottom:8px;">Choose a section to start.</div>
+              <div data-module-lesson-stage-body="${index}" style="font-size:0.92rem;color:#cbd5e1;line-height:1.6;">Pick Objective, Lesson, Example, Mistake, Practice, or Checkpoint to teach that section inside this module.</div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;">
+              ${getModuleLessonSections(moduleItem).map((section) => `<button type="button" data-module-lesson-btn="${index}" data-module-lesson-part="${section.key}" style="background:#0f172a;border:1px solid #2a3954;color:#d0d9e7;border-radius:8px;padding:10px 12px;cursor:pointer;font-size:0.82rem;font-weight:700;text-align:left;">${escapeHtml(section.label)}</button>`).join('')}
+            </div>
+            <div style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0 0 0;">
+              <button type="button" data-module-lesson-pause-btn="${index}" disabled style="background:#1e293b;border:1px solid #475569;color:#e2e8f0;border-radius:8px;padding:8px 12px;cursor:default;font-size:0.82rem;font-weight:700;opacity:0.65;">Pause Lesson</button>
+            </div>
           </div>
-          <div data-module-audio-follow-status="${index}" style="margin:-6px 0 10px;color:#7dd3fc;font-size:0.8rem;font-weight:700;">Follow along: Play audio to highlight each section.</div>
+          <div data-module-audio-follow-status="${index}" style="margin:-2px 0 10px;color:#7dd3fc;font-size:0.8rem;font-weight:700;">Lesson player ready: choose a section to begin.</div>
           <div data-module-follow-idx="${index}" data-module-follow-part="progressCheck" style="margin-top:12px;padding:10px;border-radius:8px;background:#0b1220;border:1px solid #273449;">
             <div style="font-size:0.82rem;color:#c4b5fd;font-weight:700;margin-bottom:6px;">End-of-Module Practice</div>
             <div style="color:#d0d9e7;font-size:calc(0.9rem + 2pt);line-height:1.55;margin-bottom:8px;">${progressCheckQuestion}</div>
@@ -3288,7 +3307,8 @@ document.addEventListener('DOMContentLoaded', function () {
     level.textContent = String(normalizedCourse?.difficulty || 'Intermediate');
     duration.textContent = String(normalizedCourse?.estimatedDuration || '10-14 weeks');
     demand.textContent = String(normalizedCourse?.marketDemand || 'High demand in current job market.');
-    overview.textContent = String(normalizedCourse?.overview || 'Overview not available.');
+    overview.textContent = '';
+    overview.style.display = 'none';
     renderCurriculumMetaPanel(getJamaicaCurriculumMeta(courseTitle, topic));
     renderTeachingFrameworkPanel(courseTitle, topic);
 
