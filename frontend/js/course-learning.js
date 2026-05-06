@@ -1112,6 +1112,179 @@ document.addEventListener('DOMContentLoaded', function () {
       interviewPrep: asArray(spec.interviewPrep)
     });
 
+    if (/ai|machine learning|ml|deep learning|data science|artificial intelligence/i.test(name)) {
+      return buildCourse({
+        courseTitle: 'AI + Machine Learning',
+        subtitle: 'Mathematics, Python tooling, core ML methods, deep learning, GenAI, RL, data prep, MLOps, and capstone delivery.',
+        difficulty: 'Advanced',
+        estimatedDuration: '18-24 weeks',
+        marketDemand: 'AI and machine learning skills are in demand across software, analytics, automation, product, and data teams.',
+        overview: 'This course follows a full AI + Machine Learning pathway: foundational math and theory, Python tooling, supervised and unsupervised techniques, evaluation metrics, deep learning, modern GenAI/LLM concepts, reinforcement learning, data preprocessing and feature engineering, MLOps deployment, and capstone execution.',
+        learningOutcomes: [
+          'Use linear algebra, calculus, and probability/statistics foundations to reason about model behavior.',
+          'Build ML workflows in Python with NumPy, Pandas, and Scikit-learn.',
+          'Train and evaluate supervised and unsupervised models with correct metrics and tradeoff analysis.',
+          'Explain and apply deep learning, transformer-era GenAI concepts, and reinforcement learning fundamentals.',
+          'Ship an end-to-end AI project from problem framing through deployment and monitoring.'
+        ],
+        resumeSignals: [
+          'AI/ML math foundation and model reasoning',
+          'Python ML stack: NumPy, Pandas, Scikit-learn, TensorFlow/PyTorch',
+          'Model evaluation: accuracy, precision, recall, F1, confusion matrix',
+          'MLOps delivery: model serving, monitoring, and iteration',
+          'Capstone portfolio project with measurable impact'
+        ],
+        modules: [
+          {
+            title: 'Foundational Theory and Mathematics for ML',
+            objective: 'Connect linear algebra, calculus, and probability/statistics to machine learning behavior.',
+            lesson: 'Cover vectors, matrices, eigen intuition, gradients, and distribution thinking. Tie each concept directly to optimization, representation, and uncertainty in ML models.',
+            workedExample: 'Gradient descent uses derivatives to update model weights toward lower loss.',
+            commonMistake: 'Treating math as theory-only instead of linking it to optimization and model performance.',
+            practiceTask: 'Explain how vectors, gradients, and probability each influence model training in one page.',
+            progressCheckQuestion: 'Which math area is most directly used to update model weights during training?',
+            progressCheckOptions: ['Calculus', 'Trigonometry only', 'Geometry drawing', 'Roman numerals'],
+            correctOptionIndex: 0,
+            progressCheckExplanation: 'Derivatives from calculus power gradient-based optimization.'
+          },
+          {
+            title: 'Python Programming and AI Tooling',
+            objective: 'Build fluency with the core software stack used in production ML workflows.',
+            lesson: 'Use Python with NumPy, Pandas, and Scikit-learn, then introduce TensorFlow/PyTorch. Work in notebook workflows and understand cloud training/deployment context.',
+            workedExample: 'Use Pandas to clean a dataset, then train a baseline model in Scikit-learn.',
+            commonMistake: 'Jumping to deep frameworks before mastering data handling and baseline models.',
+            practiceTask: 'Create a notebook that loads data, cleans nulls, and trains a baseline classifier.',
+            progressCheckQuestion: 'Which library is most associated with traditional ML workflows?',
+            progressCheckOptions: ['Scikit-learn', 'PowerPoint', 'Photoshop', 'Figma'],
+            correctOptionIndex: 0,
+            progressCheckExplanation: 'Scikit-learn is the standard toolkit for many supervised/unsupervised workflows.'
+          },
+          {
+            title: 'Supervised Learning',
+            objective: 'Use labeled data to solve regression and classification problems.',
+            lesson: 'Cover model selection and use cases for linear/logistic regression, decision trees, random forests, and SVMs with practical tradeoffs.',
+            workedExample: 'Train a classifier to predict customer churn from labeled account history.',
+            commonMistake: 'Choosing a model without considering explainability, data size, or error cost.',
+            practiceTask: 'Compare two supervised models on the same dataset and report tradeoffs.',
+            progressCheckQuestion: 'Which problem type is usually solved with labeled category outputs?',
+            progressCheckOptions: ['Classification', 'Clustering', 'Compression only', 'Sampling only'],
+            correctOptionIndex: 0,
+            progressCheckExplanation: 'Classification predicts categorical labels from labeled data.'
+          },
+          {
+            title: 'Unsupervised Learning',
+            objective: 'Find structure in unlabeled data.',
+            lesson: 'Teach clustering and dimensionality reduction with K-means and PCA. Focus on segmentation, pattern discovery, and exploratory analysis.',
+            workedExample: 'Use K-means to segment customers into behavioral groups.',
+            commonMistake: 'Expecting unsupervised methods to produce label-level certainty without interpretation.',
+            practiceTask: 'Run clustering on a feature set and interpret two discovered segments.',
+            progressCheckQuestion: 'Which technique is commonly used for dimensionality reduction?',
+            progressCheckOptions: ['PCA', 'Logistic regression', 'Naive Bayes only', 'Decision stump'],
+            correctOptionIndex: 0,
+            progressCheckExplanation: 'PCA reduces dimensions while preserving variance structure.'
+          },
+          {
+            title: 'Model Evaluation and Validation',
+            objective: 'Evaluate model quality with the right metrics and validation process.',
+            lesson: 'Use confusion matrix, precision, recall, F1, and accuracy with train/validation splits and error analysis.',
+            workedExample: 'A fraud model may prioritize recall to reduce missed fraud cases.',
+            commonMistake: 'Using accuracy alone for imbalanced classification problems.',
+            practiceTask: 'Report precision, recall, F1, and confusion matrix for one classifier.',
+            progressCheckQuestion: 'Which metric best balances precision and recall?',
+            progressCheckOptions: ['F1-score', 'Row count', 'Epoch number', 'Parameter count'],
+            correctOptionIndex: 0,
+            progressCheckExplanation: 'F1 summarizes balance between precision and recall.'
+          },
+          {
+            title: 'Deep Learning Fundamentals',
+            objective: 'Understand multi-layer neural network learning and practical use cases.',
+            lesson: 'Cover network structure, activations, backpropagation, and optimization with examples from vision and speech.',
+            workedExample: 'A CNN can learn hierarchical image features from edges to objects.',
+            commonMistake: 'Treating deep learning as automatic success without considering data quality and compute constraints.',
+            practiceTask: 'Train a simple neural network and compare against a non-deep baseline.',
+            progressCheckQuestion: 'Backpropagation is primarily used to:',
+            progressCheckOptions: ['Update weights using error gradients', 'Resize images', 'Collect labels manually', 'Encrypt datasets'],
+            correctOptionIndex: 0,
+            progressCheckExplanation: 'Backpropagation computes gradients used for parameter updates.'
+          },
+          {
+            title: 'Generative AI and LLMs',
+            objective: 'Understand transformer-era GenAI concepts and prompt-driven workflows.',
+            lesson: 'Introduce transformer fundamentals, LLM behavior, prompt design, and safety/quality considerations for practical deployment.',
+            workedExample: 'Prompt scaffolding can improve factual structure and output consistency.',
+            commonMistake: 'Assuming all generated output is accurate without validation.',
+            practiceTask: 'Design and test a prompt workflow for a role-specific assistant.',
+            progressCheckQuestion: 'Which architecture is central to modern large language models?',
+            progressCheckOptions: ['Transformer', 'Decision tree', 'Random forest', 'K-means'],
+            correctOptionIndex: 0,
+            progressCheckExplanation: 'Transformer architecture underpins most modern LLM systems.'
+          },
+          {
+            title: 'Reinforcement Learning',
+            objective: 'Explain reward-based sequential decision learning.',
+            lesson: 'Cover agents, environments, state-action-reward loops, exploration/exploitation, and policy learning intuition.',
+            workedExample: 'An agent improves game performance by maximizing reward over repeated episodes.',
+            commonMistake: 'Confusing reinforcement learning with supervised learning on static labels.',
+            practiceTask: 'Describe one RL use case and define state, action, and reward clearly.',
+            progressCheckQuestion: 'What primarily drives learning in reinforcement learning?',
+            progressCheckOptions: ['Reward signals from interactions', 'Only labeled rows', 'Only feature scaling', 'Only SQL queries'],
+            correctOptionIndex: 0,
+            progressCheckExplanation: 'RL updates behavior using reward feedback from environment interaction.'
+          },
+          {
+            title: 'Data Preprocessing and Feature Engineering',
+            objective: 'Convert raw data into model-ready features.',
+            lesson: 'Cover cleaning, encoding, scaling, feature selection, leakage prevention, and practical data quality discipline.',
+            workedExample: 'One-hot encoding and missing-value strategy can materially improve model robustness.',
+            commonMistake: 'Applying preprocessing before train/test split and leaking evaluation information.',
+            practiceTask: 'Build a preprocessing pipeline that handles missing values and categorical features.',
+            progressCheckQuestion: 'A key risk to avoid during preprocessing is:',
+            progressCheckOptions: ['Data leakage', 'Consistent naming', 'Versioning', 'Reproducibility'],
+            correctOptionIndex: 0,
+            progressCheckExplanation: 'Data leakage can inflate reported performance and fail in production.'
+          },
+          {
+            title: 'MLOps and Production Deployment',
+            objective: 'Deploy, monitor, and maintain ML systems in production.',
+            lesson: 'Teach model packaging, serving, drift monitoring, retraining triggers, and governance expectations.',
+            workedExample: 'A deployed model is monitored for accuracy drift and retrained when quality drops below threshold.',
+            commonMistake: 'Treating deployment as the end rather than part of a lifecycle.',
+            practiceTask: 'Write a simple monitoring plan with drift, latency, and quality thresholds.',
+            progressCheckQuestion: 'MLOps is primarily concerned with:',
+            progressCheckOptions: ['Operationalizing and maintaining ML models', 'Only writing prompts', 'Only collecting images', 'Only UI design'],
+            correctOptionIndex: 0,
+            progressCheckExplanation: 'MLOps focuses on reliable deployment, monitoring, and iteration.'
+          },
+          {
+            title: 'Capstone: End-to-End AI Application',
+            objective: 'Deliver a complete project from problem definition to deployment-ready handoff.',
+            lesson: 'Scope a use case, prepare data, train/evaluate models, justify decisions, and present deployment and monitoring strategy.',
+            workedExample: 'An end-to-end fraud detection prototype includes data prep, model comparison, metrics review, and deployment design.',
+            commonMistake: 'Building a model without clear business objective, metric target, or deployment plan.',
+            practiceTask: 'Build and present one complete AI project with a measurable success criterion.',
+            progressCheckQuestion: 'A complete capstone should include:',
+            progressCheckOptions: ['Problem framing, model workflow, evaluation, and deployment plan', 'Only model code', 'Only slide design', 'Only tool screenshots'],
+            correctOptionIndex: 0,
+            progressCheckExplanation: 'Capstone quality depends on full lifecycle execution and communication.'
+          }
+        ],
+        finalAssessment: [
+          { question: 'Which area most directly supports gradient-based optimization?', options: ['Calculus', 'Only geometry drawing', 'Typography', 'Browser caching'], correctOptionIndex: 0, explanation: 'Derivatives from calculus drive gradient updates.' },
+          { question: 'Which library is most associated with traditional ML pipelines?', options: ['Scikit-learn', 'After Effects', 'Canva', 'Notion'], correctOptionIndex: 0, explanation: 'Scikit-learn is a primary traditional ML toolkit.' },
+          { question: 'Which method is unsupervised?', options: ['K-means clustering', 'Logistic regression', 'Linear regression', 'XGBoost classification only'], correctOptionIndex: 0, explanation: 'K-means identifies patterns without labels.' },
+          { question: 'Which metric balances precision and recall?', options: ['F1-score', 'Epoch duration', 'Row count', 'RAM usage'], correctOptionIndex: 0, explanation: 'F1 balances precision and recall.' },
+          { question: 'Transformer architecture is most associated with:', options: ['Modern LLMs', 'Linear regression', 'PCA only', 'KNN only'], correctOptionIndex: 0, explanation: 'Transformers are central to modern LLM systems.' },
+          { question: 'What is a core MLOps concern?', options: ['Monitoring drift and maintaining model quality', 'Changing fonts', 'Renaming files only', 'Avoiding all logging'], correctOptionIndex: 0, explanation: 'MLOps ensures production reliability over time.' }
+        ],
+        interviewPrep: [
+          'Explain when to choose supervised vs unsupervised learning and why.',
+          'Walk through one project from data preprocessing to evaluation and deployment.',
+          'Discuss tradeoffs between deep learning performance and operational complexity.',
+          'Show how you monitor model drift and trigger retraining decisions.'
+        ]
+      });
+    }
+
     if (name === 'csec english a') {
       return buildCourse({
         courseTitle: 'CSEC English A',
