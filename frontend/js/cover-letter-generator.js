@@ -3,6 +3,7 @@
 document.addEventListener('DOMContentLoaded', function () {
   const savePdfBtn = document.getElementById('saveCoverPdfBtn');
   const saveWordBtn = document.getElementById('saveCoverWordBtn');
+  const sendEmailBtn = document.getElementById('sendCoverEmailBtn');
   const generateBtn = document.getElementById('generateCoverBtn');
   const clearFieldsBtn = document.getElementById('clearCoverFieldsBtn');
   const output = document.getElementById('coverLetterOutput');
@@ -375,6 +376,36 @@ document.addEventListener('DOMContentLoaded', function () {
       output.insertAdjacentHTML('afterbegin', '<div style="margin-bottom:10px;padding:10px 12px;border-radius:8px;font-size:0.95rem;background:#ecfdf5;color:#166534;border:1px solid #86efac;">Word document downloaded.</div>');
     };
   }
+
+  sendEmailBtn?.addEventListener('click', async function () {
+    if (!lastCover) {
+      output.innerHTML = '<div style="color:#dc2626;">No cover letter to send. Please generate first.</div>';
+      return;
+    }
+
+    const roleTitle = document.getElementById('coverJobTitle').value.trim();
+    const company = document.getElementById('coverCompany').value.trim();
+    const parsed = parseCoverLetter(lastCover);
+    const htmlContent = `<!DOCTYPE html><html><body style="font-family:Calibri, Arial, sans-serif;font-size:12pt;line-height:1.55;color:#1f2937;margin:0;padding:20px;">${renderCoverTemplate(parsed, lastCoverMeta, roleTitle, company)}</body></html>`;
+
+    sendEmailBtn.disabled = true;
+    sendEmailBtn.textContent = 'Sending...';
+    const result = await window.sendDocumentToAccountEmail({
+      feature: 'Cover Letter',
+      filename: 'tailored-cover-letter',
+      htmlContent,
+      textContent: lastCover
+    });
+    sendEmailBtn.disabled = false;
+    sendEmailBtn.textContent = 'Send to Email';
+
+    output.innerHTML = renderCoverTemplate(parsed, lastCoverMeta, roleTitle, company);
+    if (result.ok) {
+      output.insertAdjacentHTML('afterbegin', '<div style="margin-bottom:10px;padding:10px 12px;border-radius:8px;font-size:0.95rem;background:#ecfdf5;color:#166534;border:1px solid #86efac;">Sent to your account email.</div>');
+    } else {
+      output.insertAdjacentHTML('afterbegin', `<div style="margin-bottom:10px;padding:10px 12px;border-radius:8px;font-size:0.95rem;background:#fef2f2;color:#991b1b;border:1px solid #fecaca;">${escapeHtml(result.error || 'Could not send email.')}</div>`);
+    }
+  });
 
   clearFieldsBtn?.addEventListener('click', function () {
     const jobTitle = document.getElementById('coverJobTitle');

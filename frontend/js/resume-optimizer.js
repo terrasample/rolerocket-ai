@@ -3,6 +3,7 @@
 document.addEventListener('DOMContentLoaded', function () {
   const savePdfBtn = document.getElementById('saveResumePdfBtn');
   const saveWordBtn = document.getElementById('saveResumeWordBtn');
+  const sendEmailBtn = document.getElementById('sendResumeEmailBtn');
   const rewriteBtn = document.getElementById('rewriteResumeBtn');
   const clearFieldsBtn = document.getElementById('clearResumeOptimizerFieldsBtn');
   const output = document.getElementById('resumeOutput');
@@ -198,6 +199,32 @@ document.addEventListener('DOMContentLoaded', function () {
       a.click();
       document.body.removeChild(a);
       output.innerHTML = '<div style="color:#16a34a;">Word document downloaded.</div>';
+    };
+  }
+
+  if (sendEmailBtn) {
+    sendEmailBtn.onclick = async function () {
+      if (!lastResume) {
+        output.innerHTML = '<div style="color:#dc2626;">No resume to send. Please rewrite first.</div>';
+        return;
+      }
+
+      const content = formatResumeForWord(lastResume);
+      const htmlContent = `<!DOCTYPE html><html><body style="font-family:'Times New Roman', Times, serif;font-size:12pt;line-height:1.5;color:#000;white-space:pre-wrap;">${content.replace(/\n/g, '<br>')}</body></html>`;
+      sendEmailBtn.disabled = true;
+      sendEmailBtn.textContent = 'Sending...';
+      const result = await window.sendDocumentToAccountEmail({
+        feature: 'Resume Optimizer',
+        filename: 'optimized-resume',
+        htmlContent,
+        textContent: lastResume
+      });
+      sendEmailBtn.disabled = false;
+      sendEmailBtn.textContent = 'Send to Email';
+
+      output.innerHTML = result.ok
+        ? '<div style="color:#16a34a;">Sent to your account email.</div>'
+        : `<div style="color:#dc2626;">${result.error || 'Could not send email.'}</div>`;
     };
   }
 

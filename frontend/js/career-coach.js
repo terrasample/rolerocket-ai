@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const btn = document.getElementById('careerCoachBtn');
   const savePdfBtn = document.getElementById('saveCareerCoachPdfBtn');
   const saveWordBtn = document.getElementById('saveCareerCoachWordBtn');
+  const sendEmailBtn = document.getElementById('sendCareerCoachEmailBtn');
   const roleInput = document.getElementById('careerRole');
   const goalsInput = document.getElementById('careerGoals');
   const resultDiv = document.getElementById('careerCoachResult');
@@ -171,6 +172,32 @@ document.addEventListener('DOMContentLoaded', function () {
       a.click();
       document.body.removeChild(a);
       resultDiv.innerHTML += '<div style="color:#16a34a;">Word document downloaded.</div>';
+    };
+  }
+
+  if (sendEmailBtn) {
+    sendEmailBtn.onclick = async function () {
+      if (!lastPlan) {
+        resultDiv.innerHTML += '<div style="color:#dc2626;">No plan to send. Please generate first.</div>';
+        return;
+      }
+
+      const content = formatPlanForWord(lastPlan);
+      const htmlContent = `<!DOCTYPE html><html><body style="font-family:'Times New Roman', Times, serif;font-size:12pt;line-height:1.5;color:#000;white-space:pre-wrap;">${content.replace(/\n/g, '<br>')}</body></html>`;
+      sendEmailBtn.disabled = true;
+      sendEmailBtn.textContent = 'Sending...';
+      const result = await window.sendDocumentToAccountEmail({
+        feature: 'Career Coach Plan',
+        filename: 'career-coach-focus-plan',
+        htmlContent,
+        textContent: lastPlan
+      });
+      sendEmailBtn.disabled = false;
+      sendEmailBtn.textContent = 'Send to Email';
+
+      resultDiv.innerHTML += result.ok
+        ? '<div style="color:#16a34a;">Sent to your account email.</div>'
+        : `<div style="color:#dc2626;">${result.error || 'Could not send email.'}</div>`;
     };
   }
 });

@@ -767,6 +767,39 @@ document.getElementById('saveAtsResumeWordBtn')?.addEventListener('click', () =>
   setOptimizerStatus('Word document downloaded!');
 });
 
+document.getElementById('sendAtsResumeEmailBtn')?.addEventListener('click', async () => {
+  const resume = document.getElementById('atsResume').value.trim();
+  if (!resume) {
+    setOptimizerStatus('No resume content to send.', true);
+    return;
+  }
+
+  const btn = document.getElementById('sendAtsResumeEmailBtn');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Sending...';
+  }
+
+  const htmlContent = `<!DOCTYPE html><html><body style="font-family:'Times New Roman', Times, serif;font-size:12pt;line-height:1.5;color:#000;white-space:pre-wrap;">${resume.replace(/\n/g, '<br>')}</body></html>`;
+  const result = await window.sendDocumentToAccountEmail({
+    feature: 'ATS Optimized Resume',
+    filename: 'ats-optimized-resume',
+    htmlContent,
+    textContent: resume
+  });
+
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = 'Send to Email';
+  }
+
+  if (result.ok) {
+    setOptimizerStatus('Sent to your account email.');
+  } else {
+    setOptimizerStatus(result.error || 'Could not send email.', true);
+  }
+});
+
 document.getElementById('clearAtsFieldsBtn')?.addEventListener('click', () => {
   const jobDescriptionEl = document.getElementById('atsJobDescription');
   const resumeEl = document.getElementById('atsResume');

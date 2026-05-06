@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const clearFieldsBtn = document.getElementById('clearResumeFieldsBtnGen');
   const savePdfBtn = document.getElementById('saveResumePdfBtnGen');
   const saveWordBtn = document.getElementById('saveResumeWordBtnGen');
+  const sendEmailBtn = document.getElementById('sendResumeEmailBtnGen');
   const output = document.getElementById('resumeOutputGen');
   const previewModal = document.getElementById('previewModalGen');
   const closePreviewModalBtn = document.getElementById('closePreviewModalGen');
@@ -1968,6 +1969,38 @@ document.addEventListener('DOMContentLoaded', function () {
       statusBanner('Word document downloaded.', true);
     } catch (err) {
       renderError('Could not generate Word document.');
+    }
+  });
+
+  sendEmailBtn?.addEventListener('click', async function () {
+    try {
+      if (!lastStructuredResume || !lastRawResume) {
+        renderError('No resume to send. Please generate first.');
+        return;
+      }
+
+      sendEmailBtn.disabled = true;
+      sendEmailBtn.textContent = 'Sending...';
+      const htmlContent = `<!DOCTYPE html><html><body style="font-family:${lastStructuredResume.theme.font};margin:0;color:#111827;">${renderResumeTemplate(lastStructuredResume)}</body></html>`;
+      const result = await window.sendDocumentToAccountEmail({
+        feature: 'Resume',
+        filename: 'tailored-resume',
+        htmlContent,
+        textContent: lastRawResume
+      });
+      sendEmailBtn.disabled = false;
+      sendEmailBtn.textContent = 'Send to Email';
+
+      output.innerHTML = renderResumeTemplate(lastStructuredResume);
+      if (result.ok) {
+        statusBanner('Resume sent to your account email.', true);
+      } else {
+        renderError(result.error || 'Could not send resume email.');
+      }
+    } catch (err) {
+      sendEmailBtn.disabled = false;
+      sendEmailBtn.textContent = 'Send to Email';
+      renderError('Could not send resume email.');
     }
   });
 

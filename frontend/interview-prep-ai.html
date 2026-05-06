@@ -24,6 +24,7 @@
       <div class="tool-secondary-actions">
         <button id="saveInterviewPrepPdfBtn" class="auth-submit-btn tool-action-btn tool-action-btn--secondary" type="button">Save as PDF</button>
         <button id="saveInterviewPrepWordBtn" class="auth-submit-btn tool-action-btn tool-action-btn--secondary" type="button">Save as Word</button>
+        <button id="sendInterviewPrepEmailBtn" class="auth-submit-btn tool-action-btn tool-action-btn--secondary" type="button">Send to Email</button>
       </div>
     </div>
     <div id="interviewPrepResult" class="premium-result" style="margin-top:24px;min-height:120px;"></div>
@@ -494,6 +495,7 @@
   <script src="js/auth-storage.js"></script>
   <script src="js/idle-timeout.js"></script>
   <script src="js/dashboard.js"></script>
+  <script src="js/send-document-email.js"></script>
   <script>
     // --- Access Control: Interview Prep is a paid feature ---
     (async function() {
@@ -642,6 +644,32 @@
       a.click();
       document.body.removeChild(a);
       document.getElementById('interviewPrepResult').innerHTML += '<div style="color:#16a34a;">Word document downloaded.</div>';
+    };
+
+    document.getElementById('sendInterviewPrepEmailBtn').onclick = async function() {
+      if (!lastInterviewPrep) {
+        document.getElementById('interviewPrepResult').innerHTML = '<div style="color:#dc2626;">No interview prep to send. Please generate first.</div>';
+        return;
+      }
+
+      const btn = document.getElementById('sendInterviewPrepEmailBtn');
+      btn.disabled = true;
+      btn.textContent = 'Sending...';
+
+      const content = formatInterviewPrepForWord(lastInterviewPrep);
+      const htmlContent = `<!DOCTYPE html><html><body style="font-family:'Times New Roman', Times, serif;font-size:12pt;line-height:1.5;color:#000;white-space:pre-wrap;">${content.replace(/\n/g, '<br>')}</body></html>`;
+      const result = await window.sendDocumentToAccountEmail({
+        feature: 'Interview Prep',
+        filename: 'interview-prep',
+        htmlContent,
+        textContent: lastInterviewPrep
+      });
+
+      btn.disabled = false;
+      btn.textContent = 'Send to Email';
+      document.getElementById('interviewPrepResult').innerHTML += result.ok
+        ? '<div style="color:#16a34a;">Sent to your account email.</div>'
+        : `<div style="color:#dc2626;">${result.error || 'Could not send email.'}</div>`;
     };
 
     (function initCommunicationSprint() {

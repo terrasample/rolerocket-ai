@@ -847,7 +847,7 @@ function withTimeout(promise, ms, label = 'operation') {
   ]);
 }
 
-async function sendEmail({ to, subject, html }) {
+async function sendEmail({ to, subject, html, text, attachments }) {
   const transporter = getMailTransporter();
   if (!transporter) {
     console.warn('Email not configured: set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS in env.');
@@ -858,7 +858,9 @@ async function sendEmail({ to, subject, html }) {
     from: `"RoleRocket AI" <${fromAddress}>`,
     to,
     subject,
-    html
+    html,
+    text,
+    attachments: Array.isArray(attachments) && attachments.length ? attachments : undefined
   }), 8000, 'sendMail');
 }
 
@@ -5572,6 +5574,82 @@ app.post('/api/generate-cover-letter', authenticateToken, async (req, res) => {
   } catch (err) {
     console.error('Cover letter generation error:', err);
     return res.status(500).json({ error: 'Cover letter generation failed' });
+  }
+});
+
+app.post('/api/documents/email', authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId).select('email name').lean();
+    if (!user || !user.email) {
+      return res.status(404).json({ error: 'User email not found.' });
+    }
+
+    const recipientEmail = String(user.email || '').trim();
+    if (!/^\S+@\S+\.\S+$/.test(recipientEmail)) {
+      return res.status(400).json({ error: 'Your account email is invalid.' });
+    }
+
+    const featureRaw = String(req.body?.feature || 'Document').trim();
+    const filenameRaw = String(req.body?.filename || 'rolerocket-document').trim();
+    const htmlContent = String(req.body?.htmlContent || '').trim();
+    const textContent = String(req.body?.textContent || '').trim();
+
+    if (!htmlContent && !textContent) {
+      return res.status(400).json({ error: 'Document content is required.' });
+    }
+
+    const MAX_CONTENT_SIZE = 300000;
+    if (htmlContent.length > MAX_CONTENT_SIZE || textContent.length > MAX_CONTENT_SIZE) {
+      return res.status(413).json({ error: 'Document is too large to email.' });
+    }
+
+    const safeFeature = featureRaw.replace(/[^a-zA-Z0-9\s-]/g, '').slice(0, 80) || 'Document';
+    const safeFileBase = (filenameRaw || 'rolerocket-document')
+      .toLowerCase()
+      .replace(/[^a-z0-9._-]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 80) || 'rolerocket-document';
+
+    const attachments = [];
+    if (htmlContent) {
+      attachments.push({
+        filename: `${safeFileBase}.html`,
+        content: htmlContent,
+        contentType: 'text/html; charset=utf-8'
+      });
+    }
+    if (textContent) {
+      attachments.push({
+        filename: `${safeFileBase}.txt`,
+        content: textContent,
+        contentType: 'text/plain; charset=utf-8'
+      });
+    }
+
+    const firstName = String(user.name || '').trim().split(/\s+/)[0] || 'there';
+    const subject = `${safeFeature} from RoleRocket AI`;
+
+    await sendEmail({
+      to: recipientEmail,
+      subject,
+      html: `
+        <div style="font-family:Segoe UI,Arial,sans-serif;color:#0f172a;line-height:1.6;max-width:640px;">
+          <h2 style="margin:0 0 10px;">Your ${safeFeature}</h2>
+          <p style="margin:0 0 12px;">Hi ${firstName}, your document is attached.</p>
+          <p style="margin:0;color:#475569;font-size:13px;">Sent from RoleRocket AI.</p>
+        </div>
+      `,
+      text: `Hi ${firstName}, your ${safeFeature} is attached. Sent from RoleRocket AI.`,
+      attachments
+    });
+
+    return res.json({
+      success: true,
+      message: 'Document sent to your account email.'
+    });
+  } catch (err) {
+    console.error('Document email send error:', err);
+    return res.status(500).json({ error: 'Failed to send document email.' });
   }
 });
 
