@@ -1155,28 +1155,112 @@ document.addEventListener('DOMContentLoaded', function () {
         ],
         modules: [
           {
-            title: 'Foundational Theory and Mathematics for ML',
-            objective: 'Connect linear algebra, calculus, and probability/statistics to machine learning behavior.',
-            lesson: 'Cover vectors, matrices, eigen intuition, gradients, and distribution thinking. Tie each concept directly to optimization, representation, and uncertainty in ML models.',
-            workedExample: 'Gradient descent uses derivatives to update model weights toward lower loss.',
-            commonMistake: 'Treating math as theory-only instead of linking it to optimization and model performance.',
-            practiceTask: 'Explain how vectors, gradients, and probability each influence model training in one page.',
-            progressCheckQuestion: 'Which math area is most directly used to update model weights during training?',
-            progressCheckOptions: ['Calculus', 'Trigonometry only', 'Geometry drawing', 'Roman numerals'],
+            title: 'Foundations I: Linear Algebra for Machine Learning',
+            objective: 'Use vectors, matrices, and eigen concepts to understand feature representation and transformations.',
+            lesson: 'Teach vectors as feature containers, matrices as data/model operators, and eigen intuition for directional structure and dimensionality thinking. Connect these to embeddings, linear layers, and projection operations used in modern ML workflows.',
+            workedExample: 'Represent a dataset as a matrix X, apply a weight matrix W, and produce transformed features XW before prediction.',
+            workedExampleSteps: [
+              'Step 1: Organize 3 features for 100 records into matrix X (100x3).',
+              'Step 2: Define weight matrix W to map 3 input features into 2 latent features.',
+              'Step 3: Compute XW to get transformed representation (100x2).',
+              'Step 4: Interpret transformed axes as compressed signal useful for prediction.'
+            ],
+            commonMistake: 'Memorizing definitions without connecting matrix operations to model behavior.',
+            practiceTask: 'Create a short worksheet explaining vectors, matrix multiplication, and why dimensions must align.',
+            progressCheckQuestion: 'Why is matrix multiplication central in ML models?',
+            progressCheckOptions: ['It transforms feature representations for prediction layers', 'It only formats charts', 'It replaces data cleaning', 'It removes the need for labels'],
             correctOptionIndex: 0,
-            progressCheckExplanation: 'Derivatives from calculus power gradient-based optimization.'
+            progressCheckExplanation: 'Matrix operations are core to transforming inputs through model layers.'
           },
           {
-            title: 'Python Programming and AI Tooling',
-            objective: 'Build fluency with the core software stack used in production ML workflows.',
-            lesson: 'Use Python with NumPy, Pandas, and Scikit-learn, then introduce TensorFlow/PyTorch. Work in notebook workflows and understand cloud training/deployment context.',
-            workedExample: 'Use Pandas to clean a dataset, then train a baseline model in Scikit-learn.',
-            commonMistake: 'Jumping to deep frameworks before mastering data handling and baseline models.',
-            practiceTask: 'Create a notebook that loads data, cleans nulls, and trains a baseline classifier.',
-            progressCheckQuestion: 'Which library is most associated with traditional ML workflows?',
-            progressCheckOptions: ['Scikit-learn', 'PowerPoint', 'Photoshop', 'Figma'],
+            title: 'Foundations II: Calculus, Gradients, and Backpropagation',
+            objective: 'Understand how gradients drive optimization in model training.',
+            lesson: 'Cover derivatives, loss surfaces, chain rule intuition, and backpropagation mechanics. Tie calculus directly to parameter updates, learning rate effects, convergence behavior, and training stability.',
+            workedExample: 'Model loss decreases when gradient updates move weights in the negative gradient direction.',
+            workedExampleSteps: [
+              'Step 1: Compute prediction error using a loss function.',
+              'Step 2: Differentiate loss with respect to model parameters.',
+              'Step 3: Apply update rule: w_new = w_old - learning_rate * gradient.',
+              'Step 4: Recompute loss and repeat until improvement stabilizes.'
+            ],
+            commonMistake: 'Thinking backprop is separate from calculus instead of an application of chain rule.',
+            practiceTask: 'Write a plain-language explanation of backpropagation and gradient descent for a beginner.',
+            progressCheckQuestion: 'What is the main purpose of backpropagation?',
+            progressCheckOptions: ['Compute gradients to update parameters', 'Collect labels manually', 'Create visual dashboards', 'Sort CSV columns alphabetically'],
             correctOptionIndex: 0,
-            progressCheckExplanation: 'Scikit-learn is the standard toolkit for many supervised/unsupervised workflows.'
+            progressCheckExplanation: 'Backpropagation computes gradients needed for learning updates.'
+          },
+          {
+            title: 'Foundations III: Probability and Statistics for ML',
+            objective: 'Use statistical reasoning to interpret uncertainty, distributions, and model reliability.',
+            lesson: 'Cover probability basics, distributions, expectation, variance, sampling, bias/variance thinking, and confidence interpretation. Connect statistics to train/validation decisions and model trustworthiness.',
+            workedExample: 'A model with strong training accuracy but weak validation performance indicates overfitting risk.',
+            workedExampleSteps: [
+              'Step 1: Split data into train and validation sets.',
+              'Step 2: Measure performance on both sets.',
+              'Step 3: Compare gaps to identify underfit vs overfit patterns.',
+              'Step 4: Adjust regularization/features and re-evaluate.'
+            ],
+            commonMistake: 'Reporting one metric without uncertainty or validation context.',
+            practiceTask: 'Interpret a confusion matrix and explain one reliability risk in the model.',
+            progressCheckQuestion: 'Why is a validation set important?',
+            progressCheckOptions: ['It estimates generalization beyond training data', 'It replaces all testing', 'It removes class imbalance', 'It guarantees fairness automatically'],
+            correctOptionIndex: 0,
+            progressCheckExplanation: 'Validation helps estimate real-world generalization quality.'
+          },
+          {
+            title: 'Foundations IV: Core AI Concepts and Historical Context',
+            objective: 'Distinguish AI, machine learning, deep learning, and neural architectures in context.',
+            lesson: 'Define AI scope, explain ML as data-driven learning, position deep learning as neural-network-based representation learning, and summarize key historical milestones from symbolic AI to transformer-era systems.',
+            workedExample: 'AI includes planning/rules systems, while ML learns patterns from data; deep learning uses multi-layer neural networks for complex representation.',
+            workedExampleSteps: [
+              'Step 1: Define AI as the broad umbrella of intelligent system methods.',
+              'Step 2: Define ML as learning mappings from data.',
+              'Step 3: Define deep learning as neural-network-based feature learning at scale.',
+              'Step 4: Place modern LLM/vision progress in historical architecture evolution.'
+            ],
+            commonMistake: 'Using AI, ML, and deep learning as interchangeable terms.',
+            practiceTask: 'Create a one-page comparison table: AI vs ML vs deep learning with one use case each.',
+            progressCheckQuestion: 'Which statement is most accurate?',
+            progressCheckOptions: ['Deep learning is a subset of machine learning', 'Machine learning is a subset of deep learning', 'AI and ML are unrelated', 'Neural networks are only symbolic rules'],
+            correctOptionIndex: 0,
+            progressCheckExplanation: 'Deep learning is a subset of ML, and ML is within AI.'
+          },
+          {
+            title: 'Programming I: Python and Notebook Workflow',
+            objective: 'Build practical Python fluency for data and ML experimentation.',
+            lesson: 'Teach core Python structures used in ML (functions, loops, list/dict patterns), notebook-first experimentation in Jupyter, reproducible code cells, and experiment narration standards.',
+            workedExample: 'A notebook workflow loads data, performs exploratory checks, and documents decisions alongside code.',
+            workedExampleSteps: [
+              'Step 1: Create a notebook with clear section headers.',
+              'Step 2: Load data and inspect schema and missing values.',
+              'Step 3: Add simple plots and summary statistics for initial signals.',
+              'Step 4: Document assumptions before model training begins.'
+            ],
+            commonMistake: 'Writing code without documenting assumptions and experiment decisions.',
+            practiceTask: 'Produce a notebook that includes data load, quality checks, and a short findings summary.',
+            progressCheckQuestion: 'Why are notebooks commonly used in ML workflows?',
+            progressCheckOptions: ['They combine code, outputs, and explanation in one place', 'They replace all production systems', 'They remove the need for testing', 'They only work for image data'],
+            correctOptionIndex: 0,
+            progressCheckExplanation: 'Notebook workflows support iterative experimentation and explanation.'
+          },
+          {
+            title: 'Programming II: Libraries and Cloud Tooling',
+            objective: 'Use NumPy, Pandas, Scikit-learn, TensorFlow/PyTorch, and cloud platforms in the right sequence.',
+            lesson: 'Map each tool to its role: NumPy for numerical arrays, Pandas for data manipulation, Scikit-learn for traditional ML, TensorFlow/PyTorch for deep learning, and Vertex AI/Azure for scalable training and deployment operations.',
+            workedExample: 'Clean data with Pandas, train baseline model with Scikit-learn, then prototype a neural model in PyTorch or TensorFlow, and prepare cloud deployment plan.',
+            workedExampleSteps: [
+              'Step 1: Use Pandas for missing values, typing, and feature preparation.',
+              'Step 2: Build baseline model in Scikit-learn for quick benchmark.',
+              'Step 3: Move to TensorFlow/PyTorch when deep architectures are justified.',
+              'Step 4: Package and plan serving/monitoring using Vertex AI or Azure workflows.'
+            ],
+            commonMistake: 'Starting with deep frameworks before establishing a baseline and data quality discipline.',
+            practiceTask: 'Create a tool-selection map that explains when to use each library/platform in one project lifecycle.',
+            progressCheckQuestion: 'Which library is most associated with traditional ML workflows?',
+            progressCheckOptions: ['Scikit-learn', 'Figma', 'Photoshop', 'PowerPoint'],
+            correctOptionIndex: 0,
+            progressCheckExplanation: 'Scikit-learn is the standard toolkit for many classical ML workflows.'
           },
           {
             title: 'Supervised Learning',
