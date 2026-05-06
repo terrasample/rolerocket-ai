@@ -669,6 +669,16 @@ document.addEventListener('DOMContentLoaded', function () {
     return /\b\d{1,2}\/\d{3,4}\b/.test(text) || /\b(present|current|in progress)\b/i.test(text);
   }
 
+  function isLikelyContactLocationLine(value) {
+    const line = normalizeBulletText(value);
+    if (!line) return false;
+    if (!/,\s*[A-Z]{2}\b/.test(line)) return false;
+    if (hasDateRangeToken(line)) return false;
+    if (isLikelyExperienceHeaderLine(line)) return false;
+    if (/https?:\/\/|www\.|linkedin\.com|@/i.test(line)) return false;
+    return true;
+  }
+
   function isLikelyExperienceHeaderLine(value) {
     const line = normalizeBulletText(value);
     if (!line) return false;
@@ -789,7 +799,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const fullName = findNameInLines(lines);
 
-    const cityStateLine = lines.find((line) => /,\s*[A-Z]{2}\b/.test(line)) || '';
+    const cityStateLine = lines.slice(0, 14).find((line) => isLikelyContactLocationLine(line)) || '';
     return {
       fullName,
       email,
