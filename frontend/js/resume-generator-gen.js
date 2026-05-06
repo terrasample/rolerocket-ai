@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const layoutSelect = document.getElementById('resumeLayoutSelectGen');
   const layoutHelp = document.getElementById('resumeLayoutHelpGen');
   const refreshLayoutBtn = document.getElementById('resumeRefreshLayoutBtnGen');
+  const linkedinAdoptPanel = document.getElementById('resumeLinkedinAdoptPanelGen');
 
   const THEMES = [
     {
@@ -286,7 +287,98 @@ document.addEventListener('DOMContentLoaded', function () {
       if (!el) return;
       el.addEventListener('input', saveDraftState);
       el.addEventListener('change', saveDraftState);
+      el.addEventListener('input', renderLinkedinAdoptionInsights);
+      el.addEventListener('change', renderLinkedinAdoptionInsights);
     });
+  }
+
+  function renderLinkedinAdoptionInsights() {
+    if (!linkedinAdoptPanel) return;
+
+    const jobTitle = String(document.getElementById('resumeJobTitleGen')?.value || '').trim();
+    const company = String(document.getElementById('resumeCompanyGen')?.value || '').trim();
+    const baseResume = String(document.getElementById('resumeBaseGen')?.value || '').trim();
+    const fullJobDescription = String(document.getElementById('resumeJobDescriptionGen')?.value || '').trim();
+
+    const fallbackContact = extractContactInfo(baseResume);
+    const parsed = baseResume
+      ? parseResume(baseResume, fallbackContact, baseResume)
+      : {
+          fullName: '',
+          contactLines: [],
+          profile: '',
+          experiences: [],
+          education: [],
+          skills: []
+        };
+
+    const hasRealName = Boolean(cleanCandidateName(parsed.fullName));
+    const hasEmail = Boolean(fallbackContact.email);
+    const hasPhone = Boolean(fallbackContact.phone);
+    const hasLocation = Boolean(fallbackContact.location);
+    const hasProfile = Boolean(normalizeBulletText(parsed.profile))
+      && normalizeBulletText(parsed.profile).toLowerCase() !== 'results-driven professional with relevant experience and a strong record of delivering measurable outcomes.';
+    const hasExperience = Array.isArray(parsed.experiences)
+      && parsed.experiences.some((entry) => normalizeBulletText(entry?.title) && normalizeBulletText(entry.title).toLowerCase() !== 'professional experience');
+    const hasEducation = Array.isArray(parsed.education)
+      && parsed.education.some((entry) => !/available upon request/i.test(String(entry || '')));
+    const hasSkills = Array.isArray(parsed.skills) && parsed.skills.length >= 5;
+
+    const checks = [
+      { ok: hasRealName, label: 'Add your full name' },
+      { ok: hasEmail, label: 'Add a professional email' },
+      { ok: hasPhone, label: 'Add a phone number' },
+      { ok: hasLocation, label: 'Add city and state' },
+      { ok: hasProfile, label: 'Write a strong profile summary' },
+      { ok: hasExperience, label: 'Include at least one role in experience' },
+      { ok: hasEducation, label: 'Add education details' },
+      { ok: hasSkills, label: 'Add at least 5 role-relevant skills' }
+    ];
+
+    const completed = checks.filter((item) => item.ok).length;
+    const score = Math.round((completed / checks.length) * 100);
+    const missing = checks.filter((item) => !item.ok).slice(0, 3);
+
+    const targetSkills = extractSkillsFromJobDescription(fullJobDescription);
+    const matchedSkills = extractMatchedSkillsFromSource(fullJobDescription, baseResume);
+    const fitPercent = targetSkills.length
+      ? Math.min(100, Math.round((matchedSkills.length / targetSkills.length) * 100))
+      : 0;
+    const fitLabel = targetSkills.length === 0
+      ? 'Add a full job description for fit scoring'
+      : fitPercent >= 70
+        ? 'Strong fit'
+        : fitPercent >= 45
+          ? 'Medium fit'
+          : 'Low fit';
+
+    const nextActionMarkup = missing.length
+      ? `<ul style="margin:8px 0 0 18px;padding:0;color:#334155;line-height:1.55;">${missing.map((item) => `<li>${escapeHtml(item.label)}</li>`).join('')}</ul>`
+      : '<div style="margin-top:8px;color:#166534;font-weight:700;">Profile looks complete. Next: tailor achievements to this role and apply.</div>';
+
+    const matchedList = matchedSkills.slice(0, 4).map((item) => escapeHtml(item)).join(', ') || 'No matched skills yet';
+
+    linkedinAdoptPanel.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;">
+        <div style="padding:10px;border-radius:8px;background:#eff6ff;border:1px solid #bfdbfe;">
+          <div style="font-size:0.78rem;color:#1d4ed8;font-weight:800;letter-spacing:0.05em;text-transform:uppercase;">Profile Completeness</div>
+          <div style="margin-top:4px;font-size:1.35rem;font-weight:800;color:#0f172a;">${score}%</div>
+          <div style="margin-top:8px;height:8px;border-radius:999px;background:#dbeafe;overflow:hidden;"><div style="height:100%;width:${score}%;background:#2563eb;"></div></div>
+          ${nextActionMarkup}
+        </div>
+        <div style="padding:10px;border-radius:8px;background:#f0fdf4;border:1px solid #bbf7d0;">
+          <div style="font-size:0.78rem;color:#15803d;font-weight:800;letter-spacing:0.05em;text-transform:uppercase;">Job Fit Snapshot</div>
+          <div style="margin-top:4px;font-size:1.35rem;font-weight:800;color:#0f172a;">${targetSkills.length ? `${fitPercent}%` : 'N/A'}</div>
+          <div style="margin-top:4px;color:#166534;font-weight:700;">${escapeHtml(fitLabel)}</div>
+          <div style="margin-top:8px;color:#334155;line-height:1.55;">${targetSkills.length ? `Matched ${matchedSkills.length} of ${targetSkills.length} target skills.` : 'Paste a full job description to compare your resume against role signals.'}</div>
+          <div style="margin-top:6px;color:#334155;line-height:1.55;"><strong>Top matched:</strong> ${matchedList}</div>
+        </div>
+        <div style="padding:10px;border-radius:8px;background:#fff7ed;border:1px solid #fed7aa;">
+          <div style="font-size:0.78rem;color:#c2410c;font-weight:800;letter-spacing:0.05em;text-transform:uppercase;">Next Best Action</div>
+          <div style="margin-top:8px;color:#7c2d12;line-height:1.55;">${escapeHtml(jobTitle ? `Tailor your resume bullets for ${jobTitle}${company ? ` at ${company}` : ''}, then generate and save a role-specific version.` : 'Add a target job title, then generate a role-specific resume draft.')}</div>
+        </div>
+      </div>
+    `;
   }
 
   function escapeHtml(value) {
@@ -1401,6 +1493,7 @@ document.addEventListener('DOMContentLoaded', function () {
     lastStructuredResume = null;
     output.innerHTML = '';
     clearDraftState();
+    renderLinkedinAdoptionInsights();
   }
 
   function renderPhotoPreview() {
@@ -1771,6 +1864,7 @@ document.addEventListener('DOMContentLoaded', function () {
           : parsed;
       lastStructuredResume = buildResumeModel(structured, jobTitle);
       output.innerHTML = renderResumeTemplate(lastStructuredResume);
+      renderLinkedinAdoptionInsights();
       statusBanner('Resume generated. You can switch layouts, adjust the photo, or download it as Word or PDF.', true);
 
       if (window.RoleRocketQuickstart) {
@@ -1885,6 +1979,7 @@ document.addEventListener('DOMContentLoaded', function () {
   renderPhotoPreview();
   restoreDraftState();
   attachDraftPersistence();
+  renderLinkedinAdoptionInsights();
 
   templateStateReadyPromise?.then(() => {
     if (learningRoadmapAppliedFromSession) {
