@@ -25,12 +25,11 @@ document.addEventListener('DOMContentLoaded', function () {
     let raw = String(line || '').trim();
     if (!raw) return '';
 
-    // Keep the likely name segment before credentials like ", PMP".
-    raw = raw.split(',')[0].trim();
-    if (!raw) return '';
+    const leadingName = raw.split(',')[0].trim();
+    if (!leadingName) return '';
 
     // Remove non-letter separators while allowing spaces, apostrophes, dots, and hyphens.
-    raw = raw.replace(/[^A-Za-z\s'.-]/g, ' ').replace(/\s+/g, ' ').trim();
+    raw = leadingName.replace(/[^A-Za-z\s'.-]/g, ' ').replace(/\s+/g, ' ').trim();
     if (!raw) return '';
 
     const words = raw.split(' ').filter(Boolean);
@@ -59,10 +58,33 @@ document.addEventListener('DOMContentLoaded', function () {
       .join(' ');
   }
 
+  function extractCredentialSuffix(line) {
+    const raw = String(line || '').trim();
+    if (!raw || raw.indexOf(',') === -1) return '';
+
+    const trailing = raw
+      .split(',')
+      .slice(1)
+      .map((part) => String(part || '').trim())
+      .filter(Boolean);
+
+    if (!trailing.length || trailing.length > 8) return '';
+
+    const cleaned = trailing
+      .map((part) => part.replace(/\s+/g, ' ').trim())
+      .filter((part) => /^[A-Za-z0-9.'\-\/() ]{2,18}$/.test(part));
+
+    if (!cleaned.length) return '';
+
+    return cleaned.join(', ');
+  }
+
   function findBestNameLine(lines) {
     for (const line of lines.slice(0, 12)) {
       const candidate = cleanNameCandidate(line);
-      if (candidate) return candidate;
+      if (!candidate) continue;
+      const credentialSuffix = extractCredentialSuffix(line);
+      return credentialSuffix ? `${candidate}, ${credentialSuffix}` : candidate;
     }
     return '';
   }
