@@ -186,8 +186,12 @@ document.addEventListener('DOMContentLoaded', function () {
     const paragraphHtml = letter.paragraphs.map((p) => `<p style="margin:0 0 12px 0;line-height:1.6;color:#1f2937;font-size:12pt;">${escapeHtml(p)}</p>`).join('');
 
     return `
-      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:24px;box-shadow:0 8px 28px rgba(15,23,42,0.08);">
+      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:24px;box-shadow:0 8px 28px rgba(15,23,42,0.08);zoom:100%;">
         <div style="max-width:760px;margin:0 auto;font-family:Calibri, Arial, sans-serif;color:#0f172a;">
+                    <div style="text-align:center;margin-bottom:16px;">
+                      <div style="font-size:18pt;font-weight:700;color:#0f172a;">Cover Letter</div>
+                    </div>
+
           <div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start;border-bottom:3px solid #8ec7da;padding-bottom:10px;margin-bottom:14px;">
             <div>
               <div style="font-size:28px;font-weight:800;color:#0e6e98;line-height:1.05;">${escapeHtml(contact.name || 'Candidate')}</div>
@@ -386,7 +390,7 @@ document.addEventListener('DOMContentLoaded', function () {
       const company = document.getElementById('coverCompany').value.trim();
       const parsed = parseCoverLetter(lastCover);
       const today = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
-      const html = `<!DOCTYPE html><html><body style="font-family:Calibri, Arial, sans-serif;font-size:12pt;line-height:1.55;color:#1f2937;margin:0;"><div style="max-width:780px;margin:0 auto;padding:20px 24px;"><div style="border-bottom:3px solid #8ec7da;padding-bottom:10px;margin-bottom:12px;"><div style="font-size:22pt;font-weight:800;color:#0e6e98;">${escapeHtml(lastCoverMeta.name || 'Candidate')}</div><div style="font-size:12pt;color:#64748b;">${escapeHtml([lastCoverMeta.phone, lastCoverMeta.email].filter(Boolean).join('  |  '))}</div><div style="font-size:12pt;color:#64748b;margin-top:6px;">${escapeHtml(today)}</div></div><div style="font-size:12pt;color:#334155;margin-bottom:10px;"><strong>Role:</strong> ${escapeHtml(roleTitle || 'Target Role')}<br><strong>Company:</strong> ${escapeHtml(company || 'Target Company')}</div><p style="margin:0 0 10px 0;font-weight:700;">${escapeHtml(parsed.greeting)}</p>${parsed.paragraphs.map((p) => `<p style="margin:0 0 12px 0;">${escapeHtml(p)}</p>`).join('')}<p style="margin:12px 0 0 0;">${escapeHtml(parsed.closing)}<br><strong>${escapeHtml(parsed.signature || lastCoverMeta.name || '')}</strong></p></div></body></html>`;
+        const html = `<!DOCTYPE html><html><body style="font-family:Calibri, Arial, sans-serif;font-size:12pt;line-height:1.55;color:#1f2937;margin:0;"><div style="max-width:780px;margin:0 auto;padding:20px 24px;"><div style="text-align:center;margin-bottom:16px;"><div style="font-size:18pt;font-weight:700;color:#0f172a;">Cover Letter</div></div><div style="border-bottom:3px solid #8ec7da;padding-bottom:10px;margin-bottom:12px;"><div style="font-size:22pt;font-weight:800;color:#0e6e98;">${escapeHtml(lastCoverMeta.name || 'Candidate')}</div><div style="font-size:12pt;color:#64748b;">${escapeHtml([lastCoverMeta.phone, lastCoverMeta.email].filter(Boolean).join('  |  '))}</div><div style="font-size:12pt;color:#64748b;margin-top:6px;">${escapeHtml(today)}</div></div><div style="font-size:12pt;color:#334155;margin-bottom:10px;"><strong>Role:</strong> ${escapeHtml(roleTitle || 'Target Role')}<br><strong>Company:</strong> ${escapeHtml(company || 'Target Company')}</div><p style="margin:0 0 10px 0;font-weight:700;">${escapeHtml(parsed.greeting)}</p>${parsed.paragraphs.map((p) => `<p style="margin:0 0 12px 0;">${escapeHtml(p)}</p>`).join('')}<p style="margin:12px 0 0 0;">${escapeHtml(parsed.closing)}<br><strong>${escapeHtml(parsed.signature || lastCoverMeta.name || '')}</strong></p></div></body></html>`;
       const blob = new Blob(['\ufeff', html], { type: 'application/msword;charset=utf-8' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
@@ -408,7 +412,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const roleTitle = document.getElementById('coverJobTitle').value.trim();
     const company = document.getElementById('coverCompany').value.trim();
     const parsed = parseCoverLetter(lastCover);
-    const htmlContent = `<!DOCTYPE html><html><body style="font-family:Calibri, Arial, sans-serif;font-size:12pt;line-height:1.55;color:#1f2937;margin:0;padding:20px;">${renderCoverTemplate(parsed, lastCoverMeta, roleTitle, company)}</body></html>`;
+      const htmlContent = `<!DOCTYPE html><html><body style="font-family:Calibri, Arial, sans-serif;font-size:12pt;line-height:1.55;color:#1f2937;margin:0;padding:20px;zoom:100%;">${renderCoverTemplate(parsed, lastCoverMeta, roleTitle, company)}</body></html>`;
 
     sendEmailBtn.disabled = true;
     sendEmailBtn.textContent = 'Sending...';
