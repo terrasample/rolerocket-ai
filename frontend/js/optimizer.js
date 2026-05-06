@@ -781,11 +781,31 @@ document.getElementById('sendAtsResumeEmailBtn')?.addEventListener('click', asyn
   }
 
   const htmlContent = `<!DOCTYPE html><html><body style="font-family:'Times New Roman', Times, serif;font-size:12pt;line-height:1.5;color:#000;white-space:pre-wrap;">${resume.replace(/\n/g, '<br>')}</body></html>`;
+  if (!window.jspdf) {
+    setOptimizerStatus('PDF library not loaded.', true);
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Send to Email';
+    }
+    return;
+  }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const text = resume.replace(/\n/g, '\n');
+  doc.setFont('times');
+  doc.setFontSize(12);
+  doc.text(text, 10, 20, { maxWidth: 180 });
+  const pdfBlob = doc.output('blob');
+  const wordBlob = new Blob(['\ufeff', htmlContent], { type: 'application/msword;charset=utf-8' });
   const result = await window.sendDocumentToAccountEmail({
     feature: 'ATS Optimized Resume',
     filename: 'ats-optimized-resume',
     htmlContent,
-    textContent: resume
+    textContent: resume,
+    attachments: [
+      { filename: 'ats-optimized-resume.pdf', blob: pdfBlob, contentType: 'application/pdf' },
+      { filename: 'ats-optimized-resume.doc', blob: wordBlob, contentType: 'application/msword' }
+    ]
   });
 
   if (btn) {

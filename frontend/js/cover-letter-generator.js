@@ -373,6 +373,20 @@ document.addEventListener('DOMContentLoaded', function () {
     doc.text(letter.signature || lastCoverMeta.name || '', marginLeft, y);
   }
 
+  function createCoverLetterPdfBlob(text) {
+    if (!window.jspdf) throw new Error('PDF library not loaded.');
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    formatCoverForPdf(text, doc);
+    return doc.output('blob');
+  }
+
+  function createCoverLetterWordBlob(parsed, roleTitle, company) {
+    const today = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+    const html = `<!DOCTYPE html><html><body style="font-family:Calibri, Arial, sans-serif;font-size:12pt;line-height:1.55;color:#1f2937;margin:0;"><div style="max-width:780px;margin:0 auto;padding:20px 24px;"><div style="text-align:center;margin-bottom:16px;"><div style="font-size:18pt;font-weight:700;color:#0f172a;">Cover Letter</div></div><div style="border-bottom:3px solid #8ec7da;padding-bottom:10px;margin-bottom:12px;"><div style="font-size:22pt;font-weight:800;color:#0e6e98;">${escapeHtml(lastCoverMeta.name || 'Candidate')}</div><div style="font-size:12pt;color:#64748b;">${escapeHtml([lastCoverMeta.phone, lastCoverMeta.email].filter(Boolean).join('  |  '))}</div><div style="font-size:12pt;color:#64748b;margin-top:6px;">${escapeHtml(today)}</div></div><div style="font-size:12pt;color:#334155;margin-bottom:10px;"><strong>Role:</strong> ${escapeHtml(roleTitle || 'Target Role')}<br><strong>Company:</strong> ${escapeHtml(company || 'Target Company')}</div><p style="margin:0 0 10px 0;font-weight:700;">${escapeHtml(parsed.greeting)}</p>${parsed.paragraphs.map((p) => `<p style="margin:0 0 12px 0;">${escapeHtml(p)}</p>`).join('')}<p style="margin:12px 0 0 0;">${escapeHtml(parsed.closing)}<br><strong>${escapeHtml(parsed.signature || lastCoverMeta.name || '')}</strong></p></div></body></html>`;
+    return new Blob(['\ufeff', html], { type: 'application/msword;charset=utf-8' });
+  }
+
   if (savePdfBtn) {
     savePdfBtn.onclick = function() {
       if (!lastCover) {
@@ -427,6 +441,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const company = document.getElementById('coverCompany').value.trim();
     const parsed = parseCoverLetter(lastCover);
       const htmlContent = `<!DOCTYPE html><html><body style="font-family:Calibri, Arial, sans-serif;font-size:12pt;line-height:1.55;color:#1f2937;margin:0;padding:20px;zoom:100%;">${renderCoverTemplate(parsed, lastCoverMeta, roleTitle, company)}</body></html>`;
+    const pdfBlob = createCoverLetterPdfBlob(lastCover);
+    const wordBlob = createCoverLetterWordBlob(parsed, roleTitle, company);
 
     sendEmailBtn.disabled = true;
     sendEmailBtn.textContent = 'Sending...';
@@ -434,7 +450,11 @@ document.addEventListener('DOMContentLoaded', function () {
       feature: 'Cover Letter',
       filename: 'tailored-cover-letter',
       htmlContent,
-      textContent: lastCover
+      textContent: lastCover,
+      attachments: [
+        { filename: 'tailored-cover-letter.pdf', blob: pdfBlob, contentType: 'application/pdf' },
+        { filename: 'tailored-cover-letter.doc', blob: wordBlob, contentType: 'application/msword' }
+      ]
     });
     sendEmailBtn.disabled = false;
     sendEmailBtn.textContent = 'Send to Email';

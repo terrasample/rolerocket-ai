@@ -152,6 +152,14 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  function createResumeOptimizerPdfBlob(text) {
+    if (!window.jspdf) throw new Error('PDF library not loaded.');
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    formatResumeForPdf(text, doc);
+    return doc.output('blob');
+  }
+
   if (savePdfBtn) {
     savePdfBtn.onclick = function() {
       if (!lastResume) {
@@ -211,13 +219,19 @@ document.addEventListener('DOMContentLoaded', function () {
 
       const content = formatResumeForWord(lastResume);
       const htmlContent = `<!DOCTYPE html><html><body style="font-family:'Times New Roman', Times, serif;font-size:12pt;line-height:1.5;color:#000;white-space:pre-wrap;">${content.replace(/\n/g, '<br>')}</body></html>`;
+      const pdfBlob = createResumeOptimizerPdfBlob(lastResume);
+      const wordBlob = new Blob(['\ufeff', htmlContent], { type: 'application/msword;charset=utf-8' });
       sendEmailBtn.disabled = true;
       sendEmailBtn.textContent = 'Sending...';
       const result = await window.sendDocumentToAccountEmail({
         feature: 'Resume Optimizer',
         filename: 'optimized-resume',
         htmlContent,
-        textContent: lastResume
+        textContent: lastResume,
+        attachments: [
+          { filename: 'optimized-resume.pdf', blob: pdfBlob, contentType: 'application/pdf' },
+          { filename: 'optimized-resume.doc', blob: wordBlob, contentType: 'application/msword' }
+        ]
       });
       sendEmailBtn.disabled = false;
       sendEmailBtn.textContent = 'Send to Email';

@@ -124,6 +124,14 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  function createCareerCoachPdfBlob(text) {
+    if (!window.jspdf) throw new Error('PDF library not loaded.');
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    formatPlanForPdf(text, doc);
+    return doc.output('blob');
+  }
+
   if (savePdfBtn) {
     savePdfBtn.onclick = function() {
       if (!lastPlan) {
@@ -184,13 +192,19 @@ document.addEventListener('DOMContentLoaded', function () {
 
       const content = formatPlanForWord(lastPlan);
       const htmlContent = `<!DOCTYPE html><html><body style="font-family:'Times New Roman', Times, serif;font-size:12pt;line-height:1.5;color:#000;white-space:pre-wrap;">${content.replace(/\n/g, '<br>')}</body></html>`;
+      const pdfBlob = createCareerCoachPdfBlob(lastPlan);
+      const wordBlob = new Blob(['\ufeff', htmlContent], { type: 'application/msword;charset=utf-8' });
       sendEmailBtn.disabled = true;
       sendEmailBtn.textContent = 'Sending...';
       const result = await window.sendDocumentToAccountEmail({
         feature: 'Career Coach Plan',
         filename: 'career-coach-focus-plan',
         htmlContent,
-        textContent: lastPlan
+        textContent: lastPlan,
+        attachments: [
+          { filename: 'career-coach-focus-plan.pdf', blob: pdfBlob, contentType: 'application/pdf' },
+          { filename: 'career-coach-focus-plan.doc', blob: wordBlob, contentType: 'application/msword' }
+        ]
       });
       sendEmailBtn.disabled = false;
       sendEmailBtn.textContent = 'Send to Email';

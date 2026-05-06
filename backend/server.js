@@ -5901,6 +5901,7 @@ app.post('/api/documents/email', authenticateToken, async (req, res) => {
     const filenameRaw = String(req.body?.filename || 'rolerocket-document').trim();
     const htmlContent = String(req.body?.htmlContent || '').trim();
     const textContent = String(req.body?.textContent || '').trim();
+    const rawAttachments = Array.isArray(req.body?.attachments) ? req.body.attachments : [];
 
     if (!htmlContent && !textContent) {
       return res.status(400).json({ error: 'Document content is required.' });
@@ -5920,16 +5921,54 @@ app.post('/api/documents/email', authenticateToken, async (req, res) => {
 
     const firstName = String(user.name || '').trim().split(/\s+/)[0] || 'there';
     const subject = `Your ${safeFeature} – RoleRocket AI`;
-    const pdfBuffer = await createDocumentPdfBuffer({
-      title: safeFeature,
-      textContent,
-      htmlContent
-    });
-    const wordBuffer = createDocumentWordBuffer({
-      title: safeFeature,
-      textContent,
-      htmlContent
-    });
+    let attachments = [];
+
+    if (rawAttachments.length) {
+      const MAX_ATTACHMENT_COUNT = 4;
+      const MAX_ATTACHMENT_SIZE_BYTES = 5 * 1024 * 1024;
+
+      attachments = rawAttachments
+        .slice(0, MAX_ATTACHMENT_COUNT)
+        .map((attachment, index) => {
+          const filename = String(attachment?.filename || `${safeFileBase}-${index + 1}`).trim().slice(0, 120);
+          const contentType = String(attachment?.contentType || 'application/octet-stream').trim().slice(0, 120);
+          const contentBase64 = String(attachment?.contentBase64 || '').trim();
+          const content = Buffer.from(contentBase64, 'base64');
+
+          if (!filename || !contentBase64 || !content.length) {
+            throw new Error('Invalid attachment payload.');
+          }
+          if (content.length > MAX_ATTACHMENT_SIZE_BYTES) {
+            throw new Error('Attachment is too large to email.');
+          }
+
+          return { filename, contentType, content };
+        });
+    } else {
+      const pdfBuffer = await createDocumentPdfBuffer({
+        title: safeFeature,
+        textContent,
+        htmlContent
+      });
+      const wordBuffer = createDocumentWordBuffer({
+        title: safeFeature,
+        textContent,
+        htmlContent
+      });
+
+      attachments = [
+        {
+          filename: `${safeFileBase}.pdf`,
+          content: pdfBuffer,
+          contentType: 'application/pdf'
+        },
+        {
+          filename: `${safeFileBase}.doc`,
+          content: wordBuffer,
+          contentType: 'application/msword'
+        }
+      ];
+    }
 
     const emailHtml = `
       <div style="font-family:Segoe UI,Arial,sans-serif;color:#0f172a;line-height:1.6;max-width:640px;">
@@ -5948,18 +5987,7 @@ app.post('/api/documents/email', authenticateToken, async (req, res) => {
       subject,
       html: emailHtml,
       text: emailText,
-      attachments: [
-        {
-          filename: `${safeFileBase}.pdf`,
-          content: pdfBuffer,
-          contentType: 'application/pdf'
-        },
-        {
-          filename: `${safeFileBase}.doc`,
-          content: wordBuffer,
-          contentType: 'application/msword'
-        }
-      ]
+      attachments
     });
 
     return res.json({

@@ -659,11 +659,26 @@
 
       const content = formatInterviewPrepForWord(lastInterviewPrep);
       const htmlContent = `<!DOCTYPE html><html><body style="font-family:'Times New Roman', Times, serif;font-size:12pt;line-height:1.5;color:#000;white-space:pre-wrap;">${content.replace(/\n/g, '<br>')}</body></html>`;
+      if (!window.jspdf) {
+        btn.disabled = false;
+        btn.textContent = 'Send to Email';
+        document.getElementById('interviewPrepResult').innerHTML += '<div style="color:#dc2626;">PDF library not loaded.</div>';
+        return;
+      }
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      formatInterviewPrepForPdf(lastInterviewPrep, doc);
+      const pdfBlob = doc.output('blob');
+      const wordBlob = new Blob(['\ufeff', htmlContent], { type: 'application/msword;charset=utf-8' });
       const result = await window.sendDocumentToAccountEmail({
         feature: 'Interview Prep',
         filename: 'interview-prep',
         htmlContent,
-        textContent: lastInterviewPrep
+        textContent: lastInterviewPrep,
+        attachments: [
+          { filename: 'interview-prep.pdf', blob: pdfBlob, contentType: 'application/pdf' },
+          { filename: 'interview-prep.doc', blob: wordBlob, contentType: 'application/msword' }
+        ]
       });
 
       btn.disabled = false;

@@ -1580,7 +1580,7 @@ document.addEventListener('DOMContentLoaded', function () {
     };
   }
 
-  function exportResumePdf(model) {
+  function buildResumePdfDoc(model) {
     if (!window.jspdf) throw new Error('PDF library not loaded.');
 
     const { jsPDF } = window.jspdf;
@@ -1732,10 +1732,19 @@ document.addEventListener('DOMContentLoaded', function () {
       rightY += wrapped.length * 4.2;
     });
 
+    return doc;
+  }
+
+  function exportResumePdf(model) {
+    const doc = buildResumePdfDoc(model);
     doc.save('tailored-resume.pdf');
   }
 
-  function exportResumeWord(model) {
+  function createResumePdfBlob(model) {
+    return buildResumePdfDoc(model).output('blob');
+  }
+
+  function createResumeWordBlob(model) {
     const html = `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"></head>
@@ -1744,7 +1753,11 @@ document.addEventListener('DOMContentLoaded', function () {
 </body>
 </html>`;
 
-    const blob = new Blob(['\ufeff', html], { type: 'application/msword;charset=utf-8' });
+    return new Blob(['\ufeff', html], { type: 'application/msword;charset=utf-8' });
+  }
+
+  function exportResumeWord(model) {
+    const blob = createResumeWordBlob(model);
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = 'tailored-resume.doc';
@@ -1982,11 +1995,17 @@ document.addEventListener('DOMContentLoaded', function () {
       sendEmailBtn.disabled = true;
       sendEmailBtn.textContent = 'Sending...';
       const htmlContent = `<!DOCTYPE html><html><body style="font-family:${lastStructuredResume.theme.font};margin:0;color:#111827;">${renderResumeTemplate(lastStructuredResume)}</body></html>`;
+      const pdfBlob = createResumePdfBlob(lastStructuredResume);
+      const wordBlob = createResumeWordBlob(lastStructuredResume);
       const result = await window.sendDocumentToAccountEmail({
         feature: 'Resume',
         filename: 'tailored-resume',
         htmlContent,
-        textContent: lastRawResume
+        textContent: lastRawResume,
+        attachments: [
+          { filename: 'tailored-resume.pdf', blob: pdfBlob, contentType: 'application/pdf' },
+          { filename: 'tailored-resume.doc', blob: wordBlob, contentType: 'application/msword' }
+        ]
       });
       sendEmailBtn.disabled = false;
       sendEmailBtn.textContent = 'Send to Email';
