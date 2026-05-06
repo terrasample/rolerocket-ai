@@ -1084,7 +1084,7 @@ document.addEventListener('DOMContentLoaded', function () {
         : [
             `Section 1 - Core Concepts: ${objective || `Understand the key principles for ${title}.`}`,
             `Section 2 - Method and Tools: ${lesson || `Learn the method, workflow, and tool choices used in ${title}.`}`,
-            `Section 3 - Applied Practice: ${practiceTask || progressCheckQuestion || `Apply ${title} in a practical scenario with clear reasoning.`}`
+            `Section 3 - Applied Practice: ${practiceTask || `Apply ${title} in a practical scenario with clear reasoning.`}`
           ].join(' ');
 
       const existingSteps = asArray(moduleItem?.workedExampleSteps).map((step) => String(step || '').trim()).filter(Boolean);
@@ -1182,66 +1182,67 @@ document.addEventListener('DOMContentLoaded', function () {
     if (/ai|machine learning|ml|deep learning|data science|artificial intelligence/i.test(name)) {
       return buildCourse({
         courseTitle: 'AI + Machine Learning',
-        subtitle: 'Mathematics, Python tooling, core ML methods, deep learning, GenAI, RL, data prep, MLOps, and capstone delivery.',
+        subtitle: 'Foundations, ML core, deep learning/specialized AI, and practical delivery skills taught in a strict teach-first sequence.',
         difficulty: 'Advanced',
         estimatedDuration: '18-24 weeks',
         marketDemand: 'AI and machine learning skills are in demand across software, analytics, automation, product, and data teams.',
-        overview: 'This course follows a full AI + Machine Learning pathway: foundational math and theory, Python tooling, supervised and unsupervised techniques, evaluation metrics, deep learning, modern GenAI/LLM concepts, reinforcement learning, data preprocessing and feature engineering, MLOps deployment, and capstone execution.',
+        overview: 'This course follows the required AI + Machine Learning pathway in order: Foundations (Programming, then Mathematics), Machine Learning Core, Deep Learning and Specialized AI, then Practical Skills. Every module teaches concepts first, then walks through examples, then gives guided practice, and only then asks checkpoint questions.',
         learningOutcomes: [
-          'Master foundational theory: linear algebra, calculus/backpropagation, probability/statistics, and core AI concepts.',
-          'Build practical fluency in Python, Jupyter workflows, core ML libraries, and cloud ML tooling.',
-          'Apply supervised and unsupervised learning with strong model-evaluation discipline.',
-          'Understand modern AI topics: deep learning, GenAI/LLMs, and reinforcement learning.',
-          'Deliver applied projects from data preparation to MLOps deployment and capstone presentation.'
+          'Build Python proficiency for AI work using NumPy, Pandas, and Matplotlib.',
+          'Apply mathematics for ML: basic statistics, linear algebra, and calculus gradients.',
+          'Use supervised and unsupervised learning methods with strong model evaluation discipline.',
+          'Understand deep learning, computer vision, NLP, and generative AI workflows.',
+          'Execute practical delivery skills: preprocessing, MLOps deployment, and responsible AI ethics.'
         ],
         resumeSignals: [
-          'AI/ML math foundation and model reasoning',
-          'Python ML stack: NumPy, Pandas, Scikit-learn, TensorFlow/PyTorch',
-          'Model evaluation: accuracy, precision, recall, F1, confusion matrix',
-          'MLOps delivery: model serving, monitoring, and iteration',
-          'Capstone portfolio project with measurable impact'
+          'Python for AI: NumPy, Pandas, Matplotlib',
+          'Supervised + unsupervised ML workflow competence',
+          'Evaluation literacy: bias-variance, cross-validation, accuracy/precision/recall/F1',
+          'Deep learning, CV, NLP, and LLM prompt-engineering exposure',
+          'MLOps and responsible AI (bias, fairness, privacy) implementation readiness'
         ],
         modules: [
           {
-            title: '1. Foundational Theory & Mathematics',
-            objective: 'Build a strong base in ML mathematics and core AI concepts before coding-heavy modules.',
-            lesson: 'Section 1 - Linear Algebra: vectors, matrices, eigenvalues, and transformations used in model representation. Section 2 - Calculus: gradients and backpropagation for optimization. Section 3 - Probability/Statistics: distributions, uncertainty, sampling, and validation logic. Section 4 - Core AI Concepts: AI vs machine learning vs deep learning. Section 5 - Architectures and History: neural network families and key milestones from classical AI to transformer-era systems.',
-            workedExample: 'Train a simple model while mapping each step to its foundation: vectorized input representation, gradient-based updates, and probabilistic evaluation on validation data.',
+            title: '1. Foundations: Programming (Python + Core Libraries)',
+            objective: 'Develop programming fluency in Python for AI/ML work before entering model-heavy modules.',
+            lesson: 'Section 1 - Python Proficiency: variables, loops, functions, and reusable scripts for data workflows. Section 2 - NumPy: array operations, vectorized math, and matrix manipulation for performance. Section 3 - Pandas: data loading, cleaning, filtering, and transformation. Section 4 - Matplotlib: exploratory plots to inspect trends, outliers, and distributions. Section 5 - Teach-First Flow: concept lesson -> guided code walkthrough -> practice task -> checkpoint.',
+            workedExample: 'Load a CSV with Pandas, clean missing values, compute summary statistics with NumPy, then visualize two key features with Matplotlib before any model is trained.',
             workedExampleSteps: [
-              'Section 1 (Linear Algebra): represent dataset rows as vectors and apply matrix operations to compute predictions.',
-              'Section 2 (Calculus): compute loss gradients and update parameters using gradient descent.',
-              'Section 3 (Probability/Statistics): compare train vs validation behavior and reason about uncertainty.',
-              'Section 4 (Core AI Concepts): explain why this workflow is ML within broader AI and where deep learning fits.',
-              'Section 5 (Architecture/History): relate model structure to historical progression of AI systems.'
+              'Section 1 (Python): build helper functions to keep preprocessing code reusable and readable.',
+              'Section 2 (NumPy): compute standardized values and vectorized transforms.',
+              'Section 3 (Pandas): clean null values and create model-ready columns.',
+              'Section 4 (Matplotlib): chart feature distributions and compare class balance.',
+              'Section 5 (Flow): summarize what was taught before moving to checkpoint.'
             ],
-            commonMistake: 'Skipping foundations and trying to memorize tools without understanding the reasoning behind model behavior.',
-            practiceTask: 'Create concise notes for all five sections and explain one practical use case per section in plain language.',
-            progressCheckQuestion: 'Which sequence best matches foundational learning order in this module?',
-            progressCheckOptions: ['Linear algebra -> calculus/backprop -> probability/statistics -> core AI concepts -> architecture/history', 'Start with cloud deployment, then math later', 'Only learn prompt engineering first', 'Skip probability and go directly to capstone'],
+            commonMistake: 'Jumping into model training before building clean data and basic exploratory plots.',
+            practiceTask: 'Create one notebook that demonstrates data loading, cleaning, summary stats, and two explanatory plots.',
+            progressCheckQuestion: 'Which library is best suited for tabular data cleaning and transformation?',
+            progressCheckOptions: ['Pandas', 'Matplotlib', 'Docker', 'Flask'],
             correctOptionIndex: 0,
-            progressCheckExplanation: 'The module intentionally builds theory in this progression so later modules make sense.'
+            progressCheckExplanation: 'Pandas is the core tool for tabular cleaning and transformation workflows.'
           },
           {
-            title: '2. Programming and Tooling',
-            objective: 'Develop hands-on fluency in Python-first AI/ML workflows and supporting tools.',
-            lesson: 'Section 1 - Python for ML: data structures, functions, and workflow patterns. Section 2 - Core libraries: NumPy (numerical arrays), Pandas (data manipulation), Scikit-learn (traditional ML), TensorFlow and PyTorch (deep learning). Section 3 - Platforms: Jupyter notebooks for iterative experiments and cloud workflows with Google Cloud Vertex AI or Microsoft Azure for training and deployment.',
-            workedExample: 'Build a notebook pipeline: ingest data with Pandas, create features with NumPy, train a baseline in Scikit-learn, then outline a deep-learning extension in TensorFlow/PyTorch and deployment path on Vertex AI/Azure.',
+            title: '2. Foundations: Mathematics for Machine Learning',
+            objective: 'Build the math base required to understand model behavior and evaluation decisions.',
+            lesson: 'Section 1 - Basic Statistics: mean, variance, distributions, and why they matter for noisy data. Section 2 - Linear Algebra: vectors and matrices for representing features and model parameters. Section 3 - Calculus: gradients and slope intuition for optimization. Section 4 - Teach-First Flow: explain each concept in plain language, then apply it in one guided example before any question.',
+            workedExample: 'For a simple linear model, compute mean/variance of a feature, represent the batch as a matrix, and describe how gradients update parameters to reduce loss.',
             workedExampleSteps: [
-              'Section 1 (Python): set up clean project structure and reusable helper functions.',
-              'Section 2 (Libraries): use Pandas/NumPy for prep, benchmark with Scikit-learn, then evaluate deep framework need.',
-              'Section 3 (Notebook/Cloud): document experiment in Jupyter and define cloud training/deployment plan in Vertex AI or Azure.'
+              'Section 1 (Statistics): compute mean and variance and interpret spread/outlier behavior.',
+              'Section 2 (Linear Algebra): map data rows to vectors and stack vectors into a matrix.',
+              'Section 3 (Calculus): interpret gradient sign and magnitude for parameter updates.',
+              'Section 4 (Flow): restate what was taught and verify readiness before checkpoint.'
             ],
-            commonMistake: 'Jumping into deep frameworks before establishing data quality and a strong baseline model.',
-            practiceTask: 'Produce one end-to-end notebook showing Python + core libraries + a short deployment note for Vertex AI or Azure.',
-            progressCheckQuestion: 'Which set best represents the core tooling stack in this module?',
-            progressCheckOptions: ['Python, NumPy, Pandas, Scikit-learn, TensorFlow/PyTorch, Jupyter, Vertex AI/Azure', 'PowerPoint, Figma, Notion only', 'Only SQL and no Python', 'Only image tools'],
+            commonMistake: 'Treating gradients as a formula to memorize instead of a direction signal for minimizing error.',
+            practiceTask: 'Write a short math note that links statistics, vectors/matrices, and gradients to one model-training cycle.',
+            progressCheckQuestion: 'In ML optimization, what do gradients primarily indicate?',
+            progressCheckOptions: ['The direction and rate of change used for parameter updates', 'The number of rows in a dataset', 'Only chart colors', 'Deployment region settings'],
             correctOptionIndex: 0,
-            progressCheckExplanation: 'This module is explicitly Python-first with core ML/deep-learning libraries and notebook/cloud workflows.'
+            progressCheckExplanation: 'Gradients guide how parameters should move to reduce model loss.'
           },
           {
             title: '3. Machine Learning Techniques (Core Modules)',
             objective: 'Apply supervised and unsupervised methods, then evaluate model quality using the right metrics.',
-            lesson: 'Section 1 - Supervised learning: regression for numerical prediction and classification for categorical prediction using techniques such as Decision Trees, Random Forests, SVM, and Logistic Regression. Section 2 - Unsupervised learning: clustering and dimensionality reduction using K-Means and PCA. Section 3 - Model evaluation: precision, recall, accuracy, F1-score, and confusion matrices for tuning and tradeoff decisions.',
+            lesson: 'Section 1 - Supervised Learning: Linear Regression, Logistic Regression, Decision Trees, Random Forests, and SVM for labeled data tasks. Section 2 - Unsupervised Learning: K-Means, Hierarchical clustering, anomaly detection, and PCA for unlabeled pattern discovery. Section 3 - Model Evaluation: bias-variance tradeoff, cross-validation, and metrics including Accuracy, Precision, Recall, and F1-Score. Section 4 - Teach-First Flow: concept explanation and guided example before checkpoint prompts.',
             workedExample: 'Compare a supervised churn-classification pipeline with an unsupervised customer-segmentation pipeline, then evaluate each with context-appropriate metrics.',
             workedExampleSteps: [
               'Section 1 (Supervised): train Logistic Regression and Random Forest on labeled outcomes.',
@@ -1256,38 +1257,41 @@ document.addEventListener('DOMContentLoaded', function () {
             progressCheckExplanation: 'F1-score is the harmonic balance of precision and recall.'
           },
           {
-            title: '4. Advanced Topics & Modern AI',
-            objective: 'Understand modern AI paradigms used in high-impact systems.',
-            lesson: 'Section 1 - Deep learning: multi-layer neural networks for tasks such as computer vision and speech analysis. Section 2 - Generative AI: LLMs, transformer architectures, and prompt engineering. Section 3 - Reinforcement learning: agent-environment learning via trial and error to maximize reward.',
-            workedExample: 'Design a solution map that chooses deep learning for perception tasks, LLM workflows for language generation, and reinforcement learning for sequential decision-making.',
+            title: '4. Deep Learning and Specialized AI',
+            objective: 'Understand neural architectures and specialized AI domains for vision, language, and generative systems.',
+            lesson: 'Section 1 - Neural Networks: multilayer perceptrons and backpropagation foundations. Section 2 - Computer Vision: Convolutional Neural Networks (CNNs) for image understanding. Section 3 - Natural Language Processing: RNNs, LSTMs, and Transformers (including BERT and GPT). Section 4 - Generative AI: Large Language Models and prompt engineering workflows. Section 5 - Teach-First Flow: explain architecture purpose and tradeoffs before quiz prompts.',
+            workedExample: 'Map one business problem per domain: CNN for image classification, transformer for text tasks, and LLM prompting for controlled content generation.',
             workedExampleSteps: [
-              'Section 1 (Deep learning): identify perception problem and architecture family.',
-              'Section 2 (GenAI): define prompt and guardrails for a transformer-based assistant workflow.',
-              'Section 3 (RL): specify state, action, and reward for an agent task.'
+              'Section 1 (Neural Nets): explain forward pass and backprop update cycle.',
+              'Section 2 (CV): design a simple CNN pipeline for labeled images.',
+              'Section 3 (NLP): compare RNN/LSTM limits with transformer advantages.',
+              'Section 4 (GenAI): draft prompts with role, constraints, and evaluation criteria.',
+              'Section 5 (Flow): confirm understanding before checkpoint response.'
             ],
-            commonMistake: 'Treating all advanced AI methods as interchangeable rather than matching method to problem type.',
-            practiceTask: 'For three scenarios, choose deep learning, GenAI, or RL and defend each choice.',
-            progressCheckQuestion: 'Reinforcement learning is primarily about:',
-            progressCheckOptions: ['Learning policies through reward-driven interaction', 'Only clustering unlabeled data', 'Only calculating averages', 'Only cleaning CSV files'],
+            commonMistake: 'Using one architecture for every problem without checking data type, scale, or latency constraints.',
+            practiceTask: 'Select one CV use case and one NLP use case, then justify architecture and prompt strategy choices.',
+            progressCheckQuestion: 'Which architecture family is most directly associated with modern LLM systems such as BERT and GPT?',
+            progressCheckOptions: ['Transformers', 'K-Means', 'Decision Trees', 'PCA'],
             correctOptionIndex: 0,
-            progressCheckExplanation: 'RL centers on reward-based sequential decision learning.'
+            progressCheckExplanation: 'Transformer architectures are the core of modern LLM models such as BERT and GPT.'
           },
           {
-            title: '5. Applied Learning and Projects',
-            objective: 'Ship real project outcomes from data preparation to production-ready deployment.',
-            lesson: 'Section 1 - Data preprocessing: cleaning, feature engineering, and feature selection. Section 2 - MLOps: deploying, maintaining, and monitoring models in production. Section 3 - Capstone projects: end-to-end AI solutions such as fraud detection, recommendation, or image classification from problem framing to deployment.',
-            workedExample: 'Build a fraud-detection pipeline with feature engineering, model training, monitoring metrics, retraining trigger logic, and stakeholder-ready deployment summary.',
+            title: '5. Practical Skills: Data Preprocessing, MLOps, and AI Ethics',
+            objective: 'Deliver production-ready AI workflows with reliable preprocessing, deployment discipline, and ethical safeguards.',
+            lesson: 'Section 1 - Data Preprocessing: cleaning, feature engineering, and feature selection for stable model behavior. Section 2 - MLOps: deploy with Flask or FastAPI, containerize with Docker, monitor performance, and manage updates. Section 3 - AI Ethics: identify data bias, support fairness checks, and protect user privacy across the lifecycle. Section 4 - Teach-First Flow: explain operational and ethics rationale before assessment prompts.',
+            workedExample: 'Deploy a churn model behind a FastAPI endpoint in Docker, then add a fairness check by subgroup and a privacy-conscious logging policy.',
             workedExampleSteps: [
               'Section 1 (Preprocessing): prepare robust features and prevent data leakage.',
-              'Section 2 (MLOps): package model, define serving endpoint, and monitor drift/performance.',
-              'Section 3 (Capstone): present full lifecycle decisions from problem statement to deployment plan.'
+              'Section 2 (MLOps): package model with Flask or FastAPI, run in Docker, and monitor drift/performance.',
+              'Section 3 (Ethics): test subgroup outcomes for bias and apply privacy-safe data handling.',
+              'Section 4 (Flow): communicate deployment and ethics decisions to stakeholders.'
             ],
-            commonMistake: 'Stopping at model training and skipping operational monitoring and business communication.',
-            practiceTask: 'Deliver one capstone report that includes preprocessing decisions, model metrics, MLOps plan, and deployment architecture.',
-            progressCheckQuestion: 'What distinguishes a full end-to-end AI project?',
-            progressCheckOptions: ['It includes preprocessing, modeling, evaluation, deployment, and monitoring', 'It only includes model code', 'It only includes a slide deck', 'It only includes data collection'],
+            commonMistake: 'Shipping a model without drift monitoring, fairness checks, or privacy controls.',
+            practiceTask: 'Create a mini delivery report that includes preprocessing steps, Flask/FastAPI deployment notes, Docker setup, and one fairness/privacy safeguard.',
+            progressCheckQuestion: 'Which option best reflects responsible AI delivery in production?',
+            progressCheckOptions: ['Include deployment monitoring plus fairness and privacy safeguards', 'Only tune model hyperparameters', 'Only improve chart aesthetics', 'Skip post-deployment checks'],
             correctOptionIndex: 0,
-            progressCheckExplanation: 'End-to-end quality requires full lifecycle execution, not just model training.'
+            progressCheckExplanation: 'Production AI quality requires technical performance and responsible governance together.'
           }
         ],
         finalAssessment: [
