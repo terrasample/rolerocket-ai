@@ -20,12 +20,58 @@ document.addEventListener('DOMContentLoaded', function () {
       .replace(/'/g, '&#39;');
   }
 
+  function cleanNameCandidate(line) {
+    let raw = String(line || '').trim();
+    if (!raw) return '';
+
+    // Keep the likely name segment before credentials like ", PMP".
+    raw = raw.split(',')[0].trim();
+    if (!raw) return '';
+
+    // Remove non-letter separators while allowing spaces, apostrophes, dots, and hyphens.
+    raw = raw.replace(/[^A-Za-z\s'.-]/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!raw) return '';
+
+    const words = raw.split(' ').filter(Boolean);
+    if (words.length < 2 || words.length > 4) return '';
+
+    const disallowedTitles = new Set([
+      'project manager',
+      'program manager',
+      'construction engineer',
+      'software engineer',
+      'data scientist',
+      'product manager',
+      'business analyst',
+      'customer service',
+      'professional summary',
+      'work experience',
+      'education'
+    ]);
+    if (disallowedTitles.has(raw.toLowerCase())) return '';
+
+    // Basic guard against lines with digits/emails/phones/addresses.
+    if (/\d|@|\b(street|avenue|road|blvd|drive|lane|suite)\b/i.test(String(line || ''))) return '';
+
+    return words
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  }
+
+  function findBestNameLine(lines) {
+    for (const line of lines.slice(0, 12)) {
+      const candidate = cleanNameCandidate(line);
+      if (candidate) return candidate;
+    }
+    return '';
+  }
+
   function extractContactInfo(sourceText) {
     const text = String(sourceText || '');
     const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
     const email = (text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i) || [])[0] || '';
     const phone = (text.match(/(?:\+?\d{1,2}[\s.-]?)?(?:\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4})/) || [])[0] || '';
-    const nameLine = lines.find((line) => /^[A-Za-z][A-Za-z\s'.-]{2,}$/.test(line) && line.split(/\s+/).length <= 5) || '';
+    const nameLine = findBestNameLine(lines);
     return { name: nameLine, phone, email };
   }
 
