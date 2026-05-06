@@ -884,7 +884,124 @@ function sanitizeDocumentText(text) {
     .join('\n');
 }
 
+function parseStructuredCoverLetter({ title, textContent, htmlContent }) {
+  const preferredText = sanitizeDocumentText(String(htmlContent || '').trim()
+    ? htmlToPlainText(htmlContent)
+    : String(textContent || ''));
+  const fallbackText = sanitizeDocumentText(String(textContent || '').trim()
+    || htmlToPlainText(htmlContent));
+  const sourceText = preferredText || fallbackText;
+  const lines = sourceText
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (!/cover letter/i.test(String(title || '')) || !lines.length) return null;
+
+  let index = 0;
+  if (/^cover letter$/i.test(lines[index])) index += 1;
+
+  const datePattern = /^(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},\s+\d{4}$/i;
+  const greetingPattern = /^dear\b/i;
+  const closingPattern = /^(sincerely|best regards|kind regards|warm regards|yours truly)/i;
+
+  const name = lines[index] || 'Candidate';
+  index += 1;
+
+  const contactParts = [];
+  while (index < lines.length && !datePattern.test(lines[index]) && !/^role:/i.test(lines[index]) && !greetingPattern.test(lines[index])) {
+    contactParts.push(lines[index]);
+    index += 1;
+  }
+
+  let dateLine = '';
+  if (index < lines.length && datePattern.test(lines[index])) {
+    dateLine = lines[index];
+    index += 1;
+  }
+
+  let roleLine = '';
+  if (index < lines.length && /^role:/i.test(lines[index])) {
+    roleLine = lines[index].replace(/^role:\s*/i, '').trim();
+    index += 1;
+  }
+
+  let companyLine = '';
+  if (index < lines.length && /^company:/i.test(lines[index])) {
+    companyLine = lines[index].replace(/^company:\s*/i, '').trim();
+    index += 1;
+  }
+
+  let greeting = 'Dear Hiring Manager,';
+  if (index < lines.length && greetingPattern.test(lines[index])) {
+    greeting = lines[index];
+    index += 1;
+  }
+
+  const bodyLines = [];
+  while (index < lines.length && !closingPattern.test(lines[index])) {
+    bodyLines.push(lines[index]);
+    index += 1;
+  }
+
+  let closing = 'Sincerely,';
+  let signature = name;
+  if (index < lines.length && closingPattern.test(lines[index])) {
+    closing = lines[index];
+    index += 1;
+  }
+  if (index < lines.length) {
+    signature = lines[index];
+  }
+
+  const paragraphs = bodyLines.filter(Boolean);
+  const contactLine = contactParts.join(' | ').replace(/\s*\|\s*/g, ' | ').trim();
+
+  return {
+    title: 'Cover Letter',
+    name,
+    contactLine,
+    dateLine: dateLine || new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }),
+    roleLine,
+    companyLine,
+    greeting,
+    paragraphs,
+    closing,
+    signature
+  };
+}
+
+function renderStructuredCoverLetterHtml(letter) {
+  if (!letter) return '';
+  const paragraphsHtml = (letter.paragraphs || [])
+    .map((paragraph) => `<p style="margin:0 0 18px 0;font-size:12pt;line-height:1.6;color:#1f2937;">${escapeHtml(paragraph)}</p>`)
+    .join('');
+
+  return `
+    <div style="font-family:Calibri,Arial,sans-serif;color:#1f2937;max-width:780px;margin:0 auto;">
+      <div style="text-align:center;font-size:18pt;font-weight:700;color:#111827;margin:0 0 18px 0;">${escapeHtml(letter.title)}</div>
+      <table role="presentation" style="width:100%;border-collapse:collapse;margin-bottom:4px;">
+        <tr>
+          <td style="font-size:22pt;font-weight:700;color:#0e7490;padding:0;vertical-align:top;">${escapeHtml(letter.name)}</td>
+          <td style="font-size:12pt;color:#64748b;padding:0;text-align:right;vertical-align:top;white-space:nowrap;">${escapeHtml(letter.dateLine)}</td>
+        </tr>
+      </table>
+      <div style="font-size:12pt;color:#334155;margin:0 0 10px 0;">${escapeHtml(letter.contactLine)}</div>
+      <div style="border-bottom:3px solid #8ec7da;margin:0 0 12px 0;"></div>
+      <div style="font-size:12pt;color:#334155;margin:0 0 12px 0;">
+        ${letter.roleLine ? `<div><strong>Role:</strong> ${escapeHtml(letter.roleLine)}</div>` : ''}
+        ${letter.companyLine ? `<div><strong>Company:</strong> ${escapeHtml(letter.companyLine)}</div>` : ''}
+      </div>
+      <div style="font-size:12pt;font-weight:700;color:#111827;margin:0 0 12px 0;">${escapeHtml(letter.greeting)}</div>
+      ${paragraphsHtml}
+      <div style="font-size:12pt;color:#1f2937;line-height:1.6;margin-top:8px;">${escapeHtml(letter.closing)}</div>
+      <div style="font-size:12pt;font-weight:700;color:#111827;line-height:1.6;">${escapeHtml(letter.signature)}</div>
+    </div>
+  `;
+}
+
 async function createDocumentPdfBuffer({ title, textContent, htmlContent }) {
+  const structuredCoverLetter = parseStructuredCoverLetter({ title, textContent, htmlContent });
   const hasHtmlContent = Boolean(String(htmlContent || '').trim());
   const preferredBodyText = hasHtmlContent
     ? htmlToPlainText(htmlContent)
@@ -905,16 +1022,73 @@ async function createDocumentPdfBuffer({ title, textContent, htmlContent }) {
     pdf.info.Author = 'RoleRocket AI';
     pdf.info.Creator = 'RoleRocket AI';
 
-    const today = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+    if (structuredCoverLetter) {
+      const left = pdf.page.margins.left;
+      const right = pdf.page.width - pdf.page.margins.right;
+      const contentWidth = right - left;
 
-    pdf.font('Helvetica-Bold').fontSize(18).fillColor('#1e3a5f').text(String(title || 'Document'), { align: 'center' });
-    pdf.moveDown(0.2);
-    pdf.font('Helvetica').fontSize(10).fillColor('#64748b').text(today, { align: 'right' });
-    pdf.moveDown(1);
-    pdf.font('Helvetica').fontSize(11).fillColor('#111827').text(bodyText || 'No document content provided.', {
-      lineGap: 3,
-      align: 'left'
-    });
+      pdf.font('Helvetica-Bold').fontSize(18).fillColor('#111827').text(structuredCoverLetter.title, left, pdf.y, {
+        width: contentWidth,
+        align: 'center'
+      });
+      pdf.moveDown(0.5);
+
+      const headerY = pdf.y;
+      pdf.font('Helvetica-Bold').fontSize(21).fillColor('#0e7490').text(structuredCoverLetter.name, left, headerY, {
+        width: contentWidth - 140,
+        align: 'left'
+      });
+      pdf.font('Helvetica').fontSize(12).fillColor('#64748b').text(structuredCoverLetter.dateLine, right - 120, headerY + 4, {
+        width: 120,
+        align: 'right'
+      });
+
+      pdf.y = Math.max(pdf.y, headerY + 24);
+      if (structuredCoverLetter.contactLine) {
+        pdf.font('Helvetica').fontSize(12).fillColor('#334155').text(structuredCoverLetter.contactLine, left, pdf.y, {
+          width: contentWidth,
+          align: 'left'
+        });
+        pdf.moveDown(0.6);
+      }
+
+      pdf.moveTo(left, pdf.y).lineTo(right, pdf.y).lineWidth(1.5).strokeColor('#8ec7da').stroke();
+      pdf.moveDown(0.8);
+
+      pdf.font('Helvetica-Bold').fontSize(12).fillColor('#334155').text('Role:', left, pdf.y, { continued: true });
+      pdf.font('Helvetica').text(` ${structuredCoverLetter.roleLine || ''}`);
+      pdf.font('Helvetica-Bold').text('Company:', left, pdf.y, { continued: true });
+      pdf.font('Helvetica').text(` ${structuredCoverLetter.companyLine || ''}`);
+      pdf.moveDown(0.5);
+
+      pdf.font('Helvetica-Bold').fontSize(12).fillColor('#111827').text(structuredCoverLetter.greeting, left, pdf.y, {
+        width: contentWidth,
+        align: 'left'
+      });
+      pdf.moveDown(0.6);
+
+      pdf.font('Helvetica').fontSize(12).fillColor('#1f2937');
+      (structuredCoverLetter.paragraphs || []).forEach((paragraph) => {
+        pdf.text(paragraph, left, pdf.y, { width: contentWidth, lineGap: 4, align: 'left' });
+        pdf.moveDown(0.7);
+      });
+
+      pdf.moveDown(0.2);
+      pdf.text(structuredCoverLetter.closing, left, pdf.y, { width: contentWidth, align: 'left' });
+      pdf.moveDown(0.4);
+      pdf.font('Helvetica-Bold').text(structuredCoverLetter.signature, left, pdf.y, { width: contentWidth, align: 'left' });
+    } else {
+      const today = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+
+      pdf.font('Helvetica-Bold').fontSize(18).fillColor('#1e3a5f').text(String(title || 'Document'), { align: 'center' });
+      pdf.moveDown(0.2);
+      pdf.font('Helvetica').fontSize(10).fillColor('#64748b').text(today, { align: 'right' });
+      pdf.moveDown(1);
+      pdf.font('Helvetica').fontSize(11).fillColor('#111827').text(bodyText || 'No document content provided.', {
+        lineGap: 3,
+        align: 'left'
+      });
+    }
 
     pdf.end();
   });
@@ -930,9 +1104,12 @@ function escapeHtml(value) {
 }
 
 function createDocumentWordBuffer({ title, textContent, htmlContent }) {
+  const structuredCoverLetter = parseStructuredCoverLetter({ title, textContent, htmlContent });
   const safeTitle = escapeHtml(title || 'Document');
-  const bodyMarkup = String(htmlContent || '').trim()
-    || `<pre style="font-family:Calibri,Arial,sans-serif;white-space:pre-wrap;font-size:11pt;line-height:1.5;">${escapeHtml(textContent)}</pre>`;
+  const bodyMarkup = structuredCoverLetter
+    ? renderStructuredCoverLetterHtml(structuredCoverLetter)
+    : (String(htmlContent || '').trim()
+      || `<pre style="font-family:Calibri,Arial,sans-serif;white-space:pre-wrap;font-size:11pt;line-height:1.5;">${escapeHtml(textContent)}</pre>`);
 
   const wordHtml = `<!DOCTYPE html>
 <html>
