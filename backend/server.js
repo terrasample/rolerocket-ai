@@ -930,6 +930,36 @@ function createDocumentWordBuffer({ title, textContent, htmlContent }) {
   return Buffer.from(`\ufeff${wordHtml}`, 'utf8');
 }
 
+function trimForAssistant(value, max = 2000) {
+  return String(value || '')
+    .replace(/\r/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, max);
+}
+
+function normalizeAssistantContext(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return [];
+
+  return Object.entries(raw)
+    .map(([key, value]) => [trimForAssistant(key, 80), trimForAssistant(value, 2200)])
+    .filter(([key, value]) => key && value)
+    .slice(0, 12);
+}
+
+function normalizeAssistantHistory(rawHistory) {
+  if (!Array.isArray(rawHistory)) return [];
+
+  return rawHistory
+    .filter((entry) => entry && (entry.role === 'user' || entry.role === 'assistant'))
+    .slice(-6)
+    .map((entry) => ({
+      role: entry.role,
+      content: trimForAssistant(entry.content, 1200)
+    }))
+    .filter((entry) => entry.content);
+}
+
 async function sendEmail({ to, subject, html, text, attachments }) {
   const transporter = getMailTransporter();
   if (!transporter) {
@@ -7968,6 +7998,60 @@ Rules:
   } catch (err) {
     console.error('Interview assist error:', err);
     return res.status(500).json({ error: 'Interview assist failed' });
+  }
+});
+
+app.post('/api/page-assistant', authenticateToken, async (req, res) => {
+  try {
+    const message = trimForAssistant(req.body?.message, 1500);
+    const page = trimForAssistant(req.body?.page, 120) || 'RoleRocket AI tool';
+    const contextEntries = normalizeAssistantContext(req.body?.context);
+    const history = normalizeAssistantHistory(req.body?.history);
+
+    if (!message) {
+      return res.status(400).json({ error: 'A question is required.' });
+    }
+
+    const contextBlock = contextEntries.length
+      ? contextEntries.map(([key, value]) => `- ${key}: ${value}`).join('\n')
+      : '- No page context was supplied.';
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      max_tokens: 400,
+      temperature: 0.4,
+      messages: [
+        {
+          role: 'system',
+          content: `You are RoleRocket AI's in-app page assistant.
+
+Your job is to help the user complete the task on the page they are currently using.
+
+Rules:
+- Be concise, practical, and specific to the page context.
+- Do not invent page state that is not present in the supplied context.
+- Prefer direct guidance, rewrites, checklists, or next steps.
+- If the user asks for edits to a draft, respond with improved wording they can use immediately.
+- Use plain text with short paragraphs or short bullet lists.
+- Do not mention internal policies, tokens, or implementation details.`
+        },
+        {
+          role: 'system',
+          content: `Current page: ${page}\n\nPage context:\n${contextBlock}`
+        },
+        ...history,
+        {
+          role: 'user',
+          content: message
+        }
+      ]
+    });
+
+    const answer = String(completion.choices?.[0]?.message?.content || '').trim();
+    return res.json({ answer: answer || 'I could not generate a response right now.' });
+  } catch (err) {
+    console.error('Page assistant error:', err);
+    return res.status(500).json({ error: 'Page assistant failed.' });
   }
 });
 
