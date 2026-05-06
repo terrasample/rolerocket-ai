@@ -6845,16 +6845,16 @@ print(f"Department: {employee['department']}")`,
 total = 0
 for sale in sales:
     total += sale
-    print(f"Running total: ${total}")
+  print(f"Running total: \${total}")
 
 # With enumerate
 for index, sale in enumerate(sales):
-    print(f"Month {index + 1}: ${sale}")
+    print(f"Month {index + 1}: \${sale}")
 
 # Dictionary iteration
 emp_salaries = {"Alice": 80000, "Bob": 75000}
 for name, salary in emp_salaries.items():
-    print(f"{name}: ${salary:,}")`,
+    print(f"{name}: \${salary:,}")`,
         commonMistake: 'Writing nested loops when a single loop with built-in functions would be cleaner.',
         practiceTask: 'Create a list of 5 numbers and use a loop to print the sum and average.',
         progressCheckQuestion: 'Which loop type is best for iterating a known number of times?',
@@ -6874,8 +6874,8 @@ for name, salary in emp_salaries.items():
     """Calculate employee bonus."""
     return salary * bonus_rate
 
-print(f"Bonus: ${calculate_bonus(80000)}")
-print(f"Bonus: ${calculate_bonus(80000, 0.15)}")
+print(f"Bonus: \${calculate_bonus(80000)}")
+print(f"Bonus: \${calculate_bonus(80000, 0.15)}")
 
 def analyze_sales(sales_list):
     total = sum(sales_list)
@@ -6885,7 +6885,7 @@ def analyze_sales(sales_list):
 
 sales = [1000, 1500, 2000, 1200, 1800]
 total, avg, max_val = analyze_sales(sales)
-print(f"Total: ${total}, Avg: ${avg}, Max: ${max_val}")`,
+print(f"Total: \${total}, Avg: \${avg}, Max: \${max_val}")`,
         commonMistake: 'Writing functions without docstrings or not returning the expected output.',
         practiceTask: 'Write a function that takes a list of numbers and returns the sum, average, and count in one return statement.',
         progressCheckQuestion: 'What is a docstring in Python?',
