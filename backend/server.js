@@ -902,6 +902,34 @@ async function createDocumentPdfBuffer({ title, textContent, htmlContent }) {
   });
 }
 
+function escapeHtml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function createDocumentWordBuffer({ title, textContent, htmlContent }) {
+  const safeTitle = escapeHtml(title || 'Document');
+  const bodyMarkup = String(htmlContent || '').trim()
+    || `<pre style="font-family:Calibri,Arial,sans-serif;white-space:pre-wrap;font-size:11pt;line-height:1.5;">${escapeHtml(textContent)}</pre>`;
+
+  const wordHtml = `<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>${safeTitle}</title>
+  </head>
+  <body style="font-family:Calibri,Arial,sans-serif;font-size:12pt;line-height:1.55;color:#1f2937;margin:0;padding:20px;">
+    ${bodyMarkup}
+  </body>
+</html>`;
+
+  return Buffer.from(`\ufeff${wordHtml}`, 'utf8');
+}
+
 async function sendEmail({ to, subject, html, text, attachments }) {
   const transporter = getMailTransporter();
   if (!transporter) {
@@ -5672,16 +5700,21 @@ app.post('/api/documents/email', authenticateToken, async (req, res) => {
       textContent,
       htmlContent
     });
+    const wordBuffer = createDocumentWordBuffer({
+      title: safeFeature,
+      textContent,
+      htmlContent
+    });
 
     const emailHtml = `
       <div style="font-family:Segoe UI,Arial,sans-serif;color:#0f172a;line-height:1.6;max-width:640px;">
         <h2 style="margin:0 0 10px;">Your ${safeFeature}</h2>
-        <p style="margin:0 0 12px;">Hi ${firstName}, your PDF is attached.</p>
+        <p style="margin:0 0 12px;">Hi ${firstName}, your PDF and Word files are attached.</p>
         <p style="margin:0;color:#475569;font-size:13px;">Sent from RoleRocket AI.</p>
       </div>
     `;
 
-    const emailText = `Hi ${firstName}, your ${safeFeature} PDF is attached. Sent from RoleRocket AI.`;
+    const emailText = `Hi ${firstName}, your ${safeFeature} PDF and Word files are attached. Sent from RoleRocket AI.`;
 
     console.log(`[document-email] Sending ${safeFeature} to ${recipientEmail}`);
 
@@ -5690,11 +5723,18 @@ app.post('/api/documents/email', authenticateToken, async (req, res) => {
       subject,
       html: emailHtml,
       text: emailText,
-      attachments: [{
-        filename: `${safeFileBase}.pdf`,
-        content: pdfBuffer,
-        contentType: 'application/pdf'
-      }]
+      attachments: [
+        {
+          filename: `${safeFileBase}.pdf`,
+          content: pdfBuffer,
+          contentType: 'application/pdf'
+        },
+        {
+          filename: `${safeFileBase}.doc`,
+          content: wordBuffer,
+          contentType: 'application/msword'
+        }
+      ]
     });
 
     return res.json({
