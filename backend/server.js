@@ -6791,10 +6791,880 @@ function buildCertificationPlan(topic) {
   };
 }
 
+function loadPythonDataScienceCourse() {
+  // Python Data Science course from markdown template
+  // This is the structured Python Data Science course with 5 sections and detailed subsections
+  return {
+    courseTitle: 'Python Data Science: Proficiency to Production',
+    subtitle: 'Master data science fundamentals from raw Python to business-ready visualizations',
+    difficulty: 'Intermediate',
+    estimatedDuration: '10-12 weeks',
+    marketDemand: 'Python data science skills are essential for data analysts, data engineers, and business intelligence professionals.',
+    overview: 'This course teaches you the complete data science workflow: Python fundamentals, NumPy for numerical computing, Pandas for data manipulation, Matplotlib for visualization, and the teach-first flow methodology. Every concept includes working code examples, practice tasks, and success checkpoints.',
+    learningOutcomes: [
+      'Write Python scripts with variables, loops, functions, and reusable modules.',
+      'Manipulate numerical arrays efficiently using NumPy vectorization and broadcasting.',
+      'Load, clean, filter, group, and merge real-world data with Pandas.',
+      'Create professional visualizations with Matplotlib including line charts, scatter plots, and multi-panel layouts.',
+      'Apply the Teach-First Flow (concept → walkthrough → practice → checkpoint) to master new technical topics.'
+    ],
+    modules: [
+      {
+        title: 'Python Fundamentals: Variables',
+        objective: 'Store and manage data types in Python (int, float, str, bool, list, dict)',
+        lesson: 'Learn how to declare and assign variables, understand Python data types, and manage variable scope. Variables are containers for data. Python supports integers, floats, strings, booleans, and collections like lists and dictionaries. Understanding scope is critical: variables defined inside functions are local, while module-level variables are global. This foundation is essential because data science work depends on reliable data handling.',
+        workedExample: `# Declare and assign variables
+name = "Alex"
+age = 28
+salary = 75000.50
+is_manager = True
+
+# Lists
+skills = ["Python", "SQL", "Excel"]
+print(f"{name} knows {len(skills)} skills")
+
+# Dictionaries
+employee = {"name": "Alex", "department": "Data", "salary": 75000.50}
+print(f"Department: {employee['department']}")`,
+        commonMistake: 'Assuming all variables are global or mixing up data types during operations.',
+        practiceTask: 'Create a dictionary of an employee with name, department, salary, and years_of_service. Print one value using bracket notation.',
+        progressCheckQuestion: 'What is the primary purpose of variable scope in Python?',
+        progressCheckOptions: [
+          'To control which functions and blocks can access a variable',
+          'To make code slower and more complex',
+          'To avoid using any variables at all',
+          'To automatically convert all data types'
+        ],
+        correctOptionIndex: 0
+      },
+      {
+        title: 'Python Fundamentals: Loops',
+        objective: 'Iterate over collections efficiently without writing repetitive code',
+        lesson: 'Loops automate repetition. For loops iterate over collections like lists, tuples, and dictionaries. While loops repeat until a condition becomes false. Enumerate adds an index to for loops, making it easy to track position. Nested loops iterate within iterations. Mastering loops is essential because data science workflows heavily depend on processing each row or element in a dataset.',
+        workedExample: `sales = [1000, 1500, 2000, 1200, 1800]
+total = 0
+for sale in sales:
+    total += sale
+    print(f"Running total: ${total}")
+
+# With enumerate
+for index, sale in enumerate(sales):
+    print(f"Month {index + 1}: ${sale}")
+
+# Dictionary iteration
+emp_salaries = {"Alice": 80000, "Bob": 75000}
+for name, salary in emp_salaries.items():
+    print(f"{name}: ${salary:,}")`,
+        commonMistake: 'Writing nested loops when a single loop with built-in functions would be cleaner.',
+        practiceTask: 'Create a list of 5 numbers and use a loop to print the sum and average.',
+        progressCheckQuestion: 'Which loop type is best for iterating a known number of times?',
+        progressCheckOptions: [
+          'A for loop over a range or collection',
+          'A while loop that never ends',
+          'No loop, just copy-paste the code',
+          'A nested loop for every operation'
+        ],
+        correctOptionIndex: 0
+      },
+      {
+        title: 'Python Fundamentals: Functions',
+        objective: 'Write reusable blocks of code with clear inputs and outputs',
+        lesson: 'Functions are reusable blocks of code that accept inputs (parameters) and return outputs. They eliminate repetition and make code readable. A function definition includes the def keyword, parameter names, and a docstring explaining what it does. Return statements specify what the function outputs. Default parameter values make functions flexible. This is critical for data science because real workflows depend on reusable data-processing functions.',
+        workedExample: `def calculate_bonus(salary, bonus_rate=0.1):
+    """Calculate employee bonus."""
+    return salary * bonus_rate
+
+print(f"Bonus: ${calculate_bonus(80000)}")
+print(f"Bonus: ${calculate_bonus(80000, 0.15)}")
+
+def analyze_sales(sales_list):
+    total = sum(sales_list)
+    average = total / len(sales_list)
+    max_sale = max(sales_list)
+    return total, average, max_sale
+
+sales = [1000, 1500, 2000, 1200, 1800]
+total, avg, max_val = analyze_sales(sales)
+print(f"Total: ${total}, Avg: ${avg}, Max: ${max_val}")`,
+        commonMistake: 'Writing functions without docstrings or not returning the expected output.',
+        practiceTask: 'Write a function that takes a list of numbers and returns the sum, average, and count in one return statement.',
+        progressCheckQuestion: 'What is a docstring in Python?',
+        progressCheckOptions: [
+          'A description of what a function does, placed right after the def line',
+          'A comment that appears at the end of a file',
+          'A way to execute code silently',
+          'A requirement that makes functions run slower'
+        ],
+        correctOptionIndex: 0
+      },
+      {
+        title: 'Python Fundamentals: Reusable Scripts',
+        objective: 'Combine variables, loops, and functions into a complete workflow module',
+        lesson: 'Reusable scripts combine functions, loops, and data handling into a coherent module. A module is a Python file (.py) containing functions and variables that other scripts import. This modular approach is essential for data science because real projects require loading data, cleaning it, transforming it, and analyzing it in predictable, repeatable steps. Writing modular code makes workflows robust and testable.',
+        workedExample: `# data_utils.py - A reusable module
+def load_sales_data(filename):
+    """Load sales from a text file."""
+    sales = []
+    with open(filename, 'r') as f:
+        for line in f:
+            try:
+                sales.append(float(line.strip()))
+            except ValueError:
+                continue
+    return sales
+
+def clean_sales_data(sales_list):
+    """Remove None/invalid values."""
+    cleaned = [s for s in sales_list if s is not None and s > 0]
+    return cleaned
+
+def summarize_sales(sales_list):
+    """Return summary statistics."""
+    if not sales_list:
+        return None
+    return {
+        "total": sum(sales_list),
+        "count": len(sales_list),
+        "average": sum(sales_list) / len(sales_list),
+        "max": max(sales_list),
+        "min": min(sales_list)
+    }
+
+# In another script:
+# from data_utils import load_sales_data, clean_sales_data, summarize_sales
+# sales = load_sales_data("sales.txt")
+# clean = clean_sales_data(sales)
+# print(summarize_sales(clean))`,
+        commonMistake: 'Not breaking code into functions, leading to repetition and hard-to-maintain scripts.',
+        practiceTask: 'Write a module with three functions: load_data, clean_data, and summarize_data. Test the module by importing and calling each function.',
+        progressCheckQuestion: 'Why are reusable scripts important in data science?',
+        progressCheckOptions: [
+          'They make workflows repeatable, testable, and maintainable across projects',
+          'They make code slower and harder to understand',
+          'They require more lines of code than necessary',
+          'They eliminate the need for documentation'
+        ],
+        correctOptionIndex: 0
+      },
+      {
+        title: 'NumPy: Creating and Inspecting Arrays',
+        objective: 'Create and explore NumPy arrays efficiently',
+        lesson: 'NumPy arrays are fast, memory-efficient containers for numerical data. Arrays are created from lists, ranges, or special functions like zeros, ones, and arange. Unlike Python lists, arrays require all elements to be the same type, which enables optimized C-level operations. Key attributes like shape, dtype, and size tell you about the array structure. Indexing and slicing access specific elements or ranges. Understanding arrays is essential because every data science library (Pandas, Scikit-learn, TensorFlow) is built on top of NumPy.',
+        workedExample: `import numpy as np
+
+# Create arrays from lists
+arr1 = np.array([1, 2, 3, 4, 5])
+print(f"Shape: {arr1.shape}, Type: {arr1.dtype}")
+
+# Create arrays with special functions
+zeros = np.zeros(5)
+ones = np.ones(3)
+range_arr = np.arange(0, 10, 2)
+
+# Multi-dimensional arrays
+arr2d = np.array([[1, 2, 3], [4, 5, 6]])
+print(f"2D shape: {arr2d.shape}")
+
+# Indexing and slicing
+print(f"First element: {arr1[0]}")
+print(f"Last three: {arr1[-3:]}")
+
+# Array attributes
+print(f"Size: {arr1.size}, Dtype: {arr1.dtype}")`,
+        commonMistake: 'Confusing array shape with size or assuming all elements must be converted to the same type.',
+        practiceTask: 'Create a 3x3 array with values 1-9. Print its shape, size, and extract the middle row.',
+        progressCheckQuestion: 'What is the main advantage of NumPy arrays over Python lists?',
+        progressCheckOptions: [
+          'NumPy arrays are much faster for numerical operations and use less memory',
+          'NumPy arrays store mixed data types automatically',
+          'NumPy arrays make code shorter without any tradeoffs',
+          'NumPy arrays eliminate the need for loops completely'
+        ],
+        correctOptionIndex: 0
+      },
+      {
+        title: 'NumPy: Vectorization and Broadcasting',
+        objective: 'Perform element-wise operations without explicit loops',
+        lesson: 'Vectorization is NumPy\'s superpower. Instead of looping through each element, you operate on the entire array at once. This is 10-100x faster because NumPy uses optimized C code instead of Python loops. Broadcasting automatically aligns arrays of different shapes so operations work correctly. For example, adding a scalar to an array adds it to every element. Adding a row vector to a 2D array adds it to every row. Mastering vectorization is key to writing efficient data science code.',
+        workedExample: `import numpy as np
+
+# Vectorized operations (no loops needed!)
+salaries = np.array([80000, 75000, 90000, 85000])
+
+# Add a bonus to all salaries
+bonus = salaries * 0.10
+print(f"Bonuses: {bonus}")
+
+# Element-wise operations
+squared = salaries ** 2
+print(f"Squared: {squared}")
+
+# Boolean masking
+high_earners = salaries[salaries > 80000]
+print(f"High earners: {high_earners}")
+
+# Broadcasting: 2D operation
+sales_by_month = np.array([
+    [100, 150, 200],
+    [110, 160, 210],
+    [120, 170, 220]
+])
+
+# Add region bonus to each row
+region_bonus = np.array([10, 20, 15])
+adjusted = sales_by_month + region_bonus
+print(f"Adjusted:\\n{adjusted}")`,
+        commonMistake: 'Using loops when vectorized operations are available, resulting in slow code.',
+        practiceTask: 'Create an array of 10 employee salaries. Use vectorization to add a 5% raise, calculate taxes (20% deduction), and find how many earn above the average.',
+        progressCheckQuestion: 'What does broadcasting do in NumPy?',
+        progressCheckOptions: [
+          'It automatically aligns arrays of different shapes for element-wise operations',
+          'It converts all arrays to the same data type',
+          'It makes arrays print to the console automatically',
+          'It eliminates the need for arrays entirely'
+        ],
+        correctOptionIndex: 0
+      },
+      {
+        title: 'NumPy: Advanced Indexing and Operations',
+        objective: 'Extract and manipulate data using advanced array techniques',
+        lesson: 'NumPy offers powerful indexing: boolean indexing filters arrays based on conditions, fancy indexing uses arrays of indices, and slicing extracts ranges. These techniques are essential for data science because you constantly need to select subsets of data (rows above a threshold, specific columns, matching criteria). Advanced operations like reshape, transpose, and flattening restructure data for downstream processing. Understanding these techniques makes data manipulation fast and readable.',
+        workedExample: `import numpy as np
+
+# Boolean indexing: select elements matching a condition
+sales = np.array([1000, 1500, 800, 2000, 1200])
+high_sales = sales[sales > 1000]
+print(f"High sales: {high_sales}")
+
+# Fancy indexing: use an array of indices
+indices = np.array([0, 2, 4])
+selected = sales[indices]
+print(f"Selected sales: {selected}")
+
+# Reshape: change array dimensions
+arr = np.arange(12)
+reshaped = arr.reshape(3, 4)
+print(f"Reshaped:\\n{reshaped}")
+
+# Transpose: swap rows and columns
+transposed = reshaped.T
+print(f"Transposed:\\n{transposed}")
+
+# Flattening: convert to 1D
+flattened = reshaped.flatten()
+print(f"Flattened: {flattened}")`,
+        commonMistake: 'Confusing indexing syntax or not understanding how reshape affects array dimensions.',
+        practiceTask: 'Create a 4x5 array of random numbers. Extract rows where the first column is > 0.5. Reshape the result to a 1D array.',
+        progressCheckQuestion: 'What does boolean indexing return?',
+        progressCheckOptions: [
+          'An array containing only elements where the condition is True',
+          'A single True/False value',
+          'The indices where the condition is True',
+          'An error message'
+        ],
+        correctOptionIndex: 0
+      },
+      {
+        title: 'Pandas: Loading and Exploring DataFrames',
+        objective: 'Load, inspect, and understand the structure of real-world data',
+        lesson: 'Pandas DataFrames are table-like structures (rows and columns) that hold mixed data types. The read_csv function loads CSV files into DataFrames. Once loaded, info() shows data types and missing values, describe() provides statistical summaries, head() displays the first few rows, and tail() shows the last few rows. These inspection functions are critical because understanding your data\'s structure, types, and distribution prevents costly mistakes downstream.',
+        workedExample: `import pandas as pd
+
+# Load CSV data
+df = pd.read_csv('employees.csv')
+
+# Inspect the data
+print(f"Shape: {df.shape}")  # Rows and columns
+print(f"\\nFirst 3 rows:\\n{df.head(3)}")
+print(f"\\nData types:\\n{df.dtypes}")
+
+# Summary statistics
+print(f"\\nSummary stats:\\n{df.describe()}")
+
+# Check for missing values
+print(f"\\nMissing values:\\n{df.isnull().sum()}")
+
+# Column names
+print(f"\\nColumns: {df.columns.tolist()}")`,
+        commonMistake: 'Jumping into analysis without inspecting data, leading to errors from unknown structure or missing values.',
+        practiceTask: 'Create a DataFrame from a dictionary with 5 employees (name, department, salary). Use head(), info(), and describe() to explore it.',
+        progressCheckQuestion: 'What does df.info() show in Pandas?',
+        progressCheckOptions: [
+          'Data types, non-null counts, and memory usage for each column',
+          'Statistical summary of numerical columns only',
+          'The first 5 rows of the DataFrame',
+          'Suggestions for improving code performance'
+        ],
+        correctOptionIndex: 0
+      },
+      {
+        title: 'Pandas: Data Cleaning and Missing Values',
+        objective: 'Handle missing data using multiple strategies',
+        lesson: 'Real-world data is messy. Missing values (NaN) appear due to data collection errors, incomplete records, or system failures. Pandas offers multiple strategies: dropna() removes rows or columns with missing values, fillna() replaces missing values with a specified value, forward fill carries the previous value forward, and interpolation estimates missing values. Choosing the right strategy depends on the data\'s nature and the analysis goal. Poor missing-value handling can bias your analysis or cause downstream errors.',
+        workedExample: `import pandas as pd
+import numpy as np
+
+# Create data with missing values
+df = pd.DataFrame({
+    'employee': ['Alice', 'Bob', 'Carol', 'Dave'],
+    'salary': [80000, np.nan, 90000, 85000],
+    'bonus': [5000, 6000, np.nan, 4000]
+})
+
+print("Original:")
+print(df)
+
+# Strategy 1: Drop missing values
+dropped = df.dropna()
+print("\\nDropped NaN rows:")
+print(dropped)
+
+# Strategy 2: Fill with median salary
+df_filled = df.copy()
+df_filled['salary'].fillna(df['salary'].median(), inplace=True)
+print("\\nFilled salary with median:")
+print(df_filled)
+
+# Strategy 3: Forward fill
+df_ffill = df.fillna(method='ffill')
+print("\\nForward filled:")
+print(df_ffill)`,
+        commonMistake: 'Using one missing-value strategy for all columns without considering context.',
+        practiceTask: 'Create a DataFrame with missing values. Apply three different strategies (drop, fill with mean, forward fill) and compare results.',
+        progressCheckQuestion: 'When is dropping rows with missing values appropriate?',
+        progressCheckOptions: [
+          'When missing values are rare and the row adds little information',
+          'Always, without considering the impact on analysis',
+          'Never, because filling is always better',
+          'Only when you have less than 10 rows of data'
+        ],
+        correctOptionIndex: 0
+      },
+      {
+        title: 'Pandas: Filtering and Selection',
+        objective: 'Select subsets of data based on conditions',
+        lesson: 'Filtering is extracting rows or columns matching criteria. Boolean indexing filters rows based on conditions (e.g., salary > 80000). loc selects by label/condition, iloc selects by integer position. Column selection uses bracket notation (df[\'column\']) or dot notation (df.column). These techniques let you focus on relevant subsets without modifying the original DataFrame, which is critical for exploratory data analysis.',
+        workedExample: `import pandas as pd
+
+df = pd.DataFrame({
+    'name': ['Alice', 'Bob', 'Carol', 'Dave'],
+    'department': ['Sales', 'Engineering', 'Sales', 'HR'],
+    'salary': [80000, 95000, 78000, 70000]
+})
+
+# Boolean filtering: select rows where salary > 75000
+high_salary = df[df['salary'] > 75000]
+print("High salary employees:")
+print(high_salary)
+
+# Multiple conditions
+sales_high = df[(df['department'] == 'Sales') & (df['salary'] > 75000)]
+print("\\nSales with high salary:")
+print(sales_high)
+
+# Select specific columns
+names_depts = df[['name', 'department']]
+print("\\nNames and departments:")
+print(names_depts)
+
+# Using loc and iloc
+print("\\nUsing loc (by label):")
+print(df.loc[df['name'] == 'Alice'])
+
+print("\\nUsing iloc (by position):")
+print(df.iloc[0:2])`,
+        commonMistake: 'Using = instead of == in conditions, which assigns instead of comparing.',
+        practiceTask: 'Create a DataFrame with 6 employees. Filter for Sales department with salary >= 80000. Select only name and salary columns.',
+        progressCheckQuestion: 'What does df[df["salary"] > 80000] return?',
+        progressCheckOptions: [
+          'A DataFrame with only rows where salary exceeds 80000',
+          'A single True/False value',
+          'All rows sorted by salary',
+          'An error because the syntax is wrong'
+        ],
+        correctOptionIndex: 0
+      },
+      {
+        title: 'Pandas: Grouping and Aggregation',
+        objective: 'Summarize data by groups using aggregation functions',
+        lesson: 'Grouping splits data into groups based on one or more columns, then applies aggregation functions (sum, mean, count, max, min) to each group. This is essential for business analysis: total sales by region, average salary by department, customer count by product category. The groupby method returns a GroupBy object; calling aggregate or agg applies the function. Multiple aggregations can be applied to different columns simultaneously. Mastering this technique is key to exploratory data analysis.',
+        workedExample: `import pandas as pd
+
+df = pd.DataFrame({
+    'department': ['Sales', 'Sales', 'Engineering', 'Engineering', 'HR'],
+    'employee': ['Alice', 'Bob', 'Carol', 'Dave', 'Eve'],
+    'salary': [80000, 78000, 95000, 92000, 70000]
+})
+
+# Group by department and calculate mean salary
+dept_salary = df.groupby('department')['salary'].mean()
+print("Average salary by department:")
+print(dept_salary)
+
+# Multiple aggregations
+agg_result = df.groupby('department').agg({
+    'salary': ['mean', 'max', 'min'],
+    'employee': 'count'
+})
+print("\\nMultiple aggregations:")
+print(agg_result)
+
+# Group by and transform (add result back to original data)
+df['dept_avg_salary'] = df.groupby('department')['salary'].transform('mean')
+print("\\nWith department average:")
+print(df)`,
+        commonMistake: 'Forgetting to apply an aggregation function, resulting in a GroupBy object instead of results.',
+        practiceTask: 'Create a sales DataFrame with product, region, and amount. Group by region and calculate total and average sales.',
+        progressCheckQuestion: 'What does df.groupby("department")["salary"].sum() return?',
+        progressCheckOptions: [
+          'The total salary for each department',
+          'The total salary of the entire company',
+          'A list of all salaries sorted',
+          'An error message'
+        ],
+        correctOptionIndex: 0
+      },
+      {
+        title: 'Pandas: Merging and Joining Data',
+        objective: 'Combine multiple DataFrames based on shared columns',
+        lesson: 'Real-world analysis often requires combining data from multiple sources. merge (or join) combines DataFrames based on a common column (key). Inner joins keep only matching rows, left joins keep all rows from the left DataFrame, right joins keep all rows from the right DataFrame, and outer joins keep all rows from both. Specifying the correct join type is critical because it determines what data is retained and what is discarded. Understanding merge is essential for multi-table analysis.',
+        workedExample: `import pandas as pd
+
+employees = pd.DataFrame({
+    'emp_id': [101, 102, 103],
+    'name': ['Alice', 'Bob', 'Carol'],
+    'dept_id': [10, 20, 10]
+})
+
+departments = pd.DataFrame({
+    'dept_id': [10, 20, 30],
+    'dept_name': ['Sales', 'Engineering', 'HR']
+})
+
+# Inner join: only matching rows
+merged = pd.merge(employees, departments, on='dept_id', how='inner')
+print("Inner join:")
+print(merged)
+
+# Left join: all employees, even without dept match
+left_merged = pd.merge(employees, departments, on='dept_id', how='left')
+print("\\nLeft join:")
+print(left_merged)`,
+        commonMistake: 'Using the wrong join type and losing data without realizing it.',
+        practiceTask: 'Create two DataFrames: customers (id, name) and orders (order_id, customer_id, amount). Perform a left join to show all customers with their orders.',
+        progressCheckQuestion: 'What is the difference between inner and left join?',
+        progressCheckOptions: [
+          'Inner keeps only matching rows; left keeps all left DataFrame rows',
+          'They are identical and can be used interchangeably',
+          'Left join is always faster than inner join',
+          'Inner join removes duplicate rows automatically'
+        ],
+        correctOptionIndex: 0
+      },
+      {
+        title: 'Matplotlib: Line and Area Charts',
+        objective: 'Visualize trends over time with line and area charts',
+        lesson: 'Line charts show trends over time or continuous values. Area charts are line charts filled with color underneath. Both are ideal for time-series data: stock prices, website traffic, temperature, sales trends. Matplotlib\'s plot function creates lines. Adding labels, titles, legends, and gridlines makes charts readable. Area charts use fill_between or stackplot for stacked areas. Understanding these basics is essential because visualizations communicate patterns that raw numbers hide.',
+        workedExample: `import matplotlib.pyplot as plt
+import numpy as np
+
+# Time-series data
+months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']
+sales = [1000, 1500, 2000, 1800, 2500, 3000]
+expenses = [600, 700, 800, 750, 900, 950]
+
+# Line chart
+plt.figure(figsize=(10, 6))
+plt.plot(months, sales, marker='o', label='Sales', linewidth=2)
+plt.plot(months, expenses, marker='s', label='Expenses', linewidth=2)
+plt.title('Monthly Sales vs Expenses', fontsize=14, fontweight='bold')
+plt.xlabel('Month')
+plt.ylabel('Amount ($)')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.show()
+
+# Area chart
+plt.figure(figsize=(10, 6))
+plt.fill_between(range(len(months)), sales, alpha=0.5, label='Sales')
+plt.plot(range(len(months)), sales, marker='o', linewidth=2)
+plt.xticks(range(len(months)), months)
+plt.title('Sales Trend Over Time', fontsize=14)
+plt.ylabel('Sales ($)')
+plt.legend()
+plt.show()`,
+        commonMistake: 'Creating charts without labels or titles, making them confusing to viewers.',
+        practiceTask: 'Create a line chart showing temperature over 7 days. Add labels, title, legend, and format the y-axis to show Fahrenheit.',
+        progressCheckQuestion: 'When is a line chart most appropriate?',
+        progressCheckOptions: [
+          'For showing trends over time or continuous values',
+          'For comparing categories with no time element',
+          'Only when data has 100+ points',
+          'Never, area charts are always better'
+        ],
+        correctOptionIndex: 0
+      },
+      {
+        title: 'Matplotlib: Bar and Histogram Charts',
+        objective: 'Compare categories and show distributions',
+        lesson: 'Bar charts compare values across categories (sales by region, employees by department). Histograms show distributions of numerical data (height distribution, salary distribution). Bar charts use bar(), histograms use hist(). Bar charts have discrete categories on the x-axis; histograms have continuous bins. Both are essential for exploratory data analysis and business reporting. Adding value labels on bars and controlling bin sizes for histograms improves readability.',
+        workedExample: `import matplotlib.pyplot as plt
+import numpy as np
+
+# Bar chart: categories
+departments = ['Sales', 'Engineering', 'HR', 'Finance']
+headcount = [15, 25, 8, 10]
+
+plt.figure(figsize=(10, 6))
+bars = plt.bar(departments, headcount, color=['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728'])
+# Add value labels on bars
+for i, v in enumerate(headcount):
+    plt.text(i, v + 0.5, str(v), ha='center', fontweight='bold')
+plt.title('Headcount by Department', fontsize=14, fontweight='bold')
+plt.ylabel('Number of Employees')
+plt.show()
+
+# Histogram: distribution
+salaries = np.array([50000, 55000, 60000, 65000, 70000, 75000, 80000, 85000, 90000, 95000, 100000, 105000])
+plt.figure(figsize=(10, 6))
+plt.hist(salaries, bins=5, edgecolor='black', alpha=0.7, color='steelblue')
+plt.title('Salary Distribution', fontsize=14, fontweight='bold')
+plt.xlabel('Salary ($)')
+plt.ylabel('Frequency')
+plt.show()`,
+        commonMistake: 'Using histograms for categorical data or not adjusting bin count appropriately.',
+        practiceTask: 'Create a bar chart showing sales by product (3-5 products). Add value labels on each bar.',
+        progressCheckQuestion: 'What is the main difference between a bar chart and a histogram?',
+        progressCheckOptions: [
+          'Bar charts compare categories; histograms show distributions of continuous data',
+          'They are identical and terms are interchangeable',
+          'Histograms are always better than bar charts',
+          'Bar charts can only show numbers up to 100'
+        ],
+        correctOptionIndex: 0
+      },
+      {
+        title: 'Matplotlib: Scatter Plots and Correlation',
+        objective: 'Visualize relationships between two numerical variables',
+        lesson: 'Scatter plots show the relationship between two continuous variables. Each point represents one observation. Patterns in scatter plots reveal correlations: positive (variables increase together), negative (one increases, other decreases), or none (random). Adding trend lines, color-coding, and size encoding adds dimensionality. Scatter plots are essential for exploratory analysis because they reveal patterns that summary statistics hide. Understanding correlation visually helps decide whether two variables should be used together in analysis.',
+        workedExample: `import matplotlib.pyplot as plt
+import numpy as np
+
+# Create sample data
+np.random.seed(42)
+experience = np.random.randint(1, 20, 20)
+salary = 50000 + experience * 3000 + np.random.randn(20) * 5000
+
+plt.figure(figsize=(10, 6))
+plt.scatter(experience, salary, s=100, alpha=0.6, color='steelblue', edgecolor='black')
+
+# Add trend line
+z = np.polyfit(experience, salary, 1)
+p = np.poly1d(z)
+plt.plot(experience, p(experience), "r--", linewidth=2, label='Trend')
+
+plt.title('Experience vs Salary', fontsize=14, fontweight='bold')
+plt.xlabel('Years of Experience')
+plt.ylabel('Salary ($)')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.show()`,
+        commonMistake: 'Assuming correlation implies causation, or overlapping points obscuring true relationships.',
+        practiceTask: 'Create a scatter plot with 20+ data points showing the relationship between two variables. Add a trend line and correlation coefficient.',
+        progressCheckQuestion: 'What does a scatter plot best reveal?',
+        progressCheckOptions: [
+          'The relationship and correlation between two continuous variables',
+          'A single variable\'s distribution alone',
+          'Categorical comparisons without context',
+          'Nothing useful compared to bar charts'
+        ],
+        correctOptionIndex: 0
+      },
+      {
+        title: 'Matplotlib: Subplots and Multi-Panel Layouts',
+        objective: 'Create dashboard-like visualizations with multiple charts',
+        lesson: 'A single figure can contain multiple subplots using subplots(). Specify rows and columns to create a grid (e.g., 2x2 for four charts). Each subplot is a separate axes object, allowing different chart types and data in each. Subplots are essential for comparative analysis: showing multiple metrics at once, comparing before/after, or displaying similar analyses for different groups. Tight layouts and proper spacing ensure readability.',
+        workedExample: `import matplotlib.pyplot as plt
+import numpy as np
+
+# Create data
+months = ['Jan', 'Feb', 'Mar', 'Apr']
+sales = [1000, 1500, 2000, 2500]
+expenses = [600, 700, 800, 900]
+regions = ['North', 'South', 'East', 'West']
+regional_sales = [5000, 6000, 4500, 5500]
+
+# 2x2 subplot grid
+fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+
+# Subplot 1: Line chart (top-left)
+axes[0, 0].plot(months, sales, marker='o', color='blue')
+axes[0, 0].set_title('Monthly Sales Trend')
+axes[0, 0].set_ylabel('Sales ($)')
+
+# Subplot 2: Bar chart (top-right)
+axes[0, 1].bar(months, expenses, color='red')
+axes[0, 1].set_title('Monthly Expenses')
+axes[0, 1].set_ylabel('Expense ($)')
+
+# Subplot 3: Pie chart (bottom-left)
+axes[1, 0].pie(regional_sales, labels=regions, autopct='%1.1f%%')
+axes[1, 0].set_title('Sales by Region')
+
+# Subplot 4: Scatter plot (bottom-right)
+x = np.random.randn(20)
+y = np.random.randn(20)
+axes[1, 1].scatter(x, y, alpha=0.6)
+axes[1, 1].set_title('Random Data')
+
+plt.tight_layout()
+plt.show()`,
+        commonMistake: 'Creating too many subplots, making the figure cluttered and hard to read.',
+        practiceTask: 'Create a 2x2 subplot grid with line chart, bar chart, histogram, and scatter plot. Add titles and labels to each.',
+        progressCheckQuestion: 'When should you use subplots instead of separate figures?',
+        progressCheckOptions: [
+          'When comparing multiple metrics or views that relate to the same analysis',
+          'Only when your computer has limited memory',
+          'Never, separate figures are always clearer',
+          'When you want to confuse the audience'
+        ],
+        correctOptionIndex: 0
+      },
+      {
+        title: 'Teach-First Flow: Concept, Walkthrough, Practice, Checkpoint',
+        objective: 'Master the methodology for teaching and learning technical topics',
+        lesson: 'The Teach-First Flow is a four-step learning framework: 1) Concept: understand the "why" and core principles through explanation and analogy, 2) Guided Walkthrough: follow step-by-step annotated code with expected outputs, 3) Practice Task: apply the concept to a similar but distinct problem independently, 4) Checkpoint: answer quiz questions to validate understanding. This flow activates different learning modalities: explanation builds conceptual understanding, code examples show application, practice builds muscle memory, and checkpoints confirm readiness. Using this flow for any technical skill accelerates learning and retention.',
+        workedExample: `# The Teach-First Flow Applied to "Data Cleaning"
+
+# CONCEPT: Why clean data matters
+# Raw data has missing values, duplicates, inconsistent formats, and outliers.
+# Data cleaning is the process of detecting and correcting these issues.
+# Clean data leads to accurate analysis; dirty data leads to wrong conclusions.
+
+# GUIDED WALKTHROUGH: See it working
+import pandas as pd
+import numpy as np
+
+df = pd.DataFrame({
+    'employee': ['Alice', 'Bob', 'Carol', 'Alice'],
+    'salary': [80000, np.nan, 90000, 80000],
+    'hire_date': ['2020-01-15', '2019-05-20', np.nan, '2020-01-15']
+})
+
+# Step 1: Check for duplicates
+print(df.duplicated())
+df_clean = df.drop_duplicates()
+
+# Step 2: Handle missing values
+df_clean = df_clean.dropna(subset=['salary'])
+
+# Step 3: Standardize formats
+df_clean['hire_date'] = pd.to_datetime(df_clean['hire_date'])
+
+print(df_clean)
+
+# PRACTICE TASK: Clean a messier dataset independently
+# (Student would receive a new CSV with similar issues and apply the techniques)
+
+# CHECKPOINT: Quiz questions
+# Q: What does drop_duplicates() do?
+# A: It removes rows that are identical to previous rows
+`,
+        commonMistake: 'Skipping the concept phase and jumping directly to code, missing the intuition.',
+        practiceTask: 'Choose a technical concept you learned recently. Write a concept explanation, find/create a code example, design a practice task, and create 2-3 checkpoint questions.',
+        progressCheckQuestion: 'Why is the Concept step important in the Teach-First Flow?',
+        progressCheckOptions: [
+          'It builds intuition and understanding before diving into code details',
+          'It is optional and can be skipped if you are short on time',
+          'It is only useful for beginners, not for experienced learners',
+          'It makes learning slower without any real benefit'
+        ],
+        correctOptionIndex: 0
+      },
+      {
+        title: 'Integrated Capstone: End-to-End Data Science Workflow',
+        objective: 'Apply all five sections to a realistic employee analytics project',
+        lesson: 'Your capstone project brings together Python fundamentals, NumPy array operations, Pandas data manipulation, Matplotlib visualization, and the Teach-First Flow framework. Given a messy employee dataset, you will: 1) Load and explore the data (Python + Pandas), 2) Clean missing values and detect outliers (Pandas), 3) Calculate derived metrics like years of service and salary percentiles (NumPy + Pandas), 4) Group by department and compute summaries (Pandas), 5) Merge with a departments table (Pandas merge), and 6) Create a multi-panel dashboard (Matplotlib subplots). This end-to-end workflow mirrors real data science work.',
+        workedExample: `# Capstone: Employee Analytics Dashboard
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+# 1. LOAD & EXPLORE
+df = pd.read_csv('employees.csv')
+print(df.head())
+print(df.info())
+print(df.describe())
+
+# 2. CLEAN
+df['salary'].fillna(df.groupby('department')['salary'].transform('median'), inplace=True)
+df = df.drop_duplicates()
+
+# 3. CALCULATE
+df['years_service'] = (pd.Timestamp.now() - df['hire_date']).dt.days / 365.25
+df['salary_percentile'] = df['salary'].rank(pct=True) * 100
+
+# 4. GROUP & AGGREGATE
+dept_stats = df.groupby('department').agg({
+    'salary': ['mean', 'min', 'max'],
+    'employee_id': 'count'
+})
+print(dept_stats)
+
+# 5. MERGE
+depts = pd.read_csv('departments.csv')
+df = df.merge(depts, on='dept_id', how='left')
+
+# 6. VISUALIZE
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+axes[0, 0].hist(df['salary'], bins=20, color='steelblue')
+axes[0, 0].set_title('Salary Distribution')
+axes[0, 1].bar(dept_stats.index, dept_stats[('salary', 'mean')])
+axes[0, 1].set_title('Avg Salary by Department')
+axes[1, 0].scatter(df['years_service'], df['salary'], alpha=0.6)
+axes[1, 0].set_title('Tenure vs Salary')
+axes[1, 1].pie(df['department'].value_counts(), labels=df['department'].unique())
+axes[1, 1].set_title('Headcount by Department')
+plt.tight_layout()
+plt.savefig('employee_dashboard.png', dpi=300)`,
+        commonMistake: 'Skipping steps or not validating data at each stage, leading to downstream errors.',
+        practiceTask: 'Complete the capstone using a provided employee dataset or simulated CSV. Produce cleaned data, a summary DataFrame, and a 2x2 visualization dashboard.',
+        progressCheckQuestion: 'What is the main purpose of a capstone project in data science?',
+        progressCheckOptions: [
+          'To integrate multiple skills into an end-to-end workflow and demonstrate mastery',
+          'To practice only the most difficult topic in isolation',
+          'To replace all the earlier modules with a single exercise',
+          'To show that you can write code without understanding concepts'
+        ],
+        correctOptionIndex: 0
+      }
+    ],
+    capstoneProject: {
+      title: 'Python Data Science Capstone: Employee Analytics Dashboard',
+      scenario: 'You are given a messy employee dataset (CSV) with employee names, departments, hire dates, salaries, performance scores, and regional information. Your task is to load, clean, transform, and visualize the data to create an employee analytics dashboard.',
+      deliverables: [
+        'Cleaned DataFrame with no duplicates and minimal missing values',
+        'Summary statistics by department (mean salary, headcount, years of service)',
+        'Multi-panel visualization (2x2 subplots) showing salary distribution, departmental comparisons, tenure trends, and regional breakdown',
+        'A brief written analysis identifying 2-3 key insights from the data'
+      ]
+    },
+    practiceBank: [],
+    finalAssessment: [
+      {
+        question: 'What is the primary advantage of using NumPy arrays over Python lists?',
+        options: [
+          'NumPy arrays are 10-100x faster for numerical operations',
+          'NumPy arrays can store mixed data types',
+          'NumPy arrays are easier to read',
+          'NumPy arrays have better variable names'
+        ],
+        correctOptionIndex: 0,
+        explanation: 'NumPy arrays are optimized for numerical computing and use vectorization, making them much faster than Python loops.',
+        domainKey: 'foundations',
+        domainLabel: 'Foundations & Planning'
+      },
+      {
+        question: 'Which Pandas method combines two DataFrames based on a common column?',
+        options: [
+          'merge() or join()',
+          'concat()',
+          'combine()',
+          'union()'
+        ],
+        correctOptionIndex: 0,
+        explanation: 'merge() and join() combine DataFrames using keys, while concat() stacks them vertically.',
+        domainKey: 'execution',
+        domainLabel: 'Execution & Quality'
+      },
+      {
+        question: 'What does the Teach-First Flow sequence consist of?',
+        options: [
+          'Concept → Walkthrough → Practice → Checkpoint',
+          'Concept → Quiz → Code → Test',
+          'Code → Theory → Practice → Evaluation',
+          'Tools → Libraries → Models → Deployment'
+        ],
+        correctOptionIndex: 0,
+        explanation: 'The Teach-First Flow prioritizes understanding (concept) before walking through code, practicing independently, and validating with checkpoints.',
+        domainKey: 'foundations',
+        domainLabel: 'Foundations & Planning'
+      },
+      {
+        question: 'Which Matplotlib function creates a grid of multiple charts?',
+        options: [
+          'subplots()',
+          'scatter()',
+          'axes()',
+          'grid()'
+        ],
+        correctOptionIndex: 0,
+        explanation: 'subplots() creates a figure with multiple axes arranged in a grid.',
+        domainKey: 'execution',
+        domainLabel: 'Execution & Quality'
+      },
+      {
+        question: 'How should missing values be handled if they represent less than 5% of your data?',
+        options: [
+          'Drop the rows with dropna() since the impact is minimal',
+          'Fill with the median or mean of the column',
+          'Keep them as NaN without investigation',
+          'Convert them all to zero'
+        ],
+        correctOptionIndex: 0,
+        explanation: 'When missing values are rare, dropping them is often simpler than imputing. Always evaluate context and the reason for missing data.',
+        domainKey: 'execution',
+        domainLabel: 'Execution & Quality'
+      },
+      {
+        question: 'What does boolean indexing do in NumPy?',
+        options: [
+          'Filters an array based on a condition, returning only True elements',
+          'Converts all array values to True or False',
+          'Checks if an array is empty',
+          'Sorts an array in ascending order'
+        ],
+        correctOptionIndex: 0,
+        explanation: 'Boolean indexing uses a condition (e.g., arr > 10) to create a mask and return only elements where the condition is True.',
+        domainKey: 'execution',
+        domainLabel: 'Execution & Quality'
+      }
+    ],
+    mockExams: [],
+    certificationPlan: {
+      trackLabel: 'Python Data Science certification pathway',
+      overallPassMark: 75,
+      domainPassMark: 70,
+      practiceQuestionCount: 0,
+      finalQuestionCount: 6,
+      mockExamCount: 0,
+      mockQuestionCount: 0,
+      domains: getCertificationDomains()
+    },
+    interviewPrep: [
+      'Practice explaining your capstone project step-by-step: data loading, cleaning, transformation, grouping, merging, and visualization.',
+      'Be ready to describe one challenge you faced during data cleaning and how you resolved it.',
+      'Prepare to discuss why vectorization with NumPy is faster than loops and when you would use it.'
+    ],
+    resumeSignals: [
+      'Python data science workflow design using NumPy, Pandas, and Matplotlib',
+      'Data cleaning, exploration, and transformation with real-world datasets',
+      'End-to-end analytics projects from raw CSV to dashboard visualization'
+    ]
+  };
+}
+
 function buildFallbackCourseContent(topic) {
   const courseTitle = String(topic || 'Professional Course').trim() || 'Professional Course';
   const actionName = courseTitle.replace(/\s+/g, ' ').trim();
   const certificationPlan = buildCertificationPlan(actionName);
+  
+  // Special handling for Python Programming / Data Science topics
+  if (/python.*programming|python.*data.*science/i.test(actionName)) {
+    return loadPythonDataScienceCourse();
+  }
+  
   if (/ai|machine learning|ml|deep learning|data science|artificial intelligence|neural|nlp|computer vision/i.test(actionName)) {
     const seededAssessment = [
       {
