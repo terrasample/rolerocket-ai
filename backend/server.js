@@ -5610,37 +5610,30 @@ app.post('/api/documents/email', authenticateToken, async (req, res) => {
       .replace(/^-+|-+$/g, '')
       .slice(0, 80) || 'rolerocket-document';
 
-    const attachments = [];
-    if (htmlContent) {
-      attachments.push({
-        filename: `${safeFileBase}.html`,
-        content: htmlContent,
-        contentType: 'text/html; charset=utf-8'
-      });
-    }
-    if (textContent) {
-      attachments.push({
-        filename: `${safeFileBase}.txt`,
-        content: textContent,
-        contentType: 'text/plain; charset=utf-8'
-      });
-    }
-
     const firstName = String(user.name || '').trim().split(/\s+/)[0] || 'there';
-    const subject = `${safeFeature} from RoleRocket AI`;
+    const subject = `Your ${safeFeature} – RoleRocket AI`;
+
+    // Send document content inline in the email body (not as an attachment)
+    // to avoid spam filters that block .html/.txt attachments
+    const emailHtml = htmlContent
+      ? `<div style="font-family:Segoe UI,Arial,sans-serif;color:#0f172a;line-height:1.6;max-width:700px;margin:0 auto;">
+          <div style="border-bottom:2px solid #2563eb;padding-bottom:12px;margin-bottom:24px;">
+            <h2 style="margin:0;color:#1e3a5f;font-size:1.25rem;">Your ${safeFeature}</h2>
+            <p style="margin:4px 0 0;color:#64748b;font-size:0.85rem;">Sent from RoleRocket AI</p>
+          </div>
+          ${htmlContent}
+        </div>`
+      : `<pre style="font-family:Calibri,Arial,sans-serif;white-space:pre-wrap;font-size:11pt;">${textContent.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>`;
+
+    const emailText = textContent || `Hi ${firstName}, your ${safeFeature} is ready. Sent from RoleRocket AI.`;
+
+    console.log(`[document-email] Sending ${safeFeature} to ${recipientEmail}`);
 
     await sendEmail({
       to: recipientEmail,
       subject,
-      html: `
-        <div style="font-family:Segoe UI,Arial,sans-serif;color:#0f172a;line-height:1.6;max-width:640px;">
-          <h2 style="margin:0 0 10px;">Your ${safeFeature}</h2>
-          <p style="margin:0 0 12px;">Hi ${firstName}, your document is attached.</p>
-          <p style="margin:0;color:#475569;font-size:13px;">Sent from RoleRocket AI.</p>
-        </div>
-      `,
-      text: `Hi ${firstName}, your ${safeFeature} is attached. Sent from RoleRocket AI.`,
-      attachments
+      html: emailHtml,
+      text: emailText
     });
 
     return res.json({

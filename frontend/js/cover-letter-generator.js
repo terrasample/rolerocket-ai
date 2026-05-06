@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const cleaned = trailing
       .map((part) => part.replace(/\s+/g, ' ').trim())
-      .filter((part) => /^[A-Za-z0-9.'\-\/() ]{2,18}$/.test(part));
+      .filter((part) => /^[A-Za-z0-9.'\-\/()®™ ]{2,22}$/.test(part));
 
     if (!cleaned.length) return '';
 

@@ -3,7 +3,7 @@
   const STEP_META = {
     resume: { label: 'Save your resume', href: 'dashboard.html#resume' },
     tailor: { label: 'Tailor for one role', href: 'resume-generator.html' },
-    interview: { label: 'Practice one hard question', href: 'ai-interview-assist.html' },
+    interview: { label: 'Practice one hard question', href: 'interview-prep-ai.html' },
     pipeline: { label: 'Save one target job', href: 'job-tracking.html' }
   };
 
