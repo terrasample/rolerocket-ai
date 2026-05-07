@@ -1335,7 +1335,7 @@
       'CONTACT',
       '─────────────────────────────────────────────────────',
       'RoleRocket AI | Jamaica Workforce Accelerator Division',
-      'For partnership inquiries: contact@rolerocketai.com',
+      'For partnership inquiries: partnerships@rolerocketai.com',
       '',
       '© 2026 RoleRocket AI. All rights reserved.',
     ];

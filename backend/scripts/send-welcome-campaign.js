@@ -11,7 +11,7 @@ const SMTP_HOST = process.env.SMTP_HOST;
 const SMTP_PORT = Number(process.env.SMTP_PORT) || 587;
 const SMTP_USER = process.env.SMTP_USER;
 const SMTP_PASS = process.env.SMTP_PASS;
-const SMTP_FROM = process.env.SMTP_FROM || 'noreply@rolerocketai.com';
+const SMTP_FROM = process.env.SMTP_FROM || 'info@rolerocketai.com';
 const CLIENT_URL = process.env.CLIENT_URL || 'https://www.rolerocketai.com';
 
 const isLive = process.argv.includes('--live');

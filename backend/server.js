@@ -1161,7 +1161,7 @@ async function sendEmail({ to, subject, html, text, attachments }) {
     console.warn('Email not configured: set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS in env.');
     return;
   }
-  const fromAddress = process.env.SMTP_FROM || 'noreply@rolerocketai.com';
+  const fromAddress = process.env.SMTP_FROM || 'info@rolerocketai.com';
   await withTimeout(transporter.sendMail({
     from: `"RoleRocket AI" <${fromAddress}>`,
     to,
@@ -1723,7 +1723,15 @@ app.post('/api/contact', async (req, res) => {
       return res.status(400).json({ error: 'A valid email is required.' });
     }
 
-    const contactRecipient = process.env.CONTACT_TO || 'Prince@rolerocketai.com';
+    const supportRecipient = process.env.SUPPORT_TO || process.env.CONTACT_TO || 'support@rolerocketai.com';
+    const partnershipsRecipient = process.env.PARTNERSHIPS_TO || 'partnerships@rolerocketai.com';
+    const careersRecipient = process.env.CAREERS_TO || 'careers@rolerocketai.com';
+    const subjectLower = subject.toLowerCase();
+    const contactRecipient = subjectLower.includes('partner') || subjectLower.includes('partnership')
+      ? partnershipsRecipient
+      : (subjectLower.includes('career') || subjectLower.includes('job') || subjectLower.includes('hiring')
+        ? careersRecipient
+        : supportRecipient);
     await sendEmail({
       to: contactRecipient,
       subject: `Contact Form: ${subject}`,

@@ -31,7 +31,7 @@ const transporter = nodemailer.createTransport({
 const html = getWelcomeEmailHtml('Prince', CLIENT_URL.replace(/\/$/, ''));
 
 transporter.sendMail({
-  from: `"RoleRocket AI" <${process.env.SMTP_FROM || 'noreply@rolerocketai.com'}>`,
+  from: `"RoleRocket AI" <${process.env.SMTP_FROM || 'info@rolerocketai.com'}>`,
   to: TO,
   subject: 'Welcome to RoleRocket AI, Prince 🚀',
   html
