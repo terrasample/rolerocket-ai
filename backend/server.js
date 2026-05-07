@@ -1306,6 +1306,88 @@ function normalizeIncomingWhatsAppText(body = '') {
   return String(body || '').replace(/\s+/g, ' ').trim();
 }
 
+function extractWhatsAppInboundAudioMedia(payload = {}) {
+  const mediaCount = Math.max(0, Number(payload?.NumMedia || 0));
+  if (!mediaCount) return null;
+
+  for (let i = 0; i < mediaCount; i += 1) {
+    const mediaUrl = String(payload[`MediaUrl${i}`] || '').trim();
+    const contentType = String(payload[`MediaContentType${i}`] || '').trim().toLowerCase();
+    if (!mediaUrl) continue;
+
+    const isAudio = /^audio\//.test(contentType) || /(ogg|opus|mpeg|mp3|m4a|wav|aac|webm)/.test(contentType);
+    if (isAudio) {
+      return {
+        mediaUrl,
+        contentType: contentType || 'audio/ogg'
+      };
+    }
+  }
+
+  return null;
+}
+
+function getAudioExtensionFromMimeType(mimeType = '') {
+  const normalized = String(mimeType || '').toLowerCase();
+  if (normalized.includes('ogg') || normalized.includes('opus')) return '.ogg';
+  if (normalized.includes('mpeg') || normalized.includes('mp3')) return '.mp3';
+  if (normalized.includes('m4a') || normalized.includes('mp4')) return '.m4a';
+  if (normalized.includes('wav')) return '.wav';
+  if (normalized.includes('webm')) return '.webm';
+  if (normalized.includes('aac')) return '.aac';
+  return '.ogg';
+}
+
+async function transcribeWhatsAppVoiceNote(media = null) {
+  if (!media?.mediaUrl || !process.env.OPENAI_API_KEY) return '';
+  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN) return '';
+
+  try {
+    const auth = Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString('base64');
+    const response = await fetch(media.mediaUrl, {
+      headers: {
+        Authorization: `Basic ${auth}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch WhatsApp media (${response.status})`);
+    }
+
+    const audioBuffer = Buffer.from(await response.arrayBuffer());
+    if (!audioBuffer.length) return '';
+
+    const mimeType = String(media.contentType || 'audio/ogg').toLowerCase();
+    const extension = getAudioExtensionFromMimeType(mimeType);
+    const prompt = 'Transcribe this WhatsApp job-seeker voice note accurately. Return plain text only.';
+
+    async function transcribeWithModel(modelName) {
+      const audioFile = new File([audioBuffer], `whatsapp-voice${extension}`, { type: mimeType });
+      return openai.audio.transcriptions.create({
+        file: audioFile,
+        model: modelName,
+        prompt
+      });
+    }
+
+    let transcription;
+    try {
+      transcription = await transcribeWithModel('gpt-4o-mini-transcribe');
+    } catch (_firstErr) {
+      transcription = await transcribeWithModel('whisper-1');
+    }
+
+    return String(
+      typeof transcription === 'string'
+        ? transcription
+        : transcription?.text || transcription?.data?.text || ''
+    ).trim();
+  } catch (error) {
+    console.warn('WhatsApp voice transcription fallback:', error.message);
+    return '';
+  }
+}
+
 function getWhatsAppNextStepPrompt() {
   return 'Next: 1 Jobs | 2 Resume | 3 Interview | 0 Human';
 }
@@ -1434,13 +1516,14 @@ async function generateInterviewPrepForWhatsApp(targetRole = '') {
   }
 }
 
-async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '') {
+async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '', inboundAudioMedia = null) {
   const phone = normalizeWhatsAppPhone(from);
   const incoming = normalizeIncomingWhatsAppText(body);
+  const hasInboundAudio = !!inboundAudioMedia?.mediaUrl;
   const text = incoming.toLowerCase();
 
   if (!phone) return 'Could not identify your number. Please try again.';
-  if (!incoming) return `${getWhatsAppMenuText()}\n\nType START to begin.`;
+  if (!incoming && !hasInboundAudio) return `${getWhatsAppMenuText()}\n\nType START to begin.`;
 
   const [profile, conversation] = await Promise.all([
     WhatsAppRecruitingUser.findOne({ phone }),
@@ -1464,7 +1547,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     };
   }
 
-  convo.lastInboundMessage = incoming;
+  convo.lastInboundMessage = incoming || (hasInboundAudio ? '[Voice note]' : '');
   convo.lastInboundAt = new Date();
 
   if (['stop', 'unsubscribe', 'optout', 'opt out'].includes(text)) {
@@ -1539,7 +1622,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     convo.lastIntent = 'resume';
     convo.currentStep = 'resume_capture';
     const reply = [
-      'Step 1/2: Send your recent work experience.',
+      'Step 1/2: Send recent work (text or voice note).',
       'I will rewrite it into stronger bullets.',
       'Designed to improve interview chances.'
     ].join('\n');
@@ -1673,12 +1756,29 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   }
 
   if (convo.currentStep === 'resume_capture') {
-    user.resumeText = incoming.slice(0, 12000);
+    let resumeSource = incoming;
+    let usedVoiceTranscription = false;
+
+    if (!resumeSource && hasInboundAudio) {
+      resumeSource = await transcribeWhatsAppVoiceNote(inboundAudioMedia);
+      usedVoiceTranscription = !!resumeSource;
+    }
+
+    if (!resumeSource) {
+      const reply = 'Send your work history as text or a clear voice note.';
+      convo.lastOutboundMessage = reply;
+      convo.lastOutboundAt = new Date();
+      await convo.save();
+      return reply;
+    }
+
+    user.resumeText = resumeSource.slice(0, 12000);
     user.lastIntent = 'resume';
     convo.lastIntent = 'resume';
     convo.currentStep = 'menu';
-    const rewrite = await generateResumeRewriteForWhatsApp(incoming);
-    const reply = `${rewrite}\n\nReply 1 Jobs | 3 Interview | 0 Human`;
+    const rewrite = await generateResumeRewriteForWhatsApp(resumeSource);
+    const prefix = usedVoiceTranscription ? 'Voice note transcribed.\n' : '';
+    const reply = `${prefix}${rewrite}\n\nReply 1 Jobs | 3 Interview | 0 Human`;
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
     await Promise.all([user.save(), convo.save()]);
@@ -2188,7 +2288,8 @@ app.post('/api/whatsapp/incoming', express.urlencoded({ extended: false }), asyn
     const from = String(req.body?.From || '').trim();
     const body = String(req.body?.Body || '').trim();
     const messageSid = String(req.body?.MessageSid || req.body?.SmsMessageSid || '').trim();
-    const reply = await handleWhatsAppRecruitingMessage(from, body, messageSid);
+    const inboundAudioMedia = extractWhatsAppInboundAudioMedia(req.body || {});
+    const reply = await handleWhatsAppRecruitingMessage(from, body, messageSid, inboundAudioMedia);
     return res.status(200).type('text/xml').send(buildWhatsAppTwiml(reply));
   } catch (error) {
     console.error('WhatsApp incoming webhook error:', error);
