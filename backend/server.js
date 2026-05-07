@@ -1388,6 +1388,230 @@ async function transcribeWhatsAppVoiceNote(media = null) {
   }
 }
 
+const WHATSAPP_AI_RATE_LIMITS = {
+  transcribe: { perHour: 8, perDay: 20 },
+  resume_rewrite: { perHour: 6, perDay: 16 },
+  interview_prep: { perHour: 8, perDay: 24 }
+};
+
+const whatsappAiUsage = new Map();
+
+function getWhatsAppAiUsageEntry(phone = '') {
+  const key = String(phone || '').trim();
+  if (!key) return null;
+  if (!whatsappAiUsage.has(key)) {
+    whatsappAiUsage.set(key, {
+      features: {},
+      hourlyWindowStart: Date.now(),
+      dailyWindowStart: Date.now()
+    });
+  }
+  return whatsappAiUsage.get(key);
+}
+
+function consumeWhatsAppAiCredit(phone = '', feature = '') {
+  const limits = WHATSAPP_AI_RATE_LIMITS[feature];
+  if (!limits) return { ok: true, retryAfterMinutes: 0 };
+
+  const entry = getWhatsAppAiUsageEntry(phone);
+  if (!entry) return { ok: true, retryAfterMinutes: 0 };
+
+  const now = Date.now();
+  const oneHourMs = 60 * 60 * 1000;
+  const oneDayMs = 24 * oneHourMs;
+
+  if (now - entry.hourlyWindowStart >= oneHourMs) {
+    entry.hourlyWindowStart = now;
+    Object.keys(entry.features).forEach((key) => {
+      entry.features[key] = { ...(entry.features[key] || {}), hourCount: 0 };
+    });
+  }
+
+  if (now - entry.dailyWindowStart >= oneDayMs) {
+    entry.dailyWindowStart = now;
+    Object.keys(entry.features).forEach((key) => {
+      entry.features[key] = { ...(entry.features[key] || {}), dayCount: 0 };
+    });
+  }
+
+  const counters = entry.features[feature] || { hourCount: 0, dayCount: 0 };
+  if (counters.hourCount >= limits.perHour) {
+    const retryMs = Math.max(60 * 1000, oneHourMs - (now - entry.hourlyWindowStart));
+    return { ok: false, retryAfterMinutes: Math.ceil(retryMs / 60000) };
+  }
+
+  if (counters.dayCount >= limits.perDay) {
+    const retryMs = Math.max(60 * 1000, oneDayMs - (now - entry.dailyWindowStart));
+    return { ok: false, retryAfterMinutes: Math.ceil(retryMs / 60000) };
+  }
+
+  entry.features[feature] = {
+    hourCount: counters.hourCount + 1,
+    dayCount: counters.dayCount + 1
+  };
+
+  return { ok: true, retryAfterMinutes: 0 };
+}
+
+async function trackWhatsAppTelemetry(phone = '', event = '', meta = {}) {
+  if (!event) return;
+  try {
+    await Telemetry.create({
+      sessionId: String(phone || ''),
+      event,
+      funnel: 'whatsapp-recruiting',
+      page: 'whatsapp',
+      variant: 'v2',
+      meta: {
+        ...(meta && typeof meta === 'object' ? meta : {}),
+        channel: 'whatsapp'
+      },
+      userAgent: 'twilio-whatsapp-webhook'
+    });
+  } catch (_err) {
+    // Best effort only.
+  }
+}
+
+function detectWhatsAppIntent(text = '') {
+  const normalized = String(text || '').toLowerCase().trim();
+  if (!normalized) return { intent: 'unclear', confidence: 0, topScore: 0, tie: false };
+
+  const score = {
+    jobs: 0,
+    resume: 0,
+    interview: 0,
+    status: 0,
+    human: 0
+  };
+
+  if (normalized === '1') score.jobs += 10;
+  if (normalized === '2') score.resume += 10;
+  if (normalized === '3') score.interview += 10;
+  if (normalized === '0') score.human += 10;
+  if (normalized === 'status') score.status += 10;
+
+  if (/\bjob|jobs|apply|vacanc|hiring|position\b/.test(normalized)) score.jobs += 3;
+  if (/\bresume|cv|experience|work history|rewrite\b/.test(normalized)) score.resume += 3;
+  if (/\binterview|prep|question|mock\b/.test(normalized)) score.interview += 3;
+  if (/\bstatus|tracked|application\b/.test(normalized)) score.status += 3;
+  if (/\bhuman|agent|support|live\b/.test(normalized)) score.human += 3;
+
+  const ranked = Object.entries(score).sort((a, b) => b[1] - a[1]);
+  const [topIntent, topScore] = ranked[0];
+  const secondScore = ranked[1]?.[1] || 0;
+  const tie = topScore > 0 && topScore === secondScore;
+  const confidence = topScore >= 10 ? 1 : Math.min(0.95, topScore / 6);
+
+  if (topScore < 3 || tie) return { intent: 'unclear', confidence, topScore, tie };
+  return { intent: topIntent, confidence, topScore, tie };
+}
+
+function getWhatsAppClarificationPrompt() {
+  return [
+    'I can help with one of these now:',
+    '1 Jobs | 2 Resume',
+    '3 Interview | STATUS | 0 Human',
+    'Reply with one option.'
+  ].join('\n');
+}
+
+function getWhatsAppReferralCode(phone = '') {
+  const digits = String(phone || '').replace(/[^0-9]/g, '');
+  return `RR${digits.slice(-6) || '000000'}`;
+}
+
+function buildWhatsAppContextNote(user, convo) {
+  const details = [];
+  if (user?.targetJob) details.push(`Target role: ${user.targetJob}`);
+  if (user?.location) details.push(`Preferred location: ${user.location}`);
+  const memory = convo?.metadata?.context || {};
+  if (memory.lastResumeChannel) details.push(`Recent resume input channel: ${memory.lastResumeChannel}`);
+  if (memory.lastInterviewTarget) details.push(`Recent interview target: ${memory.lastInterviewTarget}`);
+  if (Array.isArray(memory.recentSearches) && memory.recentSearches.length) {
+    const lastSearch = memory.recentSearches[memory.recentSearches.length - 1];
+    if (lastSearch?.title) details.push(`Recent job search: ${lastSearch.title} in ${lastSearch.location || 'Jamaica'}`);
+  }
+  return details.join(' | ');
+}
+
+function getWhatsAppOutcomeNudge(phone = '') {
+  const code = getWhatsAppReferralCode(phone);
+  return `Outcome Boost: Reply APPLY READY for matches, and share code ${code} with 2 friends.`;
+}
+
+async function sendWhatsAppHumanSupportAlert({ phone, incoming, user, convo }) {
+  const supportRecipient = process.env.SUPPORT_TO || process.env.CONTACT_TO || 'support@rolerocketai.com';
+  const escalationRecipient = process.env.SUPPORT_ESCALATION_TO || supportRecipient;
+  const webhookUrl = String(process.env.SUPPORT_ALERT_WEBHOOK_URL || '').trim();
+  const context = convo?.metadata?.context || {};
+  const subject = `WhatsApp HUMAN request: ${phone}`;
+  const html = `
+    <div style="font-family:Segoe UI,Arial,sans-serif;line-height:1.55;color:#0f172a;max-width:680px;">
+      <h2 style="margin:0 0 12px;">WhatsApp Human Handoff Requested</h2>
+      <p><strong>Phone:</strong> ${phone}</p>
+      <p><strong>Name:</strong> ${String(user?.name || '').trim() || 'Unknown'}</p>
+      <p><strong>Last message:</strong> ${String(incoming || '').trim() || '(none)'}</p>
+      <p><strong>Target role:</strong> ${String(user?.targetJob || context?.lastJobTitle || '').trim() || 'Not set'}</p>
+      <p><strong>Location:</strong> ${String(user?.location || context?.lastLocation || '').trim() || 'Jamaica'}</p>
+      <p><strong>Conversation step:</strong> ${String(convo?.currentStep || '').trim() || 'menu'}</p>
+    </div>
+  `;
+
+  let delivered = false;
+  const channels = [];
+
+  try {
+    await sendEmail({ to: supportRecipient, subject, html });
+    delivered = true;
+    channels.push('email_primary');
+  } catch (err) {
+    console.warn('WhatsApp human alert primary email failed:', err.message);
+  }
+
+  if (!delivered && escalationRecipient && escalationRecipient !== supportRecipient) {
+    try {
+      await sendEmail({ to: escalationRecipient, subject: `${subject} [Escalation]`, html });
+      delivered = true;
+      channels.push('email_escalation');
+    } catch (err) {
+      console.warn('WhatsApp human alert escalation email failed:', err.message);
+    }
+  }
+
+  if (webhookUrl) {
+    try {
+      const webhookResponse = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'whatsapp_human_handoff',
+          phone,
+          incoming,
+          targetJob: String(user?.targetJob || context?.lastJobTitle || '').trim() || null,
+          location: String(user?.location || context?.lastLocation || '').trim() || null,
+          step: String(convo?.currentStep || '').trim() || 'menu',
+          ts: new Date().toISOString()
+        })
+      });
+      if (webhookResponse.ok) {
+        delivered = true;
+        channels.push('webhook');
+      }
+    } catch (err) {
+      console.warn('WhatsApp human alert webhook failed:', err.message);
+    }
+  }
+
+  await trackWhatsAppTelemetry(phone, delivered ? 'whatsapp_human_alert_sent' : 'whatsapp_human_alert_failed', {
+    channels,
+    supportRecipient,
+    escalationRecipient
+  });
+
+  return delivered;
+}
+
 function getWhatsAppNextStepPrompt() {
   return 'Next: 1 Jobs | 2 Resume | 3 Interview | 0 Human';
 }
@@ -1433,7 +1657,7 @@ function parseJobQueryInput(text = '') {
   return { title: input, location: 'Jamaica' };
 }
 
-async function generateResumeRewriteForWhatsApp(userInput = '') {
+async function generateResumeRewriteForWhatsApp(userInput = '', contextNote = '') {
   const source = normalizeIncomingWhatsAppText(userInput);
   if (!source) return 'Please send your work background first so I can rewrite it.';
 
@@ -1460,7 +1684,7 @@ async function generateResumeRewriteForWhatsApp(userInput = '') {
         },
         {
           role: 'user',
-          content: `Rewrite this into strong resume bullets for job seekers in Jamaica:\n\n${source}`
+          content: `Rewrite this into strong resume bullets for job seekers in Jamaica.\nContext: ${contextNote || 'No extra context'}\n\n${source}`
         }
       ]
     });
@@ -1474,7 +1698,7 @@ async function generateResumeRewriteForWhatsApp(userInput = '') {
   }
 }
 
-async function generateInterviewPrepForWhatsApp(targetRole = '') {
+async function generateInterviewPrepForWhatsApp(targetRole = '', contextNote = '') {
   const topic = normalizeIncomingWhatsAppText(targetRole) || 'Customer Service Representative in Jamaica';
 
   const fallback = [
@@ -1503,7 +1727,7 @@ async function generateInterviewPrepForWhatsApp(targetRole = '') {
         },
         {
           role: 'user',
-          content: `Generate interview prep for this target: ${topic}`
+          content: `Generate interview prep for this target: ${topic}. Context: ${contextNote || 'No extra context'}`
         }
       ]
     });
@@ -1532,12 +1756,22 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
 
   const user = profile || await WhatsAppRecruitingUser.create({ phone, optedIn: true, optedInAt: new Date() });
   const convo = conversation || await WhatsAppConversation.create({ phone, currentStep: 'menu', lastIntent: 'menu', metadata: {} });
+  const priorInboundAt = convo.lastInboundAt ? new Date(convo.lastInboundAt).getTime() : 0;
+  const threeDaysMs = 3 * 24 * 60 * 60 * 1000;
+  const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+
+  const metadata = (convo.metadata && typeof convo.metadata === 'object') ? convo.metadata : {};
+  metadata.context = (metadata.context && typeof metadata.context === 'object') ? metadata.context : {};
+  metadata.context.recentSearches = Array.isArray(metadata.context.recentSearches) ? metadata.context.recentSearches : [];
+  metadata.context.lastSeenAt = new Date().toISOString();
+  convo.metadata = metadata;
 
   const messageSid = String(inboundMessageSid || '').trim();
   const priorMessageSids = Array.isArray(convo.metadata?.processedInboundSids)
     ? convo.metadata.processedInboundSids.map((item) => String(item || ''))
     : [];
   if (messageSid && priorMessageSids.includes(messageSid)) {
+    await trackWhatsAppTelemetry(phone, 'whatsapp_duplicate_message_sid', { messageSid });
     return convo.lastOutboundMessage || 'Message received. Reply START for menu.';
   }
   if (messageSid) {
@@ -1549,12 +1783,30 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
 
   convo.lastInboundMessage = incoming || (hasInboundAudio ? '[Voice note]' : '');
   convo.lastInboundAt = new Date();
+  await trackWhatsAppTelemetry(phone, 'whatsapp_inbound_received', {
+    hasInboundAudio,
+    currentStep: convo.currentStep || 'menu'
+  });
+
+  if (convo.metadata?.pendingHumanAlert) {
+    const retrySent = await sendWhatsAppHumanSupportAlert({
+      phone,
+      incoming: convo.lastInboundMessage,
+      user,
+      convo
+    });
+    if (retrySent) {
+      convo.metadata.pendingHumanAlert = false;
+      convo.metadata.lastHumanAlertRecoveredAt = new Date().toISOString();
+    }
+  }
 
   if (['stop', 'unsubscribe', 'optout', 'opt out'].includes(text)) {
     user.optedIn = false;
     user.optedOutAt = new Date();
     convo.currentStep = 'stopped';
     convo.lastIntent = 'stopped';
+    await trackWhatsAppTelemetry(phone, 'whatsapp_opt_out', {});
     const reply = 'You have been unsubscribed from RoleRocket WhatsApp updates. Reply START anytime to rejoin.';
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
@@ -1563,6 +1815,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   }
 
   if (!user.optedIn && !['start', 'join'].includes(text)) {
+    await trackWhatsAppTelemetry(phone, 'whatsapp_opted_out_block', {});
     const reply = 'You are currently opted out. Reply START to re-activate RoleRocket WhatsApp recruiting support.';
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
@@ -1576,7 +1829,14 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     user.lastIntent = 'menu';
     convo.currentStep = 'menu';
     convo.lastIntent = 'menu';
-    const reply = getWhatsAppMenuText();
+    const isReengaged = priorInboundAt > 0 && (Date.now() - priorInboundAt) > threeDaysMs;
+    const reply = isReengaged
+      ? `Welcome back.\n${getWhatsAppMenuText()}`
+      : getWhatsAppMenuText();
+    if (isReengaged) {
+      await trackWhatsAppTelemetry(phone, 'whatsapp_reengagement_nudge_shown', {});
+    }
+    await trackWhatsAppTelemetry(phone, 'whatsapp_menu_viewed', { reengaged: isReengaged });
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
     await Promise.all([user.save(), convo.save()]);
@@ -1592,20 +1852,102 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     ].join('\n');
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
+    await trackWhatsAppTelemetry(phone, 'whatsapp_help_shown', {});
     await convo.save();
     return reply;
   }
 
-  const isJobsIntent = text === '1' || text === 'jobs' || text.includes('job');
-  const isResumeIntent = text === '2' || text === 'resume' || text.includes('cv');
-  const isInterviewIntent = text === '3' || text === 'interview' || text.includes('prep');
-  const isStatusIntent = text === 'status' || text.includes('application status');
-  const isHumanIntent = ['0', 'human', 'agent', 'support', 'human support', 'live agent', 'live support'].includes(text);
+  if (/^(refer|referral|invite)$/.test(text)) {
+    const code = getWhatsAppReferralCode(phone);
+    convo.metadata.context.referralCode = code;
+    await trackWhatsAppTelemetry(phone, 'whatsapp_referral_prompted', { code });
+    const reply = [
+      `Referral code: ${code}`,
+      'Share this with 2 friends looking for jobs.',
+      'They can text START then send your code.',
+      'Reply REFERRED 1 when one joins.'
+    ].join('\n');
+    convo.lastOutboundMessage = reply;
+    convo.lastOutboundAt = new Date();
+    await convo.save();
+    return reply;
+  }
+
+  if (text.startsWith('referred')) {
+    const count = Math.max(1, Number((text.match(/\d+/) || [1])[0]));
+    const current = Number(convo.metadata.context.referralCount || 0);
+    convo.metadata.context.referralCount = current + count;
+    await trackWhatsAppTelemetry(phone, 'whatsapp_referral_tracked', {
+      added: count,
+      total: convo.metadata.context.referralCount
+    });
+    const reply = `Logged ${count} referral(s). Total tracked: ${convo.metadata.context.referralCount}. Reply 1 for jobs.`;
+    convo.lastOutboundMessage = reply;
+    convo.lastOutboundAt = new Date();
+    await convo.save();
+    return reply;
+  }
+
+  if (/^apply\s*ready$/.test(text)) {
+    const title = String(user.targetJob || convo.metadata.context.lastJobTitle || 'Customer Service Representative').trim();
+    const location = String(user.location || convo.metadata.context.lastLocation || 'Jamaica').trim();
+    const searchResult = await searchJobsFast({ title, location, resume: user.resumeText || '' });
+    const jobs = Array.isArray(searchResult?.jobs) ? searchResult.jobs.slice(0, 2) : [];
+    convo.metadata.lastJobs = jobs.map((job) => ({
+      title: String(job.title || ''),
+      company: String(job.company || ''),
+      location: String(job.location || ''),
+      link: String(job.link || job.applyLink || '')
+    }));
+    convo.currentStep = 'jobs_action';
+    await trackWhatsAppTelemetry(phone, 'whatsapp_apply_ready_triggered', { title, location, resultCount: jobs.length });
+
+    const reply = !jobs.length
+      ? `No live matches for ${title} in ${location} right now. Reply 1 to search another role.`
+      : [
+          `Top matches for ${title} in ${location}:`,
+          ...jobs.map((job, idx) => `${idx + 1}) ${job.title || 'Role'} @ ${job.company || 'Company'}`),
+          'Reply APPLY 1 or APPLY 2 to track.'
+        ].join('\n');
+    convo.lastOutboundMessage = reply;
+    convo.lastOutboundAt = new Date();
+    await convo.save();
+    return reply;
+  }
+
+  const detectedIntent = detectWhatsAppIntent(text);
+  const strictHumanIntent = ['0', 'human', 'agent', 'support', 'human support', 'live agent', 'live support'].includes(text);
+  const isJobsIntent = text === '1' || (detectedIntent.intent === 'jobs' && !text.startsWith('apply'));
+  const isResumeIntent = text === '2' || detectedIntent.intent === 'resume';
+  const isInterviewIntent = text === '3' || detectedIntent.intent === 'interview';
+  const isStatusIntent = text === 'status' || detectedIntent.intent === 'status';
+  const isHumanIntent = strictHumanIntent;
+
+  if (convo.currentStep === 'menu' && incoming && !hasInboundAudio && detectedIntent.intent === 'unclear') {
+    await trackWhatsAppTelemetry(phone, 'whatsapp_intent_clarification_prompt', {
+      confidence: detectedIntent.confidence,
+      topScore: detectedIntent.topScore,
+      tie: detectedIntent.tie
+    });
+    const reply = getWhatsAppClarificationPrompt();
+    convo.lastOutboundMessage = reply;
+    convo.lastOutboundAt = new Date();
+    await convo.save();
+    return reply;
+  }
+
+  if (detectedIntent.intent !== 'unclear') {
+    await trackWhatsAppTelemetry(phone, 'whatsapp_intent_detected', {
+      intent: detectedIntent.intent,
+      confidence: detectedIntent.confidence
+    });
+  }
 
   if (isJobsIntent) {
     user.lastIntent = 'jobs';
     convo.lastIntent = 'jobs';
     convo.currentStep = 'jobs_query';
+    await trackWhatsAppTelemetry(phone, 'whatsapp_jobs_step_enter', {});
     const reply = [
       'Step 1/2: Send job + location.',
       'Example: Security Guard in Kingston',
@@ -1621,6 +1963,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     user.lastIntent = 'resume';
     convo.lastIntent = 'resume';
     convo.currentStep = 'resume_capture';
+    await trackWhatsAppTelemetry(phone, 'whatsapp_resume_step_enter', {});
     const reply = [
       'Step 1/2: Send recent work (text or voice note).',
       'I will rewrite it into stronger bullets.',
@@ -1636,6 +1979,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     user.lastIntent = 'interview';
     convo.lastIntent = 'interview';
     convo.currentStep = 'interview_target';
+    await trackWhatsAppTelemetry(phone, 'whatsapp_interview_step_enter', {});
     const reply = [
       'Step 1/2: Send role or company.',
       'Example: GraceKennedy Customer Service Rep',
@@ -1649,6 +1993,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
 
   if (isStatusIntent) {
     const applications = await Application.find({ userId: phone }).sort({ createdAt: -1 }).limit(2).lean();
+    await trackWhatsAppTelemetry(phone, 'whatsapp_status_checked', { applicationCount: applications.length });
     const reply = !applications.length
       ? 'No tracked applications yet. Reply 1 to find jobs now.'
       : [
@@ -1670,10 +2015,18 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     user.lastIntent = 'human';
     convo.lastIntent = 'human';
     convo.currentStep = 'human_handoff';
+    await trackWhatsAppTelemetry(phone, 'whatsapp_human_handoff_requested', {});
+
+    const alertDelivered = await sendWhatsAppHumanSupportAlert({ phone, incoming, user, convo });
+    convo.metadata.pendingHumanAlert = !alertDelivered;
+    convo.metadata.lastHumanAlertAt = new Date().toISOString();
+
     const reply = [
       'You are connected to human support.',
       'Share: target job, location, years exp.',
-      'A recruiter will follow up shortly.'
+      alertDelivered
+        ? 'Alert sent to support. A recruiter will follow up shortly.'
+        : 'Alert queued for support. Reply HUMAN again if urgent.'
     ].join('\n');
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
@@ -1684,6 +2037,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   if (convo.currentStep === 'jobs_query') {
     const parsed = parseJobQueryInput(incoming);
     if (!parsed.title) {
+      await trackWhatsAppTelemetry(phone, 'whatsapp_jobs_query_invalid', {});
       const reply = 'Please send your request in this format: Customer Service in Kingston';
       convo.lastOutboundMessage = reply;
       convo.lastOutboundAt = new Date();
@@ -1694,6 +2048,20 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     user.targetJob = parsed.title;
     user.location = parsed.location || 'Jamaica';
     user.lastIntent = 'jobs';
+    convo.metadata.context.lastJobTitle = parsed.title;
+    convo.metadata.context.lastLocation = parsed.location || 'Jamaica';
+    convo.metadata.context.recentSearches = [
+      ...convo.metadata.context.recentSearches.slice(-4),
+      {
+        title: parsed.title,
+        location: parsed.location || 'Jamaica',
+        at: new Date().toISOString()
+      }
+    ];
+    await trackWhatsAppTelemetry(phone, 'whatsapp_jobs_query_submitted', {
+      title: parsed.title,
+      location: parsed.location || 'Jamaica'
+    });
 
     const searchResult = await searchJobsFast({
       title: parsed.title,
@@ -1711,9 +2079,14 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       }))
     };
     convo.currentStep = 'jobs_action';
+    await trackWhatsAppTelemetry(phone, 'whatsapp_jobs_results_returned', {
+      title: parsed.title,
+      location: parsed.location || 'Jamaica',
+      resultCount: jobs.length
+    });
 
     const reply = !jobs.length
-      ? `No live matches for ${parsed.title} in ${parsed.location || 'Jamaica'} right now. Reply 1 to try another search.`
+      ? `No live matches for ${parsed.title} in ${parsed.location || 'Jamaica'} right now. Reply 1 to try another role or REFERRAL to invite friends.`
       : [
           `Got it: ${parsed.title} in ${parsed.location || 'Jamaica'}.`,
           ...jobs.map((job, idx) => `${idx + 1}) ${job.title || 'Role'} @ ${job.company || 'Company'}`),
@@ -1745,10 +2118,22 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       status: 'applied'
     });
 
+    const resumeRewriteAt = new Date(convo.metadata?.context?.lastResumeRewriteAt || 0).getTime();
+    const rewriteToApply = resumeRewriteAt > 0 && (Date.now() - resumeRewriteAt) <= sevenDaysMs;
+    await trackWhatsAppTelemetry(phone, 'whatsapp_apply_saved', {
+      jobTitle: chosen.title || 'Role',
+      company: chosen.company || 'Company',
+      rewriteToApply
+    });
+
     convo.currentStep = 'menu';
     convo.lastIntent = 'status';
     user.lastIntent = 'status';
-    const reply = `Saved: ${chosen.title || 'Role'} @ ${chosen.company || 'Company'} as APPLIED. Reply STATUS for updates.`;
+    const reply = [
+      `Saved: ${chosen.title || 'Role'} @ ${chosen.company || 'Company'} as APPLIED.`,
+      'Reply STATUS for updates in 24h.',
+      getWhatsAppOutcomeNudge(phone)
+    ].join('\n');
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
     await Promise.all([user.save(), convo.save()]);
@@ -1760,12 +2145,38 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     let usedVoiceTranscription = false;
 
     if (!resumeSource && hasInboundAudio) {
+      const transcribeCredit = consumeWhatsAppAiCredit(phone, 'transcribe');
+      if (!transcribeCredit.ok) {
+        await trackWhatsAppTelemetry(phone, 'whatsapp_ai_rate_limited', {
+          feature: 'transcribe',
+          retryAfterMinutes: transcribeCredit.retryAfterMinutes
+        });
+        const reply = `Voice-note limit reached. Try again in ~${transcribeCredit.retryAfterMinutes} min or send text.`;
+        convo.lastOutboundMessage = reply;
+        convo.lastOutboundAt = new Date();
+        await convo.save();
+        return reply;
+      }
       resumeSource = await transcribeWhatsAppVoiceNote(inboundAudioMedia);
       usedVoiceTranscription = !!resumeSource;
     }
 
     if (!resumeSource) {
+      await trackWhatsAppTelemetry(phone, 'whatsapp_resume_capture_empty', { hasInboundAudio });
       const reply = 'Send your work history as text or a clear voice note.';
+      convo.lastOutboundMessage = reply;
+      convo.lastOutboundAt = new Date();
+      await convo.save();
+      return reply;
+    }
+
+    const rewriteCredit = consumeWhatsAppAiCredit(phone, 'resume_rewrite');
+    if (!rewriteCredit.ok) {
+      await trackWhatsAppTelemetry(phone, 'whatsapp_ai_rate_limited', {
+        feature: 'resume_rewrite',
+        retryAfterMinutes: rewriteCredit.retryAfterMinutes
+      });
+      const reply = `Resume rewrite limit reached. Try again in ~${rewriteCredit.retryAfterMinutes} min.`;
       convo.lastOutboundMessage = reply;
       convo.lastOutboundAt = new Date();
       await convo.save();
@@ -1776,9 +2187,18 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     user.lastIntent = 'resume';
     convo.lastIntent = 'resume';
     convo.currentStep = 'menu';
-    const rewrite = await generateResumeRewriteForWhatsApp(resumeSource);
+    convo.metadata.context.lastResumeChannel = usedVoiceTranscription ? 'voice' : 'text';
+    convo.metadata.context.lastResumeRewriteAt = new Date().toISOString();
+    await trackWhatsAppTelemetry(phone, 'whatsapp_resume_submitted', {
+      channel: convo.metadata.context.lastResumeChannel,
+      chars: resumeSource.length
+    });
+    const rewrite = await generateResumeRewriteForWhatsApp(resumeSource, buildWhatsAppContextNote(user, convo));
+    await trackWhatsAppTelemetry(phone, 'whatsapp_resume_rewrite_completed', {
+      channel: convo.metadata.context.lastResumeChannel
+    });
     const prefix = usedVoiceTranscription ? 'Voice note transcribed.\n' : '';
-    const reply = `${prefix}${rewrite}\n\nReply 1 Jobs | 3 Interview | 0 Human`;
+    const reply = `${prefix}${rewrite}\n\nReply APPLY READY | 1 Jobs | 3 Interview | REFERRAL`;
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
     await Promise.all([user.save(), convo.save()]);
@@ -1786,11 +2206,27 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   }
 
   if (convo.currentStep === 'interview_target') {
+    const prepCredit = consumeWhatsAppAiCredit(phone, 'interview_prep');
+    if (!prepCredit.ok) {
+      await trackWhatsAppTelemetry(phone, 'whatsapp_ai_rate_limited', {
+        feature: 'interview_prep',
+        retryAfterMinutes: prepCredit.retryAfterMinutes
+      });
+      const reply = `Interview prep limit reached. Try again in ~${prepCredit.retryAfterMinutes} min.`;
+      convo.lastOutboundMessage = reply;
+      convo.lastOutboundAt = new Date();
+      await convo.save();
+      return reply;
+    }
+
     user.lastIntent = 'interview';
     convo.lastIntent = 'interview';
     convo.currentStep = 'menu';
-    const prep = await generateInterviewPrepForWhatsApp(incoming);
-    const reply = `${prep}\n\nReply 1 Jobs | 2 Resume | 0 Human`;
+    convo.metadata.context.lastInterviewTarget = incoming;
+    await trackWhatsAppTelemetry(phone, 'whatsapp_interview_target_submitted', { target: incoming.slice(0, 140) });
+    const prep = await generateInterviewPrepForWhatsApp(incoming, buildWhatsAppContextNote(user, convo));
+    await trackWhatsAppTelemetry(phone, 'whatsapp_interview_prep_completed', {});
+    const reply = `${prep}\n\nReply 1 Jobs | 2 Resume | REFERRAL | 0 Human`;
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
     await Promise.all([user.save(), convo.save()]);
@@ -1798,6 +2234,9 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   }
 
   const fallback = 'I did not catch that. Reply 1, 2, 3, 0, START, or HELP.';
+  await trackWhatsAppTelemetry(phone, 'whatsapp_fallback_prompt', {
+    step: convo.currentStep || 'menu'
+  });
   convo.lastOutboundMessage = fallback;
   convo.lastOutboundAt = new Date();
   await convo.save();
