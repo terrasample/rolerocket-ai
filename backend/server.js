@@ -1250,6 +1250,49 @@ function buildWhatsAppTwiml(message = '') {
   return `<?xml version="1.0" encoding="UTF-8"?><Response><Message>${safeMessage}</Message></Response>`;
 }
 
+function shouldValidateTwilioWebhook() {
+  const configured = String(process.env.TWILIO_VALIDATE_WEBHOOK || '').trim().toLowerCase();
+  if (configured) return !['0', 'false', 'no'].includes(configured);
+  return process.env.NODE_ENV === 'production';
+}
+
+function timingSafeCompareText(left = '', right = '') {
+  const leftBuf = Buffer.from(String(left || ''), 'utf8');
+  const rightBuf = Buffer.from(String(right || ''), 'utf8');
+  if (leftBuf.length !== rightBuf.length) return false;
+  return crypto.timingSafeEqual(leftBuf, rightBuf);
+}
+
+function buildTwilioSignature(url, params = {}, authToken = '') {
+  const sortedKeys = Object.keys(params || {}).sort();
+  const payload = sortedKeys.reduce((acc, key) => acc + key + String(params[key] ?? ''), String(url || ''));
+  return crypto.createHmac('sha1', authToken).update(payload, 'utf8').digest('base64');
+}
+
+function getTwilioSignatureCandidateUrls(req) {
+  const originalUrl = String(req.originalUrl || req.url || '');
+  const forwardedHost = String(req.headers['x-forwarded-host'] || '').split(',')[0].trim();
+  const host = forwardedHost || String(req.get('host') || '').trim();
+  const forwardedProto = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim();
+  const requestProto = String(req.protocol || '').trim();
+
+  const protoCandidates = [forwardedProto, requestProto, 'https', 'http'].filter(Boolean);
+  const uniqueProtos = protoCandidates.filter((value, idx, arr) => arr.indexOf(value) === idx);
+  return uniqueProtos.map((proto) => `${proto}://${host}${originalUrl}`);
+}
+
+function isValidTwilioWebhookSignature(req) {
+  if (!shouldValidateTwilioWebhook()) return true;
+  if (!TWILIO_AUTH_TOKEN) return false;
+
+  const incomingSignature = String(req.headers['x-twilio-signature'] || '').trim();
+  if (!incomingSignature) return false;
+
+  const params = req.body && typeof req.body === 'object' ? req.body : {};
+  const candidates = getTwilioSignatureCandidateUrls(req);
+  return candidates.some((url) => timingSafeCompareText(incomingSignature, buildTwilioSignature(url, params, TWILIO_AUTH_TOKEN)));
+}
+
 function normalizeWhatsAppPhone(from = '') {
   const raw = String(from || '').trim().replace(/^whatsapp:/i, '');
   if (!raw) return '';
@@ -1393,7 +1436,7 @@ async function generateInterviewPrepForWhatsApp(targetRole = '') {
   }
 }
 
-async function handleWhatsAppRecruitingMessage(from, body) {
+async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '') {
   const phone = normalizeWhatsAppPhone(from);
   const incoming = normalizeIncomingWhatsAppText(body);
   const text = incoming.toLowerCase();
@@ -1408,6 +1451,20 @@ async function handleWhatsAppRecruitingMessage(from, body) {
 
   const user = profile || await WhatsAppRecruitingUser.create({ phone, optedIn: true, optedInAt: new Date() });
   const convo = conversation || await WhatsAppConversation.create({ phone, currentStep: 'menu', lastIntent: 'menu', metadata: {} });
+
+  const messageSid = String(inboundMessageSid || '').trim();
+  const priorMessageSids = Array.isArray(convo.metadata?.processedInboundSids)
+    ? convo.metadata.processedInboundSids.map((item) => String(item || ''))
+    : [];
+  if (messageSid && priorMessageSids.includes(messageSid)) {
+    return convo.lastOutboundMessage || 'Message received. Reply START for menu.';
+  }
+  if (messageSid) {
+    convo.metadata = {
+      ...(convo.metadata && typeof convo.metadata === 'object' ? convo.metadata : {}),
+      processedInboundSids: [...priorMessageSids.slice(-24), messageSid]
+    };
+  }
 
   convo.lastInboundMessage = incoming;
   convo.lastInboundAt = new Date();
@@ -1467,7 +1524,7 @@ async function handleWhatsAppRecruitingMessage(from, body) {
   const isResumeIntent = text === '2' || text === 'resume' || text.includes('cv');
   const isInterviewIntent = text === '3' || text === 'interview' || text.includes('prep');
   const isStatusIntent = text === '4' || text === 'status' || text.includes('application');
-  const isHumanIntent = text === '5' || text === 'human' || text.includes('agent') || text.includes('representative') || text.includes('person');
+  const isHumanIntent = ['5', 'human', 'agent', 'support', 'human support', 'live agent', 'live support'].includes(text);
 
   if (isJobsIntent) {
     user.lastIntent = 'jobs';
@@ -2122,9 +2179,15 @@ app.post('/api/waitlist', async (req, res) => {
 
 app.post('/api/whatsapp/incoming', express.urlencoded({ extended: false }), async (req, res) => {
   try {
+    if (!isValidTwilioWebhookSignature(req)) {
+      console.warn('Rejected WhatsApp webhook request: invalid Twilio signature');
+      return res.status(403).type('text/plain').send('Forbidden');
+    }
+
     const from = String(req.body?.From || '').trim();
     const body = String(req.body?.Body || '').trim();
-    const reply = await handleWhatsAppRecruitingMessage(from, body);
+    const messageSid = String(req.body?.MessageSid || req.body?.SmsMessageSid || '').trim();
+    const reply = await handleWhatsAppRecruitingMessage(from, body, messageSid);
     return res.status(200).type('text/xml').send(buildWhatsAppTwiml(reply));
   } catch (error) {
     console.error('WhatsApp incoming webhook error:', error);
