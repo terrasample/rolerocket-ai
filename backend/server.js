@@ -1236,6 +1236,374 @@ async function sendWhatsAppMessage({ to, message }) {
   }
 }
 
+function escapeXml(value = '') {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
+function buildWhatsAppTwiml(message = '') {
+  const safeMessage = escapeXml(message || 'Message received.');
+  return `<?xml version="1.0" encoding="UTF-8"?><Response><Message>${safeMessage}</Message></Response>`;
+}
+
+function normalizeWhatsAppPhone(from = '') {
+  const raw = String(from || '').trim().replace(/^whatsapp:/i, '');
+  if (!raw) return '';
+  const hasPlus = raw.startsWith('+');
+  const digits = raw.replace(/[^0-9]/g, '');
+  if (!digits) return '';
+  return `${hasPlus ? '+' : ''}${digits}`;
+}
+
+function normalizeIncomingWhatsAppText(body = '') {
+  return String(body || '').replace(/\s+/g, ' ').trim();
+}
+
+function getWhatsAppMenuText() {
+  return [
+    'Welcome to RoleRocket AI Recruit 🚀',
+    '',
+    'Reply with:',
+    '1 - Find Jobs',
+    '2 - Build Resume',
+    '3 - Interview Prep',
+    '4 - Application Status',
+    'HELP - View commands',
+    'STOP - Opt out'
+  ].join('\n');
+}
+
+function parseJobQueryInput(text = '') {
+  const input = normalizeIncomingWhatsAppText(text);
+  if (!input) return { title: '', location: '' };
+  const marker = input.toLowerCase().lastIndexOf(' in ');
+  if (marker > 0) {
+    return {
+      title: input.slice(0, marker).trim(),
+      location: input.slice(marker + 4).trim()
+    };
+  }
+  return { title: input, location: 'Jamaica' };
+}
+
+async function generateResumeRewriteForWhatsApp(userInput = '') {
+  const source = normalizeIncomingWhatsAppText(userInput);
+  if (!source) return 'Please send your work background first so I can rewrite it.';
+
+  const fallback = [
+    'Here is a stronger resume version:',
+    '',
+    '- Delivered friendly, high-quality customer support in a fast-paced environment.',
+    '- Handled transactions and daily operations accurately and consistently.',
+    '- Supported shift closeout responsibilities and maintained service standards.',
+    '',
+    'Reply YES for a full role-targeted resume draft.'
+  ].join('\n');
+
+  if (!process.env.OPENAI_API_KEY) return fallback;
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+      temperature: 0.4,
+      messages: [
+        {
+          role: 'system',
+          content: 'You are RoleRocket AI, a business-specific recruiting assistant. Rewrite user experience into concise, ATS-friendly resume bullets. Keep output WhatsApp-friendly and under 1200 characters.'
+        },
+        {
+          role: 'user',
+          content: `Rewrite this into strong resume bullets for job seekers in Jamaica:\n\n${source}`
+        }
+      ]
+    });
+
+    const content = String(completion?.choices?.[0]?.message?.content || '').trim();
+    if (!content) return fallback;
+    return `${content}\n\nReply YES for a full role-targeted resume draft.`.slice(0, 1500);
+  } catch (error) {
+    console.warn('WhatsApp resume rewrite fallback:', error.message);
+    return fallback;
+  }
+}
+
+async function generateInterviewPrepForWhatsApp(targetRole = '') {
+  const topic = normalizeIncomingWhatsAppText(targetRole) || 'Customer Service Representative in Jamaica';
+
+  const fallback = [
+    `Interview Prep for: ${topic}`,
+    '',
+    'Q1: Tell me about yourself.',
+    'Tip: Give a 60-second summary focused on role fit and measurable impact.',
+    '',
+    'Q2: Describe a difficult customer issue you solved.',
+    'Tip: Use STAR (Situation, Task, Action, Result) with one metric.',
+    '',
+    'Q3: Why do you want this role?',
+    'Tip: Connect company mission + your skills + expected contribution.'
+  ].join('\n');
+
+  if (!process.env.OPENAI_API_KEY) return fallback;
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+      temperature: 0.4,
+      messages: [
+        {
+          role: 'system',
+          content: 'You are RoleRocket AI interview coach. Output exactly 3 interview questions with one short coaching tip per question. Keep concise and WhatsApp friendly.'
+        },
+        {
+          role: 'user',
+          content: `Generate interview prep for this target: ${topic}`
+        }
+      ]
+    });
+
+    const content = String(completion?.choices?.[0]?.message?.content || '').trim();
+    return content || fallback;
+  } catch (error) {
+    console.warn('WhatsApp interview prep fallback:', error.message);
+    return fallback;
+  }
+}
+
+async function handleWhatsAppRecruitingMessage(from, body) {
+  const phone = normalizeWhatsAppPhone(from);
+  const incoming = normalizeIncomingWhatsAppText(body);
+  const text = incoming.toLowerCase();
+
+  if (!phone) return 'Could not identify your number. Please try again.';
+  if (!incoming) return `${getWhatsAppMenuText()}\n\nType START to begin.`;
+
+  const [profile, conversation] = await Promise.all([
+    WhatsAppRecruitingUser.findOne({ phone }),
+    WhatsAppConversation.findOne({ phone })
+  ]);
+
+  const user = profile || await WhatsAppRecruitingUser.create({ phone, optedIn: true, optedInAt: new Date() });
+  const convo = conversation || await WhatsAppConversation.create({ phone, currentStep: 'menu', lastIntent: 'menu', metadata: {} });
+
+  convo.lastInboundMessage = incoming;
+  convo.lastInboundAt = new Date();
+
+  if (['stop', 'unsubscribe', 'optout', 'opt out'].includes(text)) {
+    user.optedIn = false;
+    user.optedOutAt = new Date();
+    convo.currentStep = 'stopped';
+    convo.lastIntent = 'stopped';
+    const reply = 'You have been unsubscribed from RoleRocket WhatsApp updates. Reply START anytime to rejoin.';
+    convo.lastOutboundMessage = reply;
+    convo.lastOutboundAt = new Date();
+    await Promise.all([user.save(), convo.save()]);
+    return reply;
+  }
+
+  if (!user.optedIn && !['start', 'join'].includes(text)) {
+    const reply = 'You are currently opted out. Reply START to re-activate RoleRocket WhatsApp recruiting support.';
+    convo.lastOutboundMessage = reply;
+    convo.lastOutboundAt = new Date();
+    await convo.save();
+    return reply;
+  }
+
+  if (['start', 'join', 'hi', 'hello', 'menu'].includes(text)) {
+    user.optedIn = true;
+    user.optedOutAt = null;
+    user.lastIntent = 'menu';
+    convo.currentStep = 'menu';
+    convo.lastIntent = 'menu';
+    const reply = getWhatsAppMenuText();
+    convo.lastOutboundMessage = reply;
+    convo.lastOutboundAt = new Date();
+    await Promise.all([user.save(), convo.save()]);
+    return reply;
+  }
+
+  if (text === 'help') {
+    const reply = [
+      'RoleRocket WhatsApp Commands',
+      '',
+      'START - Main menu',
+      'JOBS - Find matching jobs',
+      'RESUME - Build stronger resume bullets',
+      'INTERVIEW - Get interview prep',
+      'STATUS - View tracked applications',
+      'STOP - Opt out'
+    ].join('\n');
+    convo.lastOutboundMessage = reply;
+    convo.lastOutboundAt = new Date();
+    await convo.save();
+    return reply;
+  }
+
+  const isJobsIntent = text === '1' || text === 'jobs' || text.includes('job');
+  const isResumeIntent = text === '2' || text === 'resume' || text.includes('cv');
+  const isInterviewIntent = text === '3' || text === 'interview' || text.includes('prep');
+  const isStatusIntent = text === '4' || text === 'status' || text.includes('application');
+
+  if (isJobsIntent) {
+    user.lastIntent = 'jobs';
+    convo.lastIntent = 'jobs';
+    convo.currentStep = 'jobs_query';
+    const reply = 'Great. What job are you looking for and where?\n\nExample: Customer Service in Kingston';
+    convo.lastOutboundMessage = reply;
+    convo.lastOutboundAt = new Date();
+    await Promise.all([user.save(), convo.save()]);
+    return reply;
+  }
+
+  if (isResumeIntent) {
+    user.lastIntent = 'resume';
+    convo.lastIntent = 'resume';
+    convo.currentStep = 'resume_capture';
+    const reply = 'Send your recent work experience in one message, and I will convert it into stronger resume bullets.';
+    convo.lastOutboundMessage = reply;
+    convo.lastOutboundAt = new Date();
+    await Promise.all([user.save(), convo.save()]);
+    return reply;
+  }
+
+  if (isInterviewIntent) {
+    user.lastIntent = 'interview';
+    convo.lastIntent = 'interview';
+    convo.currentStep = 'interview_target';
+    const reply = 'What company or role are you interviewing for?\n\nExample: GraceKennedy Customer Service Representative';
+    convo.lastOutboundMessage = reply;
+    convo.lastOutboundAt = new Date();
+    await Promise.all([user.save(), convo.save()]);
+    return reply;
+  }
+
+  if (isStatusIntent) {
+    const applications = await Application.find({ userId: phone }).sort({ createdAt: -1 }).limit(5).lean();
+    const reply = !applications.length
+      ? 'You currently have no tracked applications yet. Reply JOBS to discover roles and APPLY to begin tracking.'
+      : [
+          'Your latest tracked applications:',
+          ...applications.map((item, idx) => `${idx + 1}. ${item.jobTitle || 'Role'} @ ${item.company || 'Company'} - ${String(item.status || 'applied').toUpperCase()}`)
+        ].join('\n');
+
+    user.lastIntent = 'status';
+    convo.lastIntent = 'status';
+    convo.currentStep = 'menu';
+    convo.lastOutboundMessage = reply;
+    convo.lastOutboundAt = new Date();
+    await Promise.all([user.save(), convo.save()]);
+    return reply;
+  }
+
+  if (convo.currentStep === 'jobs_query') {
+    const parsed = parseJobQueryInput(incoming);
+    if (!parsed.title) {
+      const reply = 'Please send your request in this format: Customer Service in Kingston';
+      convo.lastOutboundMessage = reply;
+      convo.lastOutboundAt = new Date();
+      await convo.save();
+      return reply;
+    }
+
+    user.targetJob = parsed.title;
+    user.location = parsed.location || 'Jamaica';
+    user.lastIntent = 'jobs';
+
+    const searchResult = await searchJobsFast({
+      title: parsed.title,
+      location: parsed.location || 'Jamaica',
+      resume: user.resumeText || ''
+    });
+    const jobs = Array.isArray(searchResult?.jobs) ? searchResult.jobs.slice(0, 3) : [];
+    convo.metadata = {
+      ...(convo.metadata || {}),
+      lastJobs: jobs.map((job) => ({
+        title: String(job.title || ''),
+        company: String(job.company || ''),
+        location: String(job.location || ''),
+        link: String(job.link || job.applyLink || '')
+      }))
+    };
+    convo.currentStep = 'jobs_action';
+
+    const reply = !jobs.length
+      ? `No live matches found for ${parsed.title} in ${parsed.location || 'Jamaica'} right now. Reply JOBS to try another search.`
+      : [
+          `Top matches for ${parsed.title} in ${parsed.location || 'Jamaica'}:`,
+          ...jobs.map((job, idx) => `${idx + 1}. ${job.title || 'Role'} @ ${job.company || 'Company'} (${job.location || 'Location'})`),
+          '',
+          'Reply APPLY 1, APPLY 2, or APPLY 3 to track an application.',
+          'Reply JOBS to search again.'
+        ].join('\n');
+
+    convo.lastOutboundMessage = reply;
+    convo.lastOutboundAt = new Date();
+    await Promise.all([user.save(), convo.save()]);
+    return reply;
+  }
+
+  if (convo.currentStep === 'jobs_action' && text.startsWith('apply')) {
+    const picked = Number((text.match(/\d+/) || [])[0]);
+    const jobs = Array.isArray(convo.metadata?.lastJobs) ? convo.metadata.lastJobs : [];
+    if (!Number.isInteger(picked) || picked < 1 || picked > jobs.length) {
+      const reply = 'Reply APPLY 1, APPLY 2, or APPLY 3 based on the job list shown.';
+      convo.lastOutboundMessage = reply;
+      convo.lastOutboundAt = new Date();
+      await convo.save();
+      return reply;
+    }
+
+    const chosen = jobs[picked - 1];
+    await Application.create({
+      userId: phone,
+      jobTitle: chosen.title || 'Role',
+      company: chosen.company || 'Company',
+      status: 'applied'
+    });
+
+    convo.currentStep = 'menu';
+    convo.lastIntent = 'status';
+    user.lastIntent = 'status';
+    const reply = `Saved: ${chosen.title || 'Role'} @ ${chosen.company || 'Company'} as APPLIED. Reply STATUS to see tracked updates.`;
+    convo.lastOutboundMessage = reply;
+    convo.lastOutboundAt = new Date();
+    await Promise.all([user.save(), convo.save()]);
+    return reply;
+  }
+
+  if (convo.currentStep === 'resume_capture') {
+    user.resumeText = incoming.slice(0, 12000);
+    user.lastIntent = 'resume';
+    convo.lastIntent = 'resume';
+    convo.currentStep = 'menu';
+    const reply = await generateResumeRewriteForWhatsApp(incoming);
+    convo.lastOutboundMessage = reply;
+    convo.lastOutboundAt = new Date();
+    await Promise.all([user.save(), convo.save()]);
+    return reply;
+  }
+
+  if (convo.currentStep === 'interview_target') {
+    user.lastIntent = 'interview';
+    convo.lastIntent = 'interview';
+    convo.currentStep = 'menu';
+    const reply = await generateInterviewPrepForWhatsApp(incoming);
+    convo.lastOutboundMessage = reply;
+    convo.lastOutboundAt = new Date();
+    await Promise.all([user.save(), convo.save()]);
+    return reply;
+  }
+
+  const fallback = 'I did not catch that. Reply START for menu, JOBS, RESUME, INTERVIEW, STATUS, or HELP.';
+  convo.lastOutboundMessage = fallback;
+  convo.lastOutboundAt = new Date();
+  await convo.save();
+  return fallback;
+}
+
 function queuePasswordResetEmail({ to, resetUrl }) {
   setImmediate(async () => {
     try {
@@ -1322,6 +1690,8 @@ const DiasporaEmployer = require('./models/DiasporaEmployer');
 const SMSJobAlert = require('./models/SMSJobAlert');
 const CommunityHub = require('./models/CommunityHub');
 const PlacementOutcome = require('./models/PlacementOutcome');
+const WhatsAppRecruitingUser = require('./models/WhatsAppRecruitingUser');
+const WhatsAppConversation = require('./models/WhatsAppConversation');
 
 const LEARNING_CATALOG_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const LEARNING_CATALOG_FAILURE_COOLDOWN_MS = 12 * 60 * 60 * 1000;
@@ -1705,6 +2075,18 @@ app.post('/api/waitlist', async (req, res) => {
   } catch (err) {
     console.error('Waitlist capture error:', err);
     return res.status(500).json({ error: 'Could not capture waitlist right now' });
+  }
+});
+
+app.post('/api/whatsapp/incoming', express.urlencoded({ extended: false }), async (req, res) => {
+  try {
+    const from = String(req.body?.From || '').trim();
+    const body = String(req.body?.Body || '').trim();
+    const reply = await handleWhatsAppRecruitingMessage(from, body);
+    return res.status(200).type('text/xml').send(buildWhatsAppTwiml(reply));
+  } catch (error) {
+    console.error('WhatsApp incoming webhook error:', error);
+    return res.status(200).type('text/xml').send(buildWhatsAppTwiml('RoleRocket is temporarily busy. Please try again in a moment.'));
   }
 });
 
