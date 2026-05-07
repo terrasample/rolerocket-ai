@@ -1265,13 +1265,14 @@ function normalizeIncomingWhatsAppText(body = '') {
 
 function getWhatsAppMenuText() {
   return [
-    'Welcome to RoleRocket AI Recruit 🚀',
+    'Thanks for messaging RoleRocket AI. We received your message and a recruiting assistant will follow up shortly.',
     '',
     'Reply with:',
     '1 - Find Jobs',
     '2 - Build Resume',
     '3 - Interview Prep',
     '4 - Application Status',
+    '5 - Speak to Human Support',
     'HELP - View commands',
     'STOP - Opt out'
   ].join('\n');
@@ -1434,6 +1435,7 @@ async function handleWhatsAppRecruitingMessage(from, body) {
       'RESUME - Build stronger resume bullets',
       'INTERVIEW - Get interview prep',
       'STATUS - View tracked applications',
+      'HUMAN - Request a live support handoff',
       'STOP - Opt out'
     ].join('\n');
     convo.lastOutboundMessage = reply;
@@ -1446,6 +1448,7 @@ async function handleWhatsAppRecruitingMessage(from, body) {
   const isResumeIntent = text === '2' || text === 'resume' || text.includes('cv');
   const isInterviewIntent = text === '3' || text === 'interview' || text.includes('prep');
   const isStatusIntent = text === '4' || text === 'status' || text.includes('application');
+  const isHumanIntent = text === '5' || text === 'human' || text.includes('agent') || text.includes('representative') || text.includes('person');
 
   if (isJobsIntent) {
     user.lastIntent = 'jobs';
@@ -1492,6 +1495,26 @@ async function handleWhatsAppRecruitingMessage(from, body) {
     user.lastIntent = 'status';
     convo.lastIntent = 'status';
     convo.currentStep = 'menu';
+    convo.lastOutboundMessage = reply;
+    convo.lastOutboundAt = new Date();
+    await Promise.all([user.save(), convo.save()]);
+    return reply;
+  }
+
+  if (isHumanIntent) {
+    user.lastIntent = 'human';
+    convo.lastIntent = 'human';
+    convo.currentStep = 'human_handoff';
+    const reply = [
+      'Thanks. A recruiting assistant will reply as soon as possible.',
+      '',
+      'To help us prepare, share:',
+      '- Job title you want',
+      '- Preferred location',
+      '- Years of experience',
+      '',
+      'You can also reply START anytime for the main menu.'
+    ].join('\n');
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
     await Promise.all([user.save(), convo.save()]);
@@ -1597,7 +1620,7 @@ async function handleWhatsAppRecruitingMessage(from, body) {
     return reply;
   }
 
-  const fallback = 'I did not catch that. Reply START for menu, JOBS, RESUME, INTERVIEW, STATUS, or HELP.';
+  const fallback = 'I did not catch that. Reply START for menu, JOBS, RESUME, INTERVIEW, STATUS, HUMAN, or HELP.';
   convo.lastOutboundMessage = fallback;
   convo.lastOutboundAt = new Date();
   await convo.save();
