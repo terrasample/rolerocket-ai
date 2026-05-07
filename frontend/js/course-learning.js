@@ -2882,7 +2882,7 @@ document.addEventListener('DOMContentLoaded', function () {
               </label>
             </div>
             <div data-module-lesson-stage="${index}" style="margin-bottom:10px;padding:14px;border-radius:10px;background:linear-gradient(135deg,#0f172a,#10263a);border:1px solid #1f4c6d;min-height:120px;">
-              <div style="font-size:0.78rem;color:#7dd3fc;text-transform:uppercase;letter-spacing:0.04em;font-weight:700;margin-bottom:6px;">Teaching Video</div>
+              <div style="font-size:0.78rem;color:#7dd3fc;text-transform:uppercase;letter-spacing:0.04em;font-weight:700;margin-bottom:6px;">Guided Lesson</div>
               <div data-module-lesson-stage-title="${index}" style="font-size:1rem;color:#e2e8f0;font-weight:700;margin-bottom:8px;">Choose a section to start.</div>
               <div data-module-lesson-stage-body="${index}" style="font-size:0.92rem;color:#cbd5e1;line-height:1.6;">Pick Objective, Lesson, Example, Mistake, Practice, or Checkpoint to teach that section inside this module.</div>
             </div>
