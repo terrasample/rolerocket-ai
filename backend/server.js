@@ -1324,10 +1324,10 @@ function getWhatsAppNextStepPrompt() {
 
 function getWhatsAppMenuText() {
   return [
-    'RoleRocket Recruit: interview-ready faster.',
+    'RoleRocket Recruit: get hired faster.',
     '1 Jobs | 2 Resume',
     '3 Interview | 0 Human',
-    'Reply with a number.'
+    'Reply 1, 2, 3, or 0.'
   ].join('\n');
 }
 
@@ -1514,8 +1514,8 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
 
   if (text === 'help') {
     const reply = [
-      'Commands:',
-      'START menu | 1 Jobs | 2 Resume',
+      'Quick commands:',
+      'START | 1 Jobs | 2 Resume',
       '3 Interview | 0 Human | STATUS',
       'STOP to opt out'
     ].join('\n');
@@ -1538,7 +1538,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     const reply = [
       'Step 1/2: Send job + location.',
       'Example: Security Guard in Kingston',
-      getWhatsAppNextStepPrompt()
+      'I will return top matches fast.'
     ].join('\n');
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
@@ -1553,7 +1553,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     const reply = [
       'Step 1/2: Send your recent work experience.',
       'I will rewrite it into stronger bullets.',
-      getWhatsAppNextStepPrompt()
+      'Designed to improve interview chances.'
     ].join('\n');
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
@@ -1568,7 +1568,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     const reply = [
       'Step 1/2: Send role or company.',
       'Example: GraceKennedy Customer Service Rep',
-      getWhatsAppNextStepPrompt()
+      'I will give likely questions + best answers.'
     ].join('\n');
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
@@ -1579,11 +1579,11 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   if (isStatusIntent) {
     const applications = await Application.find({ userId: phone }).sort({ createdAt: -1 }).limit(5).lean();
     const reply = !applications.length
-      ? `You have no tracked applications yet. Reply 1 to find jobs.\n${getWhatsAppNextStepPrompt()}`
+      ? 'No tracked applications yet. Reply 1 to find jobs now.'
       : [
           'Latest tracked applications:',
           ...applications.map((item, idx) => `${idx + 1}. ${item.jobTitle || 'Role'} @ ${item.company || 'Company'} - ${String(item.status || 'applied').toUpperCase()}`),
-          getWhatsAppNextStepPrompt()
+          'Reply 1 for new jobs or 0 for support.'
         ].join('\n');
 
     user.lastIntent = 'status';
@@ -1600,9 +1600,9 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     convo.lastIntent = 'human';
     convo.currentStep = 'human_handoff';
     const reply = [
-      'Thanks. A recruiting assistant will reply shortly.',
+      'You are connected to human support.',
       'Share: target job, location, years exp.',
-      getWhatsAppNextStepPrompt()
+      'A recruiter will follow up shortly.'
     ].join('\n');
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
@@ -1642,13 +1642,12 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     convo.currentStep = 'jobs_action';
 
     const reply = !jobs.length
-      ? `No live matches found for ${parsed.title} in ${parsed.location || 'Jamaica'} right now. Reply 1 to try another search.\n${getWhatsAppNextStepPrompt()}`
+      ? `No live matches for ${parsed.title} in ${parsed.location || 'Jamaica'} right now. Reply 1 to try another search.`
       : [
           `Got it: ${parsed.title} in ${parsed.location || 'Jamaica'}.`,
           `Top matches:`,
           ...jobs.map((job, idx) => `${idx + 1}. ${job.title || 'Role'} @ ${job.company || 'Company'} (${job.location || 'Location'})`),
-          'Reply APPLY 1 or APPLY 2 to track.',
-          getWhatsAppNextStepPrompt()
+          'Reply APPLY 1 or APPLY 2 to track.'
         ].join('\n');
 
     convo.lastOutboundMessage = reply;
@@ -1661,7 +1660,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     const picked = Number((text.match(/\d+/) || [])[0]);
     const jobs = Array.isArray(convo.metadata?.lastJobs) ? convo.metadata.lastJobs : [];
     if (!Number.isInteger(picked) || picked < 1 || picked > jobs.length) {
-      const reply = `Reply APPLY 1 or APPLY 2 based on the job list shown.\n${getWhatsAppNextStepPrompt()}`;
+      const reply = 'Reply APPLY 1 or APPLY 2 based on the job list shown.';
       convo.lastOutboundMessage = reply;
       convo.lastOutboundAt = new Date();
       await convo.save();
@@ -1679,7 +1678,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     convo.currentStep = 'menu';
     convo.lastIntent = 'status';
     user.lastIntent = 'status';
-    const reply = `Saved: ${chosen.title || 'Role'} @ ${chosen.company || 'Company'} as APPLIED. Reply STATUS to see tracked updates.\n${getWhatsAppNextStepPrompt()}`;
+    const reply = `Saved: ${chosen.title || 'Role'} @ ${chosen.company || 'Company'} as APPLIED. Reply STATUS for updates.`;
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
     await Promise.all([user.save(), convo.save()]);
@@ -1692,7 +1691,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     convo.lastIntent = 'resume';
     convo.currentStep = 'menu';
     const rewrite = await generateResumeRewriteForWhatsApp(incoming);
-    const reply = `${rewrite}\n\n${getWhatsAppNextStepPrompt()}`;
+    const reply = `${rewrite}\n\nReply 1 Jobs | 3 Interview | 0 Human`;
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
     await Promise.all([user.save(), convo.save()]);
@@ -1704,14 +1703,14 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     convo.lastIntent = 'interview';
     convo.currentStep = 'menu';
     const prep = await generateInterviewPrepForWhatsApp(incoming);
-    const reply = `${prep}\n\n${getWhatsAppNextStepPrompt()}`;
+    const reply = `${prep}\n\nReply 1 Jobs | 2 Resume | 0 Human`;
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
     await Promise.all([user.save(), convo.save()]);
     return reply;
   }
 
-  const fallback = `I did not catch that. Reply 1, 2, 3, 0, START, or HELP.\n${getWhatsAppNextStepPrompt()}`;
+  const fallback = 'I did not catch that. Reply 1, 2, 3, 0, START, or HELP.';
   convo.lastOutboundMessage = fallback;
   convo.lastOutboundAt = new Date();
   await convo.save();
