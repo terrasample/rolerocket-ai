@@ -2461,6 +2461,16 @@ function isJobRelevantToQuery(job = {}, queryTitle = '') {
     if (tourismKeywords.some((k) => haystack.includes(k))) return true;
   }
 
+  // Security searches should also match common adjacent role names.
+  if (/\bsecurity\b|\bsecruity\b|\bguard\b|loss\s*prevention/.test(rawQuery)) {
+    const securityKeywords = [
+      'security', 'secruity', 'guard', 'security officer', 'security guard',
+      'loss prevention', 'protective services', 'patrol officer', 'surveillance',
+      'gatehouse', 'watchman'
+    ];
+    if (securityKeywords.some((k) => haystack.includes(k))) return true;
+  }
+
   if (haystack.includes(rawQuery)) return true;
 
   const tokens = buildQueryTokens(rawQuery);
@@ -3598,6 +3608,18 @@ function getGuaranteedJamaicaSectorFallbackJobs(title, resume) {
         { company: 'Concentrix Jamaica', link: 'https://careers.concentrix.com', location: 'Portmore, Jamaica' },
         { company: 'Teleperformance Jamaica', link: 'https://www.teleperformance.com/careers', location: 'Kingston, Jamaica' },
         { company: 'Foundever Jamaica', link: 'https://jobs.foundever.com', location: 'Montego Bay, Jamaica' }
+      ]
+    },
+    {
+      key: 'security',
+      match: /security|secruity|guard|loss\s*prevention|patrol|watchman|protective/,
+      roles: ['Security Guard', 'Security Officer', 'Loss Prevention Officer'],
+      employers: [
+        { company: 'Guardsman Group', link: 'https://guardsmangroup.com/careers/', location: 'Kingston, Jamaica' },
+        { company: 'KingAlarm Jamaica', link: 'https://www.kingalarm.com/', location: 'Kingston, Jamaica' },
+        { company: 'Hawkeye Electronic Security', link: 'https://hawkeyeonline.com/', location: 'Kingston, Jamaica' },
+        { company: 'Securipro Limited', link: 'https://www.securiprojamaica.com/', location: 'Kingston, Jamaica' },
+        { company: 'Jamaica Pegasus Hotel', link: 'https://www.jamaicapegasus.com/careers/', location: 'Kingston, Jamaica' }
       ]
     },
     {
