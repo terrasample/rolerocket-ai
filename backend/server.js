@@ -1281,11 +1281,30 @@ function getWhatsAppMenuText() {
 function parseJobQueryInput(text = '') {
   const input = normalizeIncomingWhatsAppText(text);
   if (!input) return { title: '', location: '' };
+
+  const normalizeWhatsAppLocation = (rawLocation = '') => {
+    const locationText = String(rawLocation || '').trim();
+    if (!locationText) return 'Jamaica';
+
+    const lower = locationText.toLowerCase();
+    const alreadyJamaica = /\bjamaica\b/.test(lower);
+    const broadLocation = /\b(remote|worldwide|global|anywhere)\b/.test(lower);
+    const explicitForeignCountry = /\b(usa|u\.?s\.?a\.?|united states|canada|uk|u\.?k\.?|united kingdom|europe|india|mexico|australia|new zealand|trinidad|barbados|guyana|bahamas)\b/.test(lower);
+
+    // WhatsApp recruiting is Jamaica-first; ambiguous city names should
+    // resolve to Jamaica unless the user clearly asks for another country.
+    if (!alreadyJamaica && !broadLocation && !explicitForeignCountry) {
+      return `${locationText}, Jamaica`;
+    }
+
+    return locationText;
+  };
+
   const marker = input.toLowerCase().lastIndexOf(' in ');
   if (marker > 0) {
     return {
       title: input.slice(0, marker).trim(),
-      location: input.slice(marker + 4).trim()
+      location: normalizeWhatsAppLocation(input.slice(marker + 4).trim())
     };
   }
   return { title: input, location: 'Jamaica' };
