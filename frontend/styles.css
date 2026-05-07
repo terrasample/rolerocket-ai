@@ -5233,6 +5233,17 @@ pre {
   background: rgba(0, 0, 0, 0.52);
   z-index: 98;
   cursor: pointer;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.sidebar-overlay.visible,
+body.sidebar-open .sidebar-overlay {
+  display: block;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
 }
 
 @media (max-width: 700px) {
