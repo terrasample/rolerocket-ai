@@ -3624,7 +3624,7 @@ function getGuaranteedJamaicaSectorFallbackJobs(title, resume) {
     },
     {
       key: 'finance',
-      match: /finance|accounting|accountant|banking|financial|auditor|payroll/,
+      match: /finance|accounting|accountant|\bbanking\b|\bbank\b|financial|auditor|payroll|\bloan\b|teller|credit\s*officer|investment/,
       roles: ['Accountant', 'Finance Officer', 'Banking Operations Associate'],
       employers: [
         { company: 'National Commercial Bank Jamaica (NCB)', link: 'https://www.jncb.com/careers', location: 'Kingston, Jamaica' },
@@ -3636,7 +3636,7 @@ function getGuaranteedJamaicaSectorFallbackJobs(title, resume) {
     },
     {
       key: 'marketing',
-      match: /marketing|digital\s*marketing|brand|communications|social\s*media|content\s*creator|copywriter|\bpr\b/,
+      match: /marketing|marketer|digital\s*market|brand|communications|social\s*media|content\s*creat|content\s*writ|copywriter|public\s*relations|\bpr\b|communications\s*officer/,
       roles: ['Marketing Coordinator', 'Digital Marketing Specialist', 'Brand and Communications Officer'],
       employers: [
         { company: 'GraceKennedy Limited', link: 'https://gracekennedy.com/careers/', location: 'Kingston, Jamaica' },
@@ -3704,6 +3704,126 @@ function getGuaranteedJamaicaSectorFallbackJobs(title, resume) {
         { company: 'JMMB Group', link: 'https://jm.jmmb.com/careers', location: 'Kingston, Jamaica' },
         { company: 'Sagicor Group Jamaica', link: 'https://www.sagicor.com/en-jm/careers', location: 'Kingston, Jamaica' },
         { company: 'National Commercial Bank Jamaica (NCB)', link: 'https://www.jncb.com/careers', location: 'Kingston, Jamaica' }
+      ]
+    },
+    {
+      key: 'admin',
+      match: /data\s*entry|receptionist|administrative|admin\s*assistant|office\s*clerk|secretary|clerical|front\s*desk/,
+      roles: ['Administrative Assistant', 'Data Entry Clerk', 'Receptionist'],
+      employers: [
+        { company: 'GraceKennedy Limited', link: 'https://gracekennedy.com/careers/', location: 'Kingston, Jamaica' },
+        { company: 'Sagicor Group Jamaica', link: 'https://www.sagicor.com/en-jm/careers', location: 'Kingston, Jamaica' },
+        { company: 'Ministry of Finance and the Public Service', link: 'https://www.mof.gov.jm/', location: 'Kingston, Jamaica' },
+        { company: 'Caribbean Producers Jamaica', link: 'https://www.cpj.com.jm/', location: 'Montego Bay, Jamaica' },
+        { company: 'Wisynco Group', link: 'https://wisynco.com/careers/', location: 'St. Catherine, Jamaica' }
+      ]
+    },
+    {
+      key: 'trades',
+      match: /electrician|plumber|auto\s*mechanic|mechanic|carpenter|welder|technician|tradesman|hvac|refrigeration/,
+      roles: ['Electrician', 'Plumber', 'Auto Mechanic'],
+      employers: [
+        { company: 'Jamaica Public Service Company (JPS)', link: 'https://www.jpsco.com/careers/', location: 'Kingston, Jamaica' },
+        { company: 'National Water Commission (NWC)', link: 'https://www.nwcjamaica.com/careers', location: 'Kingston, Jamaica' },
+        { company: 'Rubis Energy Jamaica', link: 'https://www.rubis.com/en/careers', location: 'Kingston, Jamaica' },
+        { company: 'Courts Jamaica', link: 'https://www.courtsjamaica.com/', location: 'Kingston, Jamaica' },
+        { company: 'Island Electric Jamaica', link: 'https://islandelectric.com.jm/', location: 'Kingston, Jamaica' }
+      ]
+    },
+    {
+      key: 'retail',
+      match: /cashier|retail|sales\s*associate|shop\s*assistant|store\s*clerk|checkout|merchandiser|inventory\s*clerk/,
+      roles: ['Cashier', 'Retail Sales Associate', 'Merchandiser'],
+      employers: [
+        { company: 'Courts Jamaica', link: 'https://www.courtsjamaica.com/', location: 'Kingston, Jamaica' },
+        { company: 'Hi-Lo Food Stores', link: 'https://hilofoods.com/', location: 'Kingston, Jamaica' },
+        { company: 'PriceSmart Jamaica', link: 'https://www.pricesmart.com/', location: 'Kingston, Jamaica' },
+        { company: 'SuperValu Jamaica', link: 'https://www.supervalu.com.jm/', location: 'Kingston, Jamaica' },
+        { company: 'Fontana Pharmacy', link: 'https://www.fontanapharmacy.com/', location: 'Kingston, Jamaica' }
+      ]
+    },
+    {
+      key: 'driver',
+      match: /\bdriver\b|delivery\s*driver|courier|transport|dispatcher|chauffeur|truck\s*driver|bus\s*driver|logistics\s*driver/,
+      roles: ['Driver', 'Delivery Driver', 'Courier'],
+      employers: [
+        { company: 'Wisynco Group', link: 'https://wisynco.com/careers/', location: 'St. Catherine, Jamaica' },
+        { company: 'GraceKennedy Limited', link: 'https://gracekennedy.com/careers/', location: 'Kingston, Jamaica' },
+        { company: 'Caribbean Producers Jamaica', link: 'https://www.cpj.com.jm/', location: 'Montego Bay, Jamaica' },
+        { company: 'DHL Jamaica', link: 'https://www.dhl.com/jm-en/home/careers.html', location: 'Kingston, Jamaica' },
+        { company: 'Seprod Group', link: 'https://www.seprod.com/', location: 'Kingston, Jamaica' }
+      ]
+    },
+    {
+      key: 'real_estate',
+      match: /real\s*estate|realtor|property\s*manager|property\s*agent|land\s*sales|housing\s*agent/,
+      roles: ['Real Estate Agent', 'Property Manager', 'Sales and Leasing Agent'],
+      employers: [
+        { company: 'RE/MAX Jamaica', link: 'https://www.remax-jamaica.com/', location: 'Kingston, Jamaica' },
+        { company: 'Century 21 Jamaica', link: 'https://www.century21jamaica.com/', location: 'Kingston, Jamaica' },
+        { company: 'Jamaica Properties Real Estate', link: 'https://www.jamaicaproperties.com/', location: 'Kingston, Jamaica' },
+        { company: 'Homes Jamaica', link: 'https://www.homes.com.jm/', location: 'Kingston, Jamaica' },
+        { company: 'Pan Jamaica Group', link: 'https://www.panjam.com/', location: 'Kingston, Jamaica' }
+      ]
+    },
+    {
+      key: 'pharmacy',
+      match: /pharmacist|pharmacy\s*technician|lab\s*technician|laboratory|medical\s*lab|pathology|phlebotomist|dispensary/,
+      roles: ['Pharmacist', 'Pharmacy Technician', 'Laboratory Technician'],
+      employers: [
+        { company: 'Fontana Pharmacy', link: 'https://www.fontanapharmacy.com/', location: 'Kingston, Jamaica' },
+        { company: 'National Health Fund (NHF)', link: 'https://www.nhf.org.jm/', location: 'Kingston, Jamaica' },
+        { company: 'Mega Mart Jamaica', link: 'https://www.megamartja.com/', location: 'Kingston, Jamaica' },
+        { company: 'University Hospital of the West Indies (UHWI)', link: 'https://www.uhwi.gov.jm/careers', location: 'Kingston, Jamaica' },
+        { company: 'LabTest Jamaica', link: 'https://www.labtestja.com/', location: 'Kingston, Jamaica' }
+      ]
+    },
+    {
+      key: 'social_work',
+      match: /social\s*worker|social\s*work|counselor|community\s*development|child\s*protection|welfare\s*officer|case\s*manager/,
+      roles: ['Social Worker', 'Community Development Officer', 'Welfare Officer'],
+      employers: [
+        { company: 'Child Protection and Family Services Agency (CPFSA)', link: 'https://www.cpfsa.gov.jm/', location: 'Kingston, Jamaica' },
+        { company: 'Ministry of Labour and Social Security', link: 'https://mlss.gov.jm/', location: 'Kingston, Jamaica' },
+        { company: 'Office of the Children\'s Advocate', link: 'https://www.childadvocate.gov.jm/', location: 'Kingston, Jamaica' },
+        { company: 'National Council for Senior Citizens', link: 'https://www.moh.gov.jm/', location: 'Kingston, Jamaica' },
+        { company: 'Salvation Army Jamaica', link: 'https://www.salvationarmy.org/', location: 'Kingston, Jamaica' }
+      ]
+    },
+    {
+      key: 'culinary',
+      match: /\bchef\b|sous\s*chef|pastry\s*chef|cook|culinary|kitchen\s*staff|head\s*chef|line\s*cook|food\s*prep/,
+      roles: ['Chef', 'Sous Chef', 'Kitchen Staff'],
+      employers: [
+        { company: 'Sandals Resorts Jamaica', link: 'https://www.sandals.com/careers/', location: 'St. James, Jamaica' },
+        { company: 'RIU Hotels Jamaica', link: 'https://www.riu.com/en/jobs/', location: 'St. James, Jamaica' },
+        { company: 'Couples Resorts Jamaica', link: 'https://www.couples.com/careers', location: 'St. Ann, Jamaica' },
+        { company: 'Jamaica Pegasus Hotel', link: 'https://www.jamaicapegasus.com/careers/', location: 'Kingston, Jamaica' },
+        { company: 'Jewel Resorts Jamaica', link: 'https://www.jewel-resorts.com/', location: 'St. Ann, Jamaica' }
+      ]
+    },
+    {
+      key: 'creative',
+      match: /graphic\s*des|web\s*des|ui\s*ux|ux\s*ui|visual\s*des|art\s*director|illustrat|animator|video\s*edit|photographer|content\s*creat/,
+      roles: ['Graphic Designer', 'Web Designer', 'Content Creator'],
+      employers: [
+        { company: 'Digicel Jamaica', link: 'https://www.digicelgroup.com/careers', location: 'Kingston, Jamaica' },
+        { company: 'GraceKennedy Limited', link: 'https://gracekennedy.com/careers/', location: 'Kingston, Jamaica' },
+        { company: 'Caribbean Producers Jamaica', link: 'https://www.cpj.com.jm/', location: 'Montego Bay, Jamaica' },
+        { company: 'Sagicor Group Jamaica', link: 'https://www.sagicor.com/en-jm/careers', location: 'Kingston, Jamaica' },
+        { company: 'Flow Jamaica (C&W)', link: 'https://careers.cwc.com', location: 'Kingston, Jamaica' }
+      ]
+    },
+    {
+      key: 'business_analyst',
+      match: /business\s*analyst|systems\s*analyst|process\s*analyst|data\s*analyst|operations\s*analyst|management\s*consultant/,
+      roles: ['Business Analyst', 'Systems Analyst', 'Data Analyst'],
+      employers: [
+        { company: 'National Commercial Bank Jamaica (NCB)', link: 'https://www.jncb.com/careers', location: 'Kingston, Jamaica' },
+        { company: 'Sagicor Group Jamaica', link: 'https://www.sagicor.com/en-jm/careers', location: 'Kingston, Jamaica' },
+        { company: 'GraceKennedy Limited', link: 'https://gracekennedy.com/careers/', location: 'Kingston, Jamaica' },
+        { company: 'JMMB Group', link: 'https://jm.jmmb.com/careers', location: 'Kingston, Jamaica' },
+        { company: 'eGov Jamaica', link: 'https://www.egovja.com/', location: 'Kingston, Jamaica' }
       ]
     }
   ];
