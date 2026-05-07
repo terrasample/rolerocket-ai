@@ -73,10 +73,65 @@
       border-color: #007847; background: rgba(0,120,71,.15); color: #4ade80;
     }
     .alerts-type-opt label .alerts-type-icon { font-size: 1.5rem; }
+    .wa-quickstart-card {
+      display: grid;
+      grid-template-columns: minmax(240px, 1fr) 170px;
+      gap: 16px;
+      align-items: center;
+      background: linear-gradient(135deg, rgba(0,120,71,.16), rgba(34,197,94,.10));
+      border: 1px solid rgba(34,197,94,.36);
+    }
+    .wa-quickstart-title {
+      margin: 0 0 6px;
+      font-size: 1.08rem;
+      color: #dcfce7;
+    }
+    .wa-quickstart-copy {
+      margin: 0 0 12px;
+      color: #bbf7d0;
+      font-size: .92rem;
+      line-height: 1.45;
+    }
+    .wa-quickstart-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .wa-quickstart-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      background: linear-gradient(135deg, #007847, #22c55e);
+      color: #fff;
+      font-weight: 700;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,.2);
+      font-size: .9rem;
+    }
+    .wa-quickstart-code {
+      color: #d1fae5;
+      font-size: .8rem;
+      opacity: .9;
+    }
+    .wa-quickstart-qr {
+      justify-self: center;
+      width: 160px;
+      height: 160px;
+      border-radius: 14px;
+      border: 1px solid rgba(203,213,225,.3);
+      background: #fff;
+      padding: 8px;
+      box-sizing: border-box;
+    }
     @media (max-width: 640px) {
       .main-content { padding: 16px; }
       .alerts-card { padding: 20px 18px; }
       .alerts-hero { padding: 28px 16px 24px; }
+      .wa-quickstart-card { grid-template-columns: 1fr; }
+      .wa-quickstart-qr { width: 140px; height: 140px; }
     }
     @media (max-width: 420px) {
       .alerts-type-grid { grid-template-columns: 1fr; }
@@ -120,6 +175,25 @@
     <div class="alerts-hero">
       <h1>📱 Job Alerts — SMS & WhatsApp</h1>
       <p>Get instant job alerts sent directly to your phone for any role, anywhere. Choose SMS, WhatsApp, or both — and never miss an opportunity.</p>
+    </div>
+
+    <div class="alerts-card wa-quickstart-card" aria-label="WhatsApp quick start">
+      <div>
+        <h2 class="wa-quickstart-title">Start WhatsApp in one tap</h2>
+        <p class="wa-quickstart-copy">Tap the button or scan the QR code. WhatsApp opens with START prefilled so users can begin instantly.</p>
+        <div class="wa-quickstart-actions">
+          <a class="wa-quickstart-link" href="https://wa.me/19043273474?text=START" target="_blank" rel="noopener noreferrer">Open WhatsApp + START</a>
+          <span class="wa-quickstart-code">Backup: send START to +1 (904) 327-3474</span>
+        </div>
+      </div>
+      <a href="https://wa.me/19043273474?text=START" target="_blank" rel="noopener noreferrer" aria-label="Scan QR to start WhatsApp">
+        <img
+          class="wa-quickstart-qr"
+          src="https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=https%3A%2F%2Fwa.me%2F19043273474%3Ftext%3DSTART"
+          alt="QR code to open WhatsApp with START prefilled"
+          loading="lazy"
+        />
+      </a>
     </div>
 
     <!-- Alert type card -->
