@@ -3555,7 +3555,7 @@ pre {
   align-items: center;
   gap: 20px;
   flex-wrap: nowrap;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .login-title-logo {
@@ -3650,11 +3650,11 @@ pre {
     transform: translate(4px, -4px) rotate(8deg) scale(1.06);
     opacity: 1;
     filter: drop-shadow(0 8px 16px rgba(14, 165, 233, 0.62));
-    35% {
-      transform: translate(5px, -8px) rotate(8deg) scale(1.06);
-      opacity: 1;
-      filter: drop-shadow(0 8px 16px rgba(14, 165, 233, 0.62));
-    }
+  }
+  35% {
+    transform: translate(5px, -8px) rotate(8deg) scale(1.06);
+    opacity: 1;
+    filter: drop-shadow(0 8px 16px rgba(14, 165, 233, 0.62));
   }
   48% {
     transform: translate(11px, -11px) rotate(14deg) scale(1.11);
@@ -3673,11 +3673,11 @@ pre {
     transform: translate(20px, -28px) rotate(18deg) scale(1.1);
     opacity: 1;
     filter: drop-shadow(0 12px 20px rgba(14, 165, 233, 0.55));
-    85% {
-      transform: translate(32px, -48px) rotate(24deg) scale(1.05);
-      opacity: 0.7;
-      filter: drop-shadow(0 14px 24px rgba(14, 165, 233, 0.3));
-    }
+  }
+  85% {
+    transform: translate(32px, -48px) rotate(24deg) scale(1.05);
+    opacity: 0.7;
+    filter: drop-shadow(0 14px 24px rgba(14, 165, 233, 0.3));
   }
   100% {
     transform: translate(45px, -72px) rotate(28deg) scale(0.92);
@@ -3701,14 +3701,14 @@ pre {
   0% {
     opacity: 0;
     transform: translate(0, 2px) scale(0.4);
-    10% {
-      opacity: 0.7;
-      transform: translate(-2px, 0) scale(0.5);
-    }
-    25% {
-      opacity: 0.85;
-      transform: translate(-4px, -3px) scale(0.7);
-    }
+  }
+  10% {
+    opacity: 0.7;
+    transform: translate(-2px, 0) scale(0.5);
+  }
+  25% {
+    opacity: 0.85;
+    transform: translate(-4px, -3px) scale(0.7);
   }
   20% {
     opacity: 0.9;
