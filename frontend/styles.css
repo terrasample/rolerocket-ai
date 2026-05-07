@@ -3271,6 +3271,7 @@ pre {
 
 .landing-page {
   background: linear-gradient(180deg, #f8faff 0%, #f3f6fb 100%);
+  overflow-x: hidden;
 }
 
 .landing-hero {
@@ -3550,6 +3551,7 @@ pre {
   align-items: center;
   gap: 20px;
   flex-wrap: nowrap;
+  overflow: hidden;
 }
 
 .login-title-logo {
