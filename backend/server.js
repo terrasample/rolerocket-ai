@@ -1306,19 +1306,28 @@ function normalizeIncomingWhatsAppText(body = '') {
   return String(body || '').replace(/\s+/g, ' ').trim();
 }
 
+function compactWhatsAppMessage(message = '', maxLines = 4) {
+  const lines = String(message || '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (lines.length <= maxLines) return lines.join('\n');
+  const kept = lines.slice(0, Math.max(1, maxLines - 1));
+  kept.push('Reply HELP for options.');
+  return kept.join('\n');
+}
+
 function getWhatsAppNextStepPrompt() {
   return 'Next: 1 Jobs | 2 Resume | 3 Interview | 0 Human';
 }
 
 function getWhatsAppMenuText() {
   return [
-    'Hi, I am RoleRocket Recruit. I help you get interview-ready faster.',
-    '',
-    'Reply with:',
-    '1 - Find Jobs',
-    '2 - Fix My Resume',
-    '3 - Interview Prep',
-    '0 - Human Support'
+    'RoleRocket Recruit: interview-ready faster.',
+    '1 Jobs | 2 Resume',
+    '3 Interview | 0 Human',
+    'Reply with a number.'
   ].join('\n');
 }
 
@@ -1505,15 +1514,10 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
 
   if (text === 'help') {
     const reply = [
-      'RoleRocket WhatsApp Commands',
-      '',
-      'START - Main menu',
-      '1 or JOBS - Find matching jobs',
-      '2 or RESUME - Improve your resume bullets',
-      '3 or INTERVIEW - Get interview prep',
-      '0 or HUMAN - Request live support',
-      'STATUS - View tracked applications',
-      'STOP - Opt out'
+      'Commands:',
+      'START menu | 1 Jobs | 2 Resume',
+      '3 Interview | 0 Human | STATUS',
+      'STOP to opt out'
     ].join('\n');
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
@@ -1532,8 +1536,9 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     convo.lastIntent = 'jobs';
     convo.currentStep = 'jobs_query';
     const reply = [
-      'Step 1 of 2: Send the job title and location.',
-      'Example: Security Guard in Kingston'
+      'Step 1/2: Send job + location.',
+      'Example: Security Guard in Kingston',
+      getWhatsAppNextStepPrompt()
     ].join('\n');
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
@@ -1546,8 +1551,9 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     convo.lastIntent = 'resume';
     convo.currentStep = 'resume_capture';
     const reply = [
-      'Step 1 of 2: Send your recent work experience.',
-      'I will rewrite it into stronger resume bullets.'
+      'Step 1/2: Send your recent work experience.',
+      'I will rewrite it into stronger bullets.',
+      getWhatsAppNextStepPrompt()
     ].join('\n');
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
@@ -1560,8 +1566,9 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     convo.lastIntent = 'interview';
     convo.currentStep = 'interview_target';
     const reply = [
-      'Step 1 of 2: Send the role or company.',
-      'Example: GraceKennedy Customer Service Representative'
+      'Step 1/2: Send role or company.',
+      'Example: GraceKennedy Customer Service Rep',
+      getWhatsAppNextStepPrompt()
     ].join('\n');
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
@@ -1574,9 +1581,8 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     const reply = !applications.length
       ? `You have no tracked applications yet. Reply 1 to find jobs.\n${getWhatsAppNextStepPrompt()}`
       : [
-          'Your latest tracked applications:',
+          'Latest tracked applications:',
           ...applications.map((item, idx) => `${idx + 1}. ${item.jobTitle || 'Role'} @ ${item.company || 'Company'} - ${String(item.status || 'applied').toUpperCase()}`),
-          '',
           getWhatsAppNextStepPrompt()
         ].join('\n');
 
@@ -1595,12 +1601,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     convo.currentStep = 'human_handoff';
     const reply = [
       'Thanks. A recruiting assistant will reply shortly.',
-      '',
-      'To help us prepare, share:',
-      '- Job title you want',
-      '- Preferred location',
-      '- Years of experience',
-      '',
+      'Share: target job, location, years exp.',
       getWhatsAppNextStepPrompt()
     ].join('\n');
     convo.lastOutboundMessage = reply;
@@ -1628,7 +1629,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       location: parsed.location || 'Jamaica',
       resume: user.resumeText || ''
     });
-    const jobs = Array.isArray(searchResult?.jobs) ? searchResult.jobs.slice(0, 3) : [];
+    const jobs = Array.isArray(searchResult?.jobs) ? searchResult.jobs.slice(0, 2) : [];
     convo.metadata = {
       ...(convo.metadata || {}),
       lastJobs: jobs.map((job) => ({
@@ -1646,8 +1647,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
           `Got it: ${parsed.title} in ${parsed.location || 'Jamaica'}.`,
           `Top matches:`,
           ...jobs.map((job, idx) => `${idx + 1}. ${job.title || 'Role'} @ ${job.company || 'Company'} (${job.location || 'Location'})`),
-          '',
-          'Reply APPLY 1, APPLY 2, or APPLY 3 to track an application.',
+          'Reply APPLY 1 or APPLY 2 to track.',
           getWhatsAppNextStepPrompt()
         ].join('\n');
 
@@ -1661,7 +1661,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     const picked = Number((text.match(/\d+/) || [])[0]);
     const jobs = Array.isArray(convo.metadata?.lastJobs) ? convo.metadata.lastJobs : [];
     if (!Number.isInteger(picked) || picked < 1 || picked > jobs.length) {
-      const reply = `Reply APPLY 1, APPLY 2, or APPLY 3 based on the job list shown.\n${getWhatsAppNextStepPrompt()}`;
+      const reply = `Reply APPLY 1 or APPLY 2 based on the job list shown.\n${getWhatsAppNextStepPrompt()}`;
       convo.lastOutboundMessage = reply;
       convo.lastOutboundAt = new Date();
       await convo.save();
@@ -2203,10 +2203,10 @@ app.post('/api/whatsapp/incoming', express.urlencoded({ extended: false }), asyn
     const body = String(req.body?.Body || '').trim();
     const messageSid = String(req.body?.MessageSid || req.body?.SmsMessageSid || '').trim();
     const reply = await handleWhatsAppRecruitingMessage(from, body, messageSid);
-    return res.status(200).type('text/xml').send(buildWhatsAppTwiml(reply));
+    return res.status(200).type('text/xml').send(buildWhatsAppTwiml(compactWhatsAppMessage(reply, 4)));
   } catch (error) {
     console.error('WhatsApp incoming webhook error:', error);
-    return res.status(200).type('text/xml').send(buildWhatsAppTwiml('RoleRocket is temporarily busy. Please try again in a moment.'));
+    return res.status(200).type('text/xml').send(buildWhatsAppTwiml(compactWhatsAppMessage('RoleRocket is temporarily busy. Please try again in a moment.', 4)));
   }
 });
 
