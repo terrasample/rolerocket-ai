@@ -1306,18 +1306,6 @@ function normalizeIncomingWhatsAppText(body = '') {
   return String(body || '').replace(/\s+/g, ' ').trim();
 }
 
-function compactWhatsAppMessage(message = '', maxLines = 4) {
-  const lines = String(message || '')
-    .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean);
-
-  if (lines.length <= maxLines) return lines.join('\n');
-  const kept = lines.slice(0, Math.max(1, maxLines - 1));
-  kept.push('Reply HELP for options.');
-  return kept.join('\n');
-}
-
 function getWhatsAppNextStepPrompt() {
   return 'Next: 1 Jobs | 2 Resume | 3 Interview | 0 Human';
 }
@@ -1577,7 +1565,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   }
 
   if (isStatusIntent) {
-    const applications = await Application.find({ userId: phone }).sort({ createdAt: -1 }).limit(5).lean();
+    const applications = await Application.find({ userId: phone }).sort({ createdAt: -1 }).limit(2).lean();
     const reply = !applications.length
       ? 'No tracked applications yet. Reply 1 to find jobs now.'
       : [
@@ -1645,9 +1633,8 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       ? `No live matches for ${parsed.title} in ${parsed.location || 'Jamaica'} right now. Reply 1 to try another search.`
       : [
           `Got it: ${parsed.title} in ${parsed.location || 'Jamaica'}.`,
-          `Top matches:`,
-          ...jobs.map((job, idx) => `${idx + 1}. ${job.title || 'Role'} @ ${job.company || 'Company'} (${job.location || 'Location'})`),
-          'Reply APPLY 1 or APPLY 2 to track.'
+          ...jobs.map((job, idx) => `${idx + 1}) ${job.title || 'Role'} @ ${job.company || 'Company'}`),
+          'Reply APPLY 1 or APPLY 2 to track, or reply 1 to search again.'
         ].join('\n');
 
     convo.lastOutboundMessage = reply;
@@ -2202,10 +2189,10 @@ app.post('/api/whatsapp/incoming', express.urlencoded({ extended: false }), asyn
     const body = String(req.body?.Body || '').trim();
     const messageSid = String(req.body?.MessageSid || req.body?.SmsMessageSid || '').trim();
     const reply = await handleWhatsAppRecruitingMessage(from, body, messageSid);
-    return res.status(200).type('text/xml').send(buildWhatsAppTwiml(compactWhatsAppMessage(reply, 4)));
+    return res.status(200).type('text/xml').send(buildWhatsAppTwiml(reply));
   } catch (error) {
     console.error('WhatsApp incoming webhook error:', error);
-    return res.status(200).type('text/xml').send(buildWhatsAppTwiml(compactWhatsAppMessage('RoleRocket is temporarily busy. Please try again in a moment.', 4)));
+    return res.status(200).type('text/xml').send(buildWhatsAppTwiml('RoleRocket is temporarily busy. Please try again in a moment.'));
   }
 });
 
