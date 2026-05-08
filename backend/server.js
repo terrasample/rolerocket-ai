@@ -2654,6 +2654,48 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       return reply;
     }
 
+    const pendingTailorMode = String(convo.metadata?.context?.pendingTailorMode || '').toLowerCase();
+    const pendingTailorJob = convo.metadata?.context?.pendingTailorJob;
+    if (pendingTailorMode && pendingTailorJob?.title) {
+      user.resumeText = resumeSource.slice(0, 12000);
+      user.lastIntent = 'resume';
+      convo.lastIntent = 'resume';
+      convo.metadata.context.pendingTailorMode = null;
+
+      const tailoredResume = await generateTailoredResumeForJobWhatsApp(user.resumeText, pendingTailorJob);
+      convo.metadata.context.lastFullResumeDraft = tailoredResume;
+      convo.metadata.context.pendingFullResume = null;
+
+      if (pendingTailorMode === 'both') {
+        const jobTarget = `${pendingTailorJob.title || 'Role'} at ${pendingTailorJob.company || 'Company'}`;
+        const tailoredCover = await generateCoverLetterForWhatsApp(
+          jobTarget,
+          user.resumeText,
+          pendingTailorJob.summary || ''
+        );
+        convo.metadata.context.lastCoverLetterTarget = jobTarget;
+        convo.metadata.context.lastCoverLetterDraft = tailoredCover;
+        convo.currentStep = 'resume_followup';
+
+        const reply = [
+          `Great. I tailored both documents for ${pendingTailorJob.title || 'your selected job'}.`,
+          'Reply EXPORT RESUME and EXPORT COVER to get both copies now.',
+          'You can also reply SAVE RESUME or SAVE COVER.'
+        ].join('\n');
+        convo.lastOutboundMessage = reply;
+        convo.lastOutboundAt = new Date();
+        await Promise.all([user.save(), convo.save()]);
+        return reply;
+      }
+
+      convo.currentStep = 'resume_followup';
+      const reply = `${tailoredResume}\n\nReply SAVE RESUME, EXPORT RESUME, APPLY READY, 1 Jobs, 3 Cover Letter, 4 Explore, or 0 Technical Support.`;
+      convo.lastOutboundMessage = reply;
+      convo.lastOutboundAt = new Date();
+      await Promise.all([user.save(), convo.save()]);
+      return reply;
+    }
+
     const rewriteCredit = consumeWhatsAppAiCredit(phone, 'resume_rewrite');
     if (!rewriteCredit.ok) {
       await trackWhatsAppTelemetry(phone, 'whatsapp_ai_rate_limited', {
@@ -2726,6 +2768,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
 
     const baseResume = String(user.resumeText || '').trim();
     if ((wantsResume || wantsBoth) && !baseResume) {
+      convo.metadata.context.pendingTailorMode = wantsBoth ? 'both' : 'resume';
       convo.currentStep = 'resume_capture';
       const reply = 'To tailor your resume, send your recent work history first (text or voice note).';
       convo.lastOutboundMessage = reply;
