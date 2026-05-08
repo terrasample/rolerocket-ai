@@ -127,6 +127,20 @@
         <h2>Welcome back</h2>
         <p class="auth-subtext">Log in and continue your job-winning workflow.</p>
 
+        <div style="margin:12px 0 18px;padding:12px;border:1px solid rgba(148,163,184,.35);border-radius:12px;background:rgba(15,23,42,.45);text-align:center;">
+          <p style="margin:0 0 8px;color:#cbd5e1;font-size:.92rem;">Scan to open RoleRocket login on your phone</p>
+          <a id="mobileLoginLink" href="https://www.rolerocketai.com/login.html" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin-bottom:10px;color:#93c5fd;font-size:.9rem;">Open login link</a>
+          <div>
+            <img
+              id="mobileLoginQr"
+              src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=https%3A%2F%2Fwww.rolerocketai.com%2Flogin.html"
+              alt="QR code to open RoleRocket AI login page"
+              loading="lazy"
+              style="width:132px;height:132px;border-radius:10px;border:1px solid rgba(148,163,184,.45);background:#fff;padding:6px;box-sizing:border-box;"
+            />
+          </div>
+        </div>
+
         <form id="loginForm" class="auth-form">
           <input id="loginEmail" type="email" placeholder="Email" autocomplete="email" required />
           <input id="loginPassword" type="password" placeholder="Password" autocomplete="current-password" required />
@@ -650,6 +664,18 @@
         if (btn) { btn.textContent = original; btn.disabled = false; }
       }
     }
+  </script>
+
+  <script>
+    (function initMobileLoginQr() {
+      const linkEl = document.getElementById('mobileLoginLink');
+      const qrEl = document.getElementById('mobileLoginQr');
+      if (!linkEl || !qrEl) return;
+
+      const loginUrl = `${window.location.origin}/login.html`;
+      linkEl.href = loginUrl;
+      qrEl.src = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(loginUrl)}`;
+    })();
   </script>
 
   <script src="js/return-navigation.js"></script>
