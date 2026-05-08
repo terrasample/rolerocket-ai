@@ -1,4 +1,5 @@
 const path = require('path');
+const fs = require('fs/promises');
 require('dotenv').config({
   path: path.join(__dirname, '.env'),
   override: process.env.NODE_ENV !== 'production'
@@ -1204,7 +1205,7 @@ async function sendSMS({ to, message }) {
   }
 }
 
-async function sendWhatsAppMessage({ to, message }) {
+async function sendWhatsAppMessage({ to, message, mediaUrls = [] }) {
   if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN) {
     console.warn('WhatsApp not configured.');
     return { success: false, reason: 'WhatsApp not configured' };
@@ -1221,6 +1222,10 @@ async function sendWhatsAppMessage({ to, message }) {
       To: `whatsapp:${to}`,
       Body: message
     });
+    const attachments = Array.isArray(mediaUrls)
+      ? mediaUrls.map((item) => String(item || '').trim()).filter(Boolean).slice(0, 10)
+      : [];
+    attachments.forEach((url) => payload.append('MediaUrl', url));
     if (statusCallback) {
       payload.set('StatusCallback', statusCallback);
     }
@@ -1254,6 +1259,59 @@ function escapeXml(value = '') {
 function buildWhatsAppTwiml(message = '') {
   const safeMessage = escapeXml(message || 'Message received.');
   return `<?xml version="1.0" encoding="UTF-8"?><Response><Message>${safeMessage}</Message></Response>`;
+}
+
+function getPublicAppBaseUrl() {
+  const whatsappMediaBase = String(process.env.WHATSAPP_MEDIA_BASE_URL || '').trim().replace(/\/$/, '');
+  if (whatsappMediaBase) return whatsappMediaBase;
+  const configured = String(process.env.CLIENT_URL || '').trim().replace(/\/$/, '');
+  if (configured) return configured;
+  return process.env.NODE_ENV === 'production' ? 'https://www.rolerocketai.com' : 'http://localhost:5001';
+}
+
+function slugifyExportName(value = '') {
+  return String(value || 'document')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 60) || 'document';
+}
+
+async function createWhatsAppExportFiles({ title = 'RoleRocket Document', textContent = '', htmlContent = '' }) {
+  const safeTitle = String(title || 'RoleRocket Document').trim() || 'RoleRocket Document';
+  const exportDir = path.join(__dirname, '../frontend/generated/whatsapp-exports');
+  await fs.mkdir(exportDir, { recursive: true });
+
+  const nonce = `${Date.now()}-${crypto.randomBytes(6).toString('hex')}`;
+  const slug = slugifyExportName(safeTitle);
+  const pdfFilename = `${slug}-${nonce}.pdf`;
+  const docxFilename = `${slug}-${nonce}.docx`;
+  const pdfPath = path.join(exportDir, pdfFilename);
+  const docxPath = path.join(exportDir, docxFilename);
+
+  const pdfBuffer = await createDocumentPdfBuffer({
+    title: safeTitle,
+    textContent,
+    htmlContent
+  });
+  const wordBuffer = createDocumentWordBuffer({
+    title: safeTitle,
+    textContent,
+    htmlContent
+  });
+
+  await Promise.all([
+    fs.writeFile(pdfPath, pdfBuffer),
+    fs.writeFile(docxPath, wordBuffer)
+  ]);
+
+  const baseUrl = getPublicAppBaseUrl();
+  return {
+    pdfUrl: `${baseUrl}/generated/whatsapp-exports/${encodeURIComponent(pdfFilename)}`,
+    wordUrl: `${baseUrl}/generated/whatsapp-exports/${encodeURIComponent(docxFilename)}`,
+    pdfPath,
+    docxPath
+  };
 }
 
 function shouldValidateTwilioWebhook() {
@@ -2017,6 +2075,44 @@ async function generateInterviewPrepForWhatsApp(targetRole = '', contextNote = '
   }
 }
 
+async function sendWhatsAppDocumentExports({ phone, featureLabel, title, textContent, htmlContent = '' }) {
+  const draftText = String(textContent || '').trim();
+  if (!draftText) {
+    return { ok: false, reason: 'missing-draft', ack: `No ${featureLabel.toLowerCase()} draft available to export yet.` };
+  }
+
+  try {
+    const { pdfUrl, wordUrl } = await createWhatsAppExportFiles({
+      title,
+      textContent: draftText,
+      htmlContent
+    });
+
+    const [pdfResult, wordResult] = await Promise.all([
+      sendWhatsAppMessage({
+        to: phone,
+        message: `${featureLabel} PDF`,
+        mediaUrls: [pdfUrl]
+      }),
+      sendWhatsAppMessage({
+        to: phone,
+        message: `${featureLabel} Word file`,
+        mediaUrls: [wordUrl]
+      })
+    ]);
+
+    const delivered = pdfResult?.success || wordResult?.success;
+    const ack = delivered
+      ? `Sending your ${featureLabel.toLowerCase()} PDF and Word files now. Save them from WhatsApp.`
+      : `I prepared your ${featureLabel.toLowerCase()} files, but attachment delivery failed. Use these links:\nPDF: ${pdfUrl}\nWord: ${wordUrl}`;
+
+    return { ok: delivered, reason: delivered ? '' : 'attachment-send-failed', ack, pdfUrl, wordUrl };
+  } catch (error) {
+    console.error(`WhatsApp ${featureLabel} export error:`, error);
+    return { ok: false, reason: error.message, ack: `Could not export your ${featureLabel.toLowerCase()} right now. Please try again.` };
+  }
+}
+
 async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '', inboundAudioMedia = null) {
   const phone = normalizeWhatsAppPhone(from);
   const incoming = normalizeIncomingWhatsAppText(body);
@@ -2278,7 +2374,13 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       return reply;
     }
 
-    const reply = `${draft}\n\nExport-ready copy above. Reply SAVE COVER, 1 Jobs, 2 Resume, 4 Explore, or 0 Technical Support.`;
+    const exportResult = await sendWhatsAppDocumentExports({
+      phone,
+      featureLabel: 'Cover Letter',
+      title: String(convo.metadata?.context?.lastCoverLetterTarget || 'RoleRocket Cover Letter').trim() || 'RoleRocket Cover Letter',
+      textContent: draft
+    });
+    const reply = `${exportResult.ack}\n\nReply SAVE COVER, 1 Jobs, 2 Resume, 4 Explore, or 0 Technical Support.`;
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
     await convo.save();
@@ -2316,7 +2418,13 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       return reply;
     }
 
-    const reply = `${draft}\n\nExport-ready resume above. Reply SAVE RESUME, APPLY READY, 1 Jobs, 3 Cover Letter, 4 Explore, or 0 Technical Support.`;
+    const exportResult = await sendWhatsAppDocumentExports({
+      phone,
+      featureLabel: 'Resume',
+      title: String(convo.metadata?.context?.lastJobTitle || user.targetJob || 'RoleRocket Resume').trim() || 'RoleRocket Resume',
+      textContent: draft
+    });
+    const reply = `${exportResult.ack}\n\nReply SAVE RESUME, APPLY READY, 1 Jobs, 3 Cover Letter, 4 Explore, or 0 Technical Support.`;
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
     await convo.save();
