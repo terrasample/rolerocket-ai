@@ -1666,9 +1666,7 @@ async function generateResumeRewriteForWhatsApp(userInput = '', contextNote = ''
     '',
     '- Delivered friendly, high-quality customer support in a fast-paced environment.',
     '- Handled transactions and daily operations accurately and consistently.',
-    '- Supported shift closeout responsibilities and maintained service standards.',
-    '',
-    'Reply YES for a full role-targeted resume draft.'
+    '- Supported shift closeout responsibilities and maintained service standards.'
   ].join('\n');
 
   if (!process.env.OPENAI_API_KEY) return fallback;
@@ -1691,9 +1689,61 @@ async function generateResumeRewriteForWhatsApp(userInput = '', contextNote = ''
 
     const content = String(completion?.choices?.[0]?.message?.content || '').trim();
     if (!content) return fallback;
-    return `${content}\n\nReply YES for a full role-targeted resume draft.`.slice(0, 1500);
+    return content.slice(0, 1500);
   } catch (error) {
     console.warn('WhatsApp resume rewrite fallback:', error.message);
+    return fallback;
+  }
+}
+
+async function generateFullTargetedResumeForWhatsApp(userInput = '', targetRole = '', location = 'Jamaica') {
+  const source = normalizeIncomingWhatsAppText(userInput);
+  const role = normalizeIncomingWhatsAppText(targetRole) || 'Customer Service Representative';
+  const region = normalizeIncomingWhatsAppText(location) || 'Jamaica';
+  if (!source) {
+    return 'I need your recent work details first. Reply 2 and send your work history.';
+  }
+
+  const fallback = [
+    `Target Role: ${role} (${region})`,
+    '',
+    'Professional Summary:',
+    `Results-driven candidate prepared for ${role} opportunities with strong customer support, communication, and execution skills.`,
+    '',
+    'Experience Highlights:',
+    '- Managed high-volume customer interactions while maintaining service quality and response speed.',
+    '- Resolved complex issues with clear communication, de-escalation, and timely follow-through.',
+    '- Maintained accurate records and supported daily operational targets in fast-paced environments.',
+    '',
+    'Core Skills:',
+    '- Customer Service | Problem Solving | Communication | Teamwork | Time Management',
+    '',
+    'Reply EDIT + what to change, or reply 1 for job matches.'
+  ].join('\n');
+
+  if (!process.env.OPENAI_API_KEY) return fallback;
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+      temperature: 0.35,
+      messages: [
+        {
+          role: 'system',
+          content: 'You are RoleRocket AI resume writer. Produce a concise WhatsApp-friendly targeted resume draft with these headings exactly: Target Role, Professional Summary, Experience Highlights, Core Skills. Use 3-5 strong bullets in Experience Highlights. Keep under 1800 characters.'
+        },
+        {
+          role: 'user',
+          content: `Build a targeted resume draft for role: ${role}. Location: ${region}. Source experience:\n${source}`
+        }
+      ]
+    });
+
+    const content = String(completion?.choices?.[0]?.message?.content || '').trim();
+    if (!content) return fallback;
+    return `${content}\n\nReply EDIT + what to change, or reply 1 for job matches.`.slice(0, 2200);
+  } catch (error) {
+    console.warn('WhatsApp full resume fallback:', error.message);
     return fallback;
   }
 }
@@ -1949,7 +1999,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     convo.currentStep = 'jobs_query';
     await trackWhatsAppTelemetry(phone, 'whatsapp_jobs_step_enter', {});
     const reply = [
-      'Step 1/2: Send job + location.',
+      'Step 1: Send job + location.',
       'Example: Security Guard in Kingston',
       'I will return top matches fast.'
     ].join('\n');
@@ -1965,7 +2015,8 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     convo.currentStep = 'resume_capture';
     await trackWhatsAppTelemetry(phone, 'whatsapp_resume_step_enter', {});
     const reply = [
-      'Step 1/2: Send recent work (text or voice note).',
+      'Step 1: Send recent work (text or voice note).',
+      'Step 2: Reply YES after rewrite to get a full targeted resume draft.',
       'I will rewrite it into stronger bullets.',
       'Designed to improve interview chances.'
     ].join('\n');
@@ -1981,7 +2032,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     convo.currentStep = 'interview_target';
     await trackWhatsAppTelemetry(phone, 'whatsapp_interview_step_enter', {});
     const reply = [
-      'Step 1/2: Send role or company.',
+      'Step 1: Send role or company.',
       'Example: GraceKennedy Customer Service Rep',
       'I will give likely questions + best answers.'
     ].join('\n');
@@ -2186,19 +2237,31 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     user.resumeText = resumeSource.slice(0, 12000);
     user.lastIntent = 'resume';
     convo.lastIntent = 'resume';
-    convo.currentStep = 'menu';
+    convo.currentStep = 'resume_followup';
     convo.metadata.context.lastResumeChannel = usedVoiceTranscription ? 'voice' : 'text';
     convo.metadata.context.lastResumeRewriteAt = new Date().toISOString();
+    convo.metadata.context.pendingFullResume = {
+      source: resumeSource.slice(0, 12000),
+      role: String(user.targetJob || convo.metadata.context.lastJobTitle || 'Customer Service Representative').slice(0, 140),
+      location: String(user.location || convo.metadata.context.lastLocation || 'Jamaica').slice(0, 120),
+      capturedAt: new Date().toISOString()
+    };
     await trackWhatsAppTelemetry(phone, 'whatsapp_resume_submitted', {
       channel: convo.metadata.context.lastResumeChannel,
       chars: resumeSource.length
     });
     const rewrite = await generateResumeRewriteForWhatsApp(resumeSource, buildWhatsAppContextNote(user, convo));
+    const rewriteClean = String(rewrite || '')
+      .split(/\r?\n/)
+      .filter((line) => !/reply\s*yes/i.test(String(line || '')))
+      .join('\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
     await trackWhatsAppTelemetry(phone, 'whatsapp_resume_rewrite_completed', {
       channel: convo.metadata.context.lastResumeChannel
     });
     const prefix = usedVoiceTranscription ? 'Voice note transcribed.\n' : '';
-    const reply = `${prefix}${rewrite}\n\nReply APPLY READY | 1 Jobs | 3 Interview | REFERRAL`;
+    const reply = `${prefix}${rewriteClean}\n\nReply YES for full targeted resume | APPLY READY | 1 Jobs | 3 Interview | REFERRAL`;
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
     await Promise.all([user.save(), convo.save()]);
@@ -2233,7 +2296,42 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     return reply;
   }
 
-  const fallback = 'I did not catch that. Reply 1, 2, 3, 0, START, or HELP.';
+  if (convo.currentStep === 'resume_followup') {
+    if (['yes', 'y', 'full', 'continue'].includes(text)) {
+      const pending = convo.metadata?.context?.pendingFullResume;
+      const source = String(pending?.source || user.resumeText || '').trim();
+      const role = String(pending?.role || user.targetJob || convo.metadata?.context?.lastJobTitle || 'Customer Service Representative').trim();
+      const location = String(pending?.location || user.location || convo.metadata?.context?.lastLocation || 'Jamaica').trim();
+
+      const fullResume = await generateFullTargetedResumeForWhatsApp(source, role, location);
+      convo.currentStep = 'menu';
+      convo.metadata.context.pendingFullResume = null;
+      await trackWhatsAppTelemetry(phone, 'whatsapp_resume_full_generated', {
+        role,
+        location,
+        sourceChars: source.length
+      });
+      const reply = `${fullResume}\n\nReply APPLY READY | 1 Jobs | 3 Interview | REFERRAL`;
+      convo.lastOutboundMessage = reply;
+      convo.lastOutboundAt = new Date();
+      await convo.save();
+      return reply;
+    }
+
+    if (['no', 'n', 'skip'].includes(text)) {
+      convo.currentStep = 'menu';
+      convo.metadata.context.pendingFullResume = null;
+      const reply = 'No problem. Reply 1 Jobs | 2 Resume | 3 Interview | 0 Human anytime.';
+      convo.lastOutboundMessage = reply;
+      convo.lastOutboundAt = new Date();
+      await convo.save();
+      return reply;
+    }
+  }
+
+  const fallback = convo.currentStep === 'resume_followup'
+    ? 'Reply YES for your full targeted resume, or NO to skip. You can also reply 1, 2, 3, 0, START, or HELP.'
+    : 'I did not catch that. Reply 1, 2, 3, 0, START, or HELP.';
   await trackWhatsAppTelemetry(phone, 'whatsapp_fallback_prompt', {
     step: convo.currentStep || 'menu'
   });
