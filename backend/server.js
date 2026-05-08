@@ -3022,7 +3022,13 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
         return reply;
       }
 
-      const reply = `${draft}\n\nExport-ready copy above. Reply SAVE COVER, 1 Jobs, 2 Resume, 4 Explore, or 0 Technical Support.`;
+      const exportResult = await sendWhatsAppDocumentExports({
+        phone,
+        featureLabel: 'Cover Letter',
+        title: String(convo.metadata?.context?.lastCoverLetterTarget || 'RoleRocket Cover Letter').trim() || 'RoleRocket Cover Letter',
+        textContent: draft
+      });
+      const reply = `${exportResult.ack}\n\nReply SAVE COVER, 1 Jobs, 2 Resume, 4 Explore, or 0 Technical Support.`;
       convo.lastOutboundMessage = reply;
       convo.lastOutboundAt = new Date();
       await convo.save();
@@ -3111,7 +3117,13 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
         return reply;
       }
 
-      const reply = `${draft}\n\nExport-ready resume above. Reply SAVE RESUME, APPLY READY, 1 Jobs, 3 Cover Letter, 4 Explore, or 0 Technical Support.`;
+      const exportResult = await sendWhatsAppDocumentExports({
+        phone,
+        featureLabel: 'Resume',
+        title: String(convo.metadata?.context?.lastJobTitle || user.targetJob || 'RoleRocket Resume').trim() || 'RoleRocket Resume',
+        textContent: draft
+      });
+      const reply = `${exportResult.ack}\n\nReply SAVE RESUME, APPLY READY, 1 Jobs, 3 Cover Letter, 4 Explore, or 0 Technical Support.`;
       convo.lastOutboundMessage = reply;
       convo.lastOutboundAt = new Date();
       await convo.save();
