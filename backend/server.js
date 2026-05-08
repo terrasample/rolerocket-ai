@@ -1214,6 +1214,16 @@ async function sendWhatsAppMessage({ to, message }) {
     const accountSid = TWILIO_ACCOUNT_SID;
     const authToken = TWILIO_AUTH_TOKEN;
     const auth = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
+    const statusCallback = String(process.env.TWILIO_WHATSAPP_STATUS_CALLBACK_URL || '').trim();
+
+    const payload = new URLSearchParams({
+      From: `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER || '+1234567890'}`,
+      To: `whatsapp:${to}`,
+      Body: message
+    });
+    if (statusCallback) {
+      payload.set('StatusCallback', statusCallback);
+    }
 
     const response = await fetch('https://api.twilio.com/2010-04-01/Accounts/' + accountSid + '/Messages.json', {
       method: 'POST',
@@ -1221,11 +1231,7 @@ async function sendWhatsAppMessage({ to, message }) {
         'Authorization': `Basic ${auth}`,
         'Content-Type': 'application/x-www-form-urlencoded'
       },
-      body: new URLSearchParams({
-        From: `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER || '+1234567890'}`,
-        To: `whatsapp:${to}`,
-        Body: message
-      })
+      body: payload
     });
 
     const data = await response.json();
@@ -1344,14 +1350,21 @@ async function transcribeWhatsAppVoiceNote(media = null) {
 
   try {
     const auth = Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString('base64');
-    const response = await fetch(media.mediaUrl, {
-      headers: {
-        Authorization: `Basic ${auth}`
-      }
-    });
+    let response = null;
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const candidate = await fetch(media.mediaUrl, {
+        headers: {
+          Authorization: `Basic ${auth}`
+        }
+      }).catch(() => null);
 
-    if (!response.ok) {
-      throw new Error(`Failed to fetch WhatsApp media (${response.status})`);
+      if (candidate?.ok) {
+        response = candidate;
+        break;
+      }
+      if (attempt === 1) {
+        throw new Error(`Failed to fetch WhatsApp media (${candidate?.status || 'network'})`);
+      }
     }
 
     const audioBuffer = Buffer.from(await response.arrayBuffer());
@@ -1748,6 +1761,47 @@ async function generateFullTargetedResumeForWhatsApp(userInput = '', targetRole 
   }
 }
 
+async function generateEditedTargetedResumeForWhatsApp(existingResume = '', editRequest = '', targetRole = '', location = 'Jamaica') {
+  const current = String(existingResume || '').trim();
+  const editNote = normalizeIncomingWhatsAppText(editRequest);
+  const role = normalizeIncomingWhatsAppText(targetRole) || 'Customer Service Representative';
+  const region = normalizeIncomingWhatsAppText(location) || 'Jamaica';
+
+  if (!current) {
+    return 'I need a current resume draft first. Reply YES to generate one, then send EDIT + your request.';
+  }
+  if (!editNote || editNote === 'edit') {
+    return 'Send: EDIT + what to change. Example: EDIT make it more metrics-driven and leadership-focused.';
+  }
+
+  const fallback = `${current}\n\nRequested edit noted: ${editNote}. Reply EDIT + more changes if needed.`.slice(0, 2200);
+  if (!process.env.OPENAI_API_KEY) return fallback;
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+      temperature: 0.3,
+      messages: [
+        {
+          role: 'system',
+          content: 'You are RoleRocket AI resume writer. Revise the provided resume draft using the requested edits. Keep WhatsApp-friendly format and keep these headings exactly: Target Role, Professional Summary, Experience Highlights, Core Skills. Keep under 1800 characters.'
+        },
+        {
+          role: 'user',
+          content: `Role: ${role}. Location: ${region}.\nRequested edits: ${editNote}.\n\nCurrent draft:\n${current}`
+        }
+      ]
+    });
+
+    const content = String(completion?.choices?.[0]?.message?.content || '').trim();
+    if (!content) return fallback;
+    return `${content}\n\nReply EDIT + more changes, APPLY READY, or 1 for jobs.`.slice(0, 2200);
+  } catch (error) {
+    console.warn('WhatsApp resume edit fallback:', error.message);
+    return fallback;
+  }
+}
+
 async function generateInterviewPrepForWhatsApp(targetRole = '', contextNote = '') {
   const topic = normalizeIncomingWhatsAppText(targetRole) || 'Customer Service Representative in Jamaica';
 
@@ -1849,6 +1903,29 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       convo.metadata.pendingHumanAlert = false;
       convo.metadata.lastHumanAlertRecoveredAt = new Date().toISOString();
     }
+  }
+
+  if (convo.currentStep === 'resume_capture' && /^retry(\s+voice)?$/.test(text)) {
+    const retryMedia = convo.metadata?.context?.lastVoiceMedia;
+    if (retryMedia?.mediaUrl) {
+      const retryText = await transcribeWhatsAppVoiceNote(retryMedia);
+      if (retryText) {
+        await trackWhatsAppTelemetry(phone, 'whatsapp_voice_retry_transcribed', {});
+        convo.lastInboundMessage = retryText;
+        convo.lastInboundAt = new Date();
+        return handleWhatsAppRecruitingMessage(from, retryText, `${messageSid || 'retry'}-voice-retry`, null);
+      }
+      const reply = 'Still unable to transcribe voice note. Please send a short text summary so I can continue.';
+      convo.lastOutboundMessage = reply;
+      convo.lastOutboundAt = new Date();
+      await convo.save();
+      return reply;
+    }
+    const reply = 'No saved voice note to retry. Send a new voice note or text summary.';
+    convo.lastOutboundMessage = reply;
+    convo.lastOutboundAt = new Date();
+    await convo.save();
+    return reply;
   }
 
   if (['stop', 'unsubscribe', 'optout', 'opt out'].includes(text)) {
@@ -2196,6 +2273,11 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     let usedVoiceTranscription = false;
 
     if (!resumeSource && hasInboundAudio) {
+      convo.metadata.context.lastVoiceMedia = {
+        mediaUrl: inboundAudioMedia.mediaUrl,
+        contentType: inboundAudioMedia.contentType,
+        capturedAt: new Date().toISOString()
+      };
       const transcribeCredit = consumeWhatsAppAiCredit(phone, 'transcribe');
       if (!transcribeCredit.ok) {
         await trackWhatsAppTelemetry(phone, 'whatsapp_ai_rate_limited', {
@@ -2214,7 +2296,9 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
 
     if (!resumeSource) {
       await trackWhatsAppTelemetry(phone, 'whatsapp_resume_capture_empty', { hasInboundAudio });
-      const reply = 'Send your work history as text or a clear voice note.';
+      const reply = hasInboundAudio
+        ? 'Could not transcribe that voice note. Reply RETRY VOICE, send a clearer note, or send text.'
+        : 'Send your work history as text or a clear voice note.';
       convo.lastOutboundMessage = reply;
       convo.lastOutboundAt = new Date();
       await convo.save();
@@ -2304,14 +2388,42 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       const location = String(pending?.location || user.location || convo.metadata?.context?.lastLocation || 'Jamaica').trim();
 
       const fullResume = await generateFullTargetedResumeForWhatsApp(source, role, location);
-      convo.currentStep = 'menu';
+      convo.currentStep = 'resume_followup';
       convo.metadata.context.pendingFullResume = null;
+      convo.metadata.context.lastFullResumeDraft = fullResume;
       await trackWhatsAppTelemetry(phone, 'whatsapp_resume_full_generated', {
         role,
         location,
         sourceChars: source.length
       });
       const reply = `${fullResume}\n\nReply APPLY READY | 1 Jobs | 3 Interview | REFERRAL`;
+      convo.lastOutboundMessage = reply;
+      convo.lastOutboundAt = new Date();
+      await convo.save();
+      return reply;
+    }
+
+    if (text.startsWith('edit')) {
+      const requestedEdit = incoming;
+      const pending = convo.metadata?.context?.pendingFullResume;
+      const source = String(pending?.source || user.resumeText || '').trim();
+      const role = String(pending?.role || user.targetJob || convo.metadata?.context?.lastJobTitle || 'Customer Service Representative').trim();
+      const location = String(pending?.location || user.location || convo.metadata?.context?.lastLocation || 'Jamaica').trim();
+
+      let currentDraft = String(convo.metadata?.context?.lastFullResumeDraft || '').trim();
+      if (!currentDraft) {
+        currentDraft = await generateFullTargetedResumeForWhatsApp(source, role, location);
+      }
+
+      const editedDraft = await generateEditedTargetedResumeForWhatsApp(currentDraft, requestedEdit, role, location);
+      convo.currentStep = 'resume_followup';
+      convo.metadata.context.lastFullResumeDraft = editedDraft;
+      await trackWhatsAppTelemetry(phone, 'whatsapp_resume_edit_applied', {
+        role,
+        location,
+        editChars: requestedEdit.length
+      });
+      const reply = `${editedDraft}\n\nReply APPLY READY | 1 Jobs | 3 Interview | REFERRAL`;
       convo.lastOutboundMessage = reply;
       convo.lastOutboundAt = new Date();
       await convo.save();
@@ -2330,7 +2442,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   }
 
   const fallback = convo.currentStep === 'resume_followup'
-    ? 'Reply YES for your full targeted resume, or NO to skip. You can also reply 1, 2, 3, 0, START, or HELP.'
+    ? 'Reply YES for your full targeted resume, EDIT + your change request, or NO to skip. You can also reply 1, 2, 3, 0, START, or HELP.'
     : 'I did not catch that. Reply 1, 2, 3, 0, START, or HELP.';
   await trackWhatsAppTelemetry(phone, 'whatsapp_fallback_prompt', {
     step: convo.currentStep || 'menu'
@@ -2831,6 +2943,63 @@ app.post('/api/whatsapp/incoming', express.urlencoded({ extended: false }), asyn
   } catch (error) {
     console.error('WhatsApp incoming webhook error:', error);
     return res.status(200).type('text/xml').send(buildWhatsAppTwiml('RoleRocket is temporarily busy. Please try again in a moment.'));
+  }
+});
+
+app.post('/api/whatsapp/status', express.urlencoded({ extended: false }), async (req, res) => {
+  try {
+    if (!isValidTwilioWebhookSignature(req)) {
+      console.warn('Rejected WhatsApp status callback: invalid Twilio signature');
+      return res.status(403).type('text/plain').send('Forbidden');
+    }
+
+    const messageSid = String(req.body?.MessageSid || req.body?.SmsSid || '').trim();
+    const messageStatus = String(req.body?.MessageStatus || req.body?.SmsStatus || '').trim().toLowerCase();
+    const errorCode = String(req.body?.ErrorCode || '').trim();
+    const errorMessage = String(req.body?.ErrorMessage || '').trim();
+    const to = normalizeWhatsAppPhone(String(req.body?.To || '').trim());
+    const from = normalizeWhatsAppPhone(String(req.body?.From || '').trim());
+
+    const phone = to || from;
+    if (phone) {
+      const convo = await WhatsAppConversation.findOne({ phone });
+      if (convo) {
+        const metadata = (convo.metadata && typeof convo.metadata === 'object') ? convo.metadata : {};
+        metadata.delivery = (metadata.delivery && typeof metadata.delivery === 'object') ? metadata.delivery : {};
+        const events = Array.isArray(metadata.delivery.events) ? metadata.delivery.events : [];
+        events.push({
+          messageSid,
+          messageStatus,
+          errorCode,
+          errorMessage,
+          to,
+          from,
+          at: new Date().toISOString()
+        });
+        metadata.delivery.events = events.slice(-80);
+        metadata.delivery.lastStatus = messageStatus || metadata.delivery.lastStatus || '';
+        metadata.delivery.lastMessageSid = messageSid || metadata.delivery.lastMessageSid || '';
+        metadata.delivery.lastErrorCode = errorCode || '';
+        metadata.delivery.lastErrorMessage = errorMessage || '';
+        metadata.delivery.lastUpdatedAt = new Date().toISOString();
+        convo.metadata = metadata;
+        await convo.save();
+      }
+    }
+
+    await trackWhatsAppTelemetry(phone, 'whatsapp_delivery_status', {
+      messageSid,
+      messageStatus,
+      errorCode,
+      errorMessage,
+      to,
+      from
+    });
+
+    return res.status(200).type('text/plain').send('ok');
+  } catch (error) {
+    console.error('WhatsApp status callback error:', error);
+    return res.status(200).type('text/plain').send('ok');
   }
 });
 
@@ -4772,6 +4941,8 @@ const JOB_ALERT_EMPLOYMENT_TYPES = ['full-time', 'contract', 'part-time', 'tempo
 const JOB_ALERT_SENIORITY_LEVELS = ['internship', 'entry', 'associate', 'mid', 'senior', 'lead', 'manager', 'director', 'executive'];
 const JOB_ALERT_MIN_MATCH_SCORE = 90;
 const JOB_ALERT_SCHEDULE_INTERVAL_MS = 1000 * 60 * 5;
+const WHATSAPP_STATUS_NUDGE_INTERVAL_MS = 1000 * 60 * 10;
+const WHATSAPP_STATUS_NUDGE_DELAY_MS = 1000 * 60 * 60 * 24;
 const JOB_ALERT_FREQUENCY_MS = {
   instant: 1000 * 60 * 60 * 2,
   daily: 1000 * 60 * 60 * 24,
@@ -4779,6 +4950,8 @@ const JOB_ALERT_FREQUENCY_MS = {
 };
 let jobAlertSchedulerTimer = null;
 let jobAlertSchedulerRunning = false;
+let whatsappStatusNudgeTimer = null;
+let whatsappStatusNudgeRunning = false;
 
 function cleanAlertString(value, maxLen = 160) {
   return String(value || '').replace(/\s+/g, ' ').trim().slice(0, maxLen);
@@ -5193,6 +5366,86 @@ function startJobAlertScheduler() {
   }, JOB_ALERT_SCHEDULE_INTERVAL_MS);
   runDueJobAlerts().catch((err) => {
     console.error('Initial job alert scheduler run failed:', err.message);
+  });
+}
+
+async function runWhatsAppStatusNudges() {
+  if (whatsappStatusNudgeRunning || mongoose.connection.readyState !== 1) return;
+  whatsappStatusNudgeRunning = true;
+
+  try {
+    const threshold = new Date(Date.now() - WHATSAPP_STATUS_NUDGE_DELAY_MS);
+    const candidates = await Application.find({
+      status: 'applied',
+      createdAt: { $lte: threshold }
+    })
+      .sort({ createdAt: -1 })
+      .limit(100)
+      .lean();
+
+    for (const app of candidates) {
+      const phone = normalizeWhatsAppPhone(app.userId || '');
+      if (!phone) continue;
+
+      const [convo, profile] = await Promise.all([
+        WhatsAppConversation.findOne({ phone }),
+        WhatsAppRecruitingUser.findOne({ phone }).lean()
+      ]);
+      if (!convo || profile?.optedIn === false) continue;
+
+      const metadata = (convo.metadata && typeof convo.metadata === 'object') ? convo.metadata : {};
+      metadata.statusNudge = (metadata.statusNudge && typeof metadata.statusNudge === 'object') ? metadata.statusNudge : {};
+      const sentApplicationIds = Array.isArray(metadata.statusNudge.sentApplicationIds)
+        ? metadata.statusNudge.sentApplicationIds.map((item) => String(item || ''))
+        : [];
+      const appId = String(app._id || '');
+      if (!appId || sentApplicationIds.includes(appId)) continue;
+
+      const message = [
+        `24h status check: ${app.jobTitle || 'Your application'} @ ${app.company || 'the company'}.`,
+        'Reply STATUS for latest tracked updates, or 1 for new matches.'
+      ].join('\n');
+
+      const sendResult = await sendWhatsAppMessage({ to: phone, message });
+      if (!sendResult?.success) {
+        await trackWhatsAppTelemetry(phone, 'whatsapp_status_nudge_failed', {
+          applicationId: appId,
+          reason: sendResult?.error || sendResult?.reason || 'send_failed'
+        });
+        continue;
+      }
+
+      metadata.statusNudge.sentApplicationIds = [...sentApplicationIds.slice(-119), appId];
+      metadata.statusNudge.lastSentAt = new Date().toISOString();
+      metadata.statusNudge.lastMessageSid = String(sendResult.sid || '');
+
+      convo.metadata = metadata;
+      convo.lastOutboundMessage = message;
+      convo.lastOutboundAt = new Date();
+      await convo.save();
+
+      await trackWhatsAppTelemetry(phone, 'whatsapp_status_nudge_sent', {
+        applicationId: appId,
+        jobTitle: String(app.jobTitle || ''),
+        company: String(app.company || ''),
+        messageSid: String(sendResult.sid || '')
+      });
+    }
+  } finally {
+    whatsappStatusNudgeRunning = false;
+  }
+}
+
+function startWhatsAppStatusNudgeScheduler() {
+  if (process.env.NODE_ENV === 'test' || whatsappStatusNudgeTimer) return;
+  whatsappStatusNudgeTimer = setInterval(() => {
+    runWhatsAppStatusNudges().catch((err) => {
+      console.error('WhatsApp status nudge scheduler failed:', err.message);
+    });
+  }, WHATSAPP_STATUS_NUDGE_INTERVAL_MS);
+
+  runWhatsAppStatusNudges().catch((err) => {
+    console.error('Initial WhatsApp status nudge run failed:', err.message);
   });
 }
 
@@ -12176,6 +12429,7 @@ if (process.env.NODE_ENV !== 'test') {
   app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
     startJobAlertScheduler();
+    startWhatsAppStatusNudgeScheduler();
     setTimeout(() => {
       prewarmJobSearches().catch((err) => {
         console.warn('Job prewarm failed:', err.message);
