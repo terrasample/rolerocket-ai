@@ -1724,9 +1724,10 @@ function getWhatsAppCoverLetterFallback(jobTarget = '') {
   ].join('\n');
 }
 
-async function generateCoverLetterForWhatsApp(jobTarget = '', resumeContext = '') {
+async function generateCoverLetterForWhatsApp(jobTarget = '', resumeContext = '', jobContext = '') {
   const target = normalizeIncomingWhatsAppText(jobTarget) || 'Customer Service Representative in Jamaica';
   const resumeText = normalizeIncomingWhatsAppText(resumeContext);
+  const jdContext = normalizeIncomingWhatsAppText(jobContext);
   const fallback = getWhatsAppCoverLetterFallback(target);
 
   if (!process.env.OPENAI_API_KEY) return fallback;
@@ -1742,7 +1743,7 @@ async function generateCoverLetterForWhatsApp(jobTarget = '', resumeContext = ''
         },
         {
           role: 'user',
-          content: `Write a cover letter for this target role/company: ${target}.\n\nCandidate experience context:\n${resumeText || 'No resume provided yet. Keep claims conservative.'}`
+          content: `Write a cover letter for this target role/company: ${target}.\n\nCandidate experience context:\n${resumeText || 'No resume provided yet. Keep claims conservative.'}\n\nJob posting context:\n${jdContext || 'No detailed posting supplied.'}`
         }
       ]
     });
@@ -1751,6 +1752,61 @@ async function generateCoverLetterForWhatsApp(jobTarget = '', resumeContext = ''
     return content || fallback;
   } catch (error) {
     console.warn('WhatsApp cover letter fallback:', error.message);
+    return fallback;
+  }
+}
+
+async function generateTailoredResumeForJobWhatsApp(userInput = '', selectedJob = {}) {
+  const source = normalizeIncomingWhatsAppText(userInput);
+  const role = normalizeIncomingWhatsAppText(selectedJob?.title || '') || 'Customer Service Representative';
+  const company = normalizeIncomingWhatsAppText(selectedJob?.company || '') || 'Target Company';
+  const location = normalizeIncomingWhatsAppText(selectedJob?.location || '') || 'Jamaica';
+  const jobSnippet = normalizeIncomingWhatsAppText(selectedJob?.summary || selectedJob?.description || '');
+
+  if (!source) {
+    return 'I need your work history first to tailor your resume. Reply 2 and send your recent work details.';
+  }
+
+  const fallback = [
+    `Target Role: ${role} @ ${company} (${location})`,
+    '',
+    'Professional Summary:',
+    `Customer-focused professional aligned to ${role} requirements with proven service delivery, communication, and execution in fast-paced teams.`,
+    '',
+    'Experience Highlights:',
+    '- Delivered measurable customer outcomes while handling high-volume workflows.',
+    '- Applied structured problem-solving and clear communication to resolve issues quickly.',
+    '- Maintained service quality and operational standards under tight timelines.',
+    '',
+    'Core Skills:',
+    '- Customer Service | Problem Solving | Communication | Workflow Execution | Team Collaboration',
+    '',
+    'Reply SAVE RESUME or EXPORT RESUME.'
+  ].join('\n');
+
+  if (!process.env.OPENAI_API_KEY) return fallback;
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+      temperature: 0.35,
+      messages: [
+        {
+          role: 'system',
+          content: 'You are RoleRocket AI resume writer. Tailor the resume to a selected job posting. Keep output WhatsApp-friendly with headings exactly: Target Role, Professional Summary, Experience Highlights, Core Skills. Do not fabricate credentials. Keep under 1900 characters.'
+        },
+        {
+          role: 'user',
+          content: `Selected job: ${role} @ ${company} (${location}).\nJob details: ${jobSnippet || 'No extra posting details.'}\n\nCandidate experience:\n${source}`
+        }
+      ]
+    });
+
+    const content = String(completion?.choices?.[0]?.message?.content || '').trim();
+    if (!content) return fallback;
+    return `${content}\n\nReply SAVE RESUME or EXPORT RESUME.`.slice(0, 2400);
+  } catch (error) {
+    console.warn('WhatsApp tailored resume fallback:', error.message);
     return fallback;
   }
 }
@@ -2165,7 +2221,8 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       title: String(job.title || ''),
       company: String(job.company || ''),
       location: String(job.location || ''),
-      link: String(job.link || job.applyLink || '')
+      link: String(job.link || job.applyLink || ''),
+      summary: String(job.summary || job.description || '').slice(0, 500)
     }));
     convo.currentStep = 'jobs_action';
     await trackWhatsAppTelemetry(phone, 'whatsapp_apply_ready_triggered', { title, location, resultCount: jobs.length });
@@ -2175,8 +2232,91 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       : [
           `Top matches for ${title} in ${location}:`,
           ...jobs.map((job, idx) => `${idx + 1}) ${job.title || 'Role'} @ ${job.company || 'Company'}`),
-          'Reply APPLY 1 or APPLY 2 to track.'
+          'Reply APPLY 1/APPLY 2 to track, or TAILOR 1/TAILOR 2 to tailor resume/cover letter to a job.'
         ].join('\n');
+    convo.lastOutboundMessage = reply;
+    convo.lastOutboundAt = new Date();
+    await convo.save();
+    return reply;
+  }
+
+  if (['save cover', 'save letter'].includes(text)) {
+    const draft = String(convo.metadata?.context?.lastCoverLetterDraft || '').trim();
+    if (!draft) {
+      const reply = 'No cover letter draft found yet. Reply 3 to create one first.';
+      convo.lastOutboundMessage = reply;
+      convo.lastOutboundAt = new Date();
+      await convo.save();
+      return reply;
+    }
+
+    const priorSaved = Array.isArray(convo.metadata?.context?.savedCoverLetters)
+      ? convo.metadata.context.savedCoverLetters
+      : [];
+    convo.metadata.context.savedCoverLetters = [
+      ...priorSaved.slice(-4),
+      {
+        target: String(convo.metadata?.context?.lastCoverLetterTarget || ''),
+        content: draft,
+        savedAt: new Date().toISOString()
+      }
+    ];
+    const reply = 'Saved your cover letter draft. Reply EXPORT COVER to get a copy now.';
+    convo.lastOutboundMessage = reply;
+    convo.lastOutboundAt = new Date();
+    await convo.save();
+    return reply;
+  }
+
+  if (['export cover', 'export letter', 'export cover letter'].includes(text)) {
+    const draft = String(convo.metadata?.context?.lastCoverLetterDraft || '').trim();
+    if (!draft) {
+      const reply = 'No cover letter draft available to export yet. Reply 3 to create one.';
+      convo.lastOutboundMessage = reply;
+      convo.lastOutboundAt = new Date();
+      await convo.save();
+      return reply;
+    }
+
+    const reply = `${draft}\n\nExport-ready copy above. Reply SAVE COVER, 1 Jobs, 2 Resume, 4 Explore, or 0 Technical Support.`;
+    convo.lastOutboundMessage = reply;
+    convo.lastOutboundAt = new Date();
+    await convo.save();
+    return reply;
+  }
+
+  if (['save resume'].includes(text)) {
+    const draft = String(convo.metadata?.context?.lastFullResumeDraft || '').trim();
+    if (!draft) {
+      const reply = 'No full resume draft found yet. Reply YES first to generate one.';
+      convo.lastOutboundMessage = reply;
+      convo.lastOutboundAt = new Date();
+      await convo.save();
+      return reply;
+    }
+
+    convo.metadata.context.savedResumeDraft = {
+      content: draft,
+      savedAt: new Date().toISOString()
+    };
+    const reply = 'Saved your resume draft. Reply EXPORT RESUME to get an export-ready copy.';
+    convo.lastOutboundMessage = reply;
+    convo.lastOutboundAt = new Date();
+    await convo.save();
+    return reply;
+  }
+
+  if (['export resume', 'export cv'].includes(text)) {
+    const draft = String(convo.metadata?.context?.lastFullResumeDraft || '').trim();
+    if (!draft) {
+      const reply = 'No resume draft available to export yet. Reply YES first.';
+      convo.lastOutboundMessage = reply;
+      convo.lastOutboundAt = new Date();
+      await convo.save();
+      return reply;
+    }
+
+    const reply = `${draft}\n\nExport-ready resume above. Reply SAVE RESUME, APPLY READY, 1 Jobs, 3 Cover Letter, 4 Explore, or 0 Technical Support.`;
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
     await convo.save();
@@ -2381,7 +2521,8 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
         title: String(job.title || ''),
         company: String(job.company || ''),
         location: String(job.location || ''),
-        link: String(job.link || job.applyLink || '')
+        link: String(job.link || job.applyLink || ''),
+        summary: String(job.summary || job.description || '').slice(0, 500)
       }))
     };
     convo.currentStep = 'jobs_action';
@@ -2396,7 +2537,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       : [
           `Got it: ${parsed.title} in ${parsed.location || 'Jamaica'}.`,
           ...jobs.map((job, idx) => `${idx + 1}) ${job.title || 'Role'} @ ${job.company || 'Company'}`),
-          'Reply APPLY 1 or APPLY 2 to track, or reply 1 to search again.'
+          'Reply APPLY 1/APPLY 2 to track, TAILOR 1/TAILOR 2 to tailor documents, or reply 1 to search again.'
         ].join('\n');
 
     convo.lastOutboundMessage = reply;
@@ -2443,6 +2584,36 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
     await Promise.all([user.save(), convo.save()]);
+    return reply;
+  }
+
+  if (convo.currentStep === 'jobs_action' && text.startsWith('tailor')) {
+    const picked = Number((text.match(/\d+/) || [])[0]);
+    const jobs = Array.isArray(convo.metadata?.lastJobs) ? convo.metadata.lastJobs : [];
+    if (!Number.isInteger(picked) || picked < 1 || picked > jobs.length) {
+      const reply = 'Reply TAILOR 1 or TAILOR 2 based on the job list shown.';
+      convo.lastOutboundMessage = reply;
+      convo.lastOutboundAt = new Date();
+      await convo.save();
+      return reply;
+    }
+
+    const chosen = jobs[picked - 1];
+    convo.metadata.context.pendingTailorJob = {
+      title: String(chosen.title || ''),
+      company: String(chosen.company || ''),
+      location: String(chosen.location || ''),
+      link: String(chosen.link || ''),
+      summary: String(chosen.summary || '').slice(0, 500)
+    };
+    convo.currentStep = 'job_tailor_choice';
+    const reply = [
+      `Selected: ${chosen.title || 'Role'} @ ${chosen.company || 'Company'}`,
+      'Reply R for tailored resume, C for tailored cover letter, or B for both.'
+    ].join('\n');
+    convo.lastOutboundMessage = reply;
+    convo.lastOutboundAt = new Date();
+    await convo.save();
     return reply;
   }
 
@@ -2530,6 +2701,84 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     return reply;
   }
 
+  if (convo.currentStep === 'job_tailor_choice') {
+    const selectedJob = convo.metadata?.context?.pendingTailorJob;
+    if (!selectedJob?.title) {
+      convo.currentStep = 'jobs_action';
+      const reply = 'No selected job found. Reply TAILOR 1 or TAILOR 2 from your latest results.';
+      convo.lastOutboundMessage = reply;
+      convo.lastOutboundAt = new Date();
+      await convo.save();
+      return reply;
+    }
+
+    const wantsResume = ['r', 'resume', '1', 'tailor resume'].includes(text);
+    const wantsCover = ['c', 'cover', 'cover letter', '2', 'tailor cover', 'tailor cover letter'].includes(text);
+    const wantsBoth = ['b', 'both', '3', 'all'].includes(text);
+
+    if (!wantsResume && !wantsCover && !wantsBoth) {
+      const reply = 'Reply R for resume, C for cover letter, or B for both.';
+      convo.lastOutboundMessage = reply;
+      convo.lastOutboundAt = new Date();
+      await convo.save();
+      return reply;
+    }
+
+    const baseResume = String(user.resumeText || '').trim();
+    if ((wantsResume || wantsBoth) && !baseResume) {
+      convo.currentStep = 'resume_capture';
+      const reply = 'To tailor your resume, send your recent work history first (text or voice note).';
+      convo.lastOutboundMessage = reply;
+      convo.lastOutboundAt = new Date();
+      await convo.save();
+      return reply;
+    }
+
+    if (wantsResume || wantsBoth) {
+      const tailoredResume = await generateTailoredResumeForJobWhatsApp(baseResume, selectedJob);
+      convo.metadata.context.lastFullResumeDraft = tailoredResume;
+      convo.metadata.context.pendingFullResume = null;
+    }
+
+    if (wantsCover || wantsBoth) {
+      const jobTarget = `${selectedJob.title || 'Role'} at ${selectedJob.company || 'Company'}`;
+      const tailoredCover = await generateCoverLetterForWhatsApp(jobTarget, baseResume, selectedJob.summary || '');
+      convo.metadata.context.lastCoverLetterTarget = jobTarget;
+      convo.metadata.context.lastCoverLetterDraft = tailoredCover;
+    }
+
+    if (wantsBoth) {
+      convo.currentStep = 'resume_followup';
+      const reply = [
+        'Done. I tailored both documents to your selected job.',
+        'Reply EXPORT RESUME for resume copy and EXPORT COVER for cover letter copy.',
+        'You can also reply SAVE RESUME or SAVE COVER.'
+      ].join('\n');
+      convo.lastOutboundMessage = reply;
+      convo.lastOutboundAt = new Date();
+      await convo.save();
+      return reply;
+    }
+
+    if (wantsResume) {
+      convo.currentStep = 'resume_followup';
+      const draft = String(convo.metadata?.context?.lastFullResumeDraft || '').trim();
+      const reply = `${draft}\n\nReply SAVE RESUME, EXPORT RESUME, APPLY READY, 1 Jobs, 3 Cover Letter, 4 Explore, or 0 Technical Support.`;
+      convo.lastOutboundMessage = reply;
+      convo.lastOutboundAt = new Date();
+      await convo.save();
+      return reply;
+    }
+
+    convo.currentStep = 'cover_letter_followup';
+    const coverDraft = String(convo.metadata?.context?.lastCoverLetterDraft || '').trim();
+    const reply = `${coverDraft}\n\nReply SAVE COVER, EXPORT COVER, 1 Jobs, 2 Resume, 4 Explore, or 0 Technical Support.`;
+    convo.lastOutboundMessage = reply;
+    convo.lastOutboundAt = new Date();
+    await convo.save();
+    return reply;
+  }
+
   if (convo.currentStep === 'interview_target') {
     const prepCredit = consumeWhatsAppAiCredit(phone, 'interview_prep');
     if (!prepCredit.ok) {
@@ -2583,7 +2832,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   }
 
   if (convo.currentStep === 'cover_letter_followup') {
-    if (['save cover', 'save', 'save letter'].includes(text)) {
+    if (['save cover', 'save letter'].includes(text)) {
       const draft = String(convo.metadata?.context?.lastCoverLetterDraft || '').trim();
       if (!draft) {
         const reply = 'No cover letter draft found yet. Reply 3 to create one first.';
@@ -2612,7 +2861,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       return reply;
     }
 
-    if (['export cover', 'export', 'export letter'].includes(text)) {
+    if (['export cover', 'export letter', 'export cover letter'].includes(text)) {
       const draft = String(convo.metadata?.context?.lastCoverLetterDraft || '').trim();
       if (!draft) {
         const reply = 'No cover letter draft available to export yet. Reply 3 to create one.';
@@ -2680,7 +2929,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       return reply;
     }
 
-    if (['save resume', 'save'].includes(text)) {
+    if (['save resume'].includes(text)) {
       const draft = String(convo.metadata?.context?.lastFullResumeDraft || '').trim();
       if (!draft) {
         const reply = 'No full resume draft found yet. Reply YES first to generate one.';
