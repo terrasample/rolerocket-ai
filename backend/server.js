@@ -1730,6 +1730,9 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
 
   const languageContentSid = String(process.env.TWILIO_WHATSAPP_LANGUAGE_CONTENT_SID || '').trim();
   const menuContentSid = String(process.env.TWILIO_WHATSAPP_MENU_CONTENT_SID || '').trim();
+  const resumeActionsContentSid = String(process.env.TWILIO_WHATSAPP_RESUME_ACTIONS_CONTENT_SID || '').trim();
+  const coverActionsContentSid = String(process.env.TWILIO_WHATSAPP_COVER_ACTIONS_CONTENT_SID || '').trim();
+  const tailorsContentSid = String(process.env.TWILIO_WHATSAPP_TAILOR_CHOICES_CONTENT_SID || '').trim();
 
   if (step === 'language_select' && languageContentSid && ['start', 'join', 'menu', 'hi', 'hello'].includes(inbound)) {
     const result = await sendWhatsAppContentTemplate({ to: from, contentSid: languageContentSid });
@@ -1738,6 +1741,21 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
 
   if (step === 'menu' && menuContentSid && ['1', '2', 'english', 'spanish'].includes(inbound)) {
     const result = await sendWhatsAppContentTemplate({ to: from, contentSid: menuContentSid });
+    return !!result?.success;
+  }
+
+  if (step === 'resume_followup' && resumeActionsContentSid && ['2', 'resume'].includes(inbound)) {
+    const result = await sendWhatsAppContentTemplate({ to: from, contentSid: resumeActionsContentSid });
+    return !!result?.success;
+  }
+
+  if (step === 'cover_letter_followup' && coverActionsContentSid && ['3', 'cover', 'cover letter'].includes(inbound)) {
+    const result = await sendWhatsAppContentTemplate({ to: from, contentSid: coverActionsContentSid });
+    return !!result?.success;
+  }
+
+  if (step === 'job_tailor_choice' && tailorsContentSid && ['tailor 1', 'tailor 2', 'b', 'r', 'c'].includes(inbound)) {
+    const result = await sendWhatsAppContentTemplate({ to: from, contentSid: tailorsContentSid });
     return !!result?.success;
   }
 
