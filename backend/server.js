@@ -1734,32 +1734,33 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
   const coverActionsContentSid = String(process.env.TWILIO_WHATSAPP_COVER_ACTIONS_CONTENT_SID || '').trim();
   const tailorsContentSid = String(process.env.TWILIO_WHATSAPP_TAILOR_CHOICES_CONTENT_SID || '').trim();
 
-  // Send the interactive template that matches the step the conversation just moved into.
-  // No inbound-text filtering — the handler already advanced the step correctly.
+  // Returns 'suppress' when the template fully replaces the text reply (language/menu/tailor).
+  // Returns 'keep' when the template is appended as buttons after the text reply (resume/cover).
+  // Returns false when no template is sent.
+
   if (step === 'language_select' && languageContentSid) {
     const result = await sendWhatsAppContentTemplate({ to: from, contentSid: languageContentSid });
-    return !!result?.success;
+    return result?.success ? 'suppress' : false;
   }
 
   if (step === 'menu' && menuContentSid) {
     const result = await sendWhatsAppContentTemplate({ to: from, contentSid: menuContentSid });
-    return !!result?.success;
+    return result?.success ? 'suppress' : false;
   }
 
   if (step === 'job_tailor_choice' && tailorsContentSid) {
     const result = await sendWhatsAppContentTemplate({ to: from, contentSid: tailorsContentSid });
-    return !!result?.success;
+    return result?.success ? 'suppress' : false;
   }
 
-  // For resume_followup and cover_letter_followup, only send the menu template
-  // when the bot's reply already contains the full resume/cover content (i.e. the
-  // draft was just generated or updated). Skip if the convo still has no draft.
+  // For resume_followup and cover_letter_followup, send buttons ALONGSIDE the text
+  // reply (not instead of it), so the user still sees the resume/cover content.
   if (step === 'resume_followup' && resumeActionsContentSid) {
     const hasDraft = !!String(convo?.metadata?.context?.lastFullResumeDraft || '').trim() ||
                      !!String(convo?.metadata?.context?.pendingFullResume?.source || '').trim();
     if (hasDraft) {
       const result = await sendWhatsAppContentTemplate({ to: from, contentSid: resumeActionsContentSid });
-      return !!result?.success;
+      return result?.success ? 'keep' : false;
     }
   }
 
@@ -1767,7 +1768,7 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
     const hasDraft = !!String(convo?.metadata?.context?.lastCoverLetterDraft || '').trim();
     if (hasDraft) {
       const result = await sendWhatsAppContentTemplate({ to: from, contentSid: coverActionsContentSid });
-      return !!result?.success;
+      return result?.success ? 'keep' : false;
     }
   }
 
@@ -4091,16 +4092,18 @@ app.post('/api/whatsapp/incoming', express.urlencoded({ extended: false }), asyn
 
     const phone = normalizeWhatsAppPhone(from);
     const convo = phone ? await WhatsAppConversation.findOne({ phone }).lean() : null;
-    const interactiveSent = await maybeSendWhatsAppInteractivePrompt({
+    const interactiveResult = await maybeSendWhatsAppInteractivePrompt({
       from,
       normalizedInboundText: String(body || '').toLowerCase(),
       convo
     });
 
-    if (interactiveSent) {
+    // 'suppress' = template replaces text (language/menu/tailor) → return empty TwiML
+    if (interactiveResult === 'suppress') {
       return res.status(200).type('text/xml').send('<?xml version="1.0" encoding="UTF-8"?><Response></Response>');
     }
 
+    // 'keep' or false = send the text reply via TwiML (resume/cover buttons already sent above)
     return res.status(200).type('text/xml').send(buildWhatsAppTwiml(reply));
   } catch (error) {
     console.error('WhatsApp incoming webhook error:', error);
