@@ -1445,7 +1445,12 @@ async function sendWhatsAppMessage({ to, message, mediaUrls = [] }) {
     const authToken = TWILIO_AUTH_TOKEN;
     const auth = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
     const statusCallback = String(process.env.TWILIO_WHATSAPP_STATUS_CALLBACK_URL || '').trim();
-    const fromAddress = normalizeWhatsAppAddress(process.env.TWILIO_WHATSAPP_NUMBER || '+1234567890');
+    const configuredSender = String(process.env.TWILIO_WHATSAPP_NUMBER || process.env.TWILIO_PHONE_NUMBER || '').trim();
+    if (!configuredSender) {
+      console.warn('WhatsApp sender not configured: set TWILIO_WHATSAPP_NUMBER (or TWILIO_PHONE_NUMBER).');
+      return { success: false, reason: 'WhatsApp sender not configured', code: 'missing_sender' };
+    }
+    const fromAddress = normalizeWhatsAppAddress(configuredSender);
     const toAddress = normalizeWhatsAppAddress(to);
 
     const payload = new URLSearchParams({
@@ -2380,9 +2385,15 @@ async function sendWhatsAppDocumentExports({ phone, featureLabel, title, textCon
     ]);
 
     const delivered = pdfResult?.success || wordResult?.success;
+    const firstError = !pdfResult?.success
+      ? (pdfResult?.error || pdfResult?.reason || '')
+      : (!wordResult?.success ? (wordResult?.error || wordResult?.reason || '') : '');
+    const firstErrorCode = !pdfResult?.success
+      ? (pdfResult?.code || '')
+      : (!wordResult?.success ? (wordResult?.code || '') : '');
     const ack = delivered
       ? `Sending your ${featureLabel.toLowerCase()} PDF and Word files now. Save them from WhatsApp.`
-      : `I prepared your ${featureLabel.toLowerCase()} files, but attachment delivery failed. Use these links:\nPDF: ${pdfUrl}\nWord: ${wordUrl}`;
+      : `I prepared your ${featureLabel.toLowerCase()} files, but attachment delivery failed${firstErrorCode ? ` (code ${firstErrorCode})` : ''}${firstError ? `: ${firstError}` : ''}. Use these links:\nPDF: ${pdfUrl}\nWord: ${wordUrl}`;
 
     return { ok: delivered, reason: delivered ? '' : 'attachment-send-failed', ack, pdfUrl, wordUrl };
   } catch (error) {
@@ -3607,6 +3618,7 @@ console.log('--- WhatsApp Environment Variables ---');
 console.log('TWILIO_ACCOUNT_SID:', process.env.TWILIO_ACCOUNT_SID ? '[set]' : '[missing]');
 console.log('TWILIO_AUTH_TOKEN:', process.env.TWILIO_AUTH_TOKEN ? '[set]' : '[missing]');
 console.log('TWILIO_WHATSAPP_NUMBER:', startupWhatsAppFromNormalized || '[missing]');
+console.log('TWILIO_PHONE_NUMBER:', process.env.TWILIO_PHONE_NUMBER ? '[set]' : '[missing]');
 console.log('WHATSAPP_MEDIA_BASE_URL:', process.env.WHATSAPP_MEDIA_BASE_URL || '[missing]');
 console.log('--------------------------------------');
 
