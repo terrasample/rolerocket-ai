@@ -972,6 +972,161 @@ function parseStructuredCoverLetter({ title, textContent, htmlContent }) {
   };
 }
 
+function parseStructuredResume({ title, textContent, htmlContent }) {
+  const preferredText = sanitizeDocumentText(String(htmlContent || '').trim()
+    ? htmlToPlainText(htmlContent)
+    : String(textContent || ''));
+  const fallbackText = sanitizeDocumentText(String(textContent || '').trim()
+    || htmlToPlainText(htmlContent));
+  const sourceText = preferredText || fallbackText;
+  const lines = sourceText
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (!lines.length) return null;
+
+  const titleHint = String(title || '').toLowerCase();
+  const looksLikeResume = /resume|cv/.test(titleHint)
+    || /(^|\n)(name|contact|professional summary|experience|education|certification|certifications|skills)\s*:/i.test(sourceText)
+    || /(^|\n)(professional summary|experience|education|certifications|skills)\b/i.test(sourceText);
+  if (!looksLikeResume) return null;
+
+  const sectionNames = [
+    'Target Role',
+    'Professional Summary',
+    'Experience',
+    'Experience Highlights',
+    'Professional Experience',
+    'Education',
+    'Certifications',
+    'Certification',
+    'Skills',
+    'Core Skills'
+  ];
+
+  const sectionKeyFor = (raw = '') => {
+    const key = String(raw || '').toLowerCase().replace(/\s+/g, ' ').trim();
+    if (key === 'experience highlights' || key === 'professional experience' || key === 'experience') return 'experience';
+    if (key === 'core skills' || key === 'skills') return 'skills';
+    if (key === 'certification' || key === 'certifications') return 'certifications';
+    if (key === 'professional summary') return 'summary';
+    if (key === 'education') return 'education';
+    if (key === 'target role') return 'targetRole';
+    return '';
+  };
+
+  const sectionRegex = new RegExp(`^(${sectionNames.map((name) => name.replace(/\s+/g, '\\s+')).join('|')})\\s*:?\\s*$`, 'i');
+  const prefixedRegex = new RegExp(`^(${sectionNames.map((name) => name.replace(/\s+/g, '\\s+')).join('|')})\\s*:\\s*(.+)$`, 'i');
+
+  const sections = {
+    targetRole: [],
+    summary: [],
+    experience: [],
+    education: [],
+    certifications: [],
+    skills: []
+  };
+
+  let name = '';
+  let contact = '';
+  let activeSection = '';
+
+  lines.forEach((line) => {
+    const nameMatch = line.match(/^name\s*:\s*(.+)$/i);
+    if (nameMatch) {
+      name = String(nameMatch[1] || '').trim();
+      return;
+    }
+
+    const contactMatch = line.match(/^contact\s*:\s*(.+)$/i);
+    if (contactMatch) {
+      contact = String(contactMatch[1] || '').trim();
+      return;
+    }
+
+    const prefixedMatch = line.match(prefixedRegex);
+    if (prefixedMatch) {
+      const key = sectionKeyFor(prefixedMatch[1]);
+      activeSection = key;
+      if (key && prefixedMatch[2]) sections[key].push(String(prefixedMatch[2]).trim());
+      return;
+    }
+
+    const headingMatch = line.match(sectionRegex);
+    if (headingMatch) {
+      activeSection = sectionKeyFor(headingMatch[1]);
+      return;
+    }
+
+    if (activeSection) {
+      sections[activeSection].push(line);
+      return;
+    }
+
+    if (!name) {
+      name = line;
+    } else if (!contact) {
+      contact = line;
+    }
+  });
+
+  const cleanList = (items = []) => items
+    .map((item) => String(item || '').replace(/^[-*]\s*/, '').trim())
+    .filter(Boolean);
+
+  return {
+    title: 'Resume',
+    name: name || 'Candidate Name',
+    contactLine: contact || 'Phone | Email | Location',
+    targetRole: cleanList(sections.targetRole).join(' '),
+    summary: cleanList(sections.summary).join(' '),
+    experience: cleanList(sections.experience),
+    education: cleanList(sections.education),
+    certifications: cleanList(sections.certifications),
+    skills: cleanList(sections.skills)
+  };
+}
+
+function renderStructuredResumeHtml(resume) {
+  if (!resume) return '';
+
+  const renderList = (items = []) => {
+    if (!items.length) return '<p style="margin:0;color:#475569;">Not provided.</p>';
+    return `<ul style="margin:0;padding-left:18px;line-height:1.55;color:#1f2937;">${items.map((item) => `<li style="margin:0 0 6px 0;">${escapeHtml(item)}</li>`).join('')}</ul>`;
+  };
+
+  return `
+    <div style="font-family:Calibri,Arial,sans-serif;color:#1f2937;max-width:820px;margin:0 auto;">
+      <div style="border-bottom:3px solid #1e3a56;padding-bottom:10px;margin-bottom:14px;">
+        <div style="font-size:24pt;font-weight:700;color:#1e3a56;line-height:1.1;">${escapeHtml(resume.name)}</div>
+        <div style="font-size:11pt;color:#475569;margin-top:6px;">${escapeHtml(resume.contactLine)}</div>
+      </div>
+      <div style="font-size:11pt;color:#0f172a;margin:0 0 14px 0;"><strong>Target Role:</strong> ${escapeHtml(resume.targetRole || 'Not provided')}</div>
+      <div style="margin:0 0 14px 0;">
+        <div style="font-size:12.5pt;font-weight:700;color:#1e3a56;margin-bottom:6px;">Professional Summary</div>
+        <p style="margin:0;line-height:1.55;color:#1f2937;">${escapeHtml(resume.summary || 'Not provided.')}</p>
+      </div>
+      <div style="margin:0 0 14px 0;">
+        <div style="font-size:12.5pt;font-weight:700;color:#1e3a56;margin-bottom:6px;">Experience</div>
+        ${renderList(resume.experience)}
+      </div>
+      <div style="margin:0 0 14px 0;">
+        <div style="font-size:12.5pt;font-weight:700;color:#1e3a56;margin-bottom:6px;">Education</div>
+        ${renderList(resume.education)}
+      </div>
+      <div style="margin:0 0 14px 0;">
+        <div style="font-size:12.5pt;font-weight:700;color:#1e3a56;margin-bottom:6px;">Certifications</div>
+        ${renderList(resume.certifications)}
+      </div>
+      <div style="margin:0;">
+        <div style="font-size:12.5pt;font-weight:700;color:#1e3a56;margin-bottom:6px;">Skills</div>
+        ${renderList(resume.skills)}
+      </div>
+    </div>
+  `;
+}
+
 function renderStructuredCoverLetterHtml(letter) {
   if (!letter) return '';
   const paragraphsHtml = (letter.paragraphs || [])
@@ -1003,6 +1158,7 @@ function renderStructuredCoverLetterHtml(letter) {
 
 async function createDocumentPdfBuffer({ title, textContent, htmlContent }) {
   const structuredCoverLetter = parseStructuredCoverLetter({ title, textContent, htmlContent });
+  const structuredResume = parseStructuredResume({ title, textContent, htmlContent });
   const hasHtmlContent = Boolean(String(htmlContent || '').trim());
   const preferredBodyText = hasHtmlContent
     ? htmlToPlainText(htmlContent)
@@ -1078,6 +1234,69 @@ async function createDocumentPdfBuffer({ title, textContent, htmlContent }) {
       pdf.text(structuredCoverLetter.closing, left, pdf.y, { width: contentWidth, align: 'left' });
       pdf.moveDown(0.4);
       pdf.font('Helvetica-Bold').text(structuredCoverLetter.signature, left, pdf.y, { width: contentWidth, align: 'left' });
+    } else if (structuredResume) {
+      const left = pdf.page.margins.left;
+      const right = pdf.page.width - pdf.page.margins.right;
+      const contentWidth = right - left;
+
+      const sectionTitle = (label) => {
+        pdf.moveDown(0.2);
+        pdf.font('Helvetica-Bold').fontSize(12).fillColor('#1e3a56').text(String(label || ''), left, pdf.y, {
+          width: contentWidth,
+          align: 'left'
+        });
+        pdf.moveDown(0.15);
+      };
+
+      const bulletList = (items = []) => {
+        const list = Array.isArray(items) ? items.filter(Boolean) : [];
+        if (!list.length) {
+          pdf.font('Helvetica').fontSize(11).fillColor('#475569').text('Not provided.', left + 8, pdf.y, { width: contentWidth - 8, align: 'left' });
+          return;
+        }
+        list.forEach((item) => {
+          pdf.font('Helvetica').fontSize(11).fillColor('#111827').text(`• ${item}`, left + 8, pdf.y, {
+            width: contentWidth - 8,
+            align: 'left',
+            lineGap: 2
+          });
+        });
+      };
+
+      pdf.font('Helvetica-Bold').fontSize(22).fillColor('#1e3a56').text(structuredResume.name, left, pdf.y, {
+        width: contentWidth,
+        align: 'left'
+      });
+      pdf.moveDown(0.2);
+      pdf.font('Helvetica').fontSize(11).fillColor('#475569').text(structuredResume.contactLine, left, pdf.y, {
+        width: contentWidth,
+        align: 'left'
+      });
+      pdf.moveDown(0.3);
+      pdf.moveTo(left, pdf.y).lineTo(right, pdf.y).lineWidth(1.5).strokeColor('#1e3a56').stroke();
+      pdf.moveDown(0.6);
+
+      pdf.font('Helvetica-Bold').fontSize(11).fillColor('#0f172a').text('Target Role:', left, pdf.y, { continued: true });
+      pdf.font('Helvetica').text(` ${structuredResume.targetRole || 'Not provided'}`);
+
+      sectionTitle('Professional Summary');
+      pdf.font('Helvetica').fontSize(11).fillColor('#111827').text(structuredResume.summary || 'Not provided.', left, pdf.y, {
+        width: contentWidth,
+        align: 'left',
+        lineGap: 2
+      });
+
+      sectionTitle('Experience');
+      bulletList(structuredResume.experience);
+
+      sectionTitle('Education');
+      bulletList(structuredResume.education);
+
+      sectionTitle('Certifications');
+      bulletList(structuredResume.certifications);
+
+      sectionTitle('Skills');
+      bulletList(structuredResume.skills);
     } else {
       const today = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
 
@@ -1106,9 +1325,12 @@ function escapeHtml(value) {
 
 function createDocumentWordBuffer({ title, textContent, htmlContent }) {
   const structuredCoverLetter = parseStructuredCoverLetter({ title, textContent, htmlContent });
+  const structuredResume = parseStructuredResume({ title, textContent, htmlContent });
   const safeTitle = escapeHtml(title || 'Document');
   const bodyMarkup = structuredCoverLetter
     ? renderStructuredCoverLetterHtml(structuredCoverLetter)
+    : structuredResume
+      ? renderStructuredResumeHtml(structuredResume)
     : (String(htmlContent || '').trim()
       || `<pre style="font-family:Calibri,Arial,sans-serif;white-space:pre-wrap;font-size:11pt;line-height:1.5;">${escapeHtml(textContent)}</pre>`);
 
@@ -1826,18 +2048,30 @@ async function generateTailoredResumeForJobWhatsApp(userInput = '', selectedJob 
   }
 
   const fallback = [
+    'Name: [Your Full Name]',
+    'Contact: [Phone] | [Email] | [City, Country] | [LinkedIn optional]',
     `Target Role: ${role} @ ${company} (${location})`,
     '',
     'Professional Summary:',
     `Customer-focused professional aligned to ${role} requirements with proven service delivery, communication, and execution in fast-paced teams.`,
     '',
-    'Experience Highlights:',
+    'Experience:',
     '- Delivered measurable customer outcomes while handling high-volume workflows.',
     '- Applied structured problem-solving and clear communication to resolve issues quickly.',
     '- Maintained service quality and operational standards under tight timelines.',
     '',
-    'Core Skills:',
-    '- Customer Service | Problem Solving | Communication | Workflow Execution | Team Collaboration',
+    'Education:',
+    '- [Degree/Certificate], [School], [Year]',
+    '',
+    'Certifications:',
+    '- [Certification Name, Year] (if applicable)',
+    '',
+    'Skills:',
+    '- Customer Service',
+    '- Problem Solving',
+    '- Communication',
+    '- Workflow Execution',
+    '- Team Collaboration',
     '',
     'Reply SAVE RESUME or EXPORT RESUME.'
   ].join('\n');
@@ -1851,7 +2085,7 @@ async function generateTailoredResumeForJobWhatsApp(userInput = '', selectedJob 
       messages: [
         {
           role: 'system',
-          content: 'You are RoleRocket AI resume writer. Tailor the resume to a selected job posting. Keep output WhatsApp-friendly with headings exactly: Target Role, Professional Summary, Experience Highlights, Core Skills. Do not fabricate credentials. Keep under 1900 characters.'
+          content: 'You are RoleRocket AI resume writer. Tailor the resume to a selected job posting. Output plain text with these headings exactly and in order: Name, Contact, Target Role, Professional Summary, Experience, Education, Certifications, Skills. Use short bullet points for Experience, Education, Certifications, and Skills. If personal details are missing, use placeholders like [Your Full Name], [Phone], [Email], [City]. Do not fabricate employers, schools, or certifications. Keep under 2600 characters.'
         },
         {
           role: 'user',
@@ -1949,18 +2183,30 @@ async function generateFullTargetedResumeForWhatsApp(userInput = '', targetRole 
   }
 
   const fallback = [
+    'Name: [Your Full Name]',
+    'Contact: [Phone] | [Email] | [City, Country] | [LinkedIn optional]',
     `Target Role: ${role} (${region})`,
     '',
     'Professional Summary:',
     `Results-driven candidate prepared for ${role} opportunities with strong customer support, communication, and execution skills.`,
     '',
-    'Experience Highlights:',
+    'Experience:',
     '- Managed high-volume customer interactions while maintaining service quality and response speed.',
     '- Resolved complex issues with clear communication, de-escalation, and timely follow-through.',
     '- Maintained accurate records and supported daily operational targets in fast-paced environments.',
     '',
-    'Core Skills:',
-    '- Customer Service | Problem Solving | Communication | Teamwork | Time Management',
+    'Education:',
+    '- [Degree/Certificate], [School], [Year]',
+    '',
+    'Certifications:',
+    '- [Certification Name, Year] (if applicable)',
+    '',
+    'Skills:',
+    '- Customer Service',
+    '- Problem Solving',
+    '- Communication',
+    '- Teamwork',
+    '- Time Management',
     '',
     'Reply EDIT + what to change, or reply 1 for job matches.'
   ].join('\n');
@@ -1974,7 +2220,7 @@ async function generateFullTargetedResumeForWhatsApp(userInput = '', targetRole 
       messages: [
         {
           role: 'system',
-          content: 'You are RoleRocket AI resume writer. Produce a concise WhatsApp-friendly targeted resume draft with these headings exactly: Target Role, Professional Summary, Experience Highlights, Core Skills. Use 3-5 strong bullets in Experience Highlights. Keep under 1800 characters.'
+          content: 'You are RoleRocket AI resume writer. Produce a full, ATS-friendly resume in plain text with these headings exactly and in order: Name, Contact, Target Role, Professional Summary, Experience, Education, Certifications, Skills. Use concise bullet points for Experience, Education, Certifications, and Skills. If name/contact details are missing from source, use placeholders [Your Full Name], [Phone], [Email], [City]. Do not fabricate employers, schools, dates, or certifications. Keep under 2600 characters.'
         },
         {
           role: 'user',
@@ -2015,7 +2261,7 @@ async function generateEditedTargetedResumeForWhatsApp(existingResume = '', edit
       messages: [
         {
           role: 'system',
-          content: 'You are RoleRocket AI resume writer. Revise the provided resume draft using the requested edits. Keep WhatsApp-friendly format and keep these headings exactly: Target Role, Professional Summary, Experience Highlights, Core Skills. Keep under 1800 characters.'
+          content: 'You are RoleRocket AI resume writer. Revise the provided resume draft using the requested edits. Keep plain-text WhatsApp-friendly format and preserve these headings exactly and in order: Name, Contact, Target Role, Professional Summary, Experience, Education, Certifications, Skills. Keep under 2600 characters and do not fabricate credentials.'
         },
         {
           role: 'user',
