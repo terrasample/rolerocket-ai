@@ -1506,6 +1506,78 @@ async function sendWhatsAppMessage({ to, message, mediaUrls = [] }) {
   }
 }
 
+async function sendWhatsAppContentTemplate({ to, contentSid, contentVariables = {} }) {
+  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN) {
+    return { success: false, reason: 'WhatsApp not configured' };
+  }
+
+  const sid = String(contentSid || '').trim();
+  if (!sid) {
+    return { success: false, reason: 'Missing content sid' };
+  }
+
+  try {
+    const normalizeWhatsAppAddress = (value = '') => {
+      const raw = String(value || '').trim();
+      if (!raw) return '';
+      if (raw.toLowerCase().startsWith('whatsapp:')) return raw;
+      return `whatsapp:${raw}`;
+    };
+
+    const accountSid = TWILIO_ACCOUNT_SID;
+    const authToken = TWILIO_AUTH_TOKEN;
+    const auth = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
+    const configuredSender = String(process.env.TWILIO_WHATSAPP_NUMBER || process.env.TWILIO_PHONE_NUMBER || '').trim();
+    if (!configuredSender) return { success: false, reason: 'WhatsApp sender not configured', code: 'missing_sender' };
+
+    const payload = new URLSearchParams({
+      From: normalizeWhatsAppAddress(configuredSender),
+      To: normalizeWhatsAppAddress(to),
+      ContentSid: sid
+    });
+
+    if (contentVariables && Object.keys(contentVariables).length) {
+      payload.set('ContentVariables', JSON.stringify(contentVariables));
+    }
+
+    const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${auth}`,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: payload
+    });
+
+    const rawBody = await response.text();
+    let data = {};
+    try {
+      data = JSON.parse(rawBody || '{}');
+    } catch (_parseError) {
+      data = { message: rawBody || 'Unknown Twilio response' };
+    }
+
+    if (!response.ok) {
+      console.warn('Twilio WhatsApp content template failed:', {
+        status: response.status,
+        contentSid: sid,
+        errorCode: data.code,
+        errorMessage: data.message
+      });
+    }
+
+    return {
+      success: response.ok,
+      sid: data.sid,
+      error: data.message,
+      status: response.status,
+      code: data.code
+    };
+  } catch (error) {
+    return { success: false, reason: error.message };
+  }
+}
+
 function escapeXml(value = '') {
   return String(value)
     .replace(/&/g, '&amp;')
@@ -1627,6 +1699,49 @@ function normalizeWhatsAppPhone(from = '') {
 
 function normalizeIncomingWhatsAppText(body = '') {
   return String(body || '').replace(/\s+/g, ' ').trim();
+}
+
+function extractWhatsAppInboundText(payload = {}) {
+  const candidates = [
+    payload.Body,
+    payload.ButtonPayload,
+    payload.ButtonText,
+    payload.ListSelection,
+    payload.ListSelectionTitle,
+    payload.ListSelectionDescription,
+    payload.InteractiveData,
+    payload.InteractiveResponse
+  ];
+
+  for (const candidate of candidates) {
+    const text = normalizeIncomingWhatsAppText(candidate || '');
+    if (text) return text;
+  }
+
+  return '';
+}
+
+async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText = '', convo = null }) {
+  const interactiveEnabled = String(process.env.TWILIO_WHATSAPP_INTERACTIVE_ENABLED || '').trim() === '1';
+  if (!interactiveEnabled || !from || !convo) return false;
+
+  const step = String(convo.currentStep || '').trim();
+  const inbound = String(normalizedInboundText || '').toLowerCase();
+
+  const languageContentSid = String(process.env.TWILIO_WHATSAPP_LANGUAGE_CONTENT_SID || '').trim();
+  const menuContentSid = String(process.env.TWILIO_WHATSAPP_MENU_CONTENT_SID || '').trim();
+
+  if (step === 'language_select' && languageContentSid && ['start', 'join', 'menu', 'hi', 'hello'].includes(inbound)) {
+    const result = await sendWhatsAppContentTemplate({ to: from, contentSid: languageContentSid });
+    return !!result?.success;
+  }
+
+  if (step === 'menu' && menuContentSid && ['1', '2', 'english', 'spanish'].includes(inbound)) {
+    const result = await sendWhatsAppContentTemplate({ to: from, contentSid: menuContentSid });
+    return !!result?.success;
+  }
+
+  return false;
 }
 
 function extractWhatsAppInboundAudioMedia(payload = {}) {
@@ -3939,10 +4054,23 @@ app.post('/api/whatsapp/incoming', express.urlencoded({ extended: false }), asyn
     }
 
     const from = String(req.body?.From || '').trim();
-    const body = String(req.body?.Body || '').trim();
+    const body = extractWhatsAppInboundText(req.body || {});
     const messageSid = String(req.body?.MessageSid || req.body?.SmsMessageSid || '').trim();
     const inboundAudioMedia = extractWhatsAppInboundAudioMedia(req.body || {});
     const reply = await handleWhatsAppRecruitingMessage(from, body, messageSid, inboundAudioMedia);
+
+    const phone = normalizeWhatsAppPhone(from);
+    const convo = phone ? await WhatsAppConversation.findOne({ phone }).lean() : null;
+    const interactiveSent = await maybeSendWhatsAppInteractivePrompt({
+      from,
+      normalizedInboundText: String(body || '').toLowerCase(),
+      convo
+    });
+
+    if (interactiveSent) {
+      return res.status(200).type('text/xml').send(buildWhatsAppTwiml('Use the buttons above or reply with the matching number.'));
+    }
+
     return res.status(200).type('text/xml').send(buildWhatsAppTwiml(reply));
   } catch (error) {
     console.error('WhatsApp incoming webhook error:', error);
