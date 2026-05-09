@@ -3091,7 +3091,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
           `Got it: ${parsed.title} in ${parsed.location || 'Jamaica'}.`,
           ...jobs.map((job, idx) => `${idx + 1}) ${job.title || 'Role'} @ ${job.company || 'Company'}`),
           'Reply SAVE JOBS to save all, EMAIL JOBS to send to your email,',
-          'APPLY 1-5 to track an application, TAILOR 1-5 to tailor resume/cover, or 1 to search again.'
+          'Reply APPLY 1-5 to track an application, or 1 to search again.'
         ].join('\n');
 
     convo.lastOutboundMessage = reply;
@@ -3112,7 +3112,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     const reply = [
       'Your current job results:',
       ...jobs.map((job, idx) => `${idx + 1}) ${job.title || 'Role'} @ ${job.company || 'Company'}`),
-      'Reply SAVE JOBS to save all, EMAIL JOBS to send to your email, APPLY 1-5 to track, or TAILOR 1-5 to tailor documents.'
+      'Reply SAVE JOBS to save all, EMAIL JOBS to send to your email, APPLY 1-5 to track, or 1 to search again.'
     ].join('\n');
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
@@ -3141,7 +3141,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     convo.currentStep = 'jobs_action';
     const reply = [
       `Saved ${jobs.length} job${jobs.length > 1 ? 's' : ''} to your profile.`,
-      'Reply EMAIL JOBS to send them to your email, TAILOR 1-5 to tailor documents, or 1 to search again.'
+      'Reply EMAIL JOBS to send them to your email, APPLY 1-5 to track an application, or 1 to search again.'
     ].join('\n');
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
@@ -3185,7 +3185,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
         text: jobs.map((j, i) => `${i + 1}) ${j.title} @ ${j.company} — ${j.link || 'No link'}`).join('\n')
       });
       await trackWhatsAppTelemetry(phone, 'whatsapp_jobs_emailed', { count: jobs.length, email: userEmail });
-      const reply = `Sent ${jobs.length} job${jobs.length > 1 ? 's' : ''} to ${userEmail}. Reply TAILOR 1-5 to tailor documents, or 1 to search again.`;
+      const reply = `Sent ${jobs.length} job${jobs.length > 1 ? 's' : ''} to ${userEmail}. Reply APPLY 1-5 to track an application, or 1 to search again.`;
       convo.lastOutboundMessage = reply;
       convo.lastOutboundAt = new Date();
       await convo.save();
