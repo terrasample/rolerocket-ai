@@ -4086,7 +4086,7 @@ app.post('/api/whatsapp/incoming', express.urlencoded({ extended: false }), asyn
     });
 
     if (interactiveSent) {
-      return res.status(200).type('text/xml').send(buildWhatsAppTwiml('Use the buttons above or reply with the matching number.'));
+      return res.status(200).type('text/xml').send(buildWhatsAppTwiml(''));
     }
 
     return res.status(200).type('text/xml').send(buildWhatsAppTwiml(reply));
