@@ -1733,9 +1733,10 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
   const resumeActionsContentSid = String(process.env.TWILIO_WHATSAPP_RESUME_ACTIONS_CONTENT_SID || '').trim();
   const coverActionsContentSid = String(process.env.TWILIO_WHATSAPP_COVER_ACTIONS_CONTENT_SID || '').trim();
   const tailorsContentSid = String(process.env.TWILIO_WHATSAPP_TAILOR_CHOICES_CONTENT_SID || '').trim();
+  const jobsActionContentSid = String(process.env.TWILIO_WHATSAPP_JOBS_ACTION_CONTENT_SID || '').trim();
 
   // Returns 'suppress' when the template fully replaces the text reply (language/menu/tailor).
-  // Returns 'keep' when the template is appended as buttons after the text reply (resume/cover).
+  // Returns 'keep' when the template is appended as buttons after the text reply (resume/cover/jobs).
   // Returns false when no template is sent.
 
   if (step === 'language_select' && languageContentSid) {
@@ -1751,6 +1752,14 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
   if (step === 'job_tailor_choice' && tailorsContentSid) {
     const result = await sendWhatsAppContentTemplate({ to: from, contentSid: tailorsContentSid });
     return result?.success ? 'suppress' : false;
+  }
+
+  if (step === 'jobs_action' && jobsActionContentSid) {
+    const hasJobs = Array.isArray(convo?.metadata?.lastJobs) && convo.metadata.lastJobs.length > 0;
+    if (hasJobs) {
+      const result = await sendWhatsAppContentTemplate({ to: from, contentSid: jobsActionContentSid });
+      return result?.success ? 'keep' : false;
+    }
   }
 
   // For resume_followup and cover_letter_followup, send buttons ALONGSIDE the text
@@ -4090,6 +4099,7 @@ app.post('/api/whatsapp/incoming', express.urlencoded({ extended: false }), asyn
     const inboundAudioMedia = extractWhatsAppInboundAudioMedia(req.body || {});
     const reply = await handleWhatsAppRecruitingMessage(from, body, messageSid, inboundAudioMedia);
 
+    // Fetch convo AFTER the handler runs so we see the updated step and context.
     const phone = normalizeWhatsAppPhone(from);
     const convo = phone ? await WhatsAppConversation.findOne({ phone }).lean() : null;
     const interactiveResult = await maybeSendWhatsAppInteractivePrompt({
