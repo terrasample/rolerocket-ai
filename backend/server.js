@@ -4086,7 +4086,7 @@ app.post('/api/whatsapp/incoming', express.urlencoded({ extended: false }), asyn
     });
 
     if (interactiveSent) {
-      return res.status(200).type('text/xml').send(buildWhatsAppTwiml(''));
+      return res.status(200).type('text/xml').send('<?xml version="1.0" encoding="UTF-8"?><Response></Response>');
     }
 
     return res.status(200).type('text/xml').send(buildWhatsAppTwiml(reply));
