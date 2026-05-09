@@ -3067,7 +3067,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       location: parsed.location || 'Jamaica',
       resume: user.resumeText || ''
     });
-    const jobs = Array.isArray(searchResult?.jobs) ? searchResult.jobs.slice(0, 2) : [];
+    const jobs = Array.isArray(searchResult?.jobs) ? searchResult.jobs.slice(0, 5) : [];
     convo.metadata = {
       ...(convo.metadata || {}),
       lastJobs: jobs.map((job) => ({
@@ -3090,7 +3090,8 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       : [
           `Got it: ${parsed.title} in ${parsed.location || 'Jamaica'}.`,
           ...jobs.map((job, idx) => `${idx + 1}) ${job.title || 'Role'} @ ${job.company || 'Company'}`),
-          'Reply APPLY 1/APPLY 2 to track, TAILOR 1/TAILOR 2 to tailor documents, or reply 1 to search again.'
+          'Reply SAVE JOBS to save all, EMAIL JOBS to send to your email,',
+          'APPLY 1-5 to track an application, TAILOR 1-5 to tailor resume/cover, or 1 to search again.'
         ].join('\n');
 
     convo.lastOutboundMessage = reply;
@@ -3099,11 +3100,91 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     return reply;
   }
 
+  if (convo.currentStep === 'jobs_action' && ['save jobs', 'save all jobs'].includes(text)) {
+    const jobs = Array.isArray(convo.metadata?.lastJobs) ? convo.metadata.lastJobs : [];
+    if (!jobs.length) {
+      const reply = 'No jobs to save yet. Reply 1 to search for jobs first.';
+      convo.lastOutboundMessage = reply;
+      convo.lastOutboundAt = new Date();
+      await convo.save();
+      return reply;
+    }
+    for (const job of jobs) {
+      await Application.create({
+        userId: phone,
+        jobTitle: job.title || 'Role',
+        company: job.company || 'Company',
+        status: 'saved'
+      });
+    }
+    await trackWhatsAppTelemetry(phone, 'whatsapp_jobs_saved_all', { count: jobs.length });
+    convo.currentStep = 'jobs_action';
+    const reply = [
+      `Saved ${jobs.length} job${jobs.length > 1 ? 's' : ''} to your profile.`,
+      'Reply EMAIL JOBS to send them to your email, TAILOR 1-5 to tailor documents, or 1 to search again.'
+    ].join('\n');
+    convo.lastOutboundMessage = reply;
+    convo.lastOutboundAt = new Date();
+    await convo.save();
+    return reply;
+  }
+
+  if (convo.currentStep === 'jobs_action' && ['email jobs', 'email all jobs', 'send jobs'].includes(text)) {
+    const jobs = Array.isArray(convo.metadata?.lastJobs) ? convo.metadata.lastJobs : [];
+    const userEmail = String(user?.email || '').trim();
+    if (!jobs.length) {
+      const reply = 'No jobs to email yet. Reply 1 to search for jobs first.';
+      convo.lastOutboundMessage = reply;
+      convo.lastOutboundAt = new Date();
+      await convo.save();
+      return reply;
+    }
+    if (!userEmail) {
+      const reply = 'No email address found on your profile. Log in at rolerocketai.com to add one, then reply EMAIL JOBS again.';
+      convo.lastOutboundMessage = reply;
+      convo.lastOutboundAt = new Date();
+      await convo.save();
+      return reply;
+    }
+    const jobRows = jobs.map((j, i) =>
+      `<tr><td style="padding:6px 8px">${i + 1}</td><td style="padding:6px 8px">${j.title || 'Role'}</td><td style="padding:6px 8px">${j.company || 'Company'}</td><td style="padding:6px 8px">${j.location || ''}</td><td style="padding:6px 8px">${j.link ? `<a href="${j.link}">Apply</a>` : ''}</td></tr>`
+    ).join('');
+    const emailHtml = `<div style="font-family:Arial,sans-serif;max-width:600px">
+      <h2>Your RoleRocket AI Job Results</h2>
+      <table border="1" cellpadding="0" cellspacing="0" style="border-collapse:collapse;width:100%">
+        <thead><tr style="background:#0f172a;color:#fff">
+          <th style="padding:8px">#</th><th style="padding:8px">Title</th><th style="padding:8px">Company</th><th style="padding:8px">Location</th><th style="padding:8px">Link</th>
+        </tr></thead><tbody>${jobRows}</tbody></table>
+      <p style="margin-top:16px">Visit <a href="https://www.rolerocketai.com">rolerocketai.com</a> for more tools.</p>
+    </div>`;
+    try {
+      await sendEmail({
+        to: userEmail,
+        subject: 'Your RoleRocket AI Job Matches',
+        html: emailHtml,
+        text: jobs.map((j, i) => `${i + 1}) ${j.title} @ ${j.company} — ${j.link || 'No link'}`).join('\n')
+      });
+      await trackWhatsAppTelemetry(phone, 'whatsapp_jobs_emailed', { count: jobs.length, email: userEmail });
+      const reply = `Sent ${jobs.length} job${jobs.length > 1 ? 's' : ''} to ${userEmail}. Reply TAILOR 1-5 to tailor documents, or 1 to search again.`;
+      convo.lastOutboundMessage = reply;
+      convo.lastOutboundAt = new Date();
+      await convo.save();
+      return reply;
+    } catch (emailErr) {
+      console.error('WhatsApp jobs email error:', emailErr);
+      const reply = 'Could not send the email right now. Try again shortly or visit rolerocketai.com to view your saved jobs.';
+      convo.lastOutboundMessage = reply;
+      convo.lastOutboundAt = new Date();
+      await convo.save();
+      return reply;
+    }
+  }
+
   if (convo.currentStep === 'jobs_action' && text.startsWith('apply')) {
     const picked = Number((text.match(/\d+/) || [])[0]);
     const jobs = Array.isArray(convo.metadata?.lastJobs) ? convo.metadata.lastJobs : [];
     if (!Number.isInteger(picked) || picked < 1 || picked > jobs.length) {
-      const reply = 'Reply APPLY 1 or APPLY 2 based on the job list shown.';
+      const reply = `Reply APPLY 1 through APPLY ${jobs.length || 5} based on the job list shown.`;
       convo.lastOutboundMessage = reply;
       convo.lastOutboundAt = new Date();
       await convo.save();
@@ -3144,7 +3225,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     const picked = Number((text.match(/\d+/) || [])[0]);
     const jobs = Array.isArray(convo.metadata?.lastJobs) ? convo.metadata.lastJobs : [];
     if (!Number.isInteger(picked) || picked < 1 || picked > jobs.length) {
-      const reply = 'Reply TAILOR 1 or TAILOR 2 based on the job list shown.';
+      const reply = `Reply TAILOR 1 through TAILOR ${jobs.length || 5} based on the job list shown.`;
       convo.lastOutboundMessage = reply;
       convo.lastOutboundAt = new Date();
       await convo.save();
