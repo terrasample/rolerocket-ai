@@ -3100,6 +3100,26 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     return reply;
   }
 
+  if (convo.currentStep === 'jobs_action' && ['view jobs', 'view all jobs', 'show jobs', 'show all jobs'].includes(text)) {
+    const jobs = Array.isArray(convo.metadata?.lastJobs) ? convo.metadata.lastJobs : [];
+    if (!jobs.length) {
+      const reply = 'No jobs saved in this session. Reply 1 to search again.';
+      convo.lastOutboundMessage = reply;
+      convo.lastOutboundAt = new Date();
+      await convo.save();
+      return reply;
+    }
+    const reply = [
+      'Your current job results:',
+      ...jobs.map((job, idx) => `${idx + 1}) ${job.title || 'Role'} @ ${job.company || 'Company'}`),
+      'Reply SAVE JOBS to save all, EMAIL JOBS to send to your email, APPLY 1-5 to track, or TAILOR 1-5 to tailor documents.'
+    ].join('\n');
+    convo.lastOutboundMessage = reply;
+    convo.lastOutboundAt = new Date();
+    await convo.save();
+    return reply;
+  }
+
   if (convo.currentStep === 'jobs_action' && ['save jobs', 'save all jobs'].includes(text)) {
     const jobs = Array.isArray(convo.metadata?.lastJobs) ? convo.metadata.lastJobs : [];
     if (!jobs.length) {
