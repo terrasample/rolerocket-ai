@@ -3599,6 +3599,17 @@ console.log('STRIPE_VETERAN_COUPON_ID:', process.env.STRIPE_VETERAN_COUPON_ID);
 console.log('CLIENT_URL:', process.env.CLIENT_URL);
 console.log('------------------------------------');
 
+const startupWhatsAppFrom = String(process.env.TWILIO_WHATSAPP_NUMBER || '').trim();
+const startupWhatsAppFromNormalized = startupWhatsAppFrom
+  ? (startupWhatsAppFrom.toLowerCase().startsWith('whatsapp:') ? startupWhatsAppFrom : `whatsapp:${startupWhatsAppFrom}`)
+  : '';
+console.log('--- WhatsApp Environment Variables ---');
+console.log('TWILIO_ACCOUNT_SID:', process.env.TWILIO_ACCOUNT_SID ? '[set]' : '[missing]');
+console.log('TWILIO_AUTH_TOKEN:', process.env.TWILIO_AUTH_TOKEN ? '[set]' : '[missing]');
+console.log('TWILIO_WHATSAPP_NUMBER:', startupWhatsAppFromNormalized || '[missing]');
+console.log('WHATSAPP_MEDIA_BASE_URL:', process.env.WHATSAPP_MEDIA_BASE_URL || '[missing]');
+console.log('--------------------------------------');
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 const LIFETIME_PRICE_ID = process.env.STRIPE_LIFETIME_PRICE_ID || '';
