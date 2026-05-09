@@ -1734,29 +1734,41 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
   const coverActionsContentSid = String(process.env.TWILIO_WHATSAPP_COVER_ACTIONS_CONTENT_SID || '').trim();
   const tailorsContentSid = String(process.env.TWILIO_WHATSAPP_TAILOR_CHOICES_CONTENT_SID || '').trim();
 
-  if (step === 'language_select' && languageContentSid && ['start', 'join', 'menu', 'hi', 'hello'].includes(inbound)) {
+  // Send the interactive template that matches the step the conversation just moved into.
+  // No inbound-text filtering — the handler already advanced the step correctly.
+  if (step === 'language_select' && languageContentSid) {
     const result = await sendWhatsAppContentTemplate({ to: from, contentSid: languageContentSid });
     return !!result?.success;
   }
 
-  if (step === 'menu' && menuContentSid && ['1', '2', 'english', 'spanish'].includes(inbound)) {
+  if (step === 'menu' && menuContentSid) {
     const result = await sendWhatsAppContentTemplate({ to: from, contentSid: menuContentSid });
     return !!result?.success;
   }
 
-  if (step === 'resume_followup' && resumeActionsContentSid && ['2', 'resume'].includes(inbound)) {
-    const result = await sendWhatsAppContentTemplate({ to: from, contentSid: resumeActionsContentSid });
-    return !!result?.success;
-  }
-
-  if (step === 'cover_letter_followup' && coverActionsContentSid && ['3', 'cover', 'cover letter'].includes(inbound)) {
-    const result = await sendWhatsAppContentTemplate({ to: from, contentSid: coverActionsContentSid });
-    return !!result?.success;
-  }
-
-  if (step === 'job_tailor_choice' && tailorsContentSid && ['tailor 1', 'tailor 2', 'b', 'r', 'c'].includes(inbound)) {
+  if (step === 'job_tailor_choice' && tailorsContentSid) {
     const result = await sendWhatsAppContentTemplate({ to: from, contentSid: tailorsContentSid });
     return !!result?.success;
+  }
+
+  // For resume_followup and cover_letter_followup, only send the menu template
+  // when the bot's reply already contains the full resume/cover content (i.e. the
+  // draft was just generated or updated). Skip if the convo still has no draft.
+  if (step === 'resume_followup' && resumeActionsContentSid) {
+    const hasDraft = !!String(convo?.metadata?.context?.lastFullResumeDraft || '').trim() ||
+                     !!String(convo?.metadata?.context?.pendingFullResume?.source || '').trim();
+    if (hasDraft) {
+      const result = await sendWhatsAppContentTemplate({ to: from, contentSid: resumeActionsContentSid });
+      return !!result?.success;
+    }
+  }
+
+  if (step === 'cover_letter_followup' && coverActionsContentSid) {
+    const hasDraft = !!String(convo?.metadata?.context?.lastCoverLetterDraft || '').trim();
+    if (hasDraft) {
+      const result = await sendWhatsAppContentTemplate({ to: from, contentSid: coverActionsContentSid });
+      return !!result?.success;
+    }
   }
 
   return false;
