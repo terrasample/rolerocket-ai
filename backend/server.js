@@ -2680,12 +2680,13 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   const detectedIntent = detectWhatsAppIntent(text);
   const isFollowupSaveExportCommand = /^(save|export)\b/.test(text);
   const strictHumanIntent = ['0', 'human', 'agent', 'support', 'human support', 'live agent', 'live support'].includes(text);
-  const isJobsIntent = text === '1' || (detectedIntent.intent === 'jobs' && !text.startsWith('apply'));
-  const isResumeIntent = !isFollowupSaveExportCommand && (text === '2' || detectedIntent.intent === 'resume');
-  const isCoverLetterIntent = !isFollowupSaveExportCommand && (text === '3' || detectedIntent.intent === 'coverLetter');
-  const isExploreIntent = text === '4' || detectedIntent.intent === 'explore';
-  const isInterviewIntent = text === 'interview' || detectedIntent.intent === 'interview';
-  const isStatusIntent = text === 'status' || detectedIntent.intent === 'status';
+  const lockMenuIntentRouting = ['resume_capture', 'cover_letter_capture', 'job_tailor_choice', 'interview_target'].includes(String(convo.currentStep || ''));
+  const isJobsIntent = !lockMenuIntentRouting && (text === '1' || (detectedIntent.intent === 'jobs' && !text.startsWith('apply')));
+  const isResumeIntent = !lockMenuIntentRouting && !isFollowupSaveExportCommand && (text === '2' || detectedIntent.intent === 'resume');
+  const isCoverLetterIntent = !lockMenuIntentRouting && !isFollowupSaveExportCommand && (text === '3' || detectedIntent.intent === 'coverLetter');
+  const isExploreIntent = !lockMenuIntentRouting && (text === '4' || detectedIntent.intent === 'explore');
+  const isInterviewIntent = !lockMenuIntentRouting && (text === 'interview' || detectedIntent.intent === 'interview');
+  const isStatusIntent = !lockMenuIntentRouting && (text === 'status' || detectedIntent.intent === 'status');
   const isHumanIntent = strictHumanIntent;
 
   if (convo.currentStep === 'menu' && incoming && !hasInboundAudio && detectedIntent.intent === 'unclear') {
