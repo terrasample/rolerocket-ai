@@ -1434,14 +1434,23 @@ async function sendWhatsAppMessage({ to, message, mediaUrls = [] }) {
   }
 
   try {
+    const normalizeWhatsAppAddress = (value = '') => {
+      const raw = String(value || '').trim();
+      if (!raw) return '';
+      if (raw.toLowerCase().startsWith('whatsapp:')) return raw;
+      return `whatsapp:${raw}`;
+    };
+
     const accountSid = TWILIO_ACCOUNT_SID;
     const authToken = TWILIO_AUTH_TOKEN;
     const auth = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
     const statusCallback = String(process.env.TWILIO_WHATSAPP_STATUS_CALLBACK_URL || '').trim();
+    const fromAddress = normalizeWhatsAppAddress(process.env.TWILIO_WHATSAPP_NUMBER || '+1234567890');
+    const toAddress = normalizeWhatsAppAddress(to);
 
     const payload = new URLSearchParams({
-      From: `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER || '+1234567890'}`,
-      To: `whatsapp:${to}`,
+      From: fromAddress,
+      To: toAddress,
       Body: message
     });
     const attachments = Array.isArray(mediaUrls)
@@ -1461,8 +1470,31 @@ async function sendWhatsAppMessage({ to, message, mediaUrls = [] }) {
       body: payload
     });
 
-    const data = await response.json();
-    return { success: response.ok, sid: data.sid, error: data.message };
+    const rawBody = await response.text();
+    let data = {};
+    try {
+      data = JSON.parse(rawBody || '{}');
+    } catch (_parseError) {
+      data = { message: rawBody || 'Unknown Twilio response' };
+    }
+
+    if (!response.ok) {
+      console.warn('Twilio WhatsApp send failed:', {
+        status: response.status,
+        fromAddress,
+        toAddress,
+        errorCode: data.code,
+        errorMessage: data.message
+      });
+    }
+
+    return {
+      success: response.ok,
+      sid: data.sid,
+      error: data.message,
+      status: response.status,
+      code: data.code
+    };
   } catch (err) {
     console.error('WhatsApp send error:', err);
     return { success: false, reason: err.message };
