@@ -2865,10 +2865,9 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     const reply = !jobs.length
       ? `No live matches for ${title} in ${location} right now. Reply 1 to search another role.`
       : [
-          `Top matches for ${title} in ${location}:`,
+          'Click the link to view jobs.',
           ...jobs.map((job, idx) => formatWhatsAppJobListItem(job, idx)),
-          'Tap any link to view the job posting.',
-          'Reply VIEW 1-5 for job details, SAVE JOBS, EMAIL JOBS, APPLY 1-5, or 1 to search again.'
+          'Send to email or Search again using the buttons below.'
         ].join('\n');
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
@@ -3259,10 +3258,9 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     const reply = !jobs.length
       ? `No live matches for ${parsed.title} in ${parsed.location || 'Jamaica'} right now. Reply 1 to try another role or REFERRAL to invite friends.`
       : [
-          `Got it: ${parsed.title} in ${parsed.location || 'Jamaica'}.`,
+          'Click the link to view jobs.',
           ...jobs.map((job, idx) => formatWhatsAppJobListItem(job, idx)),
-          'Tap any link to view the job posting.',
-          'Reply VIEW 1-5 for job details, SAVE JOBS, EMAIL JOBS, APPLY 1-5, or 1 to search again.'
+          'Send to email or Search again using the buttons below.'
         ].join('\n');
 
     convo.lastOutboundMessage = reply;
@@ -3283,8 +3281,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     const reply = [
       'Your current job results:',
       ...jobs.map((job, idx) => formatWhatsAppJobListItem(job, idx)),
-      'Tap any link to view the job posting.',
-      'Reply VIEW 1-5 for details, SAVE JOBS, EMAIL JOBS, APPLY 1-5, or 1 to search again.'
+      'Send to email or Search again using the buttons below.'
     ].join('\n');
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
@@ -3348,7 +3345,20 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     return reply;
   }
 
-  if (convo.currentStep === 'jobs_action' && ['email jobs', 'email all jobs', 'send jobs'].includes(text)) {
+  if (convo.currentStep === 'jobs_action' && ['search again', 'search more', 'search', '1', 'find more jobs'].includes(text)) {
+    convo.currentStep = 'jobs_query';
+    const reply = [
+      'Step 1: Send job + location.',
+      'Example: Security Guard in Kingston',
+      'I will return top matches fast.'
+    ].join('\n');
+    convo.lastOutboundMessage = reply;
+    convo.lastOutboundAt = new Date();
+    await convo.save();
+    return reply;
+  }
+
+  if (convo.currentStep === 'jobs_action' && ['email jobs', 'email all jobs', 'send jobs', 'send to email'].includes(text)) {
     const jobs = Array.isArray(convo.metadata?.lastJobs) ? convo.metadata.lastJobs : [];
     const userEmail = String(user?.email || '').trim();
     if (!jobs.length) {
@@ -3384,7 +3394,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
         text: jobs.map((j, i) => `${i + 1}) ${j.title} @ ${j.company} — ${j.link || 'No link'}`).join('\n')
       });
       await trackWhatsAppTelemetry(phone, 'whatsapp_jobs_emailed', { count: jobs.length, email: userEmail });
-      const reply = `Sent ${jobs.length} job${jobs.length > 1 ? 's' : ''} to ${userEmail}. Reply VIEW 1-5, APPLY 1-5, or 1 to search again.`;
+      const reply = `Sent ${jobs.length} job${jobs.length > 1 ? 's' : ''} to ${userEmail}.`;
       convo.lastOutboundMessage = reply;
       convo.lastOutboundAt = new Date();
       await convo.save();
