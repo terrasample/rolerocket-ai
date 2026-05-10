@@ -2147,37 +2147,76 @@ function getWhatsAppMenuText(language = 'english') {
 }
 
 function getWhatsAppExploreFeaturesText(plan = 'free', language = 'english') {
-  const normalizedPlan = String(plan || 'free').toLowerCase();
-  const unlocked = {
-    interview: normalizedPlan === 'premium' || normalizedPlan === 'business',
-    status: true,
-    referral: true,
-    learning: normalizedPlan === 'business'
+  const planLevels = { free: 0, pro: 1, premium: 2, elite: 3, lifetime: 3 };
+  const level = planLevels[String(plan || 'free').toLowerCase()] ?? 0;
+  const u = (v) => v ? '✅' : '🔒';
+
+  // Feature access by plan level
+  const f = {
+    jobSearch:        true,           // free
+    resumeRewrite:    true,           // free
+    coverLetter:      true,           // free
+    appTracker:       true,           // free
+    referral:         true,           // free
+    fullResume:       level >= 1,     // pro+
+    exportPDF:        level >= 1,     // pro+
+    resumeAnalysis:   level >= 1,     // pro+
+    interview:        level >= 2,     // premium+
+    marketInsights:   level >= 2,     // premium+
+    autoApply:        level >= 2,     // premium+
+    learning:         level >= 3,     // elite+
+    portfolio:        level >= 3,     // elite+
   };
+
+  const upgradeHint = level === 0
+    ? 'Upgrade to Pro at rolerocketai.com to unlock more features.'
+    : level === 1
+    ? 'Upgrade to Premium to unlock Interview Practice and more.'
+    : '';
 
   if (language === 'spanish') {
     return [
-      'Otras funciones:',
-      `${unlocked.interview ? 'Disponible' : 'Bloqueado'} - Simulador de entrevista`,
-      `${unlocked.status ? 'Disponible' : 'Bloqueado'} - Seguimiento de solicitudes (STATUS)`,
-      `${unlocked.referral ? 'Disponible' : 'Bloqueado'} - Referidos (REFERRAL)`,
-      `${unlocked.learning ? 'Disponible' : 'Bloqueado'} - Aprendizaje y cursos`,
+      '✨ Funciones de RoleRocket AI:',
       '',
-      unlocked.interview ? 'Para entrevista, responde INTERVIEW.' : 'Actualiza tu plan para desbloquear simulador de entrevista.',
+      `${u(f.jobSearch)} Busqueda de empleo`,
+      `${u(f.resumeRewrite)} Reescritura de CV con IA`,
+      `${u(f.coverLetter)} Carta de presentacion`,
+      `${u(f.fullResume)} CV completo con IA (Pro)`,
+      `${u(f.exportPDF)} Exportar a PDF (Pro)`,
+      `${u(f.resumeAnalysis)} Analisis de CV con IA (Pro)`,
+      `${u(f.interview)} Simulador de entrevista (Premium)`,
+      `${u(f.marketInsights)} Tendencias del mercado (Premium)`,
+      `${u(f.autoApply)} Solicitud automatica (Premium)`,
+      `${u(f.appTracker)} Seguimiento de solicitudes`,
+      `${u(f.referral)} Referidos`,
+      `${u(f.learning)} Aprendizaje y cursos (Elite)`,
+      `${u(f.portfolio)} Portafolio profesional (Elite)`,
+      '',
+      upgradeHint || (f.interview ? 'Para entrevista, responde INTERVIEW.' : ''),
       'Responde START para volver al menu principal.'
-    ].join('\n');
+    ].filter(Boolean).join('\n');
   }
 
   return [
-    'Explore Other Features:',
-    `${unlocked.interview ? 'Unlocked' : 'Locked'} - Interview Practice`,
-    `${unlocked.status ? 'Unlocked' : 'Locked'} - Application Status Tracker (STATUS)`,
-    `${unlocked.referral ? 'Unlocked' : 'Locked'} - Referrals (REFERRAL)`,
-    `${unlocked.learning ? 'Unlocked' : 'Locked'} - Learning & Courses`,
+    '✨ RoleRocket AI Features:',
     '',
-    unlocked.interview ? 'For interview prep, reply INTERVIEW.' : 'Upgrade your plan to unlock Interview Practice.',
+    `${u(f.jobSearch)} Job Search`,
+    `${u(f.resumeRewrite)} AI Resume Rewrite`,
+    `${u(f.coverLetter)} Cover Letter Generator`,
+    `${u(f.fullResume)} Full AI Resume Builder (Pro)`,
+    `${u(f.exportPDF)} Export to PDF (Pro)`,
+    `${u(f.resumeAnalysis)} AI Resume Analysis (Pro)`,
+    `${u(f.interview)} Interview Practice (Premium)`,
+    `${u(f.marketInsights)} Market Insights (Premium)`,
+    `${u(f.autoApply)} Auto-Apply (Premium)`,
+    `${u(f.appTracker)} Application Status Tracker`,
+    `${u(f.referral)} Referrals (REFERRAL)`,
+    `${u(f.learning)} Learning & Courses (Elite)`,
+    `${u(f.portfolio)} Portfolio Builder (Elite)`,
+    '',
+    upgradeHint || (f.interview ? 'For interview prep, reply INTERVIEW.' : ''),
     'Reply START to return to the main menu.'
-  ].join('\n');
+  ].filter(Boolean).join('\n');
 }
 
 function getWhatsAppCoverLetterFallback(jobTarget = '') {
