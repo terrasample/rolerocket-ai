@@ -1733,6 +1733,7 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
   const resumeActionsContentSid = String(process.env.TWILIO_WHATSAPP_RESUME_ACTIONS_CONTENT_SID || '').trim();
   const coverActionsContentSid = String(process.env.TWILIO_WHATSAPP_COVER_ACTIONS_CONTENT_SID || '').trim();
   const tailorsContentSid = String(process.env.TWILIO_WHATSAPP_TAILOR_CHOICES_CONTENT_SID || '').trim();
+  const jobsMenuContentSid = String(process.env.TWILIO_WHATSAPP_JOBS_MENU_CONTENT_SID || '').trim();
   const jobsActionContentSid = String(process.env.TWILIO_WHATSAPP_JOBS_ACTION_CONTENT_SID || '').trim();
 
   // Returns 'suppress' when the template fully replaces the text reply (language/menu/tailor).
@@ -1751,6 +1752,11 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
 
   if (step === 'job_tailor_choice' && tailorsContentSid) {
     const result = await sendWhatsAppContentTemplate({ to: from, contentSid: tailorsContentSid });
+    return result?.success ? 'suppress' : false;
+  }
+
+  if (step === 'jobs_menu' && jobsMenuContentSid) {
+    const result = await sendWhatsAppContentTemplate({ to: from, contentSid: jobsMenuContentSid });
     return result?.success ? 'suppress' : false;
   }
 
@@ -2949,6 +2955,16 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   if (isJobsIntent) {
     user.lastIntent = 'jobs';
     convo.lastIntent = 'jobs';
+    convo.currentStep = 'jobs_menu';
+    await trackWhatsAppTelemetry(phone, 'whatsapp_jobs_menu_enter', {});
+    const reply = 'What would you like to do? Reply SEARCH, IMPORT, or SAVE.';
+    convo.lastOutboundMessage = reply;
+    convo.lastOutboundAt = new Date();
+    await Promise.all([user.save(), convo.save()]);
+    return reply;
+  }
+
+  if (convo.currentStep === 'jobs_menu' && ['search', 'search jobs'].includes(text)) {
     convo.currentStep = 'jobs_query';
     await trackWhatsAppTelemetry(phone, 'whatsapp_jobs_step_enter', {});
     const reply = [
@@ -2958,7 +2974,56 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     ].join('\n');
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
-    await Promise.all([user.save(), convo.save()]);
+    await convo.save();
+    return reply;
+  }
+
+  if (convo.currentStep === 'jobs_menu' && ['import', 'import job', 'import jobs'].includes(text)) {
+    convo.currentStep = 'jobs_import';
+    const reply = 'Paste the job title, company, and location (or a job URL) and I will save it to your profile.';
+    convo.lastOutboundMessage = reply;
+    convo.lastOutboundAt = new Date();
+    await convo.save();
+    return reply;
+  }
+
+  if (convo.currentStep === 'jobs_import') {
+    // Save whatever the user pasted as a job record
+    const raw = String(incoming || '').trim();
+    if (!raw) {
+      const reply = 'Send the job details (title, company, location) and I will save it.';
+      convo.lastOutboundMessage = reply;
+      convo.lastOutboundAt = new Date();
+      await convo.save();
+      return reply;
+    }
+    await Application.create({ userId: phone, jobTitle: raw.slice(0, 120), company: '', status: 'saved' });
+    await trackWhatsAppTelemetry(phone, 'whatsapp_job_imported', { raw: raw.slice(0, 80) });
+    convo.currentStep = 'jobs_menu';
+    const reply = `Saved: "${raw.slice(0, 80)}". Reply SAVE to view all saved jobs, SEARCH to find more, or START for the main menu.`;
+    convo.lastOutboundMessage = reply;
+    convo.lastOutboundAt = new Date();
+    await convo.save();
+    return reply;
+  }
+
+  if (convo.currentStep === 'jobs_menu' && ['save', 'saved', 'saved jobs', 'my jobs', 'view saved'].includes(text)) {
+    const saved = await Application.find({ userId: phone, status: 'saved' }).sort({ createdAt: -1 }).limit(10).lean();
+    if (!saved.length) {
+      const reply = 'No saved jobs yet. Reply SEARCH to find jobs or IMPORT to add one manually.';
+      convo.lastOutboundMessage = reply;
+      convo.lastOutboundAt = new Date();
+      await convo.save();
+      return reply;
+    }
+    const reply = [
+      `Your saved jobs (${saved.length}):`,
+      ...saved.map((j, i) => `${i + 1}) ${j.jobTitle || 'Role'}${j.company ? ' @ ' + j.company : ''}`),
+      'Reply SEARCH to find more jobs or START for the main menu.'
+    ].join('\n');
+    convo.lastOutboundMessage = reply;
+    convo.lastOutboundAt = new Date();
+    await convo.save();
     return reply;
   }
 
