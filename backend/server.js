@@ -1772,8 +1772,7 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
   if (step === 'jobs_action' && jobsActionContentSid) {
     const hasJobs = Array.isArray(convo?.metadata?.lastJobs) && convo.metadata.lastJobs.length > 0;
     if (hasJobs) {
-      const result = await sendWhatsAppContentTemplate({ to: from, contentSid: jobsActionContentSid });
-      return result?.success ? 'keep' : false;
+      return 'defer';
     }
   }
 
@@ -2401,10 +2400,34 @@ function compactWhatsAppJobUrl(rawUrl = '') {
   }
 }
 
+function getDirectWhatsAppJobLink(job = {}) {
+  const candidates = [
+    job.directLink,
+    job.postingUrl,
+    job.jobUrl,
+    job.job_url,
+    job.redirect_url,
+    job.absolute_url,
+    job.hostedUrl,
+    job.url,
+    job.apply_url,
+    job.applyLink,
+    job.link,
+    job.refs?.landing_page
+  ];
+
+  for (const candidate of candidates) {
+    const compacted = compactWhatsAppJobUrl(String(candidate || '').trim());
+    if (compacted && compacted !== '#') return compacted;
+  }
+
+  return '';
+}
+
 function formatWhatsAppJobListItem(job = {}, index = 0) {
   const title = String(job.title || 'Role').trim() || 'Role';
   const company = String(job.company || 'Company').trim() || 'Company';
-  const link = compactWhatsAppJobUrl(String(job.link || job.applyLink || '').trim());
+  const link = getDirectWhatsAppJobLink(job);
   return link
     ? `${index + 1}) ${title} @ ${company}\n${link}`
     : `${index + 1}) ${title} @ ${company}`;
@@ -3244,7 +3267,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
         title: String(job.title || ''),
         company: String(job.company || ''),
         location: String(job.location || ''),
-        link: String(job.link || job.applyLink || ''),
+        link: getDirectWhatsAppJobLink(job),
         summary: String(job.summary || job.description || '').slice(0, 500)
       }))
     };
@@ -3301,7 +3324,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     }
 
     const chosen = jobs[picked - 1] || {};
-    const link = compactWhatsAppJobUrl(String(chosen.link || '').trim());
+    const link = getDirectWhatsAppJobLink(chosen);
     const summary = String(chosen.summary || '').trim();
     const reply = [
       `${picked}) ${String(chosen.title || 'Role')} @ ${String(chosen.company || 'Company')}`,
@@ -4417,6 +4440,18 @@ app.post('/api/whatsapp/incoming', express.urlencoded({ extended: false }), asyn
       normalizedInboundText: String(body || '').toLowerCase(),
       convo
     });
+    const jobsActionContentSid = String(process.env.TWILIO_WHATSAPP_JOBS_ACTION_CONTENT_SID || '').trim();
+    const shouldDeferJobsButtons = interactiveResult === 'defer' && jobsActionContentSid && Array.isArray(convo?.metadata?.lastJobs) && convo.metadata.lastJobs.length > 0;
+
+    if (shouldDeferJobsButtons) {
+      res.on('finish', () => {
+        setTimeout(() => {
+          sendWhatsAppContentTemplate({ to: from, contentSid: jobsActionContentSid }).catch((err) => {
+            console.error('Deferred jobs_action template error:', err);
+          });
+        }, 0);
+      });
+    }
 
     // 'suppress' = template replaces text (language/menu/tailor) → return empty TwiML
     if (interactiveResult === 'suppress') {
