@@ -1726,7 +1726,6 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
   if (!interactiveEnabled || !from || !convo) return false;
 
   const step = String(convo.currentStep || '').trim();
-  const inbound = String(normalizedInboundText || '').toLowerCase();
 
   const languageContentSid = String(process.env.TWILIO_WHATSAPP_LANGUAGE_CONTENT_SID || '').trim();
   const menuContentSid = String(process.env.TWILIO_WHATSAPP_MENU_CONTENT_SID || '').trim();
@@ -1736,18 +1735,24 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
   const jobsMenuContentSid = String(process.env.TWILIO_WHATSAPP_JOBS_MENU_CONTENT_SID || '').trim();
   const jobsActionContentSid = String(process.env.TWILIO_WHATSAPP_JOBS_ACTION_CONTENT_SID || '').trim();
 
-  // Returns 'suppress' when the template fully replaces the text reply (language/menu/tailor).
-  // Returns 'keep' when the template is appended as buttons after the text reply (resume/cover/jobs).
-  // Returns false when no template is sent.
+  const backMenuContentSid = String(process.env.TWILIO_WHATSAPP_BACK_MENU_CONTENT_SID || '').trim();
+
+  // 'suppress' = template replaces the text reply entirely (language select / pure menu / tailor choice)
+  // 'keep'     = template sends buttons alongside the text reply (content pages + nav, resume, cover, jobs)
+  // false      = no template sent
 
   if (step === 'language_select' && languageContentSid) {
     const result = await sendWhatsAppContentTemplate({ to: from, contentSid: languageContentSid });
     return result?.success ? 'suppress' : false;
   }
 
+  // menu step: suppress for pure menu display; keep when returning from content (explore/status/interview)
   if (step === 'menu' && menuContentSid) {
+    const lastMsg = String(convo?.lastOutboundMessage || '').trim();
+    const isPureMenu = !lastMsg || lastMsg.startsWith('RoleRocket AI Recruit');
     const result = await sendWhatsAppContentTemplate({ to: from, contentSid: menuContentSid });
-    return result?.success ? 'suppress' : false;
+    if (!result?.success) return false;
+    return isPureMenu ? 'suppress' : 'keep';
   }
 
   if (step === 'job_tailor_choice' && tailorsContentSid) {
@@ -1755,9 +1760,13 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
     return result?.success ? 'suppress' : false;
   }
 
+  // jobs_menu step: suppress for pure nav prompt; keep when returning from an action (import success, etc.)
   if (step === 'jobs_menu' && jobsMenuContentSid) {
+    const lastMsg = String(convo?.lastOutboundMessage || '').trim();
+    const isPureJobsMenu = !lastMsg || lastMsg.startsWith('What would you like to do');
     const result = await sendWhatsAppContentTemplate({ to: from, contentSid: jobsMenuContentSid });
-    return result?.success ? 'suppress' : false;
+    if (!result?.success) return false;
+    return isPureJobsMenu ? 'suppress' : 'keep';
   }
 
   if (step === 'jobs_action' && jobsActionContentSid) {
@@ -1777,6 +1786,13 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
       const result = await sendWhatsAppContentTemplate({ to: from, contentSid: resumeActionsContentSid });
       return result?.success ? 'keep' : false;
     }
+  }
+
+
+  // Input-capture steps: append a 'Main Menu' back button so users can exit without typing
+  if (['jobs_query', 'resume_capture', 'cover_letter_capture', 'interview_target'].includes(step) && backMenuContentSid) {
+    const result = await sendWhatsAppContentTemplate({ to: from, contentSid: backMenuContentSid });
+    return result?.success ? 'keep' : false;
   }
 
   if (step === 'cover_letter_followup' && coverActionsContentSid) {
@@ -2705,6 +2721,18 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   if (!user.optedIn && !['start', 'join'].includes(text)) {
     await trackWhatsAppTelemetry(phone, 'whatsapp_opted_out_block', {});
     const reply = 'You are currently opted out. Reply START to re-activate RoleRocket WhatsApp recruiting support.';
+    convo.lastOutboundMessage = reply;
+    convo.lastOutboundAt = new Date();
+    await convo.save();
+    return reply;
+  }
+
+  // Handle 'main_menu' button ID from the back-button template — skip language re-select
+  if (text === 'main_menu') {
+    const language = String(convo.metadata?.context?.language || 'english');
+    convo.currentStep = 'menu';
+    convo.lastIntent = 'menu';
+    const reply = getWhatsAppMenuText(language);
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
     await convo.save();
