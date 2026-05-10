@@ -2801,7 +2801,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     const title = String(user.targetJob || convo.metadata.context.lastJobTitle || 'Customer Service Representative').trim();
     const location = String(user.location || convo.metadata.context.lastLocation || 'Jamaica').trim();
     const searchResult = await searchJobsFast({ title, location, resume: user.resumeText || '' });
-    const jobs = Array.isArray(searchResult?.jobs) ? searchResult.jobs.slice(0, 2) : [];
+    const jobs = Array.isArray(searchResult?.jobs) ? searchResult.jobs.slice(0, 5) : [];
     convo.metadata.lastJobs = jobs.map((job) => ({
       title: String(job.title || ''),
       company: String(job.company || ''),
@@ -2817,7 +2817,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       : [
           `Top matches for ${title} in ${location}:`,
           ...jobs.map((job, idx) => `${idx + 1}) ${job.title || 'Role'} @ ${job.company || 'Company'}`),
-          'Reply APPLY 1/APPLY 2 to track, or TAILOR 1/TAILOR 2 to tailor resume/cover letter to a job.'
+          'Reply SAVE JOBS to save all, EMAIL JOBS to send to your email, APPLY 1-5 to track an application, or 1 to search again.'
         ].join('\n');
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
@@ -2923,7 +2923,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   const detectedIntent = detectWhatsAppIntent(text);
   const isFollowupSaveExportCommand = /^(save|export)\b/.test(text);
   const strictHumanIntent = ['0', 'human', 'agent', 'support', 'human support', 'live agent', 'live support'].includes(text);
-  const lockMenuIntentRouting = ['resume_capture', 'cover_letter_capture', 'job_tailor_choice', 'interview_target'].includes(String(convo.currentStep || ''));
+  const lockMenuIntentRouting = ['resume_capture', 'cover_letter_capture', 'job_tailor_choice', 'interview_target', 'jobs_menu', 'jobs_import'].includes(String(convo.currentStep || ''));
   const isJobsIntent = !lockMenuIntentRouting && (text === '1' || (detectedIntent.intent === 'jobs' && !text.startsWith('apply')));
   const isResumeIntent = !lockMenuIntentRouting && !isFollowupSaveExportCommand && (text === '2' || detectedIntent.intent === 'resume');
   const isCoverLetterIntent = !lockMenuIntentRouting && !isFollowupSaveExportCommand && (text === '3' || detectedIntent.intent === 'coverLetter');
