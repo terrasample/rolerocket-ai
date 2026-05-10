@@ -2988,7 +2988,6 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   }
 
   if (convo.currentStep === 'jobs_import') {
-    // Save whatever the user pasted as a job record
     const raw = String(incoming || '').trim();
     if (!raw) {
       const reply = 'Send the job details (title, company, location) and I will save it.';
@@ -2997,10 +2996,27 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       await convo.save();
       return reply;
     }
-    await Application.create({ userId: phone, jobTitle: raw.slice(0, 120), company: '', status: 'saved' });
-    await trackWhatsAppTelemetry(phone, 'whatsapp_job_imported', { raw: raw.slice(0, 80) });
+    // Detect if user sent a URL
+    let sourceUrl = '';
+    try {
+      const urlCandidate = raw.split(/\s/)[0];
+      const u = new URL(urlCandidate);
+      if (['http:', 'https:'].includes(u.protocol)) sourceUrl = u.toString();
+    } catch { /* not a URL */ }
+
+    // Use the same AI parser the website uses to extract structured job data
+    const parsed = await parseJobFromAnywhere(raw, sourceUrl);
+
+    await Application.create({
+      userId: phone,
+      jobTitle: parsed.title || raw.slice(0, 120),
+      company: parsed.company || '',
+      status: 'saved'
+    });
+    await trackWhatsAppTelemetry(phone, 'whatsapp_job_imported', { title: parsed.title, company: parsed.company });
     convo.currentStep = 'jobs_menu';
-    const reply = `Saved: "${raw.slice(0, 80)}". Reply SAVE to view all saved jobs, SEARCH to find more, or START for the main menu.`;
+    const label = [parsed.title, parsed.company].filter(Boolean).join(' @ ') || raw.slice(0, 80);
+    const reply = `Saved: "${label}". Reply SAVE to view all saved jobs, SEARCH to find more, or START for the main menu.`;
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
     await convo.save();
