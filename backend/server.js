@@ -2867,7 +2867,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       : [
           'Click the link to view jobs.',
           ...jobs.map((job, idx) => formatWhatsAppJobListItem(job, idx)),
-          'Send to email or Search again using the buttons below.'
+          'Choose your next step for these job results.'
         ].join('\n');
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
@@ -3260,7 +3260,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       : [
           'Click the link to view jobs.',
           ...jobs.map((job, idx) => formatWhatsAppJobListItem(job, idx)),
-          'Send to email or Search again using the buttons below.'
+          'Choose your next step for these job results.'
         ].join('\n');
 
     convo.lastOutboundMessage = reply;
@@ -3281,7 +3281,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     const reply = [
       'Your current job results:',
       ...jobs.map((job, idx) => formatWhatsAppJobListItem(job, idx)),
-      'Send to email or Search again using the buttons below.'
+      'Choose your next step for these job results.'
     ].join('\n');
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
@@ -3337,7 +3337,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     convo.currentStep = 'jobs_action';
     const reply = [
       `Saved ${jobs.length} job${jobs.length > 1 ? 's' : ''} to your profile.`,
-      'Reply VIEW 1-5, EMAIL JOBS, APPLY 1-5, or 1 to search again.'
+      'Choose your next step for these job results.'
     ].join('\n');
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
@@ -3394,7 +3394,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
         text: jobs.map((j, i) => `${i + 1}) ${j.title} @ ${j.company} — ${j.link || 'No link'}`).join('\n')
       });
       await trackWhatsAppTelemetry(phone, 'whatsapp_jobs_emailed', { count: jobs.length, email: userEmail });
-      const reply = `Sent ${jobs.length} job${jobs.length > 1 ? 's' : ''} to ${userEmail}.`;
+      const reply = `Sent ${jobs.length} job${jobs.length > 1 ? 's' : ''} to ${userEmail}. Choose your next step for these job results.`;
       convo.lastOutboundMessage = reply;
       convo.lastOutboundAt = new Date();
       await convo.save();
