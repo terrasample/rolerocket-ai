@@ -4612,6 +4612,7 @@ app.post('/api/whatsapp/incoming', express.urlencoded({ extended: false }), asyn
       convo
     });
     const jobsActionContentSid = String(process.env.TWILIO_WHATSAPP_JOBS_ACTION_CONTENT_SID || '').trim();
+    const backMenuContentSid = String(process.env.TWILIO_WHATSAPP_BACK_MENU_CONTENT_SID || '').trim();
     const shouldDeferJobsButtons = interactiveResult === 'defer' && jobsActionContentSid && Array.isArray(convo?.metadata?.lastJobs) && convo.metadata.lastJobs.length > 0;
 
     if (shouldDeferJobsButtons) {
@@ -4620,6 +4621,11 @@ app.post('/api/whatsapp/incoming', express.urlencoded({ extended: false }), asyn
           sendWhatsAppContentTemplate({ to: from, contentSid: jobsActionContentSid }).catch((err) => {
             console.error('Deferred jobs_action template error:', err);
           });
+          if (backMenuContentSid) {
+            sendWhatsAppContentTemplate({ to: from, contentSid: backMenuContentSid }).catch((err) => {
+              console.error('Deferred back_menu template error:', err);
+            });
+          }
         }, 0);
       });
     }
