@@ -599,6 +599,7 @@
     var currentPage = 1, totalStudents = 0, institutionName = '';
     var PAGE_SIZE = 50;
     var isUWIDemo = (new URLSearchParams(window.location.search).get('demo') || '').toLowerCase() === 'uwi';
+    var ICM_ADMIN_LOCK_KEY = 'icmAdminSessionLocked';
 
     function esc(s) { return String(s||'').replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]);}); }
     function setStatus(msg,color){ var el=document.getElementById('icmStatus'); if(el){el.textContent=msg;el.style.color=color||'#64748b';} }
@@ -766,19 +767,25 @@
       window.location.replace('login.html?redirect='+encodeURIComponent('institution-cohort-manager.html'));
     }
 
+    function isCohortAdminSessionLocked() {
+      return localStorage.getItem(ICM_ADMIN_LOCK_KEY) === '1';
+    }
+
+    function lockCohortAdminSession() {
+      localStorage.setItem(ICM_ADMIN_LOCK_KEY, '1');
+    }
+
+    function unlockCohortAdminSession() {
+      localStorage.removeItem(ICM_ADMIN_LOCK_KEY);
+    }
+
     function performCohortLogout() {
-      var shouldLogout = window.confirm('End admin session and log out now?');
+      var shouldLogout = window.confirm('End admin session for Cohort Manager? You will need to re-enter your access code to continue.');
       if (!shouldLogout) return;
 
-      if (typeof clearStoredToken === 'function') {
-        clearStoredToken();
-      }
-      localStorage.removeItem('token');
-      sessionStorage.removeItem('token');
-      localStorage.removeItem('authToken');
-      sessionStorage.removeItem('authToken');
-
-      window.location.replace('login.html?logged-out=1&redirect=' + encodeURIComponent('institution-cohort-manager.html'));
+      // Only lock this page's admin session; keep global app auth intact.
+      lockCohortAdminSession();
+      window.location.replace('institution-cohort-manager.html?admin-locked=1');
     }
     function renderInstitutionOnlyState() {
       setStatus('Institution account required.','#dc2626');
@@ -796,14 +803,17 @@
 
     function renderAccessCodeGate() {
       var main = document.querySelector('.icm-main') || document.querySelector('main') || document.body;
+      var lockedAdminSession = isCohortAdminSessionLocked();
       var gate = document.createElement('div');
       gate.id = 'icmAccessGate';
       gate.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;padding:40px 20px;';
       gate.innerHTML = [
         '<div style="background:#1e293b;border:1px solid #334155;border-radius:16px;padding:40px 36px;max-width:420px;width:100%;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.4);">',
         '  <div style="font-size:2.4rem;margin-bottom:12px;">🏫</div>',
-        '  <h2 style="color:#f1f5f9;font-size:1.3rem;font-weight:700;margin:0 0 8px;">Institution Access Required</h2>',
-        '  <p style="color:#94a3b8;font-size:0.93rem;margin:0 0 28px;line-height:1.6;">Enter the access code provided by your institution to unlock the Cohort Manager.</p>',
+        '  <h2 style="color:#f1f5f9;font-size:1.3rem;font-weight:700;margin:0 0 8px;">' + (lockedAdminSession ? 'Admin Session Locked' : 'Institution Access Required') + '</h2>',
+        '  <p style="color:#94a3b8;font-size:0.93rem;margin:0 0 28px;line-height:1.6;">' + (lockedAdminSession
+          ? 'Re-enter your institution access code to unlock Cohort Manager. Your main account stays signed in.'
+          : 'Enter the access code provided by your institution to unlock the Cohort Manager.') + '</p>',
         '  <input id="icmAccessCodeInput" type="text" placeholder="e.g. UWIMONA-TRIAL-A1B2C3" autocomplete="off" spellcheck="false"',
         '    style="width:100%;box-sizing:border-box;padding:12px 14px;border-radius:8px;border:1px solid #475569;background:#0f172a;color:#f1f5f9;font-size:1rem;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:14px;outline:none;" />',
         '  <button id="icmAccessCodeBtn" style="width:100%;padding:12px;border-radius:8px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:1rem;font-weight:600;border:none;cursor:pointer;">Unlock Access</button>',
@@ -839,6 +849,7 @@
           if (btn) { btn.disabled = false; btn.textContent = 'Unlock Access'; }
           return;
         }
+        unlockCohortAdminSession();
         // Success — reload so the page re-checks institution access
         window.location.reload();
       } catch(e) {
@@ -857,6 +868,12 @@
         var actor = payload && payload.user ? payload.user : null;
         
         if (!actor) { redirectToLogin(); return null; }
+
+        // Cohort-manager-only lock: require access-code re-entry without logging out globally.
+        if (isCohortAdminSessionLocked()) {
+          renderAccessCodeGate();
+          return null;
+        }
         
         // Allow institution admins
         if (actor.accountType === 'institution') {
