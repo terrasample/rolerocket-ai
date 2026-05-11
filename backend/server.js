@@ -9304,10 +9304,11 @@ app.post('/api/executive-presence/training', authenticateToken, async (req, res)
     });
 
     const parsed = JSON.parse(String(completion.choices?.[0]?.message?.content || '{}'));
+    const flatStr = (v) => !v ? '' : (typeof v === 'object' ? Object.entries(v).map(([k, val]) => `${k}: ${val}`).join('\n') : String(v).trim());
     return res.json({
       leadershipLanguage: Array.isArray(parsed.leadershipLanguage) ? parsed.leadershipLanguage.slice(0, 7) : [],
-      stakeholderUpdateTemplate: String(parsed.stakeholderUpdateTemplate || '').trim(),
-      boardStyleVersion: String(parsed.boardStyleVersion || '').trim(),
+      stakeholderUpdateTemplate: flatStr(parsed.stakeholderUpdateTemplate),
+      boardStyleVersion: flatStr(parsed.boardStyleVersion),
       doNotSay: Array.isArray(parsed.doNotSay) ? parsed.doNotSay.slice(0, 6) : [],
       highImpactPhrases: Array.isArray(parsed.highImpactPhrases) ? parsed.highImpactPhrases.slice(0, 8) : [],
       practicePrompt: String(parsed.practicePrompt || '').trim()
@@ -9413,9 +9414,10 @@ app.post('/api/executive-presence/structure-coach', authenticateToken, async (re
     });
 
     const parsed = JSON.parse(String(completion.choices?.[0]?.message?.content || '{}'));
+    const flatStr = (v) => !v ? '' : (typeof v === 'object' ? Object.entries(v).map(([k, val]) => `${k}: ${val}`).join('\n') : String(v).trim());
     return res.json({
       framework: String(parsed.framework || framework),
-      structuredResponse: String(parsed.structuredResponse || '').trim(),
+      structuredResponse: flatStr(parsed.structuredResponse),
       executiveSummary: String(parsed.executiveSummary || '').trim(),
       conciseVersion: String(parsed.conciseVersion || '').trim(),
       problemSolvingMap: Array.isArray(parsed.problemSolvingMap) ? parsed.problemSolvingMap.slice(0, 8) : []
