@@ -1758,6 +1758,9 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
 
   if (step === 'job_tailor_choice' && tailorsContentSid) {
     const result = await sendWhatsAppContentTemplate({ to: from, contentSid: tailorsContentSid });
+    if (result?.success && backMenuContentSid) {
+      await sendWhatsAppContentTemplate({ to: from, contentSid: backMenuContentSid });
+    }
     return result?.success ? 'suppress' : false;
   }
 
@@ -1767,6 +1770,9 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
     const isPureJobsMenu = !lastMsg || lastMsg.startsWith('What would you like to do');
     const result = await sendWhatsAppContentTemplate({ to: from, contentSid: jobsMenuContentSid });
     if (!result?.success) return false;
+    if (backMenuContentSid) {
+      await sendWhatsAppContentTemplate({ to: from, contentSid: backMenuContentSid });
+    }
     return isPureJobsMenu ? 'suppress' : 'keep';
   }
 
@@ -1784,6 +1790,9 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
                      !!String(convo?.metadata?.context?.pendingFullResume?.source || '').trim();
     if (hasDraft) {
       const result = await sendWhatsAppContentTemplate({ to: from, contentSid: resumeActionsContentSid });
+      if (result?.success && backMenuContentSid) {
+        await sendWhatsAppContentTemplate({ to: from, contentSid: backMenuContentSid });
+      }
       return result?.success ? 'keep' : false;
     }
   }
@@ -1791,6 +1800,9 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
 
   if (step === 'resume_input_choice' && resumeInputChoiceContentSid) {
     const result = await sendWhatsAppContentTemplate({ to: from, contentSid: resumeInputChoiceContentSid });
+    if (result?.success && backMenuContentSid) {
+      await sendWhatsAppContentTemplate({ to: from, contentSid: backMenuContentSid });
+    }
     return result?.success ? 'suppress' : false;
   }
 
@@ -1804,6 +1816,9 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
     const hasDraft = !!String(convo?.metadata?.context?.lastCoverLetterDraft || '').trim();
     if (hasDraft) {
       const result = await sendWhatsAppContentTemplate({ to: from, contentSid: coverActionsContentSid });
+      if (result?.success && backMenuContentSid) {
+        await sendWhatsAppContentTemplate({ to: from, contentSid: backMenuContentSid });
+      }
       return result?.success ? 'keep' : false;
     }
   }
@@ -2130,15 +2145,15 @@ async function sendWhatsAppHumanSupportAlert({ phone, incoming, user, convo }) {
 }
 
 function getWhatsAppNextStepPrompt() {
-  return 'Next: 1 Jobs | 2 Resume | 3 Cover Letter | 4 Explore | 0 Technical Support';
+  return 'Next: choose Jobs, Resume, Cover Letter, Explore, or Technical Support.';
 }
 
 function getWhatsAppLanguagePrompt() {
   return [
     'Choose your language:',
-    '1. English',
-    '2. Spanish',
-    'Reply 1 or 2.'
+    'English',
+    'Spanish',
+    'Use the language buttons below.'
   ].join('\n');
 }
 
@@ -2158,7 +2173,7 @@ function getWhatsAppMenuText(language = 'english') {
       '3. Crear y guardar/exportar carta de presentacion',
       '4. Explorar otras funciones',
       '0. Soporte tecnico',
-      'Responde 1, 2, 3, 4 o 0.'
+      'Usa los botones interactivos para continuar.'
     ].join('\n');
   }
 
@@ -2169,7 +2184,7 @@ function getWhatsAppMenuText(language = 'english') {
     '3. Create and Save/Export Cover Letter',
     '4. Explore other features',
     '0. Technical Support',
-    'Reply 1, 2, 3, 4, or 0.'
+    'Use the interactive buttons to continue.'
   ].join('\n');
 }
 
@@ -2302,7 +2317,7 @@ async function generateTailoredResumeForJobWhatsApp(userInput = '', selectedJob 
   const jobSnippet = normalizeIncomingWhatsAppText(selectedJob?.summary || selectedJob?.description || '');
 
   if (!source) {
-    return 'I need your work history first to tailor your resume. Reply 2 and send your recent work details.';
+    return 'I need your work history first to tailor your resume. Choose "Send recent work" and share your details.';
   }
 
   const fallback = [
@@ -2483,7 +2498,7 @@ async function generateFullTargetedResumeForWhatsApp(userInput = '', targetRole 
   const role = normalizeIncomingWhatsAppText(targetRole) || 'Customer Service Representative';
   const region = normalizeIncomingWhatsAppText(location) || 'Jamaica';
   if (!source) {
-    return 'I need your recent work details first. Reply 2 and send your work history.';
+    return 'I need your recent work details first. Choose "Send recent work" and share your work history.';
   }
 
   const fallback = [
@@ -2512,7 +2527,7 @@ async function generateFullTargetedResumeForWhatsApp(userInput = '', targetRole 
     '- Teamwork',
     '- Time Management',
     '',
-    'Reply EDIT + what to change, or reply 1 for job matches.'
+    'Reply EDIT + what to change, or use the menu buttons for job matches.'
   ].join('\n');
 
   if (!process.env.OPENAI_API_KEY) return fallback;
@@ -2535,7 +2550,7 @@ async function generateFullTargetedResumeForWhatsApp(userInput = '', targetRole 
 
     const content = String(completion?.choices?.[0]?.message?.content || '').trim();
     if (!content) return fallback;
-    return `${content}\n\nReply EDIT + what to change, or reply 1 for job matches.`.slice(0, 2200);
+    return `${content}\n\nReply EDIT + what to change, or use the menu buttons for job matches.`.slice(0, 2200);
   } catch (error) {
     console.warn('WhatsApp full resume fallback:', error.message);
     return fallback;
@@ -2915,7 +2930,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       added: count,
       total: convo.metadata.context.referralCount
     });
-    const reply = `Logged ${count} referral(s). Total tracked: ${convo.metadata.context.referralCount}. Reply 1 for jobs.`;
+    const reply = `Logged ${count} referral(s). Total tracked: ${convo.metadata.context.referralCount}. Use the Jobs button to continue.`;
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
     await convo.save();
@@ -2938,7 +2953,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     await trackWhatsAppTelemetry(phone, 'whatsapp_apply_ready_triggered', { title, location, resultCount: jobs.length });
 
     const reply = !jobs.length
-      ? `No live matches for ${title} in ${location} right now. Reply 1 to search another role.`
+      ? `No live matches for ${title} in ${location} right now. Use the Jobs button to search another role.`
       : [
           'Click the link to view jobs.',
           ...jobs.map((job, idx) => formatWhatsAppJobListItem(job, idx)),
@@ -3177,8 +3192,10 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     const reply = [
       'How would you like to start your resume?',
       '',
-      '1️⃣  Upload base resume — send your existing PDF or Word file.',
-      '2️⃣  Send recent work — type or voice-note your work history and I will build it.'
+      'Upload base resume — send your existing PDF or Word file.',
+      'Send recent work — type or voice-note your work history and I will build it.',
+      '',
+      'Choose an option using the buttons above.'
     ].join('\n');
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
@@ -3240,11 +3257,11 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     const applications = await Application.find({ userId: phone }).sort({ createdAt: -1 }).limit(2).lean();
     await trackWhatsAppTelemetry(phone, 'whatsapp_status_checked', { applicationCount: applications.length });
     const reply = !applications.length
-      ? 'No tracked applications yet. Reply 1 to find jobs now.'
+      ? 'No tracked applications yet. Use the Jobs button to find roles now.'
       : [
           'Latest tracked applications:',
           ...applications.map((item, idx) => `${idx + 1}. ${item.jobTitle || 'Role'} @ ${item.company || 'Company'} - ${String(item.status || 'applied').toUpperCase()}`),
-          'Reply 1 for new jobs or 0 for support.'
+          'Use the interactive buttons for new jobs or support.'
         ].join('\n');
 
     user.lastIntent = 'status';
@@ -3332,7 +3349,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     });
 
     const reply = !jobs.length
-      ? `No live matches for ${parsed.title} in ${parsed.location || 'Jamaica'} right now. Reply 1 to try another role or REFERRAL to invite friends.`
+      ? `No live matches for ${parsed.title} in ${parsed.location || 'Jamaica'} right now. Use the Jobs button to try another role, or use Referrals.`
       : [
           'Click the link to view jobs.',
           ...jobs.map((job, idx) => formatWhatsAppJobListItem(job, idx)),
@@ -3348,7 +3365,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   if (convo.currentStep === 'jobs_action' && ['view jobs', 'view all jobs', 'show jobs', 'show all jobs'].includes(text)) {
     const jobs = Array.isArray(convo.metadata?.lastJobs) ? convo.metadata.lastJobs : [];
     if (!jobs.length) {
-      const reply = 'No jobs saved in this session. Reply 1 to search again.';
+      const reply = 'No jobs saved in this session. Use the Jobs button to search again.';
       convo.lastOutboundMessage = reply;
       convo.lastOutboundAt = new Date();
       await convo.save();
@@ -3395,7 +3412,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   if (convo.currentStep === 'jobs_action' && ['save jobs', 'save all jobs'].includes(text)) {
     const jobs = Array.isArray(convo.metadata?.lastJobs) ? convo.metadata.lastJobs : [];
     if (!jobs.length) {
-      const reply = 'No jobs to save yet. Reply 1 to search for jobs first.';
+      const reply = 'No jobs to save yet. Use the Jobs button to search first.';
       convo.lastOutboundMessage = reply;
       convo.lastOutboundAt = new Date();
       await convo.save();
@@ -3438,7 +3455,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     const jobs = Array.isArray(convo.metadata?.lastJobs) ? convo.metadata.lastJobs : [];
     const userEmail = String(user?.email || '').trim();
     if (!jobs.length) {
-      const reply = 'No jobs to email yet. Reply 1 to search for jobs first.';
+      const reply = 'No jobs to email yet. Use the Jobs button to search first.';
       convo.lastOutboundMessage = reply;
       convo.lastOutboundAt = new Date();
       await convo.save();
@@ -3558,8 +3575,8 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
 
   if (convo.currentStep === 'resume_input_choice') {
     const norm = text.trim();
-    const isUpload = /^(1|upload|upload base|upload resume|upload base resume|base resume|send (a )?resume|pdf|word|file)/.test(norm) || hasInboundDocument;
-    const isRecentWork = /^(2|recent|work|text|voice|send recent|recent work|type|history)/.test(norm);
+    const isUpload = /^(upload|upload base|upload resume|upload base resume|base resume|send (a )?resume|pdf|word|file)/.test(norm) || hasInboundDocument;
+    const isRecentWork = /^(recent|work|text|voice|send recent|recent work|type|history)/.test(norm);
 
     if (isUpload) {
       // If they already sent a document along with the choice, process it immediately
@@ -3588,7 +3605,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
             '',
             rewrite,
             '',
-            'Reply YES for a full tailored draft or EXPORT RESUME to get the file.'
+            'Use the buttons above to continue with full draft, save, or export.'
           ].join('\n');
           convo.lastOutboundMessage = reply;
           convo.lastOutboundAt = new Date();
@@ -3625,10 +3642,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     }
 
     // Unrecognised — re-prompt
-    const reply = [
-      'Reply 1 to upload your existing resume (PDF or Word).',
-      'Reply 2 to send your recent work history as text or a voice note.'
-    ].join('\n');
+    const reply = 'Please choose one of the interactive options above.';
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
     await convo.save();
@@ -3885,7 +3899,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     await trackWhatsAppTelemetry(phone, 'whatsapp_interview_target_submitted', { target: incoming.slice(0, 140) });
     const prep = await generateInterviewPrepForWhatsApp(incoming, buildWhatsAppContextNote(user, convo));
     await trackWhatsAppTelemetry(phone, 'whatsapp_interview_prep_completed', {});
-    const reply = `${prep}\n\nReply 1 Jobs | 2 Resume | 3 Cover Letter | 4 Explore | REFERRAL | 0 Technical Support`;
+    const reply = `${prep}\n\nUse the interactive menu buttons for Jobs, Resume, Cover Letter, Explore, Referrals, or Support.`;
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
     await Promise.all([user.save(), convo.save()]);
@@ -3909,7 +3923,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     convo.currentStep = 'cover_letter_followup';
     convo.metadata.context.lastCoverLetterTarget = requestedTarget;
     convo.metadata.context.lastCoverLetterDraft = coverLetter;
-    const reply = `${coverLetter}\n\nReply SAVE COVER, EXPORT COVER, 1 Jobs, 2 Resume, 4 Explore, or 0 Technical Support.`;
+    const reply = `${coverLetter}\n\nUse the action buttons to save/export this cover letter or return to menu options.`;
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
     await convo.save();
@@ -3939,7 +3953,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
         }
       ];
 
-      const reply = 'Saved your cover letter draft. Reply EXPORT COVER to get a copy now.';
+      const reply = 'Saved your cover letter draft. Use the action buttons to export a copy.';
       convo.lastOutboundMessage = reply;
       convo.lastOutboundAt = new Date();
       await convo.save();
@@ -3962,7 +3976,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
         title: String(convo.metadata?.context?.lastCoverLetterTarget || 'RoleRocket Cover Letter').trim() || 'RoleRocket Cover Letter',
         textContent: draft
       });
-      const reply = `${exportResult.ack}\n\nReply SAVE COVER, 1 Jobs, 2 Resume, 4 Explore, or 0 Technical Support.`;
+      const reply = `${exportResult.ack}\n\nUse the action buttons to continue.`;
       convo.lastOutboundMessage = reply;
       convo.lastOutboundAt = new Date();
       await convo.save();
@@ -3986,7 +4000,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
         location,
         sourceChars: source.length
       });
-      const reply = `${fullResume}\n\nReply SAVE RESUME | EXPORT RESUME | APPLY READY | 1 Jobs | 3 Cover Letter | 4 Explore | REFERRAL`;
+      const reply = `${fullResume}\n\nUse the resume action buttons to save/export/apply, or return through menu buttons.`;
       convo.lastOutboundMessage = reply;
       convo.lastOutboundAt = new Date();
       await convo.save();
@@ -4013,7 +4027,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
         location,
         editChars: requestedEdit.length
       });
-      const reply = `${editedDraft}\n\nReply SAVE RESUME | EXPORT RESUME | APPLY READY | 1 Jobs | 3 Cover Letter | 4 Explore | REFERRAL`;
+      const reply = `${editedDraft}\n\nUse the resume action buttons to save/export/apply, or return through menu buttons.`;
       convo.lastOutboundMessage = reply;
       convo.lastOutboundAt = new Date();
       await convo.save();
@@ -4023,7 +4037,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     if (['save resume'].includes(text)) {
       const draft = String(convo.metadata?.context?.lastFullResumeDraft || '').trim();
       if (!draft) {
-        const reply = 'No full resume draft found yet. Reply YES first to generate one.';
+        const reply = 'No full resume draft found yet. Use the Full Draft button first.';
         convo.lastOutboundMessage = reply;
         convo.lastOutboundAt = new Date();
         await convo.save();
@@ -4034,7 +4048,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
         content: draft,
         savedAt: new Date().toISOString()
       };
-      const reply = 'Saved your resume draft. Reply EXPORT RESUME to get an export-ready copy.';
+      const reply = 'Saved your resume draft. Use the action buttons to export an export-ready copy.';
       convo.lastOutboundMessage = reply;
       convo.lastOutboundAt = new Date();
       await convo.save();
@@ -4044,7 +4058,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     if (['export resume', 'export cv'].includes(text)) {
       const draft = String(convo.metadata?.context?.lastFullResumeDraft || '').trim();
       if (!draft) {
-        const reply = 'No resume draft available to export yet. Reply YES first.';
+        const reply = 'No resume draft available to export yet. Use the Full Draft button first.';
         convo.lastOutboundMessage = reply;
         convo.lastOutboundAt = new Date();
         await convo.save();
@@ -4057,7 +4071,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
         title: String(convo.metadata?.context?.lastJobTitle || user.targetJob || 'RoleRocket Resume').trim() || 'RoleRocket Resume',
         textContent: draft
       });
-      const reply = `${exportResult.ack}\n\nReply SAVE RESUME, APPLY READY, 1 Jobs, 3 Cover Letter, 4 Explore, or 0 Technical Support.`;
+      const reply = `${exportResult.ack}\n\nUse the action/menu buttons to continue.`;
       convo.lastOutboundMessage = reply;
       convo.lastOutboundAt = new Date();
       await convo.save();
@@ -4067,7 +4081,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     if (['no', 'n', 'skip'].includes(text)) {
       convo.currentStep = 'menu';
       convo.metadata.context.pendingFullResume = null;
-      const reply = 'No problem. Reply 1 Jobs, 2 Resume, 3 Cover Letter, 4 Explore, or 0 Technical Support anytime.';
+      const reply = 'No problem. Use the interactive menu buttons anytime to continue.';
       convo.lastOutboundMessage = reply;
       convo.lastOutboundAt = new Date();
       await convo.save();
@@ -4076,10 +4090,10 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   }
 
   const fallback = convo.currentStep === 'resume_followup'
-    ? 'Reply YES for your full targeted resume, EDIT + your change request, SAVE RESUME, EXPORT RESUME, or NO to skip. You can also reply 1, 2, 3, 4, 0, START, or HELP.'
+    ? 'Please use the resume action buttons (Full Draft, Save, Export, Apply Ready) or menu buttons.'
     : convo.currentStep === 'cover_letter_followup'
-      ? 'Reply SAVE COVER or EXPORT COVER. You can also reply 1, 2, 3, 4, 0, START, or HELP.'
-      : 'I did not catch that. Reply 1, 2, 3, 4, 0, START, or HELP.';
+      ? 'Please use the cover letter action buttons (Save, Export) or menu buttons.'
+      : 'I did not catch that. Please use the interactive buttons shown.';
   await trackWhatsAppTelemetry(phone, 'whatsapp_fallback_prompt', {
     step: convo.currentStep || 'menu'
   });
