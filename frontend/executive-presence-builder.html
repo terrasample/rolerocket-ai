@@ -7,9 +7,9 @@
   <link rel="stylesheet" href="styles.css" />
   <style>
     .epb-shell {
-      max-width: 1180px;
-      width: min(1180px, calc(100vw - 40px));
-      margin: 24px auto 48px;
+      max-width: none;
+      width: calc(100vw - 24px);
+      margin: 16px auto 40px;
       display: grid;
       gap: 16px;
     }
@@ -212,6 +212,10 @@
       min-height: 1.2em;
     }
     @media (max-width: 720px) {
+      .epb-shell {
+        width: calc(100vw - 12px);
+        margin: 8px auto 24px;
+      }
       .epb-camera-stats,
       .epb-scores {
         grid-template-columns: repeat(2, minmax(0, 1fr));
