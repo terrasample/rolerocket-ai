@@ -845,6 +845,13 @@
         });
         var data = await res.json();
         if (!res.ok) {
+          var msg = String(data && data.error ? data.error : '').toLowerCase();
+          if (msg.includes('already an institution account')) {
+            // Institution users do not need code redemption; unlock page-scoped gate.
+            unlockCohortAdminSession();
+            window.location.reload();
+            return;
+          }
           if (errEl) errEl.textContent = data.error || 'Invalid access code. Please try again.';
           if (btn) { btn.disabled = false; btn.textContent = 'Unlock Access'; }
           return;
