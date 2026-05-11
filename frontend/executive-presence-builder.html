@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Executive Presence Builder | RoleRocket AI</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .epb-shell {
+      max-width: 1180px;
+      width: min(1180px, calc(100vw - 40px));
+      margin: 24px auto 48px;
+      display: grid;
+      gap: 16px;
+    }
+    .epb-hero {
+      border-radius: 18px;
+      padding: 24px 20px;
+      background: linear-gradient(135deg, #102a43 0%, #1e3a8a 45%, #0f766e 100%);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      color: #e2e8f0;
+    }
+    .epb-hero h1 { margin: 0 0 8px; font-size: clamp(1.5rem, 3vw, 2.1rem); }
+    .epb-hero p { margin: 0; color: #cbd5e1; line-height: 1.55; }
+    .epb-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 14px;
+    }
+    .epb-card {
+      background: #0f172a;
+      border: 1px solid rgba(148, 163, 184, 0.24);
+      border-radius: 14px;
+      padding: 14px;
+      color: #e2e8f0;
+    }
+    .epb-card h3 {
+      margin: 0 0 8px;
+      font-size: 1.02rem;
+      color: #bfdbfe;
+    }
+    .epb-card p {
+      margin: 0 0 10px;
+      color: #94a3b8;
+      font-size: 0.9rem;
+      line-height: 1.45;
+    }
+    .epb-input,
+    .epb-select,
+    .epb-textarea {
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid #334155;
+      background: #020617;
+      color: #e2e8f0;
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      font-family: inherit;
+      font-size: 0.92rem;
+    }
+    .epb-textarea { min-height: 98px; resize: vertical; }
+    .epb-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .epb-btn {
+      border: 1px solid rgba(125, 211, 252, 0.4);
+      background: linear-gradient(135deg, #0ea5e9, #6366f1);
+      color: #f8fafc;
+      border-radius: 9px;
+      padding: 8px 12px;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 0.86rem;
+    }
+    .epb-btn.secondary {
+      background: rgba(30, 41, 59, 0.8);
+      border-color: rgba(148, 163, 184, 0.3);
+      color: #cbd5e1;
+    }
+    .epb-output {
+      margin-top: 10px;
+      background: #111827;
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      border-radius: 10px;
+      padding: 10px;
+      color: #dbeafe;
+      font-size: 0.88rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      min-height: 42px;
+    }
+    .epb-scores {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(100px, 1fr));
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .epb-score-pill {
+      background: #111827;
+      border: 1px solid rgba(52, 211, 153, 0.28);
+      border-radius: 10px;
+      padding: 10px;
+      text-align: center;
+    }
+    .epb-score-pill strong { display: block; color: #4ade80; font-size: 1.15rem; }
+    .epb-score-pill span { color: #94a3b8; font-size: 0.76rem; }
+    .epb-phase-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 10px;
+    }
+    .epb-phase {
+      border-radius: 12px;
+      padding: 12px;
+      border: 1px solid rgba(148, 163, 184, 0.24);
+      background: rgba(15, 23, 42, 0.85);
+    }
+    .epb-phase h4 { margin: 0 0 6px; color: #f8fafc; font-size: 0.94rem; }
+    .epb-phase ul { margin: 0; padding-left: 18px; color: #cbd5e1; }
+    .epb-lock {
+      color: #fbbf24;
+      font-size: 0.78rem;
+      margin-top: 6px;
+      display: none;
+    }
+    .epb-visible { display: block; }
+  </style>
+</head>
+<body>
+  <div class="hero">
+    <button onclick="window.history.back()" class="back-arrow-btn" aria-label="Go back" style="margin:12px 0 0 12px;background:none;border:none;cursor:pointer;font-size:1.6em;color:#2563eb;"><span aria-hidden="true">&#8592;</span> Back</button>
+    <h1>Executive Presence Builder</h1>
+    <p>Transform qualified candidates into confident professionals who communicate at a leadership level.</p>
+  </div>
+
+  <main class="epb-shell" id="epbMain">
+    <section class="epb-hero">
+      <h1>Executive Presence Builder</h1>
+      <p>
+        Executive Presence Builder helps users communicate more clearly, confidently, and professionally in high-stakes environments like interviews, leadership conversations, and presentations.
+      </p>
+    </section>
+
+    <section class="epb-card">
+      <h3>Executive Presence Score</h3>
+      <p>Tracks communication improvement, confidence growth, and leadership readiness over time.</p>
+      <div class="epb-scores" id="epbScoreGrid">
+        <div class="epb-score-pill"><strong id="scoreClarity">0</strong><span>Clarity</span></div>
+        <div class="epb-score-pill"><strong id="scoreConfidence">0</strong><span>Confidence</span></div>
+        <div class="epb-score-pill"><strong id="scorePresence">0</strong><span>Presence</span></div>
+        <div class="epb-score-pill"><strong id="scoreOverall">0</strong><span>Overall</span></div>
+      </div>
+      <div class="epb-output" id="epbScoreHistory">No score history yet.</div>
+    </section>
+
+    <section class="epb-grid">
+      <article class="epb-card">
+        <h3>1. Speaking Analysis</h3>
+        <p>Upload audio/video or paste transcript. AI analyzes filler words, confidence, pacing, clarity, structure, and executive tone.</p>
+        <input id="speakingContext" class="epb-input" placeholder="Context (interview, board update, promotion review)" />
+        <textarea id="speakingTranscript" class="epb-textarea" placeholder="Paste spoken answer transcript here..."></textarea>
+        <input id="speakingMedia" class="epb-input" type="file" accept="audio/*,video/*" />
+        <div class="epb-actions">
+          <button id="analyzeSpeakingBtn" class="epb-btn">Analyze Speaking</button>
+        </div>
+        <div id="speakingOutput" class="epb-output"></div>
+      </article>
+
+      <article class="epb-card">
+        <h3>2. Executive Answer Rewriter</h3>
+        <p>Transforms answers into concise, strategic, leadership-oriented responses.</p>
+        <input id="rewriteRole" class="epb-input" placeholder="Target role (e.g. Senior Manager)" />
+        <textarea id="rewriteAnswer" class="epb-textarea" placeholder="Enter your original answer..."></textarea>
+        <div class="epb-actions">
+          <button id="rewriteAnswerBtn" class="epb-btn">Rewrite for Executive Presence</button>
+        </div>
+        <div id="rewriteOutput" class="epb-output"></div>
+      </article>
+
+      <article class="epb-card">
+        <h3>3. Executive Communication Training</h3>
+        <p>Practice leadership language, stakeholder updates, board-style communication, and difficult conversations.</p>
+        <select id="trainingScenario" class="epb-select">
+          <option value="">Select scenario</option>
+          <option value="Delivering bad news">Delivering bad news</option>
+          <option value="Conflict resolution">Conflict resolution</option>
+          <option value="Executive updates">Executive updates</option>
+          <option value="Leading meetings">Leading meetings</option>
+          <option value="Presenting ideas">Presenting ideas</option>
+        </select>
+        <textarea id="trainingDetails" class="epb-textarea" placeholder="Scenario details..."></textarea>
+        <div class="epb-actions">
+          <button id="trainingBtn" class="epb-btn">Generate Training</button>
+        </div>
+        <div id="trainingOutput" class="epb-output"></div>
+      </article>
+
+      <article class="epb-card">
+        <h3>4. Camera + Body Language Feedback</h3>
+        <p>Phase 2 module. Capture and score eye contact, posture, confidence, and nervous movements.</p>
+        <textarea id="cameraNotes" class="epb-textarea" placeholder="Describe what you noticed from your recording: eye contact, posture, gestures..."></textarea>
+        <div class="epb-actions">
+          <button id="cameraCoachBtn" class="epb-btn secondary">Generate Body-Language Coaching</button>
+        </div>
+        <div class="epb-lock epb-visible">Phase 2 vision: direct camera analytics can be enabled with media landmark models.</div>
+        <div id="cameraOutput" class="epb-output"></div>
+      </article>
+
+      <article class="epb-card">
+        <h3>5. Mock Executive Interviews</h3>
+        <p>Generates leadership, strategic, and behavioral questions, then scores confidence, executive presence, clarity, and influence.</p>
+        <input id="mockRole" class="epb-input" placeholder="Role (e.g. Director of Operations)" />
+        <textarea id="mockContext" class="epb-textarea" placeholder="Interview context and focus areas..."></textarea>
+        <div class="epb-actions">
+          <button id="mockGenerateBtn" class="epb-btn">Generate Questions</button>
+        </div>
+        <textarea id="mockAnswer" class="epb-textarea" placeholder="Paste one answer to score..."></textarea>
+        <div class="epb-actions">
+          <button id="mockScoreBtn" class="epb-btn">Score This Answer</button>
+        </div>
+        <div id="mockOutput" class="epb-output"></div>
+      </article>
+
+      <article class="epb-card">
+        <h3>6. Thinking Structure Training</h3>
+        <p>Trains STAR method, executive summaries, concise communication, and structured problem-solving.</p>
+        <select id="structureFramework" class="epb-select">
+          <option value="STAR">STAR</option>
+          <option value="Executive Summary">Executive Summary</option>
+          <option value="Concise Communication">Concise Communication</option>
+          <option value="Structured Problem Solving">Structured Problem Solving</option>
+        </select>
+        <textarea id="structurePrompt" class="epb-textarea" placeholder="Problem, situation, or prompt..."></textarea>
+        <div class="epb-actions">
+          <button id="structureBtn" class="epb-btn">Build Structured Response</button>
+        </div>
+        <div id="structureOutput" class="epb-output"></div>
+      </article>
+
+      <article class="epb-card">
+        <h3>7. Executive Writing Assistant</h3>
+        <p>Upgrades emails, LinkedIn posts, leadership messaging, follow-ups, and presentation language.</p>
+        <select id="writingType" class="epb-select">
+          <option value="executive email">Executive email</option>
+          <option value="stakeholder update">Stakeholder update</option>
+          <option value="linkedin post">LinkedIn post</option>
+          <option value="follow-up">Follow-up</option>
+          <option value="presentation note">Presentation note</option>
+        </select>
+        <textarea id="writingInput" class="epb-textarea" placeholder="Paste your draft..."></textarea>
+        <div class="epb-actions">
+          <button id="writingBtn" class="epb-btn">Upgrade Writing</button>
+        </div>
+        <div id="writingOutput" class="epb-output"></div>
+      </article>
+
+      <article class="epb-card">
+        <h3>8. Public Positioning</h3>
+        <p>Use this in product messaging:</p>
+        <div class="epb-output">Executive Presence Builder helps transform qualified candidates into confident professionals who can communicate at a leadership level.</div>
+      </article>
+    </section>
+
+    <section class="epb-card">
+      <h3>Recommended Rollout</h3>
+      <div class="epb-phase-row">
+        <div class="epb-phase">
+          <h4>Phase 1</h4>
+          <ul>
+            <li>Executive answer rewrites</li>
+            <li>Communication feedback</li>
+          </ul>
+        </div>
+        <div class="epb-phase">
+          <h4>Phase 2</h4>
+          <ul>
+            <li>Voice and video analysis</li>
+            <li>Body-language analytics</li>
+          </ul>
+        </div>
+        <div class="epb-phase">
+          <h4>Phase 3</h4>
+          <ul>
+            <li>Full executive simulation engine</li>
+            <li>Leadership readiness benchmarking</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/api-base.js"></script>
+  <script src="js/auth-storage.js"></script>
+  <script src="js/executive-presence-builder.js"></script>
+  <script src="js/return-navigation.js"></script>
+</body>
+</html>

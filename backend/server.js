@@ -9142,6 +9142,331 @@ app.post('/api/interview-prep', authenticateToken, async (req, res) => {
   }
 });
 
+app.post('/api/executive-presence/speaking-analysis', authenticateToken, upload.single('media'), async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId).select('plan email isAdmin').lean();
+    if (!hasRequiredPlan(user, 'premium')) {
+      return res.status(403).json({ error: 'Upgrade to Premium to use Executive Presence Builder.' });
+    }
+
+    const transcriptInput = String(req.body?.transcript || '').trim();
+    const context = String(req.body?.context || '').trim().slice(0, 1200);
+    let transcript = transcriptInput;
+
+    if (!transcript && req.file?.buffer?.length) {
+      try {
+        const mimeType = String(req.file.mimetype || 'audio/webm');
+        const extension = path.extname(req.file.originalname || '') || '.webm';
+        const audioFile = new File([req.file.buffer], `executive-presence${extension}`, { type: mimeType });
+        const t = await openai.audio.transcriptions.create({
+          file: audioFile,
+          model: 'gpt-4o-mini-transcribe',
+          prompt: 'Transcribe this executive communication practice sample. Return plain text only.'
+        });
+        transcript = String(t?.text || '').trim();
+      } catch {
+        // Leave transcript empty and return a user-facing validation message below.
+      }
+    }
+
+    if (!transcript) {
+      return res.status(400).json({ error: 'Provide a transcript or upload an audio/video sample.' });
+    }
+
+    if (E2E_MOCK_MODE) {
+      return res.json({
+        analysis: {
+          executiveTone: 74,
+          clarity: 79,
+          confidence: 72,
+          pacing: 77,
+          structure: 70,
+          fillerWordDensity: 'medium',
+          summary: 'Your answer is technically solid, but executive framing needs to be tighter and more concise.',
+          strengths: ['Clear ownership language', 'Good logical sequencing', 'Relevant outcome references'],
+          improvements: ['Open with strategic headline', 'Reduce filler words and over-qualifiers', 'Close with measurable impact'],
+          coachingScript: 'Lead with outcome first, then actions, then one metric. Keep each response under 90 seconds.'
+        },
+        transcript
+      });
+    }
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      temperature: 0.35,
+      response_format: { type: 'json_object' },
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an executive communication coach. Analyze speaking samples for leadership readiness. Return strict JSON with keys: executiveTone (0-100), clarity (0-100), confidence (0-100), pacing (0-100), structure (0-100), fillerWordDensity (low|medium|high), summary, strengths (array), improvements (array), coachingScript.'
+        },
+        {
+          role: 'user',
+          content: `Context: ${context || 'General executive interview practice'}\n\nTranscript:\n${transcript.slice(0, 6000)}`
+        }
+      ]
+    });
+
+    const parsed = JSON.parse(String(completion.choices?.[0]?.message?.content || '{}'));
+    return res.json({
+      analysis: {
+        executiveTone: Number(parsed.executiveTone || 0),
+        clarity: Number(parsed.clarity || 0),
+        confidence: Number(parsed.confidence || 0),
+        pacing: Number(parsed.pacing || 0),
+        structure: Number(parsed.structure || 0),
+        fillerWordDensity: String(parsed.fillerWordDensity || 'medium'),
+        summary: String(parsed.summary || '').trim(),
+        strengths: Array.isArray(parsed.strengths) ? parsed.strengths.slice(0, 5) : [],
+        improvements: Array.isArray(parsed.improvements) ? parsed.improvements.slice(0, 5) : [],
+        coachingScript: String(parsed.coachingScript || '').trim()
+      },
+      transcript
+    });
+  } catch (err) {
+    console.error('Executive presence speaking analysis error:', err);
+    return res.status(500).json({ error: 'Failed to analyze speaking sample.' });
+  }
+});
+
+app.post('/api/executive-presence/answer-rewrite', authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId).select('plan email isAdmin').lean();
+    if (!hasRequiredPlan(user, 'premium')) {
+      return res.status(403).json({ error: 'Upgrade to Premium to use Executive Presence Builder.' });
+    }
+
+    const answer = String(req.body?.answer || '').trim();
+    const targetRole = String(req.body?.targetRole || '').trim();
+    if (!answer) return res.status(400).json({ error: 'Answer text is required.' });
+
+    if (E2E_MOCK_MODE) {
+      return res.json({
+        rewritten: 'I led cross-functional coordination across product, operations, and support to deliver the project ahead of timeline while protecting quality standards and stakeholder alignment.',
+        rationale: ['Starts with ownership', 'Adds strategic coordination language', 'Shows measurable leadership impact'],
+        executiveFraming: 'Leadership + cross-functional execution + business outcome.'
+      });
+    }
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      temperature: 0.35,
+      response_format: { type: 'json_object' },
+      messages: [
+        {
+          role: 'system',
+          content: 'Rewrite answers to sound executive: concise, strategic, leadership-oriented, and measurable. Return JSON with keys rewritten, rationale (array of 2-4 bullets), executiveFraming.'
+        },
+        {
+          role: 'user',
+          content: `Target role: ${targetRole || 'Leadership-track role'}\n\nOriginal answer:\n${answer.slice(0, 4000)}`
+        }
+      ]
+    });
+
+    const parsed = JSON.parse(String(completion.choices?.[0]?.message?.content || '{}'));
+    return res.json({
+      rewritten: String(parsed.rewritten || '').trim(),
+      rationale: Array.isArray(parsed.rationale) ? parsed.rationale.slice(0, 5) : [],
+      executiveFraming: String(parsed.executiveFraming || '').trim()
+    });
+  } catch (err) {
+    console.error('Executive presence answer rewrite error:', err);
+    return res.status(500).json({ error: 'Failed to rewrite executive answer.' });
+  }
+});
+
+app.post('/api/executive-presence/training', authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId).select('plan email isAdmin').lean();
+    if (!hasRequiredPlan(user, 'premium')) {
+      return res.status(403).json({ error: 'Upgrade to Premium to use Executive Presence Builder.' });
+    }
+
+    const scenario = String(req.body?.scenario || '').trim();
+    const details = String(req.body?.details || '').trim();
+    if (!scenario) return res.status(400).json({ error: 'Scenario is required.' });
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      temperature: 0.35,
+      response_format: { type: 'json_object' },
+      messages: [
+        {
+          role: 'system',
+          content: 'Provide executive communication training. Return JSON with keys leadershipLanguage (array), stakeholderUpdateTemplate, boardStyleVersion, doNotSay (array), highImpactPhrases (array), practicePrompt.'
+        },
+        {
+          role: 'user',
+          content: `Scenario: ${scenario}\nDetails: ${details || 'N/A'}`
+        }
+      ]
+    });
+
+    const parsed = JSON.parse(String(completion.choices?.[0]?.message?.content || '{}'));
+    return res.json({
+      leadershipLanguage: Array.isArray(parsed.leadershipLanguage) ? parsed.leadershipLanguage.slice(0, 7) : [],
+      stakeholderUpdateTemplate: String(parsed.stakeholderUpdateTemplate || '').trim(),
+      boardStyleVersion: String(parsed.boardStyleVersion || '').trim(),
+      doNotSay: Array.isArray(parsed.doNotSay) ? parsed.doNotSay.slice(0, 6) : [],
+      highImpactPhrases: Array.isArray(parsed.highImpactPhrases) ? parsed.highImpactPhrases.slice(0, 8) : [],
+      practicePrompt: String(parsed.practicePrompt || '').trim()
+    });
+  } catch (err) {
+    console.error('Executive presence training error:', err);
+    return res.status(500).json({ error: 'Failed to generate training module.' });
+  }
+});
+
+app.post('/api/executive-presence/mock-interview', authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId).select('plan email isAdmin').lean();
+    if (!hasRequiredPlan(user, 'premium')) {
+      return res.status(403).json({ error: 'Upgrade to Premium to use Executive Presence Builder.' });
+    }
+
+    const role = String(req.body?.role || '').trim() || 'Manager';
+    const context = String(req.body?.context || '').trim();
+    const answer = String(req.body?.answer || '').trim();
+
+    if (!answer) {
+      const q = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        temperature: 0.45,
+        response_format: { type: 'json_object' },
+        messages: [
+          {
+            role: 'system',
+            content: 'Generate executive-level mock interview prompts. Return JSON with keys leadershipQuestions (array), strategicQuestions (array), behavioralQuestions (array).' 
+          },
+          {
+            role: 'user',
+            content: `Role: ${role}\nContext: ${context || 'Promotion readiness and stakeholder leadership'}`
+          }
+        ]
+      });
+      const parsed = JSON.parse(String(q.choices?.[0]?.message?.content || '{}'));
+      return res.json({
+        leadershipQuestions: Array.isArray(parsed.leadershipQuestions) ? parsed.leadershipQuestions.slice(0, 4) : [],
+        strategicQuestions: Array.isArray(parsed.strategicQuestions) ? parsed.strategicQuestions.slice(0, 4) : [],
+        behavioralQuestions: Array.isArray(parsed.behavioralQuestions) ? parsed.behavioralQuestions.slice(0, 4) : []
+      });
+    }
+
+    const s = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      temperature: 0.35,
+      response_format: { type: 'json_object' },
+      messages: [
+        {
+          role: 'system',
+          content: 'Score executive interview answers. Return JSON with keys confidence (0-100), executivePresence (0-100), clarity (0-100), influence (0-100), strengths (array), improvements (array), executiveVersion.'
+        },
+        {
+          role: 'user',
+          content: `Role: ${role}\nContext: ${context || 'N/A'}\nCandidate answer:\n${answer.slice(0, 4500)}`
+        }
+      ]
+    });
+
+    const parsed = JSON.parse(String(s.choices?.[0]?.message?.content || '{}'));
+    return res.json({
+      confidence: Number(parsed.confidence || 0),
+      executivePresence: Number(parsed.executivePresence || 0),
+      clarity: Number(parsed.clarity || 0),
+      influence: Number(parsed.influence || 0),
+      strengths: Array.isArray(parsed.strengths) ? parsed.strengths.slice(0, 5) : [],
+      improvements: Array.isArray(parsed.improvements) ? parsed.improvements.slice(0, 5) : [],
+      executiveVersion: String(parsed.executiveVersion || '').trim()
+    });
+  } catch (err) {
+    console.error('Executive presence mock interview error:', err);
+    return res.status(500).json({ error: 'Failed to run mock executive interview.' });
+  }
+});
+
+app.post('/api/executive-presence/structure-coach', authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId).select('plan email isAdmin').lean();
+    if (!hasRequiredPlan(user, 'premium')) {
+      return res.status(403).json({ error: 'Upgrade to Premium to use Executive Presence Builder.' });
+    }
+
+    const framework = String(req.body?.framework || 'star').trim().toUpperCase();
+    const prompt = String(req.body?.prompt || '').trim();
+    if (!prompt) return res.status(400).json({ error: 'Prompt is required.' });
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      temperature: 0.3,
+      response_format: { type: 'json_object' },
+      messages: [
+        {
+          role: 'system',
+          content: 'Teach structured executive thinking. Return JSON keys: framework, structuredResponse, executiveSummary, conciseVersion, problemSolvingMap (array).' 
+        },
+        {
+          role: 'user',
+          content: `Framework: ${framework}\nPrompt: ${prompt.slice(0, 3500)}`
+        }
+      ]
+    });
+
+    const parsed = JSON.parse(String(completion.choices?.[0]?.message?.content || '{}'));
+    return res.json({
+      framework: String(parsed.framework || framework),
+      structuredResponse: String(parsed.structuredResponse || '').trim(),
+      executiveSummary: String(parsed.executiveSummary || '').trim(),
+      conciseVersion: String(parsed.conciseVersion || '').trim(),
+      problemSolvingMap: Array.isArray(parsed.problemSolvingMap) ? parsed.problemSolvingMap.slice(0, 8) : []
+    });
+  } catch (err) {
+    console.error('Executive presence structure coach error:', err);
+    return res.status(500).json({ error: 'Failed to generate structure coaching.' });
+  }
+});
+
+app.post('/api/executive-presence/writing-assistant', authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId).select('plan email isAdmin').lean();
+    if (!hasRequiredPlan(user, 'premium')) {
+      return res.status(403).json({ error: 'Upgrade to Premium to use Executive Presence Builder.' });
+    }
+
+    const writingType = String(req.body?.writingType || 'email').trim();
+    const text = String(req.body?.text || '').trim();
+    if (!text) return res.status(400).json({ error: 'Writing sample is required.' });
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      temperature: 0.35,
+      response_format: { type: 'json_object' },
+      messages: [
+        {
+          role: 'system',
+          content: 'Improve professional writing for executive presence. Return JSON with keys rewritten, beforeAfterSummary, leadershipSignalWords (array), toneNotes (array), subjectLine.'
+        },
+        {
+          role: 'user',
+          content: `Writing type: ${writingType}\nOriginal text:\n${text.slice(0, 5000)}`
+        }
+      ]
+    });
+
+    const parsed = JSON.parse(String(completion.choices?.[0]?.message?.content || '{}'));
+    return res.json({
+      rewritten: String(parsed.rewritten || '').trim(),
+      beforeAfterSummary: String(parsed.beforeAfterSummary || '').trim(),
+      leadershipSignalWords: Array.isArray(parsed.leadershipSignalWords) ? parsed.leadershipSignalWords.slice(0, 8) : [],
+      toneNotes: Array.isArray(parsed.toneNotes) ? parsed.toneNotes.slice(0, 6) : [],
+      subjectLine: String(parsed.subjectLine || '').trim()
+    });
+  } catch (err) {
+    console.error('Executive presence writing assistant error:', err);
+    return res.status(500).json({ error: 'Failed to improve writing sample.' });
+  }
+});
+
 /* ─── RocketApply AI Auto-Tailor ──────────────────────────────────────────── */
 app.post('/api/apply/ai-tailor', authenticateToken, async (req, res) => {
   try {
