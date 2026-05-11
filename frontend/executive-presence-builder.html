@@ -20,8 +20,34 @@
       border: 1px solid rgba(148, 163, 184, 0.25);
       color: #e2e8f0;
     }
+    .epb-hero-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
     .epb-hero h1 { margin: 0 0 8px; font-size: clamp(1.5rem, 3vw, 2.1rem); }
     .epb-hero p { margin: 0; color: #cbd5e1; line-height: 1.55; }
+    .epb-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      padding: 7px 12px;
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      border: 1px solid rgba(251, 191, 36, 0.35);
+      background: rgba(251, 191, 36, 0.14);
+      color: #fde68a;
+    }
+    .epb-badge.locked {
+      border-color: rgba(248, 113, 113, 0.35);
+      background: rgba(127, 29, 29, 0.26);
+      color: #fecaca;
+    }
     .epb-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -123,6 +149,74 @@
       display: none;
     }
     .epb-visible { display: block; }
+    .epb-gate {
+      display: none;
+      border-radius: 12px;
+      border: 1px solid rgba(248, 113, 113, 0.32);
+      background: rgba(127, 29, 29, 0.2);
+      color: #fecaca;
+      padding: 12px 14px;
+      margin-top: 10px;
+      font-size: 0.88rem;
+      line-height: 1.5;
+    }
+    .epb-gate.visible { display: block; }
+    .epb-camera-stage {
+      display: grid;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .epb-camera-wrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 10;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      background: #020617;
+    }
+    .epb-camera-video,
+    .epb-camera-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .epb-camera-canvas { pointer-events: none; }
+    .epb-camera-stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .epb-camera-stat {
+      background: #111827;
+      border: 1px solid rgba(56, 189, 248, 0.22);
+      border-radius: 10px;
+      padding: 10px;
+      text-align: center;
+    }
+    .epb-camera-stat strong {
+      display: block;
+      color: #67e8f9;
+      font-size: 1.08rem;
+      margin-bottom: 4px;
+    }
+    .epb-camera-stat span {
+      color: #94a3b8;
+      font-size: 0.73rem;
+    }
+    .epb-camera-status {
+      color: #cbd5e1;
+      font-size: 0.82rem;
+      min-height: 1.2em;
+    }
+    @media (max-width: 720px) {
+      .epb-camera-stats,
+      .epb-scores {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
   </style>
 </head>
 <body>
@@ -134,10 +228,14 @@
 
   <main class="epb-shell" id="epbMain">
     <section class="epb-hero">
-      <h1>Executive Presence Builder</h1>
+      <div class="epb-hero-top">
+        <h1>Executive Presence Builder</h1>
+        <div class="epb-badge" id="epbPlanBadge">Premium Feature</div>
+      </div>
       <p>
         Executive Presence Builder helps users communicate more clearly, confidently, and professionally in high-stakes environments like interviews, leadership conversations, and presentations.
       </p>
+      <div class="epb-gate" id="epbPlanGate">Upgrade to Premium to unlock Executive Presence Builder, including deep camera landmark analytics and executive communication scoring.</div>
     </section>
 
     <section class="epb-card">
@@ -196,12 +294,26 @@
 
       <article class="epb-card">
         <h3>4. Camera + Body Language Feedback</h3>
-        <p>Phase 2 module. Capture and score eye contact, posture, confidence, and nervous movements.</p>
-        <textarea id="cameraNotes" class="epb-textarea" placeholder="Describe what you noticed from your recording: eye contact, posture, gestures..."></textarea>
+        <p>Capture and score eye contact, posture, confidence, head stability, and nervous movements using face and pose landmarks.</p>
+        <div class="epb-camera-stage">
+          <div class="epb-camera-wrap">
+            <video id="cameraVideo" class="epb-camera-video" autoplay playsinline muted></video>
+            <canvas id="cameraCanvas" class="epb-camera-canvas"></canvas>
+          </div>
+          <div class="epb-camera-stats">
+            <div class="epb-camera-stat"><strong id="cameraEyeContact">0%</strong><span>Eye Contact</span></div>
+            <div class="epb-camera-stat"><strong id="cameraPosture">0%</strong><span>Posture</span></div>
+            <div class="epb-camera-stat"><strong id="cameraStability">0%</strong><span>Stability</span></div>
+            <div class="epb-camera-stat"><strong id="cameraConfidence">0%</strong><span>Confidence</span></div>
+          </div>
+          <div class="epb-camera-status" id="cameraStatus">Camera not started.</div>
+        </div>
+        <textarea id="cameraNotes" class="epb-textarea" placeholder="Optional context or notes for this speaking sample..."></textarea>
         <div class="epb-actions">
+          <button id="cameraStartBtn" class="epb-btn">Start Camera Analysis</button>
+          <button id="cameraStopBtn" class="epb-btn secondary">Stop</button>
           <button id="cameraCoachBtn" class="epb-btn secondary">Generate Body-Language Coaching</button>
         </div>
-        <div class="epb-lock epb-visible">Phase 2 vision: direct camera analytics can be enabled with media landmark models.</div>
         <div id="cameraOutput" class="epb-output"></div>
       </article>
 
@@ -290,6 +402,10 @@
 
   <script src="js/api-base.js"></script>
   <script src="js/auth-storage.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js"></script>
   <script src="js/executive-presence-builder.js"></script>
   <script src="js/return-navigation.js"></script>
 </body>
