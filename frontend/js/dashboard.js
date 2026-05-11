@@ -93,6 +93,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         tier: 'premium',
         features: [
           { name: 'Interview Prep', desc: 'Generate realistic interview prompts and stronger response frameworks quickly.', url: 'interview-prep-ai.html' },
+          { name: 'Executive Presence Builder', desc: 'Build executive-level communication, camera presence, and body-language control with AI coaching and live landmark analytics.', url: 'executive-presence-builder.html' },
           { name: '1-Click Apply Queue', desc: 'AI tailors your resume, writes your cover letter, and launches your application in one shot.', url: 'one-click-apply-queue.html' },
           { name: 'AI Portfolio Builder', desc: 'Build a professional portfolio with AI-generated content and design suggestions.', url: 'ai-portfolio-builder.html' },
           { name: 'Networking AI', desc: 'Get AI-powered networking tips and introductions to relevant professionals.', url: 'networking-ai.html' },
