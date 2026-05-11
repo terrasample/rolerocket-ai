@@ -1730,6 +1730,7 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
   const languageContentSid = String(process.env.TWILIO_WHATSAPP_LANGUAGE_CONTENT_SID || '').trim();
   const menuContentSid = String(process.env.TWILIO_WHATSAPP_MENU_CONTENT_SID || '').trim();
   const resumeActionsContentSid = String(process.env.TWILIO_WHATSAPP_RESUME_ACTIONS_CONTENT_SID || '').trim();
+  const resumeInputChoiceContentSid = String(process.env.TWILIO_WHATSAPP_RESUME_INPUT_CHOICE_CONTENT_SID || '').trim();
   const coverActionsContentSid = String(process.env.TWILIO_WHATSAPP_COVER_ACTIONS_CONTENT_SID || '').trim();
   const tailorsContentSid = String(process.env.TWILIO_WHATSAPP_TAILOR_CHOICES_CONTENT_SID || '').trim();
   const jobsMenuContentSid = String(process.env.TWILIO_WHATSAPP_JOBS_MENU_CONTENT_SID || '').trim();
@@ -1787,6 +1788,11 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
     }
   }
 
+
+  if (step === 'resume_input_choice' && resumeInputChoiceContentSid) {
+    const result = await sendWhatsAppContentTemplate({ to: from, contentSid: resumeInputChoiceContentSid });
+    return result?.success ? 'suppress' : false;
+  }
 
   // Input-capture steps: append a 'Main Menu' back button so users can exit without typing
   if (['jobs_query', 'resume_capture', 'cover_letter_capture', 'interview_target'].includes(step) && backMenuContentSid) {
@@ -2663,10 +2669,56 @@ async function sendWhatsAppDocumentExports({ phone, featureLabel, title, textCon
   }
 }
 
-async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '', inboundAudioMedia = null) {
+async function extractWhatsAppInboundDocument(payload = {}) {
+  const mediaCount = Math.max(0, Number(payload?.NumMedia || 0));
+  for (let i = 0; i < mediaCount; i += 1) {
+    const mediaUrl = String(payload[`MediaUrl${i}`] || '').trim();
+    const contentType = String(payload[`MediaContentType${i}`] || '').trim().toLowerCase();
+    if (!mediaUrl) continue;
+    const isDoc = contentType.includes('pdf') ||
+      contentType.includes('msword') ||
+      contentType.includes('wordprocessingml') ||
+      contentType.includes('document') ||
+      contentType.includes('octet-stream');
+    if (isDoc) return { mediaUrl, contentType };
+  }
+  return null;
+}
+
+async function fetchAndExtractDocumentText(media) {
+  if (!media?.mediaUrl) return null;
+  try {
+    const axios = require('axios');
+    const twilioSid = String(process.env.TWILIO_ACCOUNT_SID || '').trim();
+    const twilioToken = String(process.env.TWILIO_AUTH_TOKEN || '').trim();
+    const response = await axios.get(media.mediaUrl, {
+      responseType: 'arraybuffer',
+      ...(twilioSid && twilioToken ? { auth: { username: twilioSid, password: twilioToken } } : {}),
+      timeout: 20000
+    });
+    const buf = Buffer.from(response.data);
+    const ct = String(media.contentType || '').toLowerCase();
+    if (ct.includes('pdf')) {
+      let text = await extractTextFromPDF(buf);
+      if (!text || text.trim().length < 50) text = await extractTextFromPDFWithOCR(buf.buffer);
+      return text && text.trim().length > 10 ? text.trim() : null;
+    }
+    if (ct.includes('msword') || ct.includes('wordprocessingml') || ct.includes('document')) {
+      const text = await extractTextFromDocx(buf);
+      return text && text.trim().length > 10 ? text.trim() : null;
+    }
+    return null;
+  } catch (err) {
+    console.error('WhatsApp document extract error:', err.message);
+    return null;
+  }
+}
+
+async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '', inboundAudioMedia = null, inboundDocumentMedia = null) {
   const phone = normalizeWhatsAppPhone(from);
   const incoming = normalizeIncomingWhatsAppText(body);
   const hasInboundAudio = !!inboundAudioMedia?.mediaUrl;
+  const hasInboundDocument = !!inboundDocumentMedia?.mediaUrl;
   const text = incoming.toLowerCase();
 
   if (!phone) return 'Could not identify your number. Please try again.';
@@ -2707,7 +2759,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     };
   }
 
-  convo.lastInboundMessage = incoming || (hasInboundAudio ? '[Voice note]' : '');
+  convo.lastInboundMessage = incoming || (hasInboundAudio ? '[Voice note]' : '') || (hasInboundDocument ? '[Document]' : '');
   convo.lastInboundAt = new Date();
   await trackWhatsAppTelemetry(phone, 'whatsapp_inbound_received', {
     hasInboundAudio,
@@ -3119,13 +3171,14 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   if (isResumeIntent) {
     user.lastIntent = 'resume';
     convo.lastIntent = 'resume';
-    convo.currentStep = 'resume_capture';
+    convo.currentStep = 'resume_input_choice';
+    convo.metadata.context.resumeUploadMode = null;
     await trackWhatsAppTelemetry(phone, 'whatsapp_resume_step_enter', {});
     const reply = [
-      'Step 1: Send recent work (text or voice note).',
-      'Step 2: Reply YES after rewrite to get a full targeted resume draft.',
-      'I will rewrite it into stronger bullets.',
-      'Designed to improve interview chances.'
+      'How would you like to start your resume?',
+      '',
+      '1️⃣  Upload base resume — send your existing PDF or Word file.',
+      '2️⃣  Send recent work — type or voice-note your work history and I will build it.'
     ].join('\n');
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
@@ -3503,9 +3556,112 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     return reply;
   }
 
+  if (convo.currentStep === 'resume_input_choice') {
+    const norm = text.trim();
+    const isUpload = /^(1|upload|upload base|upload resume|upload base resume|base resume|send (a )?resume|pdf|word|file)/.test(norm) || hasInboundDocument;
+    const isRecentWork = /^(2|recent|work|text|voice|send recent|recent work|type|history)/.test(norm);
+
+    if (isUpload) {
+      // If they already sent a document along with the choice, process it immediately
+      if (hasInboundDocument) {
+        const docText = await fetchAndExtractDocumentText(inboundDocumentMedia);
+        if (docText) {
+          user.resumeText = docText.slice(0, 12000);
+          convo.metadata.context.resumeUploadMode = true;
+          convo.currentStep = 'resume_followup';
+          user.lastIntent = 'resume';
+          convo.lastIntent = 'resume';
+          await trackWhatsAppTelemetry(phone, 'whatsapp_resume_upload_extracted', {});
+          const rewriteCredit = consumeWhatsAppAiCredit(phone, 'resume_rewrite');
+          if (!rewriteCredit.ok) {
+            convo.metadata.context.pendingFullResume = { source: docText.slice(0, 12000) };
+            const rlReply = `Resume rewrite limit reached. Try again in ~${rewriteCredit.retryAfterMinutes} min.`;
+            convo.lastOutboundMessage = rlReply;
+            convo.lastOutboundAt = new Date();
+            await Promise.all([user.save(), convo.save()]);
+            return rlReply;
+          }
+          const rewrite = await generateResumeRewriteForWhatsApp(docText, buildWhatsAppContextNote(user, convo));
+          convo.metadata.context.pendingFullResume = { source: docText.slice(0, 12000) };
+          const reply = [
+            '✅ Resume received and extracted.',
+            '',
+            rewrite,
+            '',
+            'Reply YES for a full tailored draft or EXPORT RESUME to get the file.'
+          ].join('\n');
+          convo.lastOutboundMessage = reply;
+          convo.lastOutboundAt = new Date();
+          await Promise.all([user.save(), convo.save()]);
+          return reply;
+        } else {
+          const reply = 'I could not read that file. Please send a clear PDF or Word (.docx) resume.';
+          convo.lastOutboundMessage = reply;
+          convo.lastOutboundAt = new Date();
+          await convo.save();
+          return reply;
+        }
+      }
+      convo.metadata.context.resumeUploadMode = true;
+      convo.currentStep = 'resume_capture';
+      const reply = 'Send your resume as a PDF or Word (.docx) file and I will extract and rewrite it for you.';
+      convo.lastOutboundMessage = reply;
+      convo.lastOutboundAt = new Date();
+      await convo.save();
+      return reply;
+    }
+
+    if (isRecentWork) {
+      convo.metadata.context.resumeUploadMode = false;
+      convo.currentStep = 'resume_capture';
+      const reply = [
+        'Send your recent work history (text or voice note).',
+        'I will rewrite it into strong resume bullets.'
+      ].join('\n');
+      convo.lastOutboundMessage = reply;
+      convo.lastOutboundAt = new Date();
+      await convo.save();
+      return reply;
+    }
+
+    // Unrecognised — re-prompt
+    const reply = [
+      'Reply 1 to upload your existing resume (PDF or Word).',
+      'Reply 2 to send your recent work history as text or a voice note.'
+    ].join('\n');
+    convo.lastOutboundMessage = reply;
+    convo.lastOutboundAt = new Date();
+    await convo.save();
+    return reply;
+  }
+
   if (convo.currentStep === 'resume_capture') {
     let resumeSource = incoming;
     let usedVoiceTranscription = false;
+    const isUploadMode = !!convo.metadata?.context?.resumeUploadMode;
+
+    // Document upload path
+    if (!resumeSource && !hasInboundAudio && hasInboundDocument) {
+      const docText = await fetchAndExtractDocumentText(inboundDocumentMedia);
+      if (docText) {
+        resumeSource = docText;
+      } else {
+        const reply = 'I could not read that file. Please send a clear PDF or Word (.docx) resume, or type your work history instead.';
+        convo.lastOutboundMessage = reply;
+        convo.lastOutboundAt = new Date();
+        await convo.save();
+        return reply;
+      }
+    }
+
+    // If upload mode and user sent text/voice instead of a file, accept it anyway
+    if (isUploadMode && !resumeSource && !hasInboundAudio && !hasInboundDocument) {
+      const reply = 'Please send your resume as a PDF or Word (.docx) file, or type your work history as text.';
+      convo.lastOutboundMessage = reply;
+      convo.lastOutboundAt = new Date();
+      await convo.save();
+      return reply;
+    }
 
     if (!resumeSource && hasInboundAudio) {
       convo.metadata.context.lastVoiceMedia = {
@@ -4430,7 +4586,8 @@ app.post('/api/whatsapp/incoming', express.urlencoded({ extended: false }), asyn
     const body = extractWhatsAppInboundText(req.body || {});
     const messageSid = String(req.body?.MessageSid || req.body?.SmsMessageSid || '').trim();
     const inboundAudioMedia = extractWhatsAppInboundAudioMedia(req.body || {});
-    const reply = await handleWhatsAppRecruitingMessage(from, body, messageSid, inboundAudioMedia);
+    const inboundDocumentMedia = extractWhatsAppInboundDocument(req.body || {});
+    const reply = await handleWhatsAppRecruitingMessage(from, body, messageSid, inboundAudioMedia, inboundDocumentMedia);
 
     // Fetch convo AFTER the handler runs so we see the updated step and context.
     const phone = normalizeWhatsAppPhone(from);
