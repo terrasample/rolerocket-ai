@@ -4824,14 +4824,88 @@ app.get('/RoleRocketWhatsAppStartLink', (req, res) => {
 
 app.get('/start', (req, res) => {
   const waLink = getConfiguredWhatsAppShareLink('START');
-  if (!waLink) {
-    return res.redirect(302, 'https://www.rolerocketai.com');
-  }
-  return res.redirect(302, waLink);
+  const escapedWaLink = String(waLink || '').replace(/"/g, '&quot;');
+  const fallbackBase = String(process.env.CLIENT_URL || 'https://www.rolerocketai.com').replace(/\/$/, '');
+  const destination = waLink || `${fallbackBase}/login.html`;
+  return res.status(200).send(`<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RoleRocket AI WhatsApp Assistant</title>
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="RoleRocket AI" />
+  <meta property="og:title" content="RoleRocket AI WhatsApp Assistant" />
+  <meta property="og:description" content="Your AI job-search assistant on WhatsApp. Import jobs, organize applications, and execute your plan faster." />
+  <meta property="og:url" content="https://www.rolerocketai.com/start" />
+  <meta property="og:image" content="https://www.rolerocketai.com/assets/rolerocket-logo-new.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="RoleRocket AI WhatsApp Assistant" />
+  <meta name="twitter:description" content="Your AI job-search assistant on WhatsApp. Import jobs, organize applications, and execute your plan faster." />
+  <meta name="twitter:image" content="https://www.rolerocketai.com/assets/rolerocket-logo-new.png" />
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{min-height:100vh;display:grid;place-items:center;font-family:'Segoe UI',sans-serif;
+      background:linear-gradient(135deg,#000000 0%,#007847 50%,#fdb714 100%);}
+    .wrap{text-align:center;padding:32px 20px;}
+    span{font-size:3.5rem;display:block;margin-bottom:16px;}
+    h1{color:#fff;font-size:clamp(1.4rem,4vw,2rem);font-weight:800;margin-bottom:10px;}
+    p{color:rgba(255,255,255,.88);font-size:1rem;}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <span>💬</span>
+    <h1>RoleRocket AI WhatsApp Assistant</h1>
+    <p>Opening WhatsApp…</p>
+  </div>
+  <script>window.location.href="${destination}";<\/script>
+</body>
+</html>`);
 });
 
 app.get('/rolerocket', (req, res) => {
-  return res.redirect(302, 'https://www.rolerocketai.com');
+  const fallbackBase = String(process.env.CLIENT_URL || 'https://www.rolerocketai.com').replace(/\/$/, '');
+  const destination = `${fallbackBase}/signup.html`;
+  return res.status(200).send(`<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RoleRocket AI | Your Career Execution System</title>
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="RoleRocket AI" />
+  <meta property="og:title" content="RoleRocket AI | Your Career Execution System" />
+  <meta property="og:description" content="AI-powered job search, resume optimizer, cover letter generator, and interview prep — all in one platform." />
+  <meta property="og:url" content="https://www.rolerocketai.com/rolerocket" />
+  <meta property="og:image" content="https://www.rolerocketai.com/assets/rolerocket-logo-new.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="RoleRocket AI | Your Career Execution System" />
+  <meta name="twitter:description" content="AI-powered job search, resume optimizer, cover letter generator, and interview prep — all in one platform." />
+  <meta name="twitter:image" content="https://www.rolerocketai.com/assets/rolerocket-logo-new.png" />
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{min-height:100vh;display:grid;place-items:center;font-family:'Segoe UI',sans-serif;
+      background:linear-gradient(135deg,#000000 0%,#007847 50%,#fdb714 100%);}
+    .wrap{text-align:center;padding:32px 20px;}
+    span{font-size:3.5rem;display:block;margin-bottom:16px;}
+    h1{color:#fff;font-size:clamp(1.4rem,4vw,2rem);font-weight:800;margin-bottom:10px;}
+    p{color:rgba(255,255,255,.88);font-size:1rem;}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <span>🚀</span>
+    <h1>RoleRocket AI</h1>
+    <p>Opening platform…</p>
+  </div>
+  <script>window.location.href="${destination}";<\/script>
+</body>
+</html>`);
 });
 
 app.get('/api/whatsapp/share-link', (_req, res) => {
