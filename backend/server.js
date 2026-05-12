@@ -122,6 +122,171 @@ app.get('/api/me', async (req, res) => {
   }
 });
 
+const SUPPORTED_EXPERIENCE_COUNTRIES = [
+  { code: 'GLOBAL', label: 'Global' },
+  { code: 'JM', label: 'Jamaica' },
+  { code: 'US', label: 'United States' },
+  { code: 'DE', label: 'Germany' },
+  { code: 'NG', label: 'Nigeria' },
+  { code: 'AW', label: 'Aruba' }
+];
+
+const EXPERIENCE_COUNTRY_CODES = new Set(SUPPORTED_EXPERIENCE_COUNTRIES.map((item) => item.code));
+
+function normalizeExperienceCountryCode(value = '') {
+  const code = String(value || '').trim().toUpperCase();
+  if (!code) return '';
+  if (code === 'ZZ') return 'GLOBAL';
+  return EXPERIENCE_COUNTRY_CODES.has(code) ? code : '';
+}
+
+function parseCookieMap(cookieHeader = '') {
+  const cookieMap = {};
+  String(cookieHeader || '').split(';').forEach((entry) => {
+    const [rawKey, ...rawValueParts] = String(entry || '').split('=');
+    const key = String(rawKey || '').trim();
+    if (!key) return;
+    const rawValue = rawValueParts.join('=');
+    try {
+      cookieMap[key] = decodeURIComponent(String(rawValue || '').trim());
+    } catch {
+      cookieMap[key] = String(rawValue || '').trim();
+    }
+  });
+  return cookieMap;
+}
+
+function detectCountryFromRequest(req) {
+  const headerCandidates = [
+    req.headers['cf-ipcountry'],
+    req.headers['x-vercel-ip-country'],
+    req.headers['cloudfront-viewer-country'],
+    req.headers['x-country-code']
+  ];
+
+  for (const candidate of headerCandidates) {
+    const normalized = normalizeExperienceCountryCode(candidate);
+    if (normalized) return normalized;
+  }
+
+  const acceptLanguage = String(req.headers['accept-language'] || '').trim();
+  if (acceptLanguage) {
+    const primary = acceptLanguage.split(',')[0] || '';
+    const localeRegionMatch = primary.match(/-([A-Za-z]{2})\b/);
+    if (localeRegionMatch) {
+      const normalized = normalizeExperienceCountryCode(localeRegionMatch[1]);
+      if (normalized) return normalized;
+    }
+  }
+
+  return 'GLOBAL';
+}
+
+function setExperienceCountryCookie(res, countryCode = '') {
+  const normalized = normalizeExperienceCountryCode(countryCode) || 'GLOBAL';
+  const maxAgeSeconds = 60 * 60 * 24 * 365; // 1 year
+  res.setHeader('Set-Cookie', `rr_exp_country=${encodeURIComponent(normalized)}; Path=/; Max-Age=${maxAgeSeconds}; SameSite=Lax`);
+}
+
+async function resolveOptionalUserFromBearer(req) {
+  const authHeader = String(req.headers.authorization || '').trim();
+  if (!authHeader) return null;
+
+  const bearer = authHeader.toLowerCase().startsWith('bearer ')
+    ? authHeader.slice(7).trim()
+    : authHeader;
+  if (!bearer || !process.env.JWT_SECRET) return null;
+
+  try {
+    const decoded = jwt.verify(bearer, process.env.JWT_SECRET);
+    const userId = decoded.userId || decoded.id || decoded._id || decoded.sub || null;
+    if (!userId) return null;
+    return await User.findById(userId).select('_id experienceCountry experienceCountrySource experienceCountryUpdatedAt').lean();
+  } catch {
+    return null;
+  }
+}
+
+function buildExperienceContext({ req, user = null }) {
+  const cookieMap = parseCookieMap(req.headers.cookie || '');
+  const cookieCountry = normalizeExperienceCountryCode(cookieMap.rr_exp_country || '');
+  const userCountry = normalizeExperienceCountryCode(user?.experienceCountry || '');
+  const detectedCountry = detectCountryFromRequest(req);
+
+  const selectedCountry = userCountry || cookieCountry || '';
+  const effectiveCountry = selectedCountry || detectedCountry || 'GLOBAL';
+
+  return {
+    detectedCountry,
+    selectedCountry,
+    effectiveCountry,
+    source: userCountry ? 'user' : cookieCountry ? 'cookie' : 'geo',
+    requiresChoice: !selectedCountry,
+    showJamaicaHub: effectiveCountry === 'JM',
+    experienceVariant: effectiveCountry === 'JM' ? 'jamaica' : 'global',
+    supportedCountries: SUPPORTED_EXPERIENCE_COUNTRIES
+  };
+}
+
+app.get('/api/experience/context', async (req, res) => {
+  try {
+    const user = await resolveOptionalUserFromBearer(req);
+    const context = buildExperienceContext({ req, user });
+
+    // Write a lightweight cookie so anonymous users get stable behavior too.
+    setExperienceCountryCookie(res, context.effectiveCountry);
+
+    return res.json(context);
+  } catch (error) {
+    console.error('Experience context error:', error);
+    return res.status(500).json({ error: 'Failed to load experience context' });
+  }
+});
+
+app.post('/api/experience/preference', async (req, res) => {
+  try {
+    const requested = normalizeExperienceCountryCode(req.body?.countryCode || '');
+    if (!requested) {
+      return res.status(400).json({ error: 'A valid countryCode is required.' });
+    }
+
+    const authHeader = String(req.headers.authorization || '').trim();
+    if (authHeader && process.env.JWT_SECRET) {
+      const bearer = authHeader.toLowerCase().startsWith('bearer ')
+        ? authHeader.slice(7).trim()
+        : authHeader;
+      try {
+        const decoded = jwt.verify(bearer, process.env.JWT_SECRET);
+        const userId = decoded.userId || decoded.id || decoded._id || decoded.sub || null;
+        if (userId) {
+          await User.findByIdAndUpdate(userId, {
+            $set: {
+              experienceCountry: requested,
+              experienceCountrySource: 'user',
+              experienceCountryUpdatedAt: new Date()
+            }
+          });
+        }
+      } catch {
+        // For anonymous/expired sessions we still persist to cookie.
+      }
+    }
+
+    setExperienceCountryCookie(res, requested);
+
+    return res.json({
+      ok: true,
+      selectedCountry: requested,
+      effectiveCountry: requested,
+      showJamaicaHub: requested === 'JM',
+      experienceVariant: requested === 'JM' ? 'jamaica' : 'global'
+    });
+  } catch (error) {
+    console.error('Experience preference save error:', error);
+    return res.status(500).json({ error: 'Failed to save country preference' });
+  }
+});
+
 
 
 // ...existing code...
@@ -5145,6 +5310,21 @@ app.get('/api/whatsapp/share-link', (_req, res) => {
     return res.status(404).json({ error: 'WhatsApp sender number is not configured.' });
   }
   return res.json({ link: waLink });
+});
+
+app.get('/jamaica-workforce-accelerator.html', async (req, res) => {
+  try {
+    const user = await resolveOptionalUserFromBearer(req);
+    const context = buildExperienceContext({ req, user });
+    if (!context.showJamaicaHub) {
+      return res.redirect(302, '/dashboard.html?experience=global');
+    }
+  } catch (error) {
+    console.error('Jamaica hub gate error:', error);
+    return res.redirect(302, '/dashboard.html?experience=global');
+  }
+
+  return res.sendFile(path.join(__dirname, '../frontend/jamaica-workforce-accelerator.html'));
 });
 
 app.use(express.static(path.join(__dirname, '../frontend'), {

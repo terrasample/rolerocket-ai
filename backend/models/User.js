@@ -141,7 +141,20 @@ const UserSchema = new mongoose.Schema(
       skills:      { type: [String], default: [] },
       linkedIn:    { type: String, default: '', trim: true },
       updatedAt:   { type: Date, default: null }
-    }
+    },
+
+    experienceCountry: {
+      type: String,
+      default: '',
+      uppercase: true,
+      trim: true
+    },
+    experienceCountrySource: {
+      type: String,
+      enum: ['user', 'geo', 'system'],
+      default: 'system'
+    },
+    experienceCountryUpdatedAt: { type: Date, default: null }
   },
   { timestamps: true }
 );
