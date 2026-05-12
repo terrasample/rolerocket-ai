@@ -3431,13 +3431,12 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     convo.currentStep = 'resume_input_choice';
     convo.metadata.context.resumeUploadMode = null;
     await trackWhatsAppTelemetry(phone, 'whatsapp_resume_step_enter', {});
+    const resumeUrl = `${getPublicAppBaseUrl()}/resume-generator.html?source=whatsapp`;
     const reply = [
-      'How would you like to start your resume?',
-      '',
-      'Upload base resume — send your existing PDF or Word file.',
-      'Send recent work — type or voice-note your work history and I will build it.',
-      '',
-      'Choose an option using the buttons above.'
+      'Resume Generator is ready.',
+      `Open: ${resumeUrl}`,
+      'Use the web form to generate and export your resume quickly.',
+      'Or continue here: reply UPLOAD to send a resume file, or TYPE to send your work history.'
     ].join('\n');
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
@@ -3449,18 +3448,13 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     user.lastIntent = 'cover_letter';
     convo.lastIntent = 'cover_letter';
     convo.currentStep = 'cover_letter_capture';
-    const language = String(convo.metadata?.context?.language || 'english');
-    const reply = language === 'spanish'
-      ? [
-          'Paso 1: Envia puesto + empresa.',
-          'Ejemplo: Customer Service Rep at GraceKennedy',
-          'Paso 2: Te creo una carta y puedes responder SAVE COVER o EXPORT COVER.'
-        ].join('\n')
-      : [
-          'Step 1: Send role + company.',
-          'Example: Customer Service Rep at GraceKennedy',
-          'Step 2: I will draft your cover letter. Then reply SAVE COVER or EXPORT COVER.'
-        ].join('\n');
+    const coverLetterUrl = `${getPublicAppBaseUrl()}/cover-letter-generator.html?source=whatsapp`;
+    const reply = [
+      'Cover Letter Generator is ready.',
+      `Open: ${coverLetterUrl}`,
+      'Use the web form to generate and export your cover letter quickly.',
+      'Or continue here by sending role + company (example: Customer Service Rep at GraceKennedy).'
+    ].join('\n');
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
     await Promise.all([user.save(), convo.save()]);
