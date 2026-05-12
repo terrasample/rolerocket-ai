@@ -2756,6 +2756,67 @@ function parseJobQueryInput(text = '') {
   return { title: input, location: 'Jamaica' };
 }
 
+function normalizeWhatsAppExperienceCountry(input = '') {
+  const raw = normalizeIncomingWhatsAppText(input);
+  if (!raw) return '';
+
+  const cleaned = raw.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  if (!cleaned) return '';
+  if (/\b(global|worldwide|anywhere|remote)\b/.test(cleaned)) return 'GLOBAL';
+  if (/\b(jamaica|jm)\b/.test(cleaned)) return 'JM';
+  if (/\b(us|usa|u s|united states)\b/.test(cleaned)) return 'US';
+  return '';
+}
+
+function extractWhatsAppExperienceCountry(text = '') {
+  const input = normalizeIncomingWhatsAppText(text);
+  if (!input) return '';
+
+  const match = input.match(/^(?:start|join|hi|hello|menu)(?:\s+(.*))?$/i);
+  if (!match) return '';
+
+  const tail = String(match[1] || '').trim();
+  if (!tail) return '';
+
+  const tagged = tail.match(/(?:country|region|experience)\s*[:=]?\s*(.+)$/i);
+  return normalizeWhatsAppExperienceCountry((tagged && tagged[1]) || tail);
+}
+
+function resolveWhatsAppExperienceCountry({ user = null, convo = null, incomingText = '' } = {}) {
+  const incomingCountry = extractWhatsAppExperienceCountry(incomingText);
+  if (incomingCountry) return incomingCountry;
+
+  const contextCountry = normalizeExperienceCountryCode(convo?.metadata?.context?.experienceCountry || '');
+  if (contextCountry) return contextCountry;
+
+  const userCountry = normalizeExperienceCountryCode(user?.experienceCountry || '');
+  if (userCountry) return userCountry;
+
+  return 'JM';
+}
+
+function getWhatsAppExperienceLocation(countryCode = '') {
+  switch (normalizeExperienceCountryCode(countryCode) || 'JM') {
+    case 'US':
+      return 'United States';
+    case 'GLOBAL':
+      return 'Remote';
+    default:
+      return 'Jamaica';
+  }
+}
+
+function getWhatsAppExperienceLabel(countryCode = '') {
+  switch (normalizeExperienceCountryCode(countryCode) || 'JM') {
+    case 'US':
+      return 'United States';
+    case 'GLOBAL':
+      return 'Global';
+    default:
+      return 'Jamaica';
+  }
+}
+
 const JAMAICA_PARISHES = [
   'Kingston',
   'St. Andrew',
@@ -2802,6 +2863,24 @@ function buildWhatsAppParishPrompt(role = '') {
   ].join('\n');
 }
 
+function buildWhatsAppExperiencePrompt(countryCode = 'JM', role = '') {
+  const resolvedCountry = normalizeExperienceCountryCode(countryCode) || 'JM';
+  if (resolvedCountry === 'JM') {
+    return buildWhatsAppParishPrompt(role);
+  }
+
+  const roleLabel = normalizeIncomingWhatsAppText(role) || 'your target role';
+  const locationLabel = resolvedCountry === 'US' ? 'a US city or state' : 'a location or Remote';
+  const example = resolvedCountry === 'US' ? 'Example: Austin, Texas' : 'Example: Remote';
+
+  return [
+    `Premium Search: ${roleLabel}`,
+    `Send ${locationLabel} to narrow results:`,
+    example,
+    'Then I will return recently posted matched jobs with premium styling.'
+  ].join('\n');
+}
+
 function getWhatsAppJobPostedLabel(job = {}) {
   const rawDate = job.postedAt || job.createdAt || job.publishedAt || job.pubDate || job.date || '';
   if (!rawDate) return 'Recent post';
@@ -2833,9 +2912,15 @@ function formatWhatsAppPremiumJobListItem(job = {}, index = 0) {
   return lines.join('\n');
 }
 
-async function runWhatsAppJobsSearchFlow({ phone, user, convo, title, location, source = 'jobs_query' }) {
+async function runWhatsAppJobsSearchFlow({ phone, user, convo, title, location, countryCode = '', source = 'jobs_query' }) {
   const cleanTitle = normalizeIncomingWhatsAppText(title);
-  const cleanLocation = normalizeIncomingWhatsAppText(location) || 'Jamaica';
+  const resolvedCountry = normalizeExperienceCountryCode(countryCode) || resolveWhatsAppExperienceCountry({ user, convo });
+  const cleanLocation = normalizeIncomingWhatsAppText(location) || getWhatsAppExperienceLocation(resolvedCountry);
+
+  user.experienceCountry = resolvedCountry;
+  user.experienceCountrySource = 'whatsapp';
+  user.experienceCountryUpdatedAt = new Date();
+  convo.metadata.context.experienceCountry = resolvedCountry;
 
   user.targetJob = cleanTitle;
   user.location = cleanLocation;
@@ -2853,6 +2938,7 @@ async function runWhatsAppJobsSearchFlow({ phone, user, convo, title, location, 
   await trackWhatsAppTelemetry(phone, 'whatsapp_jobs_query_submitted', {
     title: cleanTitle,
     location: cleanLocation,
+    countryCode: resolvedCountry,
     source
   });
 
@@ -2877,14 +2963,15 @@ async function runWhatsAppJobsSearchFlow({ phone, user, convo, title, location, 
   await trackWhatsAppTelemetry(phone, 'whatsapp_jobs_results_returned', {
     title: cleanTitle,
     location: cleanLocation,
+    countryCode: resolvedCountry,
     source,
     resultCount: jobs.length
   });
 
   return !jobs.length
-    ? `No live matches for ${cleanTitle} in ${cleanLocation} right now. Use Search again to try another role or parish.`
+    ? `No live matches for ${cleanTitle} in ${cleanLocation} right now. Use Search again to try another role or location.`
     : [
-        `Premium Matches for ${cleanTitle} in ${cleanLocation}`,
+        `${getWhatsAppExperienceLabel(resolvedCountry)} Matches for ${cleanTitle} in ${cleanLocation}`,
         'Recently posted matched jobs:',
         ...jobs.map((job, idx) => formatWhatsAppPremiumJobListItem(job, idx)),
         'Choose your next step for these job results.'
@@ -3375,12 +3462,17 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     return reply;
   }
 
-  if (['start', 'join', 'hi', 'hello', 'menu'].includes(text)) {
+  if (/^(start|join|hi|hello|menu)(\s+.*)?$/.test(text)) {
+    const chosenCountry = resolveWhatsAppExperienceCountry({ user, convo, incomingText: incoming });
     user.optedIn = true;
     user.optedOutAt = null;
     user.lastIntent = 'menu';
+    user.experienceCountry = chosenCountry;
+    user.experienceCountrySource = 'whatsapp';
+    user.experienceCountryUpdatedAt = new Date();
     convo.currentStep = 'language_select';
     convo.lastIntent = 'menu';
+    convo.metadata.context.experienceCountry = chosenCountry;
     const isReengaged = priorInboundAt > 0 && (Date.now() - priorInboundAt) > threeDaysMs;
     const reply = isReengaged
       ? `Welcome back.\n${getWhatsAppLanguagePrompt()}`
@@ -3442,7 +3534,8 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
 
   if (/^apply\s*ready$/.test(text)) {
     const title = String(user.targetJob || convo.metadata.context.lastJobTitle || 'Customer Service Representative').trim();
-    const location = String(user.location || convo.metadata.context.lastLocation || 'Jamaica').trim();
+    const countryCode = resolveWhatsAppExperienceCountry({ user, convo });
+    const location = String(user.location || convo.metadata.context.lastLocation || getWhatsAppExperienceLocation(countryCode)).trim();
     const searchResult = await searchJobsFast({ title, location, resume: user.resumeText || '' });
     const jobs = Array.isArray(searchResult?.jobs) ? searchResult.jobs.slice(0, 5) : [];
     convo.metadata.lastJobs = jobs.map((job) => ({
@@ -3453,7 +3546,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       summary: String(job.summary || job.description || '').slice(0, 500)
     }));
     convo.currentStep = 'jobs_action';
-    await trackWhatsAppTelemetry(phone, 'whatsapp_apply_ready_triggered', { title, location, resultCount: jobs.length });
+    await trackWhatsAppTelemetry(phone, 'whatsapp_apply_ready_triggered', { title, location, countryCode, resultCount: jobs.length });
 
     const reply = !jobs.length
       ? `No live matches for ${title} in ${location} right now. Use the Jobs button to search another role.`
@@ -3613,14 +3706,17 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   if (convo.currentStep === 'jobs_menu' && ['search', 'search jobs'].includes(textCanonical)) {
     convo.currentStep = 'jobs_role_input';
     await trackWhatsAppTelemetry(phone, 'whatsapp_jobs_step_enter', {});
+    const experienceCountry = resolveWhatsAppExperienceCountry({ user, convo });
     const roleHint = encodeURIComponent(String(user.targetJob || convo.metadata?.context?.lastJobTitle || '').trim());
     const premiumSearchUrl = roleHint
-      ? `${getPublicAppBaseUrl()}/whatsapp-premium-jobs.html?role=${roleHint}`
-      : `${getPublicAppBaseUrl()}/whatsapp-premium-jobs.html`;
+      ? `${getPublicAppBaseUrl()}/whatsapp-premium-jobs.html?role=${roleHint}&country=${experienceCountry}`
+      : `${getPublicAppBaseUrl()}/whatsapp-premium-jobs.html?country=${experienceCountry}`;
     const reply = [
       'Premium Jobs Search is ready.',
       `Open: ${premiumSearchUrl}`,
-      'Use the role text field + Jamaica parish dropdown + Search button.',
+      experienceCountry === 'JM'
+        ? 'Use the role text field + Jamaica parish dropdown + Search button.'
+        : 'Use the role text field + location field + Search button.',
       'You will see recently posted matched jobs with premium styling.',
       'Or type your target role here if you want to continue inside WhatsApp.'
     ].join('\n');
@@ -3658,7 +3754,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
 
     convo.metadata.context.pendingJobRole = parsed.title || roleText;
     convo.currentStep = 'jobs_parish_select';
-    const reply = buildWhatsAppParishPrompt(convo.metadata.context.pendingJobRole);
+    const reply = buildWhatsAppExperiencePrompt(resolveWhatsAppExperienceCountry({ user, convo }), convo.metadata.context.pendingJobRole);
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
     await convo.save();
@@ -3666,6 +3762,45 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   }
 
   if (convo.currentStep === 'jobs_parish_select') {
+    const role = String(convo.metadata?.context?.pendingJobRole || user.targetJob || '').trim();
+    if (!role) {
+      convo.currentStep = 'jobs_role_input';
+      const reply = 'Type your target role first (example: Administrative Assistant).';
+      convo.lastOutboundMessage = reply;
+      convo.lastOutboundAt = new Date();
+      await convo.save();
+      return reply;
+    }
+
+    const countryCode = resolveWhatsAppExperienceCountry({ user, convo });
+    if (countryCode !== 'JM') {
+      const freeformLocation = normalizeIncomingWhatsAppText(incoming);
+      if (!freeformLocation) {
+        const reply = countryCode === 'US'
+          ? 'Send a US city or state (example: Austin, Texas) or type Remote.'
+          : 'Send a location or type Remote to continue.';
+        convo.lastOutboundMessage = reply;
+        convo.lastOutboundAt = new Date();
+        await convo.save();
+        return reply;
+      }
+
+      const reply = await runWhatsAppJobsSearchFlow({
+        phone,
+        user,
+        convo,
+        title: role,
+        location: freeformLocation,
+        countryCode,
+        source: 'jobs_location_select'
+      });
+      delete convo.metadata.context.pendingJobRole;
+      convo.lastOutboundMessage = reply;
+      convo.lastOutboundAt = new Date();
+      await Promise.all([user.save(), convo.save()]);
+      return reply;
+    }
+
     const selectedParish = resolveJamaicaParishSelection(incoming);
     if (!selectedParish) {
       const reply = [
@@ -3678,22 +3813,13 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       return reply;
     }
 
-    const role = String(convo.metadata?.context?.pendingJobRole || user.targetJob || '').trim();
-    if (!role) {
-      convo.currentStep = 'jobs_role_input';
-      const reply = 'Type your target role first (example: Administrative Assistant).';
-      convo.lastOutboundMessage = reply;
-      convo.lastOutboundAt = new Date();
-      await convo.save();
-      return reply;
-    }
-
     const reply = await runWhatsAppJobsSearchFlow({
       phone,
       user,
       convo,
       title: role,
       location: `${selectedParish}, Jamaica`,
+      countryCode,
       source: 'jobs_parish_select'
     });
     delete convo.metadata.context.pendingJobRole;
@@ -5153,7 +5279,10 @@ app.post('/api/whatsapp/jobs/import-public', async (req, res) => {
 });
 
 app.get('/whatsapp-start', (req, res) => {
-  const prefillText = String(req.query.text || 'START').trim() || 'START';
+  const requestedCountry = normalizeExperienceCountryCode(req.query.country || '');
+  const prefillText = requestedCountry
+    ? `START COUNTRY:${requestedCountry}`
+    : String(req.query.text || 'START').trim() || 'START';
   const waLink = getConfiguredWhatsAppShareLink(prefillText);
   if (!waLink) {
     const fallbackBase = String(process.env.CLIENT_URL || 'https://www.rolerocketai.com').replace(/\/$/, '');

@@ -164,6 +164,35 @@
       background: rgba(14, 45, 78, 0.9);
     }
 
+    .experience-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+      padding: 10px 12px;
+      border: 1px solid rgba(56, 189, 248, 0.18);
+      border-radius: 12px;
+      background: rgba(8, 20, 38, 0.55);
+    }
+
+    .experience-row label {
+      margin: 0;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .experience-row select {
+      width: min(240px, 100%);
+    }
+
+    .experience-note {
+      color: #9fb3cf;
+      font-size: 0.84rem;
+      line-height: 1.4;
+    }
+
     .results-head {
       margin: 16px 0 10px;
       display: flex;
@@ -279,13 +308,25 @@
     </section>
 
     <section class="panel">
+      <div class="experience-row">
+        <div style="display:flex;flex-direction:column;gap:6px;min-width:180px;">
+          <label for="experienceCountrySelect">Country Experience</label>
+          <select id="experienceCountrySelect">
+            <option value="JM">Jamaica</option>
+            <option value="US">United States</option>
+            <option value="GLOBAL">Global</option>
+          </select>
+        </div>
+        <div class="experience-note" id="experienceNote">The search controls will adapt to the selected experience.</div>
+      </div>
+
       <div class="form-grid">
         <div>
           <label for="roleInput">Target Role</label>
           <input id="roleInput" type="text" placeholder="e.g., Security Guard" />
         </div>
         <div>
-          <label for="parishSelect">Jamaica Parish</label>
+          <label id="searchAreaLabel" for="parishSelect">Jamaica Parish</label>
           <select id="parishSelect">
             <optgroup label="Metro">
               <option value="Kingston">Kingston</option>
@@ -315,8 +356,8 @@
         </div>
       </div>
       <div class="quick-row">
-        <div class="quick-label">Quick Locations</div>
-        <div class="quick-chips">
+        <div class="quick-label" id="quickLabel">Quick Locations</div>
+        <div class="quick-chips" id="quickChipsWrap">
           <button type="button" class="quick-chip" data-parish="Kingston">Kingston</button>
           <button type="button" class="quick-chip" data-parish="St. Andrew">St. Andrew</button>
           <button type="button" class="quick-chip" data-parish="St. James">St. James</button>
@@ -338,12 +379,19 @@
   <script>
     (function initPremiumJobsSearch() {
       const roleInput = document.getElementById('roleInput');
+      const experienceCountrySelect = document.getElementById('experienceCountrySelect');
       const parishSelect = document.getElementById('parishSelect');
       const searchBtn = document.getElementById('searchBtn');
       const quickChips = Array.from(document.querySelectorAll('.quick-chip'));
       const statusText = document.getElementById('statusText');
       const resultsEl = document.getElementById('results');
       const resultCount = document.getElementById('resultCount');
+      const searchAreaLabel = document.getElementById('searchAreaLabel');
+      const quickLabel = document.getElementById('quickLabel');
+      const experienceNote = document.getElementById('experienceNote');
+      const quickChipsWrap = document.getElementById('quickChipsWrap');
+      const jamaicaOptionsMarkup = parishSelect ? parishSelect.innerHTML : '';
+      let selectedCountry = 'JM';
       const PARISH_ALIASES = {
         'Kingston': ['kingston'],
         'St. Andrew': ['st andrew', 'st. andrew', 'saint andrew'],
@@ -360,6 +408,76 @@
         'Clarendon': ['clarendon', 'may pen'],
         'St. Thomas': ['st thomas', 'st. thomas', 'saint thomas', 'morant bay']
       };
+
+      const COUNTRY_SEARCH_PRESETS = {
+        JM: {
+          label: 'Jamaica Parish',
+          note: 'Searches stay focused on Jamaica parish results and local employers.',
+          optionsMarkup: jamaicaOptionsMarkup,
+          quickLabel: 'Quick Parishes',
+          quickLocations: ['Kingston', 'St. Andrew', 'St. James', 'St. Catherine']
+        },
+        US: {
+          label: 'US Location',
+          note: 'Searches use US locations and return broader U.S. market matches.',
+          optionsMarkup: [
+            '<option value="Remote">Remote</option>',
+            '<option value="Austin, Texas">Austin, Texas</option>',
+            '<option value="New York, New York">New York, New York</option>',
+            '<option value="Seattle, Washington">Seattle, Washington</option>',
+            '<option value="Atlanta, Georgia">Atlanta, Georgia</option>',
+            '<option value="Miami, Florida">Miami, Florida</option>'
+          ].join(''),
+          quickLabel: 'Quick US Locations',
+          quickLocations: ['Remote', 'Austin, Texas', 'New York, New York', 'Seattle, Washington']
+        },
+        GLOBAL: {
+          label: 'Search Area',
+          note: 'Searches use broad global / remote-friendly locations.',
+          optionsMarkup: [
+            '<option value="Remote">Remote</option>',
+            '<option value="Worldwide">Worldwide</option>',
+            '<option value="Hybrid">Hybrid</option>',
+            '<option value="North America">North America</option>',
+            '<option value="Europe">Europe</option>'
+          ].join(''),
+          quickLabel: 'Quick Areas',
+          quickLocations: ['Remote', 'Worldwide', 'Hybrid', 'North America']
+        }
+      };
+
+      function normalizeCountry(value) {
+        const raw = String(value || '').trim().toUpperCase();
+        if (raw === 'US' || raw === 'GLOBAL' || raw === 'JM') return raw;
+        return 'JM';
+      }
+
+      function getPreset(countryCode) {
+        return COUNTRY_SEARCH_PRESETS[normalizeCountry(countryCode)] || COUNTRY_SEARCH_PRESETS.JM;
+      }
+
+      function applyCountryExperience(countryCode) {
+        selectedCountry = normalizeCountry(countryCode);
+        const preset = getPreset(selectedCountry);
+
+        if (experienceCountrySelect) experienceCountrySelect.value = selectedCountry;
+        if (searchAreaLabel) searchAreaLabel.textContent = preset.label;
+        if (experienceNote) experienceNote.textContent = preset.note;
+        if (quickLabel) quickLabel.textContent = preset.quickLabel;
+        if (quickChipsWrap) quickChipsWrap.style.display = 'flex';
+
+        if (parishSelect) {
+          parishSelect.innerHTML = preset.optionsMarkup;
+          parishSelect.value = preset.quickLocations[0] || parishSelect.options[0]?.value || '';
+        }
+
+        quickChips.forEach(function (chip, index) {
+          const location = preset.quickLocations[index] || preset.quickLocations[0] || '';
+          chip.textContent = location;
+          chip.setAttribute('data-parish', location);
+          chip.style.display = location ? '' : 'none';
+        });
+      }
 
       function escapeHtml(value) {
         return String(value || '')
@@ -501,9 +619,12 @@
         statusText.textContent = 'Searching recently posted matched jobs...';
 
         try {
+          const searchLocation = selectedCountry === 'JM'
+            ? `${parish}, Jamaica`
+            : parish || getPreset(selectedCountry).quickLocations[0] || 'Remote';
           const params = new URLSearchParams({
             title,
-            location: `${parish}, Jamaica`
+            location: searchLocation
           });
           const response = await fetch(`/api/jobs/scout?${params.toString()}`);
           const data = await response.json();
@@ -512,12 +633,16 @@
           }
 
           const jobs = Array.isArray(data.jobs) ? data.jobs : [];
-          const strictParishJobs = jobs.filter((job) => matchesSelectedParish(job, parish));
-          renderJobs(strictParishJobs);
-          const filteredOut = Math.max(jobs.length - strictParishJobs.length, 0);
-          statusText.textContent = filteredOut > 0
-            ? `Showing ${strictParishJobs.length} parish-matched jobs for ${title} in ${parish} (${filteredOut} out-of-parish results hidden).`
-            : `Showing premium matches for ${title} in ${parish}.`;
+          const visibleJobs = selectedCountry === 'JM'
+            ? jobs.filter((job) => matchesSelectedParish(job, parish))
+            : jobs;
+          renderJobs(visibleJobs);
+          const filteredOut = selectedCountry === 'JM' ? Math.max(jobs.length - visibleJobs.length, 0) : 0;
+          statusText.textContent = selectedCountry === 'JM'
+            ? (filteredOut > 0
+              ? `Showing ${visibleJobs.length} parish-matched jobs for ${title} in ${parish} (${filteredOut} out-of-parish results hidden).`
+              : `Showing premium matches for ${title} in ${parish}.`)
+            : `Showing ${getPreset(selectedCountry).label.toLowerCase()} matches for ${title} in ${searchLocation}.`;
         } catch (error) {
           statusText.textContent = error.message || 'Could not load matches right now.';
           renderJobs([]);
@@ -528,20 +653,30 @@
 
       const params = new URLSearchParams(window.location.search);
       const roleFromQuery = String(params.get('role') || '').trim();
+      const countryFromQuery = normalizeCountry(params.get('country') || params.get('experience') || '');
       const parishFromQuery = String(params.get('parish') || '').trim();
       if (roleFromQuery) roleInput.value = roleFromQuery;
-      if (parishFromQuery) {
+
+      applyCountryExperience(countryFromQuery || 'JM');
+
+      if (parishFromQuery && parishSelect) {
         const options = Array.from(parishSelect.options).map((opt) => opt.value.toLowerCase());
         const idx = options.indexOf(parishFromQuery.toLowerCase());
         if (idx >= 0) parishSelect.selectedIndex = idx;
       }
 
+      if (experienceCountrySelect) {
+        experienceCountrySelect.addEventListener('change', function () {
+          applyCountryExperience(experienceCountrySelect.value);
+        });
+      }
+
       searchBtn.addEventListener('click', runSearch);
       quickChips.forEach(function (chip) {
         chip.addEventListener('click', function () {
-          const parish = String(chip.getAttribute('data-parish') || '').trim();
-          if (!parish) return;
-          parishSelect.value = parish;
+          const location = String(chip.getAttribute('data-parish') || '').trim();
+          if (!location) return;
+          parishSelect.value = location;
           runSearch();
         });
       });
