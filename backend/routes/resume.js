@@ -8,6 +8,7 @@ const OpenAI = require('openai');
 const multer = require('multer');
 const { extractTextFromPDF, extractTextFromDocx } = require('../pdfWordUtils');
 const { extractTextFromPDFWithOCR } = require('../ocrUtils');
+const { consumeDocumentGeneration, getDocumentGenerationStatus } = require('../services/documentGenerationBilling');
 
 // Configure multer for memory storage (must be before any route uses 'upload')
 const storage = multer.memoryStorage();
@@ -154,6 +155,20 @@ router.post('/generate', authenticateToken, async (req, res) => {
   }
 
   try {
+    const user = await User.findById(req.user.userId).select('plan isAdmin documentGeneration');
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const status = getDocumentGenerationStatus(user, 'resume');
+    if (!status.canGenerate) {
+      return res.status(402).json({
+        error: 'No resume credits remaining. Buy a bundle to continue.',
+        code: 'DOC_CREDIT_REQUIRED',
+        status
+      });
+    }
+
+    await consumeDocumentGeneration(user, 'resume');
+
     // Call OpenAI to generate improved resume
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
@@ -222,6 +237,13 @@ ${resume ? `Resume:\n${resume}` : 'No resume provided. Generate a resume templat
     res.json({ result: aiResponse });
 
   } catch (err) {
+    if (err.code === 'DOC_CREDIT_REQUIRED') {
+      return res.status(err.statusCode || 402).json({
+        error: err.message,
+        code: err.code,
+        status: err.status || null
+      });
+    }
     console.error('Error generating resume:', err);
     res.status(500).json({ error: err.message || 'AI generation failed' });
   }

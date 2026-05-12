@@ -20,6 +20,12 @@ const PDFDocument = require('pdfkit');
 const { extractTextFromPDF, extractTextFromDocx } = require('./pdfWordUtils');
 const { extractTextFromPDFWithOCR } = require('./ocrUtils');
 const { getDailyGenerationStatus, recordDailyGenerationUsage } = require('./services/aiGenerationLimits');
+const {
+  getDocumentGenerationStatus,
+  getCreditBundles,
+  getCreditBundle,
+  grantDocumentCreditsFromCheckout
+} = require('./services/documentGenerationBilling');
 const LearningRoadmap = require('./models/LearningRoadmap');
 
 
@@ -4571,7 +4577,16 @@ app.post(
         const userId = session.metadata?.userId;
 
         if (userId) {
-          if (session.metadata?.type === 'lifetime') {
+          if (session.metadata?.type === 'document_bundle') {
+            await grantDocumentCreditsFromCheckout({
+              userId,
+              credits: Number(session.metadata?.docCredits || 0),
+              bundleId: session.metadata?.docBundle || 'custom',
+              amountCents: Number(session.metadata?.docAmountCents || 0),
+              currency: session.currency || 'usd',
+              stripeSessionId: session.id || ''
+            });
+          } else if (session.metadata?.type === 'lifetime') {
             await User.findByIdAndUpdate(userId, {
               isSubscribed: true,
               plan: 'lifetime'
@@ -14094,6 +14109,88 @@ app.post('/api/create-checkout-session', paymentLimiter, authenticateToken, asyn
       type: err.type || null,
       details: JSON.stringify(err, Object.getOwnPropertyNames(err))
     });
+  }
+});
+
+app.get('/api/document-credits/status', authenticateToken, async (req, res) => {
+  try {
+    const feature = String(req.query.feature || 'resume').trim().toLowerCase();
+    if (!['resume', 'cover-letter'].includes(feature)) {
+      return res.status(400).json({ error: 'feature must be resume or cover-letter' });
+    }
+
+    const user = await User.findById(req.user.userId).select('plan isAdmin documentGeneration');
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const status = getDocumentGenerationStatus(user, feature);
+    return res.json({
+      status,
+      bundles: getCreditBundles()
+    });
+  } catch (err) {
+    console.error('Document credit status error:', err);
+    return res.status(500).json({ error: 'Could not load document credit status' });
+  }
+});
+
+app.post('/api/document-credits/create-checkout-session', paymentLimiter, authenticateToken, async (req, res) => {
+  try {
+    const bundleId = String(req.body?.bundle || 'single').trim().toLowerCase();
+    const bundle = getCreditBundle(bundleId);
+    if (!bundle) {
+      return res.status(400).json({ error: 'Unknown bundle.' });
+    }
+
+    const user = await User.findById(req.user.userId).select('plan isAdmin');
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const plan = String(user.plan || 'free').toLowerCase();
+    if (user.isAdmin === true || plan !== 'free') {
+      return res.status(400).json({ error: 'Document credit checkout is only required for free tier users.' });
+    }
+
+    const returnPathRaw = String(req.body?.returnPath || '/').trim();
+    const safeReturnPath = returnPathRaw.startsWith('/') ? returnPathRaw : '/';
+
+    if (E2E_MOCK_MODE) {
+      return res.json({ url: 'https://checkout.test/session' });
+    }
+
+    const session = await stripe.checkout.sessions.create({
+      mode: 'payment',
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          quantity: 1,
+          price_data: {
+            currency: 'usd',
+            unit_amount: bundle.amountCents,
+            product_data: {
+              name: `RoleRocket ${bundle.label}`,
+              description: `${bundle.credits} generation credits for Resume/Cover Letter tools`
+            }
+          }
+        }
+      ],
+      success_url: `${process.env.CLIENT_URL}${safeReturnPath}${safeReturnPath.includes('?') ? '&' : '?'}docCredits=success`,
+      cancel_url: `${process.env.CLIENT_URL}${safeReturnPath}${safeReturnPath.includes('?') ? '&' : '?'}docCredits=cancel`,
+      metadata: {
+        type: 'document_bundle',
+        userId: String(req.user.userId),
+        docCredits: String(bundle.credits),
+        docBundle: bundle.id,
+        docAmountCents: String(bundle.amountCents)
+      }
+    });
+
+    if (!session.url) {
+      return res.status(500).json({ error: 'Stripe did not return a checkout URL.' });
+    }
+
+    return res.json({ url: session.url });
+  } catch (err) {
+    console.error('Document credit checkout error:', err);
+    return res.status(500).json({ error: err.message || 'Failed to create document credit checkout session' });
   }
 });
 

@@ -111,6 +111,26 @@ const UserSchema = new mongoose.Schema(
       default: []
     },
 
+    documentGeneration: {
+      paidCredits: { type: Number, default: 0 },
+      resumeFirstFreeUsed: { type: Boolean, default: false },
+      coverLetterFirstFreeUsed: { type: Boolean, default: false },
+      totalCreditsPurchased: { type: Number, default: 0 },
+      purchases: {
+        type: [
+          {
+            bundleId: { type: String, default: '' },
+            credits: { type: Number, default: 0 },
+            amountCents: { type: Number, default: null },
+            currency: { type: String, default: 'usd' },
+            stripeSessionId: { type: String, default: '' },
+            purchasedAt: { type: Date, default: Date.now }
+          }
+        ],
+        default: []
+      }
+    },
+
     networkingProfile: {
       optedIn:     { type: Boolean, default: false },
       displayName: { type: String, default: '', trim: true },

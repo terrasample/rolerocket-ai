@@ -12,6 +12,11 @@ document.addEventListener('DOMContentLoaded', function () {
   const previewContent = document.getElementById('previewContentGen');
   const resumeUploadInput = document.getElementById('resumeBaseUploadGen');
   const resumeUploadMessage = document.getElementById('resumeBaseUploadMessageGen');
+  const billingPanel = document.getElementById('resumeBillingPanel');
+  const billingStatus = document.getElementById('resumeBillingStatus');
+  const buySingleBtn = document.getElementById('resumeBuySingleBtn');
+  const buyFiveBtn = document.getElementById('resumeBuyFiveBtn');
+  const buyTenBtn = document.getElementById('resumeBuyTenBtn');
   const photoInput = document.getElementById('resumePhotoUploadGen');
   const photoPreview = document.getElementById('resumePhotoPreviewGen');
   const photoControls = document.getElementById('resumePhotoControlsGen');
@@ -165,6 +170,7 @@ document.addEventListener('DOMContentLoaded', function () {
   let lastTemplateIdx = -1;
   let latestLearningRoadmapText = '';
   let learningRoadmapAppliedFromSession = false;
+  let resumeCreditStatus = null;
   const templateStateKey = `resume-template-queue-v1-${THEMES.map((t) => t.id).join('|')}`;
   const layoutSelectionKey = 'resume-layout-selection-v2';
   const draftStorageKey = 'resume-generator-draft-v1';
@@ -173,6 +179,72 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function getAuthToken() {
     return (typeof getStoredToken === 'function' ? getStoredToken() : localStorage.getItem('token')) || '';
+  }
+
+  function setBillingButtonsDisabled(disabled) {
+    [buySingleBtn, buyFiveBtn, buyTenBtn].forEach((btn) => {
+      if (!btn) return;
+      btn.disabled = disabled;
+    });
+  }
+
+  function renderResumeCreditStatus(status) {
+    if (!billingPanel || !billingStatus) return;
+    resumeCreditStatus = status || null;
+
+    if (!status) {
+      billingStatus.textContent = 'Could not load your document credit status.';
+      return;
+    }
+
+    if (status.unlimited) {
+      billingStatus.textContent = 'Your current plan includes unlimited resume generations.';
+      setBillingButtonsDisabled(true);
+      return;
+    }
+
+    const freeLabel = status.freeRemaining > 0 ? '1 free generation remaining' : 'Free generation already used';
+    const creditLabel = `${Number(status.paidCredits || 0)} paid credit${Number(status.paidCredits || 0) === 1 ? '' : 's'} available`;
+    billingStatus.textContent = `${freeLabel}. ${creditLabel}.`;
+    setBillingButtonsDisabled(false);
+  }
+
+  async function loadResumeCreditStatus() {
+    const token = getAuthToken();
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await fetch('/api/document-credits/status?feature=resume', { headers });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || 'Could not load billing status.');
+    }
+    renderResumeCreditStatus(data.status || null);
+    return data.status || null;
+  }
+
+  async function startCreditCheckout(bundle) {
+    const token = getAuthToken();
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers.Authorization = `Bearer ${token}`;
+
+    setBillingButtonsDisabled(true);
+    try {
+      const response = await fetch('/api/document-credits/create-checkout-session', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          bundle,
+          returnPath: '/resume-generator.html'
+        })
+      });
+      const data = await response.json();
+      if (!response.ok || !data.url) {
+        throw new Error(data.error || 'Could not start checkout.');
+      }
+      window.location.href = data.url;
+    } catch (error) {
+      statusBanner(error.message || 'Could not start checkout.', false);
+      setBillingButtonsDisabled(false);
+    }
   }
 
   function normalizePlan(plan) {
@@ -1843,6 +1915,12 @@ document.addEventListener('DOMContentLoaded', function () {
     output.innerHTML = '<div style="color:#2563eb;">Generating resume...</div>';
 
     try {
+      const status = await loadResumeCreditStatus();
+      if (status && !status.unlimited && !status.canGenerate) {
+        renderError('No resume credits remaining. Buy a bundle to continue.');
+        return;
+      }
+
       if (templateStateReadyPromise) await templateStateReadyPromise;
       await loadLatestLearningRoadmap();
 
@@ -1865,6 +1943,11 @@ document.addEventListener('DOMContentLoaded', function () {
       const data = await res.json();
 
       if (!res.ok || !data.result) {
+        if (res.status === 402 && data.code === 'DOC_CREDIT_REQUIRED') {
+          renderResumeCreditStatus(data.status || resumeCreditStatus);
+          renderError(data.error || 'No resume credits remaining. Buy a bundle to continue.');
+          return;
+        }
         renderError((data && data.error) || 'Failed to generate resume.');
         return;
       }
@@ -1879,6 +1962,7 @@ document.addEventListener('DOMContentLoaded', function () {
       lastStructuredResume = buildResumeModel(structured, jobTitle);
       output.innerHTML = renderResumeTemplate(lastStructuredResume);
       renderLinkedinAdoptionInsights();
+      await loadResumeCreditStatus();
       statusBanner('Resume generated. You can switch layouts, adjust the photo, or download it as Word or PDF.', true);
 
       if (window.RoleRocketQuickstart) {
@@ -1887,6 +1971,16 @@ document.addEventListener('DOMContentLoaded', function () {
     } catch (err) {
       renderError('Error generating resume.');
     }
+  });
+
+  buySingleBtn?.addEventListener('click', function () {
+    startCreditCheckout('single');
+  });
+  buyFiveBtn?.addEventListener('click', function () {
+    startCreditCheckout('five');
+  });
+  buyTenBtn?.addEventListener('click', function () {
+    startCreditCheckout('ten');
   });
 
   function previewResume() {
@@ -2032,6 +2126,19 @@ document.addEventListener('DOMContentLoaded', function () {
   restoreDraftState();
   attachDraftPersistence();
   renderLinkedinAdoptionInsights();
+
+  loadResumeCreditStatus().catch((error) => {
+    if (billingStatus) billingStatus.textContent = error.message || 'Could not load billing status.';
+  });
+
+  const checkoutParams = new URLSearchParams(window.location.search);
+  const checkoutResult = checkoutParams.get('docCredits');
+  if (checkoutResult === 'success') {
+    statusBanner('Credits added successfully. You can generate now.', true);
+    loadResumeCreditStatus().catch(() => {});
+  } else if (checkoutResult === 'cancel') {
+    statusBanner('Checkout canceled. You can continue with your free generation or purchase anytime.', false);
+  }
 
   templateStateReadyPromise?.then(() => {
     if (learningRoadmapAppliedFromSession) {

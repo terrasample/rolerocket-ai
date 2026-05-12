@@ -3,7 +3,7 @@ const router = express.Router();
 const authenticateToken = require('../middleware/auth');
 const OpenAI = require('openai');
 const User = require('../models/User');
-const { getDailyGenerationStatus, recordDailyGenerationUsage } = require('../services/aiGenerationLimits');
+const { consumeDocumentGeneration, getDocumentGenerationStatus } = require('../services/documentGenerationBilling');
 if (!process.env.OPENAI_API_KEY) {
   console.error('❌ OPENAI_API_KEY not set in environment variables');
 }
@@ -18,10 +18,16 @@ router.post('/generate', authenticateToken, async (req, res) => {
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    const generationStatus = getDailyGenerationStatus(user, 'cover-letter');
-    if (!generationStatus.allowed) {
-      return res.status(429).json({ error: generationStatus.message });
+    const status = getDocumentGenerationStatus(user, 'cover-letter');
+    if (!status.canGenerate) {
+      return res.status(402).json({
+        error: 'No cover letter credits remaining. Buy a bundle to continue.',
+        code: 'DOC_CREDIT_REQUIRED',
+        status
+      });
     }
+
+    await consumeDocumentGeneration(user, 'cover-letter');
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
@@ -49,10 +55,15 @@ Rules:
       ]
     });
 
-    await recordDailyGenerationUsage(user, 'cover-letter');
-
     res.json({ result: completion.choices[0].message.content });
   } catch (err) {
+    if (err.code === 'DOC_CREDIT_REQUIRED') {
+      return res.status(err.statusCode || 402).json({
+        error: err.message,
+        code: err.code,
+        status: err.status || null
+      });
+    }
     console.error(err);
     res.status(500).json({ error: err.message });
   }

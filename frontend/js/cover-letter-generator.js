@@ -9,8 +9,13 @@ document.addEventListener('DOMContentLoaded', function () {
   const output = document.getElementById('coverLetterOutput');
   const resumeUploadInput = document.getElementById('coverResumeUpload');
   const resumeUploadMessage = document.getElementById('coverResumeUploadMessage');
+  const billingStatus = document.getElementById('coverBillingStatus');
+  const buySingleBtn = document.getElementById('coverBuySingleBtn');
+  const buyFiveBtn = document.getElementById('coverBuyFiveBtn');
+  const buyTenBtn = document.getElementById('coverBuyTenBtn');
   let lastCover = '';
   let lastCoverMeta = { name: '', phone: '', email: '' };
+  let coverCreditStatus = null;
 
   function escapeHtml(value) {
     return String(value || '')
@@ -19,6 +24,76 @@ document.addEventListener('DOMContentLoaded', function () {
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
+  }
+
+  function getAuthToken() {
+    return (typeof getStoredToken === 'function' ? getStoredToken() : localStorage.getItem('token')) || '';
+  }
+
+  function setBillingButtonsDisabled(disabled) {
+    [buySingleBtn, buyFiveBtn, buyTenBtn].forEach((btn) => {
+      if (!btn) return;
+      btn.disabled = disabled;
+    });
+  }
+
+  function renderCoverCreditStatus(status) {
+    coverCreditStatus = status || null;
+    if (!billingStatus) return;
+
+    if (!status) {
+      billingStatus.textContent = 'Could not load your document credit status.';
+      return;
+    }
+
+    if (status.unlimited) {
+      billingStatus.textContent = 'Your current plan includes unlimited cover letter generations.';
+      setBillingButtonsDisabled(true);
+      return;
+    }
+
+    const freeLabel = status.freeRemaining > 0 ? '1 free generation remaining' : 'Free generation already used';
+    const creditLabel = `${Number(status.paidCredits || 0)} paid credit${Number(status.paidCredits || 0) === 1 ? '' : 's'} available`;
+    billingStatus.textContent = `${freeLabel}. ${creditLabel}.`;
+    setBillingButtonsDisabled(false);
+  }
+
+  async function loadCoverCreditStatus() {
+    const token = getAuthToken();
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await fetch('/api/document-credits/status?feature=cover-letter', { headers });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || 'Could not load billing status.');
+    }
+    renderCoverCreditStatus(data.status || null);
+    return data.status || null;
+  }
+
+  async function startCreditCheckout(bundle) {
+    const token = getAuthToken();
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers.Authorization = `Bearer ${token}`;
+
+    setBillingButtonsDisabled(true);
+    try {
+      const response = await fetch('/api/document-credits/create-checkout-session', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          bundle,
+          returnPath: '/cover-letter-generator.html'
+        })
+      });
+      const data = await response.json();
+      if (!response.ok || !data.url) {
+        throw new Error(data.error || 'Could not start checkout.');
+      }
+      window.location.href = data.url;
+    } catch (error) {
+      output.innerHTML = `<div style="color:#dc2626;">${escapeHtml(error.message || 'Could not start checkout.')}</div>`;
+      setBillingButtonsDisabled(false);
+    }
   }
 
   function cleanNameCandidate(line) {
@@ -284,8 +359,14 @@ document.addEventListener('DOMContentLoaded', function () {
     output.innerHTML = 'Generating cover letter...';
     lastCoverMeta = extractContactInfo(resume);
     try {
+      const status = await loadCoverCreditStatus();
+      if (status && !status.unlimited && !status.canGenerate) {
+        output.innerHTML = '<div style="color:#dc2626;">No cover letter credits remaining. Buy a bundle to continue.</div>';
+        return;
+      }
+
       const jobDescription = buildJobDescription(jobTitle, company, fullJobDescription);
-      const token = typeof getStoredToken === 'function' ? getStoredToken() : localStorage.getItem('token');
+      const token = getAuthToken();
       const headers = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
       const res = await fetch('/api/cover-letter/generate', {
@@ -298,7 +379,14 @@ document.addEventListener('DOMContentLoaded', function () {
         lastCover = data.result;
         const letter = parseCoverLetter(lastCover);
         output.innerHTML = renderCoverTemplate(letter, lastCoverMeta, jobTitle, company);
+        await loadCoverCreditStatus();
       } else {
+        if (res.status === 402 && data.code === 'DOC_CREDIT_REQUIRED') {
+          renderCoverCreditStatus(data.status || coverCreditStatus);
+          lastCover = '';
+          output.innerHTML = `<div style="color:#dc2626;font-size:1.1em;padding:12px 0;">${data.error || 'No cover letter credits remaining. Buy a bundle to continue.'}</div>`;
+          return;
+        }
         lastCover = '';
         output.innerHTML = `<div style=\"color:#dc2626;font-size:1.1em;padding:12px 0;\">${data.error || 'Failed to generate cover letter.'}</div>`;
       }
@@ -488,4 +576,27 @@ document.addEventListener('DOMContentLoaded', function () {
     lastCoverMeta = { name: '', phone: '', email: '' };
     output.innerHTML = '<div style="color:#166534;background:#ecfdf5;border:1px solid #86efac;border-radius:8px;padding:10px 12px;">Fields cleared. Add new details to generate another cover letter.</div>';
   });
+
+  buySingleBtn?.addEventListener('click', function () {
+    startCreditCheckout('single');
+  });
+  buyFiveBtn?.addEventListener('click', function () {
+    startCreditCheckout('five');
+  });
+  buyTenBtn?.addEventListener('click', function () {
+    startCreditCheckout('ten');
+  });
+
+  loadCoverCreditStatus().catch((error) => {
+    if (billingStatus) billingStatus.textContent = error.message || 'Could not load billing status.';
+  });
+
+  const checkoutParams = new URLSearchParams(window.location.search);
+  const checkoutResult = checkoutParams.get('docCredits');
+  if (checkoutResult === 'success') {
+    output.innerHTML = '<div style="color:#166534;background:#ecfdf5;border:1px solid #86efac;border-radius:8px;padding:10px 12px;">Credits added successfully. You can generate now.</div>';
+    loadCoverCreditStatus().catch(() => {});
+  } else if (checkoutResult === 'cancel') {
+    output.innerHTML = '<div style="color:#92400e;background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:10px 12px;">Checkout canceled. You can continue with your free generation or purchase anytime.</div>';
+  }
 });
