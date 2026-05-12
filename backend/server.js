@@ -4788,13 +4788,13 @@ app.get('/whatsapp-start', (req, res) => {
   <meta property="og:title" content="RoleRocket AI WhatsApp Assistant" />
   <meta property="og:description" content="Open the RoleRocket AI WhatsApp assistant and run your job-search execution plan." />
   <meta property="og:url" content="https://www.rolerocketai.com/whatsapp-start" />
-  <meta property="og:image" content="https://www.rolerocketai.com/assets/og-whatsapp-card.svg" />
+  <meta property="og:image" content="https://www.rolerocketai.com/assets/og-whatsapp-card.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="RoleRocket AI WhatsApp Assistant" />
   <meta name="twitter:description" content="Open the RoleRocket AI WhatsApp assistant and run your job-search execution plan." />
-  <meta name="twitter:image" content="https://www.rolerocketai.com/assets/og-whatsapp-card.svg" />
+  <meta name="twitter:image" content="https://www.rolerocketai.com/assets/og-whatsapp-card.png" />
   <style>
     body { margin: 0; font-family: 'Segoe UI', sans-serif; color: #e2e8f0; background: radial-gradient(circle at top right, #0b3d91, #050b18 60%); min-height: 100vh; display: grid; place-items: center; }
     .card { width: min(92vw, 560px); border: 1px solid rgba(148,163,184,.3); border-radius: 16px; background: rgba(15,23,42,.82); padding: 22px; box-shadow: 0 20px 50px rgba(0,0,0,.45); }
@@ -4838,13 +4838,13 @@ app.get('/start', (req, res) => {
   <meta property="og:title" content="RoleRocket AI WhatsApp Assistant" />
   <meta property="og:description" content="Your AI job-search assistant on WhatsApp. Import jobs, organize applications, and execute your plan faster." />
   <meta property="og:url" content="https://www.rolerocketai.com/start" />
-  <meta property="og:image" content="https://www.rolerocketai.com/assets/og-whatsapp-card.svg" />
+  <meta property="og:image" content="https://www.rolerocketai.com/assets/og-whatsapp-card.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="RoleRocket AI WhatsApp Assistant" />
   <meta name="twitter:description" content="Your AI job-search assistant on WhatsApp. Import jobs, organize applications, and execute your plan faster." />
-  <meta name="twitter:image" content="https://www.rolerocketai.com/assets/og-whatsapp-card.svg" />
+  <meta name="twitter:image" content="https://www.rolerocketai.com/assets/og-whatsapp-card.png" />
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     body{min-height:100vh;display:grid;place-items:center;font-family:'Segoe UI',sans-serif;
@@ -4868,7 +4868,7 @@ app.get('/start', (req, res) => {
 
 app.get('/rolerocket', (req, res) => {
   const fallbackBase = String(process.env.CLIENT_URL || 'https://www.rolerocketai.com').replace(/\/$/, '');
-  const destination = `${fallbackBase}/signup.html`;
+  const destination = `${fallbackBase}/login.html`;
   return res.status(200).send(`<!doctype html>
 <html lang="en">
 <head>
@@ -4880,13 +4880,13 @@ app.get('/rolerocket', (req, res) => {
   <meta property="og:title" content="RoleRocket AI | Your Career Execution System" />
   <meta property="og:description" content="AI-powered job search, resume optimizer, cover letter generator, and interview prep — all in one platform." />
   <meta property="og:url" content="https://www.rolerocketai.com/rolerocket" />
-  <meta property="og:image" content="https://www.rolerocketai.com/assets/og-website-card.svg" />
+  <meta property="og:image" content="https://www.rolerocketai.com/assets/og-website-card.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="RoleRocket AI | Your Career Execution System" />
   <meta name="twitter:description" content="AI-powered job search, resume optimizer, cover letter generator, and interview prep — all in one platform." />
-  <meta name="twitter:image" content="https://www.rolerocketai.com/assets/og-website-card.svg" />
+  <meta name="twitter:image" content="https://www.rolerocketai.com/assets/og-website-card.png" />
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     body{min-height:100vh;display:grid;place-items:center;font-family:'Segoe UI',sans-serif;
