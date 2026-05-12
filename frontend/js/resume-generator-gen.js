@@ -176,6 +176,8 @@ document.addEventListener('DOMContentLoaded', function () {
   const draftStorageKey = 'resume-generator-draft-v1';
   const selectedLearningRoadmapKey = 'learning-selected-roadmap-v1';
   let templateStateReadyPromise = null;
+  const pageQueryParams = new URLSearchParams(window.location.search);
+  const isWhatsAppSourceFlow = String(pageQueryParams.get('source') || '').toLowerCase() === 'whatsapp';
 
   function getAuthToken() {
     return (typeof getStoredToken === 'function' ? getStoredToken() : localStorage.getItem('token')) || '';
@@ -367,6 +369,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function renderLinkedinAdoptionInsights() {
     if (!linkedinAdoptPanel) return;
+
+    if (isWhatsAppSourceFlow) {
+      linkedinAdoptPanel.style.display = 'none';
+      linkedinAdoptPanel.innerHTML = '';
+      return;
+    }
+
+    linkedinAdoptPanel.style.display = '';
 
     const jobTitle = String(document.getElementById('resumeJobTitleGen')?.value || '').trim();
     const company = String(document.getElementById('resumeCompanyGen')?.value || '').trim();
