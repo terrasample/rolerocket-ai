@@ -114,6 +114,87 @@
     if (target) target.textContent = value;
   }
 
+  function escapeHtml(value) {
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/\"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function applyJobMatches(countryCode) {
+    var list = document.getElementById('rrShotJobMatches');
+    if (!list) return;
+
+    var jobsByCountry = {
+      JM: [
+        {
+          title: 'Customer Service Representative',
+          meta: 'Kingston, Jamaica · BPO / Customer Success',
+          href: 'job-search.html?query=Customer%20Service%20Representative&source=market&region=jm'
+        },
+        {
+          title: 'Administrative Assistant',
+          meta: 'Montego Bay, Jamaica · Operations',
+          href: 'job-search.html?query=Administrative%20Assistant&source=market&region=jm'
+        },
+        {
+          title: 'Project Coordinator',
+          meta: 'Portmore, Jamaica · Project Operations',
+          href: 'job-search.html?query=Project%20Coordinator&source=market&region=jm'
+        }
+      ],
+      US: [
+        {
+          title: 'Product Manager',
+          meta: 'Austin, Texas, United States · Product',
+          href: 'job-search.html?query=Product%20Manager&source=market&region=us'
+        },
+        {
+          title: 'AI/ML Engineer',
+          meta: 'Seattle, Washington, United States · Engineering',
+          href: 'job-search.html?query=AI%20ML%20Engineer&source=market&region=us'
+        },
+        {
+          title: 'Software Engineer',
+          meta: 'New York, New York, United States · Engineering',
+          href: 'job-search.html?query=Software%20Engineer&source=market&region=us'
+        }
+      ],
+      GLOBAL: [
+        {
+          title: 'Customer Success Manager',
+          meta: 'Remote · Global Market',
+          href: 'job-search.html?query=Customer%20Success%20Manager&source=market'
+        },
+        {
+          title: 'Data Analyst',
+          meta: 'Hybrid · International Opportunities',
+          href: 'job-search.html?query=Data%20Analyst&source=market'
+        },
+        {
+          title: 'Project Manager',
+          meta: 'Remote · Cross-Region Roles',
+          href: 'job-search.html?query=Project%20Manager&source=market'
+        }
+      ]
+    };
+
+    var jobs = jobsByCountry[countryCode] || jobsByCountry.GLOBAL;
+    list.innerHTML = jobs.map(function (job) {
+      return [
+        '<div class="rr-shot-row">',
+        '  <div>',
+        '    <div class="title">' + escapeHtml(job.title) + '</div>',
+        '    <div class="meta">' + escapeHtml(job.meta) + '</div>',
+        '  </div>',
+        '  <a class="rr-shot-apply" href="' + escapeHtml(job.href) + '">Apply</a>',
+        '</div>'
+      ].join('');
+    }).join('');
+  }
+
   function applyToolCards(countryCode) {
     var toolsWrap = document.getElementById('rrShotTools');
     if (!toolsWrap) return;
@@ -192,6 +273,7 @@
     setHref('rrShotPanelLink', selected.panelLink);
     setText('rrShotMatchLabel', selected.matchLabel);
     setText('rrShotProfileLabel', selected.profileLabel);
+    applyJobMatches(countryCode);
 
     var badge = document.getElementById('rrShotBadge');
     if (badge) {
