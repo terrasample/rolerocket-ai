@@ -523,6 +523,9 @@
         }
         setStoredUser(data.user || { email });
 
+        // Clear any stale country experience cookie on login to ensure first-time gate works
+        document.cookie = 'rr_exp_country=; Max-Age=0; path=/; SameSite=Lax';
+
         // Enforce country-experience choice on first authenticated login before general app navigation.
         // The dashboard has the blocking picker gate when requiresChoice=true.
         const expRes = await fetch(apiUrl('/api/experience/context'), {
