@@ -285,23 +285,142 @@
     applyToolCards(countryCode);
   }
 
+  function applyCountryTheme(countryCode) {
+    var themes = {
+      JM: {
+        primary: '#007A5E',
+        accent: '#FFD700',
+        dark: '#000000',
+        border: 'rgba(0, 122, 94, 0.4)',
+        bg: 'rgba(0, 122, 94, 0.08)',
+        label: '🇯🇲'
+      },
+      US: {
+        primary: '#1D4ED8',
+        accent: '#DC2626',
+        dark: '#1E3A8A',
+        border: 'rgba(29, 78, 216, 0.4)',
+        bg: 'rgba(29, 78, 216, 0.08)',
+        label: '🇺🇸'
+      },
+      GLOBAL: {
+        primary: '#3B82F6',
+        accent: '#06B6D4',
+        dark: '#1E40AF',
+        border: 'rgba(59, 130, 246, 0.4)',
+        bg: 'rgba(59, 130, 246, 0.08)',
+        label: '🌍'
+      }
+    };
+
+    var theme = themes[countryCode] || themes.GLOBAL;
+    document.documentElement.style.setProperty('--rr-exp-primary', theme.primary);
+    document.documentElement.style.setProperty('--rr-exp-accent', theme.accent);
+    document.documentElement.style.setProperty('--rr-exp-dark', theme.dark);
+    document.documentElement.style.setProperty('--rr-exp-border', theme.border);
+    document.documentElement.style.setProperty('--rr-exp-bg', theme.bg);
+    document.documentElement.style.setProperty('--rr-exp-label', '"' + theme.label + '"');
+
+    // Apply theme to buttons and accents
+    var buttons = document.querySelectorAll('.rr-shot-btn, .checkout-btn, .auth-submit-btn');
+    buttons.forEach(function (btn) {
+      if (!btn.getAttribute('data-original-bg')) {
+        btn.setAttribute('data-original-bg', btn.style.background);
+      }
+      btn.style.borderColor = theme.primary;
+      btn.style.background = 'linear-gradient(180deg, ' + theme.primary + ' 0%, ' + theme.dark + ' 100%)';
+    });
+  }
+
+  function createHeaderExperienceSelector(context) {
+    var isDashboard = window.location.pathname.indexOf('dashboard.html') !== -1 || window.location.pathname === '/dashboard';
+    if (!isDashboard || document.getElementById('rrExpHeaderSelector')) return;
+
+    var header = document.querySelector('.rr-shot-header');
+    if (!header) return;
+
+    var selector = document.createElement('div');
+    selector.id = 'rrExpHeaderSelector';
+    selector.style.cssText = 'display:flex;gap:8px;margin-bottom:14px;align-items:center;flex-wrap:wrap;';
+
+    var label = document.createElement('span');
+    label.style.cssText = 'color:#9fb3cf;font-weight:700;font-size:.75rem;letter-spacing:.05em;text-transform:uppercase;margin-right:4px;';
+    label.textContent = 'Experience:';
+
+    (context.supportedCountries || []).forEach(function (country) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'rr-exp-header-btn';
+      btn.setAttribute('data-country', country.code);
+      btn.textContent = country.label;
+      btn.style.cssText = [
+        'padding:6px 12px;',
+        'border-radius:999px;',
+        'border:1px solid;',
+        'font-weight:700;',
+        'font-size:.8rem;',
+        'cursor:pointer;',
+        'transition:all 200ms ease;',
+        country.code === context.effectiveCountry ?
+          'background:var(--rr-exp-primary);color:#fff;border-color:var(--rr-exp-primary);' :
+          'background:transparent;color:#9fb3cf;border-color:rgba(59,130,246,.3);'
+      ].join('');
+
+      btn.addEventListener('click', async function () {
+        var selected = country.code.toUpperCase();
+        btn.disabled = true;
+        var originalText = btn.textContent;
+        btn.textContent = 'Saving...';
+        try {
+          var saved = await savePreference(selected);
+          hideJamaicaElements(saved.showJamaicaHub);
+          applyDashboardVariant(selected);
+          applyCountryTheme(selected);
+          updateHeaderButtonStates(saved.effectiveCountry || selected);
+        } catch (_) {
+          btn.disabled = false;
+          btn.textContent = originalText;
+        }
+      });
+
+      selector.appendChild(btn);
+    });
+
+    selector.insertBefore(label, selector.firstChild);
+    header.insertBefore(selector, header.firstChild);
+
+    updateHeaderButtonStates(context.effectiveCountry || 'GLOBAL');
+  }
+
+  function updateHeaderButtonStates(activeCountry) {
+    var buttons = document.querySelectorAll('.rr-exp-header-btn');
+    buttons.forEach(function (btn) {
+      var isActive = btn.getAttribute('data-country') === activeCountry;
+      btn.style.background = isActive ? 'var(--rr-exp-primary)' : 'transparent';
+      btn.style.color = isActive ? '#fff' : '#9fb3cf';
+      btn.style.borderColor = isActive ? 'var(--rr-exp-primary)' : 'rgba(59,130,246,.3)';
+      btn.disabled = false;
+    });
+  }
+
   function ensureStyle() {
     if (document.getElementById('rrExpCountryStyle')) return;
     var style = document.createElement('style');
     style.id = 'rrExpCountryStyle';
     style.textContent = [
-      '.rr-exp-country-wrap{margin:10px 0 14px;padding:10px;border-radius:10px;background:rgba(15,23,42,.65);border:1px solid rgba(59,130,246,.28);}',
+      ':root{--rr-exp-primary:#3b82f6;--rr-exp-accent:#06b6d4;--rr-exp-dark:#1e40af;--rr-exp-border:rgba(59,130,246,0.4);--rr-exp-bg:rgba(59,130,246,0.08);--rr-exp-label:"🌍";}',
+      '.rr-exp-country-wrap{margin:10px 0 14px;padding:10px;border-radius:10px;background:var(--rr-exp-bg);border:1px solid var(--rr-exp-border);}',
       '.rr-exp-country-wrap label{display:block;color:#a5b4fc;font-weight:700;font-size:.77rem;letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px;}',
       '.rr-exp-country-row{display:flex;gap:8px;align-items:center;}',
       '.rr-exp-country-row select{flex:1;min-width:0;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:8px;padding:8px;}',
-      '.rr-exp-country-row button{border:1px solid #3b82f6;background:#1d4ed8;color:#eff6ff;border-radius:8px;padding:8px 10px;font-weight:700;cursor:pointer;}',
+      '.rr-exp-country-row button{border:1px solid var(--rr-exp-primary);background:var(--rr-exp-primary);color:#fff;border-radius:8px;padding:8px 10px;font-weight:700;cursor:pointer;}',
       '.rr-exp-overlay{position:fixed;inset:0;background:rgba(2,6,23,.85);display:grid;place-items:center;z-index:99999;padding:16px;backdrop-filter:blur(4px);}',
       '.rr-exp-overlay *{pointer-events:auto;}',
-      '.rr-exp-card{width:min(460px,100%);background:linear-gradient(180deg,#0f172a 0%,#111827 100%);border:2px solid rgba(59,130,246,.5);border-radius:14px;padding:20px;color:#e2e8f0;box-shadow:0 20px 50px rgba(2,6,23,.85);position:relative;z-index:100000;}',
+      '.rr-exp-card{width:min(460px,100%);background:linear-gradient(180deg,#0f172a 0%,#111827 100%);border:2px solid var(--rr-exp-primary);border-radius:14px;padding:20px;color:#e2e8f0;box-shadow:0 20px 50px rgba(2,6,23,.85);position:relative;z-index:100000;}',
       '.rr-exp-card h3{margin:0 0 8px;font-size:1.2rem;color:#f8fafc;}',
       '.rr-exp-card p{margin:0 0 14px;color:#cbd5e1;line-height:1.5;}',
       '.rr-exp-card select{width:100%;margin-bottom:12px;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:8px;padding:10px;}',
-      '.rr-exp-card button{width:100%;border:1px solid #3b82f6;background:#1d4ed8;color:#eff6ff;border-radius:8px;padding:10px 12px;font-weight:800;cursor:pointer;transition:all 200ms ease;}'
+      '.rr-exp-card button{width:100%;border:1px solid var(--rr-exp-primary);background:linear-gradient(180deg,var(--rr-exp-primary) 0%,var(--rr-exp-dark) 100%);color:#fff;border-radius:8px;padding:10px 12px;font-weight:800;cursor:pointer;transition:all 200ms ease;}'
     ].join('');
     document.head.appendChild(style);
   }
@@ -347,6 +466,8 @@
         var saved = await savePreference(selected);
         hideJamaicaElements(saved.showJamaicaHub);
         applyDashboardVariant(selected);
+        applyCountryTheme(selected);
+        updateHeaderButtonStates(selected);
         status.textContent = 'Saved';
 
         if (selected !== 'JM' && window.location.pathname.indexOf('jamaica-workforce-accelerator.html') !== -1) {
@@ -417,6 +538,10 @@
         var saved = await savePreference(selected);
         hideJamaicaElements(saved.showJamaicaHub);
         applyDashboardVariant(selected);
+        applyCountryTheme(selected);
+        // Recreate header selector with new context
+        var newContext = Object.assign({}, context, { effectiveCountry: selected, showJamaicaHub: saved.showJamaicaHub });
+        createHeaderExperienceSelector(newContext);
         overlay.remove();
         // Clean up event listeners once modal is closed
         document.removeEventListener('keydown', handleEscape, true);
@@ -478,9 +603,12 @@
     ensureStyle();
     var context = await fetchExperienceContext();
 
+    var effectiveCountry = context.effectiveCountry || 'GLOBAL';
     hideJamaicaElements(context.showJamaicaHub);
-    applyDashboardVariant(context.effectiveCountry || 'GLOBAL');
+    applyDashboardVariant(effectiveCountry);
+    applyCountryTheme(effectiveCountry);
     insertSidebarSwitcher(context);
+    createHeaderExperienceSelector(context);
     showFirstVisitPickerIfNeeded(context);
 
     var onJamaicaPage = window.location.pathname.indexOf('jamaica-workforce-accelerator.html') !== -1;
