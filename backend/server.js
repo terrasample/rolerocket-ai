@@ -4823,11 +4823,15 @@ app.get('/RoleRocketWhatsAppStartLink', (req, res) => {
 });
 
 app.get('/start', (req, res) => {
-  return res.sendFile(path.join(__dirname, '../frontend/whatsapp-start-link.html'));
+  const waLink = getConfiguredWhatsAppShareLink('START');
+  if (!waLink) {
+    return res.redirect(302, 'https://www.rolerocketai.com');
+  }
+  return res.redirect(302, waLink);
 });
 
 app.get('/rolerocket', (req, res) => {
-  return res.sendFile(path.join(__dirname, '../frontend/rolerocket-website-link.html'));
+  return res.redirect(302, 'https://www.rolerocketai.com');
 });
 
 app.get('/api/whatsapp/share-link', (_req, res) => {
