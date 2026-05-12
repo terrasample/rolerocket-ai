@@ -9510,8 +9510,8 @@ app.post('/api/interview-prep', authenticateToken, async (req, res) => {
 app.post('/api/executive-presence/speaking-analysis', authenticateToken, upload.single('media'), async (req, res) => {
   try {
     const user = await User.findById(req.user.userId).select('plan email isAdmin').lean();
-    if (!hasRequiredPlan(user, 'premium')) {
-      return res.status(403).json({ error: 'Upgrade to Premium to use Executive Presence Builder.' });
+    if (!hasRequiredPlan(user, 'elite')) {
+      return res.status(403).json({ error: 'Upgrade to Elite to use Executive Presence Builder.' });
     }
 
     const transcriptInput = String(req.body?.transcript || '').trim();
@@ -9597,8 +9597,8 @@ app.post('/api/executive-presence/speaking-analysis', authenticateToken, upload.
 app.post('/api/executive-presence/answer-rewrite', authenticateToken, async (req, res) => {
   try {
     const user = await User.findById(req.user.userId).select('plan email isAdmin').lean();
-    if (!hasRequiredPlan(user, 'premium')) {
-      return res.status(403).json({ error: 'Upgrade to Premium to use Executive Presence Builder.' });
+    if (!hasRequiredPlan(user, 'elite')) {
+      return res.status(403).json({ error: 'Upgrade to Elite to use Executive Presence Builder.' });
     }
 
     const answer = String(req.body?.answer || '').trim();
@@ -9644,8 +9644,8 @@ app.post('/api/executive-presence/answer-rewrite', authenticateToken, async (req
 app.post('/api/executive-presence/training', authenticateToken, async (req, res) => {
   try {
     const user = await User.findById(req.user.userId).select('plan email isAdmin').lean();
-    if (!hasRequiredPlan(user, 'premium')) {
-      return res.status(403).json({ error: 'Upgrade to Premium to use Executive Presence Builder.' });
+    if (!hasRequiredPlan(user, 'elite')) {
+      return res.status(403).json({ error: 'Upgrade to Elite to use Executive Presence Builder.' });
     }
 
     const scenario = String(req.body?.scenario || '').trim();
@@ -9687,8 +9687,8 @@ app.post('/api/executive-presence/training', authenticateToken, async (req, res)
 app.post('/api/executive-presence/mock-interview', authenticateToken, async (req, res) => {
   try {
     const user = await User.findById(req.user.userId).select('plan email isAdmin').lean();
-    if (!hasRequiredPlan(user, 'premium')) {
-      return res.status(403).json({ error: 'Upgrade to Premium to use Executive Presence Builder.' });
+    if (!hasRequiredPlan(user, 'elite')) {
+      return res.status(403).json({ error: 'Upgrade to Elite to use Executive Presence Builder.' });
     }
 
     const role = String(req.body?.role || '').trim() || 'Manager';
@@ -9754,8 +9754,8 @@ app.post('/api/executive-presence/mock-interview', authenticateToken, async (req
 app.post('/api/executive-presence/structure-coach', authenticateToken, async (req, res) => {
   try {
     const user = await User.findById(req.user.userId).select('plan email isAdmin').lean();
-    if (!hasRequiredPlan(user, 'premium')) {
-      return res.status(403).json({ error: 'Upgrade to Premium to use Executive Presence Builder.' });
+    if (!hasRequiredPlan(user, 'elite')) {
+      return res.status(403).json({ error: 'Upgrade to Elite to use Executive Presence Builder.' });
     }
 
     const framework = String(req.body?.framework || 'star').trim().toUpperCase();
@@ -9796,8 +9796,8 @@ app.post('/api/executive-presence/structure-coach', authenticateToken, async (re
 app.post('/api/executive-presence/writing-assistant', authenticateToken, async (req, res) => {
   try {
     const user = await User.findById(req.user.userId).select('plan email isAdmin').lean();
-    if (!hasRequiredPlan(user, 'premium')) {
-      return res.status(403).json({ error: 'Upgrade to Premium to use Executive Presence Builder.' });
+    if (!hasRequiredPlan(user, 'elite')) {
+      return res.status(403).json({ error: 'Upgrade to Elite to use Executive Presence Builder.' });
     }
 
     const writingType = String(req.body?.writingType || 'email').trim();

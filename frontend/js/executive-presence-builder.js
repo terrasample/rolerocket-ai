@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', function () {
   var SCORE_KEY = 'epb_presence_score_history_v1';
   var PLAN_LEVELS = { free: 0, pro: 1, premium: 2, elite: 3, lifetime: 4 };
-  var requiredPlan = 'premium';
+  var requiredPlan = 'elite';
   var currentPlan = 'free';
   var premiumUnlocked = false;
   var faceMesh = null;
@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var badge = document.getElementById('epbPlanBadge');
     var gate = document.getElementById('epbPlanGate');
     if (badge) {
-      badge.textContent = premiumUnlocked ? ('Premium Unlocked · ' + currentPlan.toUpperCase()) : ('Premium Locked · ' + currentPlan.toUpperCase());
+      badge.textContent = premiumUnlocked ? ('Elite Unlocked · ' + currentPlan.toUpperCase()) : ('Elite Required · ' + currentPlan.toUpperCase());
       badge.classList.toggle('locked', !premiumUnlocked);
     }
     if (gate) gate.classList.toggle('visible', !premiumUnlocked);
