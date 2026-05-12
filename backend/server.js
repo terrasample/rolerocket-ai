@@ -4772,8 +4772,7 @@ app.get('/whatsapp-start', (req, res) => {
 });
 
 app.get('/RoleRocketWhatsAppStartLink', (req, res) => {
-  const prefillText = String(req.query.text || 'START').trim() || 'START';
-  return res.redirect(302, `/whatsapp-start?text=${encodeURIComponent(prefillText)}`);
+  return res.sendFile(path.join(__dirname, '../frontend/whatsapp-start-link.html'));
 });
 
 app.get('/api/whatsapp/share-link', (_req, res) => {
