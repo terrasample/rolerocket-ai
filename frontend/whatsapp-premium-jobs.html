@@ -391,13 +391,33 @@
       }
 
       function normalizeJobLink(rawLink) {
-        const value = String(rawLink || '').trim();
+        const value = String(rawLink || '').trim().replace(/[),.;!?]+$/g, '');
         if (!value || value === '#') return '';
-        if (/^https?:\/\//i.test(value)) return value;
-        if (/^\/\//.test(value)) return `https:${value}`;
-        if (/^www\./i.test(value)) return `https://${value}`;
-        if (/^[a-z0-9.-]+\.[a-z]{2,}(\/|$)/i.test(value)) return `https://${value}`;
-        return '';
+
+        const withProtocol =
+          /^https?:\/\//i.test(value)
+            ? value
+            : /^\/\//.test(value)
+              ? `https:${value}`
+              : /^www\./i.test(value) || /^[a-z0-9.-]+\.[a-z]{2,}(\/|$)/i.test(value)
+                ? `https://${value}`
+                : '';
+
+        if (!withProtocol) return '';
+
+        try {
+          const parsed = new URL(withProtocol);
+          if (!/^https?:$/i.test(parsed.protocol)) return '';
+          if (!parsed.hostname || !parsed.hostname.includes('.')) return '';
+          return parsed.toString();
+        } catch {
+          return '';
+        }
+      }
+
+      function buildGoogleFallbackLink(job) {
+        const q = [job.title, job.company, job.location, 'job'].filter(Boolean).join(' ');
+        return `https://www.google.com/search?q=${encodeURIComponent(q)}`;
       }
 
       function pickDirectJobLink(job) {
@@ -448,7 +468,8 @@
           const title = escapeHtml(job.title || 'Role');
           const company = escapeHtml(job.company || 'Company');
           const location = escapeHtml(job.location || 'Jamaica');
-          const link = pickDirectJobLink(job);
+          const directLink = pickDirectJobLink(job);
+          const link = directLink || buildGoogleFallbackLink(job);
           const summary = escapeHtml(String(job.summary || job.description || '').replace(/\s+/g, ' ').trim().slice(0, 240));
           const posted = postedLabel(job);
 
@@ -460,7 +481,7 @@
               ${summary ? `<p class="meta">${summary}${summary.length >= 240 ? '...' : ''}</p>` : ''}
               <div class="actions">
                 ${/^https?:\/\//i.test(link)
-                  ? `<a class="link-btn" href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer">Open Job Posting</a>`
+                  ? `<a class="link-btn" href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer">${directLink ? 'Open Job Posting' : 'Find Job Posting'}</a>`
                   : '<span class="link-btn" style="opacity:.7;">Link unavailable</span>'}
               </div>
             </article>

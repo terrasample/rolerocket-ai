@@ -2561,13 +2561,20 @@ async function runWhatsAppJobsSearchFlow({ phone, user, convo, title, location, 
 function compactWhatsAppJobUrl(rawUrl = '') {
   const value = String(rawUrl || '').trim();
   if (!value) return '';
+
+  // Trim punctuation that commonly trails copied URLs in text.
+  const trimmed = value.replace(/[),.;!?]+$/g, '');
+
+  const withProtocol = /^[a-z0-9.-]+\.[a-z]{2,}(\/|$)/i.test(trimmed)
+    ? `https://${trimmed}`
+    : trimmed;
+
   try {
-    const parsed = new URL(value);
-    parsed.hash = '';
-    parsed.search = '';
-    return parsed.toString().replace(/\/$/, '');
+    const parsed = new URL(withProtocol);
+    if (!/^https?:$/i.test(parsed.protocol)) return '';
+    return parsed.toString();
   } catch {
-    return value;
+    return '';
   }
 }
 
@@ -3349,7 +3356,13 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
 
   if (convo.currentStep === 'jobs_menu' && ['import', 'import job', 'import jobs'].includes(text)) {
     convo.currentStep = 'jobs_import';
-    const reply = 'Paste the job title, company, and location (or a job URL) and I will save it to your profile.';
+    const premiumImportUrl = `${getPublicAppBaseUrl()}/job-tracking.html?focus=import`;
+    const reply = [
+      'Import & Save Jobs is ready.',
+      `Open: ${premiumImportUrl}`,
+      'Paste a job URL in the Import box and save it to your pipeline.',
+      'Or paste the job URL/details here in WhatsApp and I will save it for you.'
+    ].join('\n');
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
     await convo.save();
