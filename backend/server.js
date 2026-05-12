@@ -2313,8 +2313,8 @@ function getWhatsAppExploreFeaturesText(plan = 'free', language = 'english') {
     `${u(f.learning)} Learning & Courses (Elite)`,
     `${u(f.portfolio)} Portfolio Builder (Elite)`,
     '',
-    upgradeHint || (f.interview ? 'For interview prep, reply INTERVIEW.' : ''),
-    'Reply START to return to the main menu.'
+    upgradeHint || (f.interview ? 'Use the Interview button for interview prep.' : ''),
+    'Use the Main Menu button to return anytime.'
   ].filter(Boolean).join('\n');
 }
 
@@ -3310,7 +3310,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   if (['save cover', 'save letter'].includes(text)) {
     const draft = String(convo.metadata?.context?.lastCoverLetterDraft || '').trim();
     if (!draft) {
-      const reply = 'No cover letter draft found yet. Reply 3 to create one first.';
+      const reply = 'No cover letter draft found yet. Use the Cover Letter button to create one first.';
       convo.lastOutboundMessage = reply;
       convo.lastOutboundAt = new Date();
       await convo.save();
@@ -3328,7 +3328,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
         savedAt: new Date().toISOString()
       }
     ];
-    const reply = 'Saved your cover letter draft. Reply EXPORT COVER to get a copy now.';
+    const reply = 'Saved your cover letter draft. Use the Export Cover action button to get a copy now.';
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
     await convo.save();
@@ -3338,7 +3338,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   if (['export cover', 'export letter', 'export cover letter'].includes(text)) {
     const draft = String(convo.metadata?.context?.lastCoverLetterDraft || '').trim();
     if (!draft) {
-      const reply = 'No cover letter draft available to export yet. Reply 3 to create one.';
+      const reply = 'No cover letter draft available to export yet. Use the Cover Letter button to create one first.';
       convo.lastOutboundMessage = reply;
       convo.lastOutboundAt = new Date();
       await convo.save();
@@ -3351,7 +3351,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       title: String(convo.metadata?.context?.lastCoverLetterTarget || 'RoleRocket Cover Letter').trim() || 'RoleRocket Cover Letter',
       textContent: draft
     });
-    const reply = `${exportResult.ack}\n\nReply SAVE COVER, 1 Jobs, 2 Resume, 4 Explore, or 0 Technical Support.`;
+    const reply = `${exportResult.ack}\n\nUse action buttons: Save Cover, Jobs, Resume, Explore, or Technical Support.`;
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
     await convo.save();
@@ -3361,7 +3361,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   if (['save resume'].includes(text)) {
     const draft = String(convo.metadata?.context?.lastFullResumeDraft || '').trim();
     if (!draft) {
-      const reply = 'No full resume draft found yet. Reply YES first to generate one.';
+      const reply = 'No full resume draft found yet. Use the Full Draft action button first.';
       convo.lastOutboundMessage = reply;
       convo.lastOutboundAt = new Date();
       await convo.save();
@@ -3372,7 +3372,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       content: draft,
       savedAt: new Date().toISOString()
     };
-    const reply = 'Saved your resume draft. Reply EXPORT RESUME to get an export-ready copy.';
+    const reply = 'Saved your resume draft. Use the Export Resume action button for an export-ready copy.';
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
     await convo.save();
@@ -3382,7 +3382,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   if (['export resume', 'export cv'].includes(text)) {
     const draft = String(convo.metadata?.context?.lastFullResumeDraft || '').trim();
     if (!draft) {
-      const reply = 'No resume draft available to export yet. Reply YES first.';
+      const reply = 'No resume draft available to export yet. Use the Full Draft action button first.';
       convo.lastOutboundMessage = reply;
       convo.lastOutboundAt = new Date();
       await convo.save();
@@ -3395,7 +3395,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       title: String(convo.metadata?.context?.lastJobTitle || user.targetJob || 'RoleRocket Resume').trim() || 'RoleRocket Resume',
       textContent: draft
     });
-    const reply = `${exportResult.ack}\n\nReply SAVE RESUME, APPLY READY, 1 Jobs, 3 Cover Letter, 4 Explore, or 0 Technical Support.`;
+    const reply = `${exportResult.ack}\n\nUse action buttons: Save Resume, Apply Ready, Jobs, Cover Letter, Explore, or Technical Support.`;
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
     await convo.save();
@@ -3592,7 +3592,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     await trackWhatsAppTelemetry(phone, 'whatsapp_job_imported', { title: parsed.title, company: parsed.company });
     convo.currentStep = 'jobs_menu';
     const label = [parsed.title, parsed.company].filter(Boolean).join(' @ ') || raw.slice(0, 80);
-    const reply = `Saved: "${label}". Reply SAVE to view all saved jobs, SEARCH to find more, or START for the main menu.`;
+    const reply = `Saved: "${label}". Use the Jobs actions for Saved Jobs, Search, or Main Menu.`;
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
     await convo.save();
@@ -3602,7 +3602,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   if (convo.currentStep === 'jobs_menu' && ['save', 'saved', 'saved jobs', 'my jobs', 'view saved'].includes(textCanonical)) {
     const saved = await Application.find({ userId: phone, status: 'saved' }).sort({ createdAt: -1 }).limit(10).lean();
     if (!saved.length) {
-      const reply = 'No saved jobs yet. Reply SEARCH to find jobs or IMPORT to add one manually.';
+      const reply = 'No saved jobs yet. Use the Jobs actions for Search or Import.';
       convo.lastOutboundMessage = reply;
       convo.lastOutboundAt = new Date();
       await convo.save();
@@ -3611,7 +3611,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     const reply = [
       `Your saved jobs (${saved.length}):`,
       ...saved.map((j, i) => `${i + 1}) ${j.jobTitle || 'Role'}${j.company ? ' @ ' + j.company : ''}`),
-      'Reply SEARCH to find more jobs or START for the main menu.'
+      'Use Jobs actions for Search, or Main Menu to return.'
     ].join('\n');
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
@@ -3630,7 +3630,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       'Resume Generator is ready.',
       `Open: ${resumeUrl}`,
       'Use the web form to generate and export your resume quickly.',
-      'Or continue here: reply UPLOAD to send a resume file, or TYPE to send your work history.'
+      'Or continue here using the UPLOAD or TYPE option buttons.'
     ].join('\n');
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
@@ -3775,7 +3775,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       'Share: target job, location, years exp.',
       alertDelivered
         ? 'Alert sent to support. A recruiter will follow up shortly.'
-        : 'Alert queued for support. Reply HUMAN again if urgent.'
+        : 'Alert queued for support. Use the Human Support button again if urgent.'
     ].join('\n');
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
@@ -3833,7 +3833,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     const picked = Number((text.match(/\d+/) || [])[0]);
     const jobs = Array.isArray(convo.metadata?.lastJobs) ? convo.metadata.lastJobs : [];
     if (!Number.isInteger(picked) || picked < 1 || picked > jobs.length) {
-      const reply = `Reply VIEW 1 through VIEW ${jobs.length || 5} based on the job list shown.`;
+      const reply = `Use the job selection actions for items 1-${jobs.length || 5}.`;
       convo.lastOutboundMessage = reply;
       convo.lastOutboundAt = new Date();
       await convo.save();
@@ -3848,7 +3848,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       String(chosen.location || '').trim() ? `Location: ${String(chosen.location || '').trim()}` : '',
       link ? `Link: ${link}` : 'Link: Not available',
       summary ? `Summary: ${summary.slice(0, 320)}` : '',
-      `Reply APPLY ${picked} to track this role, SAVE JOBS, EMAIL JOBS, VIEW JOBS, or 1 to search again.`
+      `Use actions to Apply, Save Jobs, Email Jobs, View Jobs, or Search Again.`
     ].filter(Boolean).join('\n');
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
@@ -3914,7 +3914,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       return reply;
     }
     if (!userEmail) {
-      const reply = 'No email address found on your profile. Log in at rolerocketai.com to add one, then reply EMAIL JOBS again.';
+      const reply = 'No email address found on your profile. Log in at rolerocketai.com to add one, then use Email Jobs again.';
       convo.lastOutboundMessage = reply;
       convo.lastOutboundAt = new Date();
       await convo.save();
@@ -3958,7 +3958,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     const picked = Number((text.match(/\d+/) || [])[0]);
     const jobs = Array.isArray(convo.metadata?.lastJobs) ? convo.metadata.lastJobs : [];
     if (!Number.isInteger(picked) || picked < 1 || picked > jobs.length) {
-      const reply = `Reply APPLY 1 through APPLY ${jobs.length || 5} based on the job list shown.`;
+      const reply = `Use the Apply action for one of the listed jobs (1-${jobs.length || 5}).`;
       convo.lastOutboundMessage = reply;
       convo.lastOutboundAt = new Date();
       await convo.save();
@@ -3986,7 +3986,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     user.lastIntent = 'status';
     const reply = [
       `Saved: ${chosen.title || 'Role'} @ ${chosen.company || 'Company'} as APPLIED.`,
-      'Reply STATUS for updates in 24h.',
+      'Use Status from the menu for updates in 24h.',
       getWhatsAppOutcomeNudge(phone)
     ].join('\n');
     convo.lastOutboundMessage = reply;
@@ -3999,7 +3999,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     const picked = Number((text.match(/\d+/) || [])[0]);
     const jobs = Array.isArray(convo.metadata?.lastJobs) ? convo.metadata.lastJobs : [];
     if (!Number.isInteger(picked) || picked < 1 || picked > jobs.length) {
-      const reply = `Reply TAILOR 1 through TAILOR ${jobs.length || 5} based on the job list shown.`;
+      const reply = `Use the Tailor action for one of the listed jobs (1-${jobs.length || 5}).`;
       convo.lastOutboundMessage = reply;
       convo.lastOutboundAt = new Date();
       await convo.save();
@@ -4017,7 +4017,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     convo.currentStep = 'job_tailor_choice';
     const reply = [
       `Selected: ${chosen.title || 'Role'} @ ${chosen.company || 'Company'}`,
-      'Reply R for tailored resume, C for tailored cover letter, or B for both.'
+      'Choose an option: Resume, Cover Letter, or Both.'
     ].join('\n');
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
@@ -4187,8 +4187,8 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
 
         const reply = [
           `Great. I tailored both documents for ${pendingTailorJob.title || 'your selected job'}.`,
-          'Reply EXPORT RESUME and EXPORT COVER to get both copies now.',
-          'You can also reply SAVE RESUME or SAVE COVER.'
+          'Use Export Resume and Export Cover action buttons to get both copies now.',
+          'You can also use Save Resume or Save Cover.'
         ].join('\n');
         convo.lastOutboundMessage = reply;
         convo.lastOutboundAt = new Date();
@@ -4197,7 +4197,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       }
 
       convo.currentStep = 'resume_followup';
-      const reply = `${tailoredResume}\n\nReply SAVE RESUME, EXPORT RESUME, APPLY READY, 1 Jobs, 3 Cover Letter, 4 Explore, or 0 Technical Support.`;
+      const reply = `${tailoredResume}\n\nUse action buttons: Save Resume, Export Resume, Apply Ready, Jobs, Cover Letter, Explore, or Technical Support.`;
       convo.lastOutboundMessage = reply;
       convo.lastOutboundAt = new Date();
       await Promise.all([user.save(), convo.save()]);
@@ -4244,7 +4244,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       channel: convo.metadata.context.lastResumeChannel
     });
     const prefix = usedVoiceTranscription ? 'Voice note transcribed.\n' : '';
-    const reply = `${prefix}${rewriteClean}\n\nReply YES for full targeted resume | SAVE RESUME | EXPORT RESUME | APPLY READY | 1 Jobs | 3 Cover Letter | 4 Explore`;
+    const reply = `${prefix}${rewriteClean}\n\nUse action buttons: Full Draft, Save Resume, Export Resume, Apply Ready, Jobs, Cover Letter, or Explore.`;
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
     await Promise.all([user.save(), convo.save()]);
@@ -4255,7 +4255,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     const selectedJob = convo.metadata?.context?.pendingTailorJob;
     if (!selectedJob?.title) {
       convo.currentStep = 'jobs_action';
-      const reply = 'No selected job found. Reply TAILOR 1 or TAILOR 2 from your latest results.';
+      const reply = 'No selected job found. Return to Jobs and choose a role, then use Tailor.';
       convo.lastOutboundMessage = reply;
       convo.lastOutboundAt = new Date();
       await convo.save();
@@ -4267,7 +4267,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     const wantsBoth = ['b', 'both', '3', 'all'].includes(text);
 
     if (!wantsResume && !wantsCover && !wantsBoth) {
-      const reply = 'Reply R for resume, C for cover letter, or B for both.';
+      const reply = 'Choose one option: Resume, Cover Letter, or Both.';
       convo.lastOutboundMessage = reply;
       convo.lastOutboundAt = new Date();
       await convo.save();
@@ -4302,8 +4302,8 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       convo.currentStep = 'resume_followup';
       const reply = [
         'Done. I tailored both documents to your selected job.',
-        'Reply EXPORT RESUME for resume copy and EXPORT COVER for cover letter copy.',
-        'You can also reply SAVE RESUME or SAVE COVER.'
+        'Use Export Resume and Export Cover action buttons for copies.',
+        'You can also use Save Resume or Save Cover.'
       ].join('\n');
       convo.lastOutboundMessage = reply;
       convo.lastOutboundAt = new Date();
@@ -4314,7 +4314,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     if (wantsResume) {
       convo.currentStep = 'resume_followup';
       const draft = String(convo.metadata?.context?.lastFullResumeDraft || '').trim();
-      const reply = `${draft}\n\nReply SAVE RESUME, EXPORT RESUME, APPLY READY, 1 Jobs, 3 Cover Letter, 4 Explore, or 0 Technical Support.`;
+      const reply = `${draft}\n\nUse action buttons: Save Resume, Export Resume, Apply Ready, Jobs, Cover Letter, Explore, or Technical Support.`;
       convo.lastOutboundMessage = reply;
       convo.lastOutboundAt = new Date();
       await convo.save();
@@ -4323,7 +4323,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
 
     convo.currentStep = 'cover_letter_followup';
     const coverDraft = String(convo.metadata?.context?.lastCoverLetterDraft || '').trim();
-    const reply = `${coverDraft}\n\nReply SAVE COVER, EXPORT COVER, 1 Jobs, 2 Resume, 4 Explore, or 0 Technical Support.`;
+    const reply = `${coverDraft}\n\nUse action buttons: Save Cover, Export Cover, Jobs, Resume, Explore, or Technical Support.`;
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
     await convo.save();
