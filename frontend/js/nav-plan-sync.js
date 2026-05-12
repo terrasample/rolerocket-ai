@@ -398,8 +398,28 @@
     }
   }
 
+  function hideJamaicaSectionOnMarketingPages() {
+    // Hide Jamaica hub section on public/marketing pages where it shouldn't appear
+    const currentPage = normalizePath(window.location.href) || 'index.html';
+    const marketingPages = [
+      'index.html',
+      'about-us.html',
+      'features.html',
+      'pricing.html',
+      'contact-us.html',
+      'ai-recruiter-assist.html',
+      'job-tracking.html',
+      'faq.html'
+    ];
+    
+    if (marketingPages.includes(currentPage)) {
+      applyJamaicaHubVisibility(false);
+    }
+  }
+
   function bootstrapNav() {
     decorateSidebarNav();
+    hideJamaicaSectionOnMarketingPages();
     syncNavPlan();
   }
 
