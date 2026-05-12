@@ -17,7 +17,7 @@ workflows:
 
     triggering:
       events:
-        - manual
+        - push
       cancel_previous_builds: true
 
     scripts:
