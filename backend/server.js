@@ -2242,7 +2242,7 @@ function detectWhatsAppIntent(text = '') {
   if (/\bjob|jobs|apply|vacanc|hiring|position\b/.test(normalized)) score.jobs += 3;
   if (/\bresume|cv|experience|work history|rewrite\b/.test(normalized)) score.resume += 3;
   if (/\bcover\s*letter|coverletter|letter\b/.test(normalized)) score.coverLetter += 3;
-  if (/\bexplore|features|other features|upgrade|plan\b/.test(normalized)) score.explore += 3;
+  if (/\bexplore|features|other\s*features|upgrade|plan|paid\b/.test(normalized)) score.explore += 3;
   if (/\binterview|prep|question|mock\b/.test(normalized)) score.interview += 3;
   if (/\bstatus|tracked|application\b/.test(normalized)) score.status += 3;
   if (/\bhuman|agent|support|live\b/.test(normalized)) score.human += 3;
@@ -3572,7 +3572,8 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   const isJobsIntent = !lockMenuIntentRouting && (text === '1' || (detectedIntent.intent === 'jobs' && !text.startsWith('apply')));
   const isResumeIntent = !lockMenuIntentRouting && !isFollowupSaveExportCommand && (text === '2' || detectedIntent.intent === 'resume');
   const isCoverLetterIntent = !lockMenuIntentRouting && !isFollowupSaveExportCommand && (text === '3' || detectedIntent.intent === 'coverLetter');
-  const isExploreIntent = !lockMenuIntentRouting && (text === '4' || detectedIntent.intent === 'explore');
+  // Explore intent: match '4', detected explore, or button text containing 'explore' + 'features'/'paid' (for interactive template buttons)
+  const isExploreIntent = !lockMenuIntentRouting && (text === '4' || detectedIntent.intent === 'explore' || (/\bexplore\b/.test(String(text).toLowerCase()) && /\b(features|paid|upgrade)\b/.test(String(text).toLowerCase())));
   const isInterviewIntent = !lockMenuIntentRouting && (text === 'interview' || detectedIntent.intent === 'interview');
   const isStatusIntent = !lockMenuIntentRouting && (text === 'status' || detectedIntent.intent === 'status');
   const isHumanIntent = strictHumanIntent;
