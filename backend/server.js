@@ -4548,6 +4548,17 @@ const DEFAULT_INSTITUTION_TRIAL_DAYS = Math.max(1, Number(process.env.INSTITUTIO
 const E2E_MOCK_MODE = process.env.E2E_MOCK === '1';
 const DB_DIAGNOSTIC_TOKEN = String(process.env.DB_DIAGNOSTIC_TOKEN || '').trim();
 
+function getConfiguredWhatsAppShareLink(defaultText = 'START') {
+  const configured = String(process.env.TWILIO_WHATSAPP_NUMBER || process.env.TWILIO_PHONE_NUMBER || '').trim();
+  if (!configured) return '';
+
+  const normalized = configured.replace(/^whatsapp:/i, '');
+  const digits = normalized.replace(/[^0-9]/g, '');
+  if (!digits) return '';
+
+  return `https://wa.me/${digits}?text=${encodeURIComponent(String(defaultText || 'START'))}`;
+}
+
 let lastDbEvent = {
   type: 'startup',
   message: 'Mongo not connected yet',
@@ -4659,6 +4670,24 @@ app.get('/index.html', (_req, res) => {
   res.set('Pragma', 'no-cache');
   res.set('Expires', '0');
   return res.sendFile(path.join(__dirname, '../frontend/index.html'));
+});
+
+app.get('/whatsapp-start', (req, res) => {
+  const prefillText = String(req.query.text || 'START').trim() || 'START';
+  const waLink = getConfiguredWhatsAppShareLink(prefillText);
+  if (!waLink) {
+    const fallbackBase = String(process.env.CLIENT_URL || 'https://www.rolerocketai.com').replace(/\/$/, '');
+    return res.redirect(302, `${fallbackBase}/login.html`);
+  }
+  return res.redirect(302, waLink);
+});
+
+app.get('/api/whatsapp/share-link', (_req, res) => {
+  const waLink = getConfiguredWhatsAppShareLink('START');
+  if (!waLink) {
+    return res.status(404).json({ error: 'WhatsApp sender number is not configured.' });
+  }
+  return res.json({ link: waLink });
 });
 
 app.use(express.static(path.join(__dirname, '../frontend'), {
