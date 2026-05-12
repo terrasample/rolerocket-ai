@@ -1806,10 +1806,13 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
     const isPureJobsMenu = !lastMsg || lastMsg.startsWith('What would you like to do');
     const result = await sendWhatsAppContentTemplate({ to: from, contentSid: jobsMenuContentSid });
     if (!result?.success) return false;
+    let backMenuSent = false;
     if (backMenuContentSid) {
-      await sendWhatsAppContentTemplate({ to: from, contentSid: backMenuContentSid });
+      const backResult = await sendWhatsAppContentTemplate({ to: from, contentSid: backMenuContentSid });
+      backMenuSent = !!backResult?.success;
     }
-    return isPureJobsMenu ? 'suppress' : 'keep';
+    // Only suppress the text-only fallback when Main Menu button delivery is confirmed.
+    return isPureJobsMenu && backMenuSent ? 'suppress' : 'keep';
   }
 
   if (step === 'jobs_action' && jobsActionContentSid) {
@@ -3284,7 +3287,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     convo.lastIntent = 'jobs';
     convo.currentStep = 'jobs_menu';
     await trackWhatsAppTelemetry(phone, 'whatsapp_jobs_menu_enter', {});
-    const reply = 'What would you like to do? Reply SEARCH, IMPORT, or SAVE.';
+    const reply = 'What would you like to do with jobs? Use SEARCH, IMPORT, SAVE, or MAIN MENU.';
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
     await Promise.all([user.save(), convo.save()]);
