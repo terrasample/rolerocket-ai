@@ -7,6 +7,7 @@
     "start": "node server.js",
     "test": "node tests/core-flows.e2e.js",
     "test:e2e": "node tests/core-flows.e2e.js",
+    "test:experience-country": "node tests/experience-country-smoke.js",
     "a11y:audit": "node scripts/a11y-audit.js",
     "invite:create": "node scripts/create-institution-invite.js",
     "email:welcome:dry": "node scripts/send-welcome-campaign.js",
