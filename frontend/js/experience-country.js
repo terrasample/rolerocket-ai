@@ -39,10 +39,7 @@
       supportedCountries: [
         { code: 'GLOBAL', label: 'Global' },
         { code: 'JM', label: 'Jamaica' },
-        { code: 'US', label: 'United States' },
-        { code: 'DE', label: 'Germany' },
-        { code: 'NG', label: 'Nigeria' },
-        { code: 'AW', label: 'Aruba' }
+        { code: 'US', label: 'United States' }
       ]
     };
   }
@@ -137,24 +134,6 @@
         { href: 'interview-prep-ai.html', title: '🧠 US Interview Simulator', sub: 'Practice behavioral and technical interviews in the US hiring style.' },
         { href: 'resume-generator.html', title: '📄 US Resume Builder', sub: 'Generate concise US-format resumes with measurable impact bullets.' }
       ],
-      DE: [
-        { href: 'job-search.html?source=market&region=de', title: '🇩🇪 Germany Career Navigator', sub: 'Focus on Germany talent demand, role families, and relocation-ready pathways.' },
-        { href: 'job-alerts-sms.html', title: '📲 Germany Job Alerts', sub: 'Get alerts for Germany opportunities in engineering, IT, and operations.' },
-        { href: 'interview-prep-ai.html', title: '🗣️ Germany Interview Prep', sub: 'Prepare for structured interviews and practical skill validation.' },
-        { href: 'resume-generator.html', title: '📄 CV Builder (Germany)', sub: 'Build a clear, role-targeted CV aligned to German recruiter expectations.' }
-      ],
-      NG: [
-        { href: 'job-search.html?source=market&region=ng', title: '🇳🇬 Nigeria Growth Hub', sub: 'Discover top hiring sectors, growth roles, and emerging opportunities in Nigeria.' },
-        { href: 'job-alerts-sms.html', title: '📲 Nigeria Job Alerts', sub: 'Receive fast alerts for Lagos, Abuja, Port Harcourt, and remote roles.' },
-        { href: 'interview-prep-ai.html', title: '🎯 Interview Prep (Nigeria)', sub: 'Train for local and international interview formats with practical prompts.' },
-        { href: 'resume-generator.html', title: '📄 Resume Builder (Nigeria)', sub: 'Create a modern, metrics-first resume adapted for Nigerian recruiters.' }
-      ],
-      AW: [
-        { href: 'job-search.html?source=market&region=aw', title: '🇦🇼 Aruba Career Paths', sub: 'Explore Aruba opportunities across tourism, operations, and digital roles.' },
-        { href: 'job-alerts-sms.html', title: '📲 Aruba Job Alerts', sub: 'Stay notified on local openings and Caribbean-linked opportunities.' },
-        { href: 'interview-prep-ai.html', title: '🧭 Aruba Interview Prep', sub: 'Practice concise answers for customer-facing and service-focused interviews.' },
-        { href: 'resume-generator.html', title: '📄 Aruba Resume Builder', sub: 'Build a polished CV for Aruba and wider Caribbean employer expectations.' }
-      ],
       GLOBAL: [
         { href: 'job-search.html?source=market', title: '🌍 Global Opportunity Scanner', sub: 'Search opportunities across regions and industries with one workflow.' },
         { href: 'job-alerts-sms.html', title: '📲 Global Job Alerts', sub: 'Get role alerts tuned to your skills and preferred locations.' },
@@ -194,30 +173,6 @@
         panelTitle: 'Top Job Matches for the United States',
         panelLink: 'job-search.html?source=market&region=us',
         matchLabel: 'US Match Score',
-        profileLabel: 'Profile Strength'
-      },
-      DE: {
-        badge: '🇩🇪 Germany Experience',
-        lead: "Here's your Germany-market career progress today.",
-        panelTitle: 'Top Job Matches for Germany',
-        panelLink: 'job-search.html?source=market&region=de',
-        matchLabel: 'Germany Match Score',
-        profileLabel: 'Profile Strength'
-      },
-      NG: {
-        badge: '🇳🇬 Nigeria Experience',
-        lead: "Here's your Nigeria-market career progress today.",
-        panelTitle: 'Top Job Matches for Nigeria',
-        panelLink: 'job-search.html?source=market&region=ng',
-        matchLabel: 'Nigeria Match Score',
-        profileLabel: 'Profile Strength'
-      },
-      AW: {
-        badge: '🇦🇼 Aruba Experience',
-        lead: "Here's your Aruba-market career progress today.",
-        panelTitle: 'Top Job Matches for Aruba',
-        panelLink: 'job-search.html?source=market&region=aw',
-        matchLabel: 'Aruba Match Score',
         profileLabel: 'Profile Strength'
       },
       GLOBAL: {

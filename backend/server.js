@@ -125,10 +125,7 @@ app.get('/api/me', async (req, res) => {
 const SUPPORTED_EXPERIENCE_COUNTRIES = [
   { code: 'GLOBAL', label: 'Global' },
   { code: 'JM', label: 'Jamaica' },
-  { code: 'US', label: 'United States' },
-  { code: 'DE', label: 'Germany' },
-  { code: 'NG', label: 'Nigeria' },
-  { code: 'AW', label: 'Aruba' }
+  { code: 'US', label: 'United States' }
 ];
 
 const EXPERIENCE_COUNTRY_CODES = new Set(SUPPORTED_EXPERIENCE_COUNTRIES.map((item) => item.code));
