@@ -1970,13 +1970,12 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
     const isPureJobsMenu = !lastMsg || lastMsg.startsWith('What would you like to do');
     const result = await sendWhatsAppContentTemplate({ to: from, contentSid: jobsMenuContentSid });
     if (!result?.success) return false;
-    let backMenuSent = false;
+    // Always try to send Main Menu back button; suppress even if it fails (interactive template is sufficient)
     if (backMenuContentSid) {
-      const backResult = await sendWhatsAppContentTemplate({ to: from, contentSid: backMenuContentSid });
-      backMenuSent = !!backResult?.success;
+      await sendWhatsAppContentTemplate({ to: from, contentSid: backMenuContentSid }).catch(() => {});
     }
-    // Only suppress the text-only fallback when Main Menu button delivery is confirmed.
-    return isPureJobsMenu && backMenuSent ? 'suppress' : 'keep';
+    // Suppress text fallback when entering jobs menu fresh; keep rich context text on return from sub-action
+    return isPureJobsMenu ? 'suppress' : 'keep';
   }
 
   if (step === 'jobs_action' && jobsActionContentSid) {
@@ -3567,7 +3566,9 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   const detectedIntent = detectWhatsAppIntent(text);
   const isFollowupSaveExportCommand = /^(save|export)\b/.test(text);
   const strictHumanIntent = ['0', 'human', 'agent', 'support', 'human support', 'live agent', 'live support'].includes(text);
-  const lockMenuIntentRouting = ['resume_capture', 'cover_letter_capture', 'job_tailor_choice', 'interview_target', 'jobs_menu', 'jobs_import', 'jobs_role_input', 'jobs_parish_select'].includes(String(convo.currentStep || ''));
+  // jobs_menu is a navigation step — not a data-capture step — so resume/cover/explore intents can break out of it freely.
+  // Only true data-capture steps (where a typed response is expected) should be locked.
+  const lockMenuIntentRouting = ['resume_capture', 'cover_letter_capture', 'job_tailor_choice', 'interview_target', 'jobs_import', 'jobs_role_input', 'jobs_parish_select'].includes(String(convo.currentStep || ''));
   const isJobsIntent = !lockMenuIntentRouting && (text === '1' || (detectedIntent.intent === 'jobs' && !text.startsWith('apply')));
   const isResumeIntent = !lockMenuIntentRouting && !isFollowupSaveExportCommand && (text === '2' || detectedIntent.intent === 'resume');
   const isCoverLetterIntent = !lockMenuIntentRouting && !isFollowupSaveExportCommand && (text === '3' || detectedIntent.intent === 'coverLetter');
