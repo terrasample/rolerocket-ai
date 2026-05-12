@@ -791,6 +791,60 @@
             return remoteOnly;
           };
 
+          var US_STATE_NAMES = {
+            al: 'alabama', ak: 'alaska', az: 'arizona', ar: 'arkansas', ca: 'california', co: 'colorado', ct: 'connecticut',
+            de: 'delaware', fl: 'florida', ga: 'georgia', hi: 'hawaii', id: 'idaho', il: 'illinois', in: 'indiana',
+            ia: 'iowa', ks: 'kansas', ky: 'kentucky', la: 'louisiana', me: 'maine', md: 'maryland', ma: 'massachusetts',
+            mi: 'michigan', mn: 'minnesota', ms: 'mississippi', mo: 'missouri', mt: 'montana', ne: 'nebraska', nv: 'nevada',
+            nh: 'new hampshire', nj: 'new jersey', nm: 'new mexico', ny: 'new york', nc: 'north carolina', nd: 'north dakota',
+            oh: 'ohio', ok: 'oklahoma', or: 'oregon', pa: 'pennsylvania', ri: 'rhode island', sc: 'south carolina',
+            sd: 'south dakota', tn: 'tennessee', tx: 'texas', ut: 'utah', vt: 'vermont', va: 'virginia', wa: 'washington',
+            wv: 'west virginia', wi: 'wisconsin', wy: 'wyoming', dc: 'district of columbia'
+          };
+
+          var parseUSLocationPreference = function(raw) {
+            var value = String(raw || '').trim();
+            if (!value) return null;
+            var lower = value.toLowerCase();
+            if (lower === 'remote' || lower === 'united states' || lower === 'usa') return null;
+
+            var stateCode = '';
+            var stateName = '';
+            var city = value;
+
+            var matchCode = value.match(/,\s*([A-Za-z]{2})(?:\b|\s|$)/);
+            if (matchCode) {
+              stateCode = String(matchCode[1] || '').toLowerCase();
+              stateName = US_STATE_NAMES[stateCode] || '';
+              city = value.slice(0, matchCode.index).trim();
+            } else {
+              var stateKeys = Object.keys(US_STATE_NAMES);
+              for (var sk = 0; sk < stateKeys.length; sk += 1) {
+                var code = stateKeys[sk];
+                var name = US_STATE_NAMES[code];
+                var hasName = new RegExp('\\b' + name.replace(/\s+/g, '\\s*') + '\\b', 'i').test(value);
+                if (hasName) {
+                  stateCode = code;
+                  stateName = name;
+                  city = value.replace(new RegExp(',?\\s*' + name + '$', 'i'), '').trim();
+                  break;
+                }
+              }
+            }
+
+            if (!stateCode && !stateName) return null;
+            return {
+              raw: value,
+              city: String(city || '').toLowerCase().trim(),
+              stateCode: stateCode,
+              stateName: stateName
+            };
+          };
+
+          var usPrefLocation = null;
+          var usLocationScope = 'strict-local';
+          var isUSLocalityMatch = function() { return true; };
+
           var list = document.getElementById('rrShotJobMatches');
           var panelLink = document.getElementById('rrShotPanelLink');
           if (list) {
@@ -906,6 +960,66 @@
                 : (jad.location && jad.location !== 'Remote') ? jad.location : (isUSExperience ? 'United States' : 'Remote');
               var scoutRadiusMiles = Number(jad.searchRadius) > 0 ? Number(jad.searchRadius) : 100;
 
+              if (isUSExperience) {
+                var scopeFromProfile = String(jad.locationScope || '').toLowerCase().trim();
+                var scopeFromQuery = String(params.get('locationScope') || '').toLowerCase().trim();
+                var normalizedScope = scopeFromProfile || scopeFromQuery;
+                if (normalizedScope === 'nearby' || normalizedScope === 'nearby-radius') usLocationScope = 'nearby-radius';
+                if (normalizedScope === 'nationwide' || normalizedScope === 'nationwide-us') usLocationScope = 'nationwide-us';
+
+                usPrefLocation = parseUSLocationPreference(scoutLocation);
+                isUSLocalityMatch = function(job) {
+                  if (usLocationScope === 'nationwide-us') return true;
+                  if (!usPrefLocation) return true;
+                  var haystack = [job && job.location, job && job.description, job && job.workMode, job && job.remoteType].join(' ').toLowerCase();
+                  if (/\bremote\b|work\s*from\s*home|distributed/.test(haystack)) return true;
+
+                  var stateMatch = false;
+                  if (usPrefLocation.stateCode && new RegExp('\\b' + usPrefLocation.stateCode + '\\b', 'i').test(haystack)) stateMatch = true;
+                  if (!stateMatch && usPrefLocation.stateName && new RegExp('\\b' + usPrefLocation.stateName.replace(/\s+/g, '\\s*') + '\\b', 'i').test(haystack)) stateMatch = true;
+
+                  if (!stateMatch && usLocationScope === 'nearby-radius') {
+                    var nearbyByState = {
+                      ny: ['new jersey', 'connecticut', 'pennsylvania'],
+                      nj: ['new york', 'pennsylvania', 'connecticut'],
+                      ct: ['new york', 'new jersey', 'massachusetts'],
+                      pa: ['new york', 'new jersey', 'maryland', 'delaware'],
+                      fl: ['georgia', 'alabama'],
+                      ga: ['florida', 'south carolina', 'north carolina', 'tennessee', 'alabama']
+                    };
+                    var nearbyStates = nearbyByState[usPrefLocation.stateCode] || [];
+                    stateMatch = nearbyStates.some(function(stateName) {
+                      return new RegExp('\\b' + stateName.replace(/\s+/g, '\\s*') + '\\b', 'i').test(haystack);
+                    });
+                  }
+
+                  if (!stateMatch) return false;
+
+                  // NYC borough normalization: Bronx users should still see NYC borough roles.
+                  if (usLocationScope === 'strict-local' && usPrefLocation.stateCode === 'ny') {
+                    var nycSignal = /\b(new\s*york\s*city|nyc|new\s*york|manhattan|brooklyn|queens|bronx|staten\s*island)\b/i;
+                    var citySignal = usPrefLocation.city ? new RegExp('\\b' + usPrefLocation.city.replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, '\\s*') + '\\b', 'i') : null;
+                    return nycSignal.test(haystack) || (citySignal ? citySignal.test(haystack) : true);
+                  }
+
+                  return true;
+                };
+
+                var scopeLabelMap = {
+                  'strict-local': 'Strict Local Matches',
+                  'nearby-radius': 'Nearby Radius Matches',
+                  'nationwide-us': 'Nationwide US Matches'
+                };
+                var matchScopeHint = document.getElementById('rrShotProfileHint');
+                if (matchScopeHint) {
+                  var scopeText = scopeLabelMap[usLocationScope] || scopeLabelMap['strict-local'];
+                  var existingHtml = matchScopeHint.innerHTML || '';
+                  var scopeBadge = '<span style="display:inline-block;margin-right:8px;padding:2px 8px;border-radius:999px;border:1px solid rgba(59,130,246,.45);background:rgba(37,99,235,.15);color:#bfdbfe;font-size:12px;font-weight:700;">' + scopeText + '</span>';
+                  matchScopeHint.innerHTML = scopeBadge + existingHtml;
+                  matchScopeHint.style.display = 'block';
+                }
+              }
+
               if (panelLink && !forcedJamaicaMode) {
                 panelLink.href = 'job-search.html?query=' + encodeURIComponent(primaryScoutTitle) + '&location=' + encodeURIComponent(scoutLocation) + '&source=market';
               }
@@ -1005,6 +1119,7 @@
 
               if (isUSExperience) {
                 scoutJobs = scoutJobs.filter(isUSCompatibleJob);
+                scoutJobs = scoutJobs.filter(isUSLocalityMatch);
               }
 
               // Remove geographically irrelevant outlier locations unless the user
@@ -1131,7 +1246,7 @@
                 scopedJobs = ranked.slice(0, 6).map(function(item) { return item.job; });
               }
 
-              if (!scopedJobs.length) scopedJobs = jobs.filter(jobMeetsSalaryFloor).filter(isUSCompatibleJob).slice(0, 6);
+              if (!scopedJobs.length) scopedJobs = jobs.filter(jobMeetsSalaryFloor).filter(isUSCompatibleJob).filter(isUSLocalityMatch).slice(0, 6);
 
               if (scopedJobs.length) {
                 list.innerHTML = scopedJobs.map(function(j) {
@@ -1155,7 +1270,7 @@
                 var min = Number((job.salaryRange && job.salaryRange.min) || job.salaryMin || 0);
                 if (max <= 0 && min <= 0) return true;
                 return Math.max(max, min) >= prefSalaryMin;
-              }).filter(isUSCompatibleJob).slice(0, 6);
+              }).filter(isUSCompatibleJob).filter(isUSLocalityMatch).slice(0, 6);
               if (fallback.length) {
                 list.innerHTML = fallback.map(function(j) {
                   var applyLink = (j.link && /^https?:\/\//i.test(String(j.link).trim())) ? String(j.link).trim()
