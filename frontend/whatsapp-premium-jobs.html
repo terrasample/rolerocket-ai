@@ -344,6 +344,22 @@
       const statusText = document.getElementById('statusText');
       const resultsEl = document.getElementById('results');
       const resultCount = document.getElementById('resultCount');
+      const PARISH_ALIASES = {
+        'Kingston': ['kingston'],
+        'St. Andrew': ['st andrew', 'st. andrew', 'saint andrew'],
+        'St. Catherine': ['st catherine', 'st. catherine', 'saint catherine', 'portmore', 'spanish town'],
+        'St. James': ['st james', 'st. james', 'saint james', 'montego bay', 'mobay'],
+        'Trelawny': ['trelawny', 'falmouth'],
+        'St. Ann': ['st ann', 'st. ann', 'saint ann', 'ocho rios'],
+        'St. Mary': ['st mary', 'st. mary', 'saint mary', 'port maria'],
+        'Portland': ['portland', 'port antonio'],
+        'Hanover': ['hanover', 'lucea'],
+        'Westmoreland': ['westmoreland', 'savanna la mar', 'sav-la-mar', 'negril'],
+        'St. Elizabeth': ['st elizabeth', 'st. elizabeth', 'saint elizabeth', 'black river', 'treasure beach'],
+        'Manchester': ['manchester', 'mandeville'],
+        'Clarendon': ['clarendon', 'may pen'],
+        'St. Thomas': ['st thomas', 'st. thomas', 'saint thomas', 'morant bay']
+      };
 
       function escapeHtml(value) {
         return String(value || '')
@@ -366,6 +382,59 @@
         return 'Recent post';
       }
 
+      function normalizeText(value) {
+        return String(value || '')
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+      }
+
+      function normalizeJobLink(rawLink) {
+        const value = String(rawLink || '').trim();
+        if (!value || value === '#') return '';
+        if (/^https?:\/\//i.test(value)) return value;
+        if (/^\/\//.test(value)) return `https:${value}`;
+        if (/^www\./i.test(value)) return `https://${value}`;
+        if (/^[a-z0-9.-]+\.[a-z]{2,}(\/|$)/i.test(value)) return `https://${value}`;
+        return '';
+      }
+
+      function pickDirectJobLink(job) {
+        const candidates = [
+          job.postingUrl,
+          job.posting_url,
+          job.jobUrl,
+          job.job_url,
+          job.applyUrl,
+          job.apply_url,
+          job.applyLink,
+          job.absolute_url,
+          job.hostedUrl,
+          job.url,
+          job.link,
+          job.redirect_url
+        ];
+
+        for (const candidate of candidates) {
+          const normalized = normalizeJobLink(candidate);
+          if (normalized) return normalized;
+        }
+        return '';
+      }
+
+      function matchesSelectedParish(job, parish) {
+        const selectedParish = String(parish || '').trim();
+        if (!selectedParish) return true;
+
+        const aliases = PARISH_ALIASES[selectedParish] || [selectedParish];
+        const haystack = normalizeText(`${job.location || ''} ${job.description || ''} ${job.company || ''}`);
+        return aliases.some((alias) => {
+          const token = normalizeText(alias);
+          return token && haystack.includes(token);
+        });
+      }
+
       function renderJobs(jobs) {
         const safeJobs = Array.isArray(jobs) ? jobs : [];
         resultCount.textContent = `${safeJobs.length} match${safeJobs.length === 1 ? '' : 'es'}`;
@@ -379,7 +448,7 @@
           const title = escapeHtml(job.title || 'Role');
           const company = escapeHtml(job.company || 'Company');
           const location = escapeHtml(job.location || 'Jamaica');
-          const link = String(job.link || job.url || '').trim();
+          const link = pickDirectJobLink(job);
           const summary = escapeHtml(String(job.summary || job.description || '').replace(/\s+/g, ' ').trim().slice(0, 240));
           const posted = postedLabel(job);
 
@@ -421,8 +490,13 @@
             throw new Error(data.error || 'Search failed. Please try again.');
           }
 
-          renderJobs(data.jobs || []);
-          statusText.textContent = `Showing premium matches for ${title} in ${parish}.`;
+          const jobs = Array.isArray(data.jobs) ? data.jobs : [];
+          const strictParishJobs = jobs.filter((job) => matchesSelectedParish(job, parish));
+          renderJobs(strictParishJobs);
+          const filteredOut = Math.max(jobs.length - strictParishJobs.length, 0);
+          statusText.textContent = filteredOut > 0
+            ? `Showing ${strictParishJobs.length} parish-matched jobs for ${title} in ${parish} (${filteredOut} out-of-parish results hidden).`
+            : `Showing premium matches for ${title} in ${parish}.`;
         } catch (error) {
           statusText.textContent = error.message || 'Could not load matches right now.';
           renderJobs([]);
