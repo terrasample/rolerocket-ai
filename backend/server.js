@@ -4822,6 +4822,10 @@ app.get('/RoleRocketWhatsAppStartLink', (req, res) => {
   return res.sendFile(path.join(__dirname, '../frontend/whatsapp-start-link.html'));
 });
 
+app.get('/start', (req, res) => {
+  return res.sendFile(path.join(__dirname, '../frontend/whatsapp-start-link.html'));
+});
+
 app.get('/api/whatsapp/share-link', (_req, res) => {
   const waLink = getConfiguredWhatsAppShareLink('START');
   if (!waLink) {
