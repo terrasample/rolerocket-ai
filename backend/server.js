@@ -2585,7 +2585,7 @@ function getWhatsAppStepPrompt(step = '', user = {}, convo = {}) {
       'Resume Generator is ready.',
       `Open: ${resumeUrl}`,
       'Use the web form to generate and export your resume quickly.',
-      'Or continue here: tap UPLOAD to send a resume file, or TYPE to send your work history.'
+      'Or continue here: reply UPLOAD to send a resume file, or TYPE to send your work history.'
     ].join('\n');
   }
   if (safeStep === 'resume_capture') return 'Send your resume as a PDF/Word file or share your recent work history (text/voice).';
@@ -3793,7 +3793,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       'Resume Generator is ready.',
       `Open: ${resumeUrl}`,
       'Use the web form to generate and export your resume quickly.',
-      'Or continue here using the UPLOAD or TYPE option buttons.'
+      'Or continue here by replying UPLOAD or TYPE.'
     ].join('\n');
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
@@ -4257,7 +4257,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     }
 
     // Unrecognised — re-prompt
-    const reply = 'Please choose one of the interactive options above.';
+    const reply = 'Please reply with UPLOAD or TYPE to continue.';
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
     await convo.save();
