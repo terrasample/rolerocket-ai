@@ -101,6 +101,152 @@
     });
   }
 
+  function setText(id, value) {
+    var el = document.getElementById(id);
+    if (el && typeof value === 'string') el.textContent = value;
+  }
+
+  function setHref(id, value) {
+    var el = document.getElementById(id);
+    if (el && typeof value === 'string') el.setAttribute('href', value);
+  }
+
+  function setByClassValue(container, className, value) {
+    if (!container || typeof value !== 'string') return;
+    var target = container.querySelector('.' + className);
+    if (target) target.textContent = value;
+  }
+
+  function applyToolCards(countryCode) {
+    var toolsWrap = document.getElementById('rrShotTools');
+    if (!toolsWrap) return;
+
+    var cards = toolsWrap.querySelectorAll('.rr-shot-tool');
+    if (!cards || cards.length < 4) return;
+
+    var cardConfigs = {
+      JM: [
+        { href: 'jamaica-workforce-accelerator.html', title: '🇯🇲 Jamaica Workforce Accelerator', sub: 'Explore Jamaica job trends, market radar, and local opportunity pathways.' },
+        { href: 'job-alerts-sms.html', title: '📱 Jamaica Job Alerts', sub: 'Get SMS and WhatsApp alerts for Kingston, Montego Bay, Portmore, and more.' },
+        { href: 'interview-prep-ai.html', title: '🎤 Interview Prep', sub: 'Practice smart questions and answers for Jamaican and Caribbean job roles.' },
+        { href: 'resume-generator.html', title: '📄 Resume Generator', sub: 'Build an ATS-ready resume tailored for Jamaican employers and regional roles.' }
+      ],
+      US: [
+        { href: 'job-search.html?source=market&region=us', title: '🇺🇸 US Opportunity Finder', sub: 'Track in-demand US roles, salary bands, and remote-friendly openings.' },
+        { href: 'job-alerts-sms.html', title: '📲 US Job Alerts', sub: 'Receive role alerts tuned for major US hiring hubs and remote-first teams.' },
+        { href: 'interview-prep-ai.html', title: '🧠 US Interview Simulator', sub: 'Practice behavioral and technical interviews in the US hiring style.' },
+        { href: 'resume-generator.html', title: '📄 US Resume Builder', sub: 'Generate concise US-format resumes with measurable impact bullets.' }
+      ],
+      DE: [
+        { href: 'job-search.html?source=market&region=de', title: '🇩🇪 Germany Career Navigator', sub: 'Focus on Germany talent demand, role families, and relocation-ready pathways.' },
+        { href: 'job-alerts-sms.html', title: '📲 Germany Job Alerts', sub: 'Get alerts for Germany opportunities in engineering, IT, and operations.' },
+        { href: 'interview-prep-ai.html', title: '🗣️ Germany Interview Prep', sub: 'Prepare for structured interviews and practical skill validation.' },
+        { href: 'resume-generator.html', title: '📄 CV Builder (Germany)', sub: 'Build a clear, role-targeted CV aligned to German recruiter expectations.' }
+      ],
+      NG: [
+        { href: 'job-search.html?source=market&region=ng', title: '🇳🇬 Nigeria Growth Hub', sub: 'Discover top hiring sectors, growth roles, and emerging opportunities in Nigeria.' },
+        { href: 'job-alerts-sms.html', title: '📲 Nigeria Job Alerts', sub: 'Receive fast alerts for Lagos, Abuja, Port Harcourt, and remote roles.' },
+        { href: 'interview-prep-ai.html', title: '🎯 Interview Prep (Nigeria)', sub: 'Train for local and international interview formats with practical prompts.' },
+        { href: 'resume-generator.html', title: '📄 Resume Builder (Nigeria)', sub: 'Create a modern, metrics-first resume adapted for Nigerian recruiters.' }
+      ],
+      AW: [
+        { href: 'job-search.html?source=market&region=aw', title: '🇦🇼 Aruba Career Paths', sub: 'Explore Aruba opportunities across tourism, operations, and digital roles.' },
+        { href: 'job-alerts-sms.html', title: '📲 Aruba Job Alerts', sub: 'Stay notified on local openings and Caribbean-linked opportunities.' },
+        { href: 'interview-prep-ai.html', title: '🧭 Aruba Interview Prep', sub: 'Practice concise answers for customer-facing and service-focused interviews.' },
+        { href: 'resume-generator.html', title: '📄 Aruba Resume Builder', sub: 'Build a polished CV for Aruba and wider Caribbean employer expectations.' }
+      ],
+      GLOBAL: [
+        { href: 'job-search.html?source=market', title: '🌍 Global Opportunity Scanner', sub: 'Search opportunities across regions and industries with one workflow.' },
+        { href: 'job-alerts-sms.html', title: '📲 Global Job Alerts', sub: 'Get role alerts tuned to your skills and preferred locations.' },
+        { href: 'interview-prep-ai.html', title: '🎤 Interview Prep AI', sub: 'Prepare for modern interviews with role-specific practice questions.' },
+        { href: 'resume-generator.html', title: '📄 Resume Generator', sub: 'Create ATS-optimized resumes tailored to your target role and market.' }
+      ]
+    };
+
+    var selected = cardConfigs[countryCode] || cardConfigs.GLOBAL;
+
+    for (var i = 0; i < 4; i += 1) {
+      var card = cards[i];
+      var config = selected[i];
+      if (!card || !config) continue;
+      card.setAttribute('href', config.href);
+      setByClassValue(card, 'rr-shot-tool-title', config.title);
+      setByClassValue(card, 'rr-shot-tool-sub', config.sub);
+    }
+  }
+
+  function applyDashboardVariant(countryCode) {
+    var isDashboard = window.location.pathname.indexOf('dashboard.html') !== -1 || window.location.pathname === '/dashboard';
+    if (!isDashboard) return;
+
+    var variants = {
+      JM: {
+        badge: '🇯🇲 Jamaica Workforce Accelerator Mode',
+        lead: "Here's your Jamaica-focused career progress today.",
+        panelTitle: 'Top Job Matches for Jamaica',
+        panelLink: 'job-search.html?source=market&region=jm',
+        matchLabel: 'Jamaica Match Score',
+        profileLabel: 'Market Readiness'
+      },
+      US: {
+        badge: '🇺🇸 United States Experience',
+        lead: "Here's your US-market career progress today.",
+        panelTitle: 'Top Job Matches for the United States',
+        panelLink: 'job-search.html?source=market&region=us',
+        matchLabel: 'US Match Score',
+        profileLabel: 'Profile Strength'
+      },
+      DE: {
+        badge: '🇩🇪 Germany Experience',
+        lead: "Here's your Germany-market career progress today.",
+        panelTitle: 'Top Job Matches for Germany',
+        panelLink: 'job-search.html?source=market&region=de',
+        matchLabel: 'Germany Match Score',
+        profileLabel: 'Profile Strength'
+      },
+      NG: {
+        badge: '🇳🇬 Nigeria Experience',
+        lead: "Here's your Nigeria-market career progress today.",
+        panelTitle: 'Top Job Matches for Nigeria',
+        panelLink: 'job-search.html?source=market&region=ng',
+        matchLabel: 'Nigeria Match Score',
+        profileLabel: 'Profile Strength'
+      },
+      AW: {
+        badge: '🇦🇼 Aruba Experience',
+        lead: "Here's your Aruba-market career progress today.",
+        panelTitle: 'Top Job Matches for Aruba',
+        panelLink: 'job-search.html?source=market&region=aw',
+        matchLabel: 'Aruba Match Score',
+        profileLabel: 'Profile Strength'
+      },
+      GLOBAL: {
+        badge: '🌍 Global Experience',
+        lead: "Here's your global career progress today.",
+        panelTitle: 'Top Job Matches for You',
+        panelLink: 'job-search.html?source=market',
+        matchLabel: 'Job Match Score',
+        profileLabel: 'Profile Strength'
+      }
+    };
+
+    var selected = variants[countryCode] || variants.GLOBAL;
+
+    setText('rrShotLead', selected.lead);
+    setText('rrShotPanelTitle', selected.panelTitle);
+    setHref('rrShotPanelLink', selected.panelLink);
+    setText('rrShotMatchLabel', selected.matchLabel);
+    setText('rrShotProfileLabel', selected.profileLabel);
+
+    var badge = document.getElementById('rrShotBadge');
+    if (badge) {
+      badge.textContent = selected.badge;
+      badge.style.display = 'inline-flex';
+    }
+
+    applyToolCards(countryCode);
+  }
+
   function ensureStyle() {
     if (document.getElementById('rrExpCountryStyle')) return;
     var style = document.createElement('style');
@@ -161,12 +307,8 @@
       try {
         var saved = await savePreference(selected);
         hideJamaicaElements(saved.showJamaicaHub);
+        applyDashboardVariant(selected);
         status.textContent = 'Saved';
-
-        if (selected === 'JM' && window.location.pathname.indexOf('dashboard.html') !== -1) {
-          var badge = document.getElementById('rrShotBadge');
-          if (badge) badge.style.display = 'inline-flex';
-        }
 
         if (selected !== 'JM' && window.location.pathname.indexOf('jamaica-workforce-accelerator.html') !== -1) {
           window.location.href = 'dashboard.html?experience=global';
@@ -228,6 +370,7 @@
       try {
         var saved = await savePreference(selected);
         hideJamaicaElements(saved.showJamaicaHub);
+        applyDashboardVariant(selected);
         overlay.remove();
       } catch (_) {
         button.disabled = false;
@@ -248,6 +391,7 @@
     var context = await fetchExperienceContext();
 
     hideJamaicaElements(context.showJamaicaHub);
+    applyDashboardVariant(context.effectiveCountry || 'GLOBAL');
     insertSidebarSwitcher(context);
     showFirstVisitPickerIfNeeded(context);
 
