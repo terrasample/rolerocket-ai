@@ -4880,13 +4880,13 @@ app.get('/rolerocket', (req, res) => {
   <meta property="og:title" content="RoleRocket AI | Your Career Execution System" />
   <meta property="og:description" content="AI-powered job search, resume optimizer, cover letter generator, and interview prep — all in one platform." />
   <meta property="og:url" content="https://www.rolerocketai.com/rolerocket" />
-  <meta property="og:image" content="https://www.rolerocketai.com/assets/og-website-card.png" />
+  <meta property="og:image" content="https://www.rolerocketai.com/assets/rolerocket-logo-new.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="RoleRocket AI | Your Career Execution System" />
   <meta name="twitter:description" content="AI-powered job search, resume optimizer, cover letter generator, and interview prep — all in one platform." />
-  <meta name="twitter:image" content="https://www.rolerocketai.com/assets/og-website-card.png" />
+  <meta name="twitter:image" content="https://www.rolerocketai.com/assets/rolerocket-logo-new.png" />
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     body{min-height:100vh;display:grid;place-items:center;font-family:'Segoe UI',sans-serif;
