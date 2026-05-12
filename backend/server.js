@@ -2892,6 +2892,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   const hasInboundAudio = !!inboundAudioMedia?.mediaUrl;
   const hasInboundDocument = !!inboundDocumentMedia?.mediaUrl;
   const text = incoming.toLowerCase();
+  const textCanonical = text.replace(/&/g, ' and ').replace(/\s+/g, ' ').trim();
 
   if (!phone) return 'Could not identify your number. Please try again.';
   if (!incoming && !hasInboundAudio) return `${getWhatsAppMenuText()}\n\nType START to begin.`;
@@ -3261,7 +3262,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     return reply;
   }
 
-  if (convo.currentStep === 'jobs_menu' && ['search', 'search jobs'].includes(text)) {
+  if (convo.currentStep === 'jobs_menu' && ['search', 'search jobs'].includes(textCanonical)) {
     convo.currentStep = 'jobs_role_input';
     await trackWhatsAppTelemetry(phone, 'whatsapp_jobs_step_enter', {});
     const roleHint = encodeURIComponent(String(user.targetJob || convo.metadata?.context?.lastJobTitle || '').trim());
@@ -3354,7 +3355,13 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     return reply;
   }
 
-  if (convo.currentStep === 'jobs_menu' && ['import', 'import job', 'import jobs'].includes(text)) {
+  if (convo.currentStep === 'jobs_menu' && [
+    'import',
+    'import job',
+    'import jobs',
+    'import and save jobs',
+    'import save jobs'
+  ].includes(textCanonical)) {
     convo.currentStep = 'jobs_import';
     const premiumImportUrl = `${getPublicAppBaseUrl()}/job-tracking.html?focus=import`;
     const reply = [
@@ -3405,7 +3412,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     return reply;
   }
 
-  if (convo.currentStep === 'jobs_menu' && ['save', 'saved', 'saved jobs', 'my jobs', 'view saved'].includes(text)) {
+  if (convo.currentStep === 'jobs_menu' && ['save', 'saved', 'saved jobs', 'my jobs', 'view saved'].includes(textCanonical)) {
     const saved = await Application.find({ userId: phone, status: 'saved' }).sort({ createdAt: -1 }).limit(10).lean();
     if (!saved.length) {
       const reply = 'No saved jobs yet. Reply SEARCH to find jobs or IMPORT to add one manually.';
