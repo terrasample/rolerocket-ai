@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>1-Click Apply Queue | RoleRocket AI</title>
+  <title>Guided Apply Workflow | RoleRocket AI</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to main content</a>
   <div class="hero">
     <button onclick="window.history.back()" class="back-arrow-btn" aria-label="Go back" style="margin:12px 0 0 12px;background:none;border:none;cursor:pointer;font-size:1.6em;color:#2563eb;"><span aria-hidden="true">&#8592;</span> Back</button>
-    <h1>🚀 1-Click Apply Queue</h1>
-    <p>AI reads the job, tailors your resume, writes your cover letter, and launches your application — all in one shot.</p>
+    <h1>🚀 Guided Apply Workflow</h1>
+    <p>Select a job, auto-generate tailored drafts + fit checklist, review/edit, then open or submit where integration allows.</p>
   </div>
   <main id="main" class="main" tabindex="-1">
   <div class="card" style="max-width:720px;margin:32px auto;">
@@ -22,7 +22,7 @@
     <p class="tool-helper-text">Queued jobs are saved to your tracker, marked ready for follow-up, and surfaced in your 1-click recommendations.</p>
     <div class="tool-action-bar">
       <div class="tool-primary-actions">
-        <button id="queueApplyBtn" class="auth-submit-btn tool-action-btn tool-action-btn--primary" type="button">🚀 Launch Applications</button>
+        <button id="queueApplyBtn" class="auth-submit-btn tool-action-btn tool-action-btn--primary" type="button">🚀 Queue Jobs</button>
       </div>
       <div class="tool-secondary-actions">
         <button id="loadQueueBtn" class="auth-submit-btn tool-action-btn tool-action-btn--secondary" type="button">Refresh Queue</button>
@@ -31,6 +31,51 @@
       </div>
     </div>
     <div id="applyQueueResult" style="margin-top:18px;min-height:80px;"></div>
+
+    <section class="queue-section" aria-labelledby="guidedApplyTitle" style="margin-top:20px;border:1px solid rgba(14,165,233,.28);border-radius:12px;padding:14px;background:rgba(2,132,199,.08);">
+      <h2 id="guidedApplyTitle" class="queue-section-title" style="margin-top:0;">Guided Apply: Select → Generate → Review → Apply</h2>
+      <div id="selectedJobSummary" class="queue-empty-state" style="margin-bottom:10px;">Select a queued/top-match job to start guided apply.</div>
+
+      <label for="workflowJobDescription"><strong>Job Description</strong></label>
+      <textarea id="workflowJobDescription" rows="5" style="width:100%;margin-bottom:10px;" placeholder="Paste job description here if needed."></textarea>
+
+      <div class="tool-action-bar" style="margin:8px 0 12px;">
+        <div class="tool-primary-actions">
+          <button id="generateGuidedApplyBtn" class="auth-submit-btn tool-action-btn tool-action-btn--primary" type="button">Generate Drafts + Fit Check</button>
+        </div>
+        <div class="tool-secondary-actions">
+          <button id="saveGuidedApplyBtn" class="auth-submit-btn tool-action-btn tool-action-btn--secondary" type="button">Save Drafts to Job</button>
+        </div>
+      </div>
+
+      <label for="workflowResumeDraft"><strong>Tailored Resume Draft</strong></label>
+      <textarea id="workflowResumeDraft" rows="6" style="width:100%;margin-bottom:10px;" placeholder="Generated resume bullets appear here for editing."></textarea>
+
+      <label for="workflowCoverDraft"><strong>Tailored Cover Letter Draft</strong></label>
+      <textarea id="workflowCoverDraft" rows="5" style="width:100%;margin-bottom:10px;" placeholder="Generated cover draft appears here for editing."></textarea>
+
+      <div style="display:grid;grid-template-columns:1fr 2fr;gap:10px;align-items:start;">
+        <div>
+          <label for="workflowFitScore"><strong>Quick-Fit Score</strong></label>
+          <input id="workflowFitScore" type="number" min="1" max="100" style="width:100%;" placeholder="0" />
+        </div>
+        <div>
+          <label for="workflowChecklist"><strong>Quick-Fit Checklist</strong></label>
+          <textarea id="workflowChecklist" rows="5" style="width:100%;" placeholder="One checklist item per line."></textarea>
+        </div>
+      </div>
+
+      <div class="tool-action-bar" style="margin-top:12px;">
+        <div class="tool-primary-actions">
+          <button id="openApplicationBtn" class="auth-submit-btn tool-action-btn tool-action-btn--primary" type="button">Open Application Page</button>
+        </div>
+        <div class="tool-secondary-actions">
+          <button id="autoSubmitApplicationBtn" class="auth-submit-btn tool-action-btn tool-action-btn--secondary" type="button">Auto-Submit (if integrated)</button>
+          <button id="markSubmittedBtn" class="auth-submit-btn tool-action-btn tool-action-btn--secondary" type="button">Mark Submitted</button>
+        </div>
+      </div>
+      <div id="guidedApplyStatus" style="margin-top:10px;min-height:20px;color:#cbd5e1;"></div>
+    </section>
 
     <!-- AI Auto-Tailor Panel (shown when arriving from Jamaica job cards) -->
     <div id="aiTailorPanel" style="display:none; margin-top:24px; border:1px solid rgba(139,92,246,.35); border-radius:14px; padding:22px; background:rgba(139,92,246,.08);">

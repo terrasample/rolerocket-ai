@@ -8,6 +8,18 @@ document.addEventListener('DOMContentLoaded', function () {
   const result = document.getElementById('applyQueueResult');
   const queuedJobsList = document.getElementById('queuedJobsList');
   const recommendationsList = document.getElementById('queueRecommendations');
+  const selectedJobSummary = document.getElementById('selectedJobSummary');
+  const workflowJobDescription = document.getElementById('workflowJobDescription');
+  const workflowResumeDraft = document.getElementById('workflowResumeDraft');
+  const workflowCoverDraft = document.getElementById('workflowCoverDraft');
+  const workflowFitScore = document.getElementById('workflowFitScore');
+  const workflowChecklist = document.getElementById('workflowChecklist');
+  const guidedApplyStatus = document.getElementById('guidedApplyStatus');
+  const generateGuidedApplyBtn = document.getElementById('generateGuidedApplyBtn');
+  const saveGuidedApplyBtn = document.getElementById('saveGuidedApplyBtn');
+  const openApplicationBtn = document.getElementById('openApplicationBtn');
+  const autoSubmitApplicationBtn = document.getElementById('autoSubmitApplicationBtn');
+  const markSubmittedBtn = document.getElementById('markSubmittedBtn');
 
   // ── Jamaica Workforce Accelerator handoff ─────────────────────────────────
   (function handleJamaicaHandoff() {
@@ -103,6 +115,9 @@ document.addEventListener('DOMContentLoaded', function () {
     requireApprovalForTopJobs: true,
     topJobMatchThreshold: 85
   };
+  let currentJobs = [];
+  let selectedJob = null;
+  let latestResumeText = '';
 
   function getToken() {
     return typeof getStoredToken === 'function' ? getStoredToken() : localStorage.getItem('token');
@@ -149,6 +164,39 @@ document.addEventListener('DOMContentLoaded', function () {
     if (includeJson) headers['Content-Type'] = 'application/json';
     if (token) headers.Authorization = `Bearer ${token}`;
     return headers;
+  }
+
+  function setGuidedStatus(message, color) {
+    if (!guidedApplyStatus) return;
+    guidedApplyStatus.textContent = message || '';
+    guidedApplyStatus.style.color = color || '#cbd5e1';
+  }
+
+  function checklistToText(items) {
+    return (Array.isArray(items) ? items : []).map((item) => String(item || '').trim()).filter(Boolean).join('\n');
+  }
+
+  function checklistFromText(text) {
+    return String(text || '').split(/\r?\n/).map((line) => line.trim()).filter(Boolean).slice(0, 8);
+  }
+
+  function selectJob(job) {
+    selectedJob = job || null;
+    if (!selectedJob) {
+      if (selectedJobSummary) selectedJobSummary.textContent = 'Select a queued/top-match job to start guided apply.';
+      return;
+    }
+
+    const title = compactDisplayText(selectedJob.title, 'Untitled job', 90);
+    const company = compactDisplayText(selectedJob.company, 'Unknown company', 70);
+    const score = Number(selectedJob.matchScore || 0);
+    if (selectedJobSummary) {
+      selectedJobSummary.innerHTML = `<strong>${escapeHtml(title)}</strong> @ <strong>${escapeHtml(company)}</strong> · Match ${escapeHtml(score)}`;
+    }
+    if (workflowJobDescription && !String(workflowJobDescription.value || '').trim()) {
+      workflowJobDescription.value = String(selectedJob.description || '').trim();
+    }
+    setGuidedStatus('Selected job. Generate tailored drafts and fit checklist next.', '#2563eb');
   }
 
   function parseQueueEntries(rawValue) {
@@ -300,6 +348,7 @@ document.addEventListener('DOMContentLoaded', function () {
     try {
       const jobs = await fetchJobs();
       const visibleJobs = jobs.filter((job) => ['saved', 'ready', 'applied'].includes(String(job.status || '').toLowerCase()));
+      currentJobs = jobs;
 
       if (!visibleJobs.length) {
         renderEmptyState(queuedJobsList, 'No queued jobs yet. Add roles or job links above to build your ready queue.');
@@ -318,6 +367,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const appliedButton = status === 'applied'
           ? ''
           : `<button type="button" class="tool-action-btn--secondary" data-action="applied" data-job-id="${jobId}">Mark Applied</button>`;
+        const selectButton = `<button type="button" class="tool-action-btn--secondary" data-action="select" data-job-id="${jobId}">Select</button>`;
 
         return `
           <article class="queue-job-card">
@@ -327,6 +377,7 @@ document.addEventListener('DOMContentLoaded', function () {
             </div>
             <p class="queue-job-meta"><strong>${company}</strong><br>${link}</p>
             <div class="queue-job-actions">
+              ${selectButton}
               ${readyButton}
               ${appliedButton}
               <button type="button" class="tool-action-btn--secondary" data-action="delete" data-job-id="${jobId}">Remove</button>
@@ -362,6 +413,9 @@ document.addEventListener('DOMContentLoaded', function () {
             <span class="queue-status-chip">${escapeHtml(job.urgencyLabel || 'Ready')}</span>
           </div>
           <p class="queue-match-meta"><strong>${escapeHtml(compactDisplayText(job.company, 'Unknown company', 70))}</strong><br>Match score: ${escapeHtml(job.matchScore || 0)}</p>
+          <div class="queue-job-actions">
+            <button type="button" class="tool-action-btn--secondary" data-action="select" data-job-id="${escapeHtml(job.id || '')}" data-job-title="${escapeHtml(job.title || '')}" data-job-company="${escapeHtml(job.company || '')}" data-job-link="${escapeHtml(job.link || '')}" data-job-description="${escapeHtml(job.description || '')}" data-job-match="${escapeHtml(job.matchScore || 0)}">Select</button>
+          </div>
         </article>
       `).join('');
     } catch (error) {
@@ -496,6 +550,138 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
+  async function generateGuidedDrafts() {
+    if (!selectedJob) {
+      setGuidedStatus('Select a job first.', '#dc2626');
+      return;
+    }
+
+    const jobDescription = String(workflowJobDescription?.value || selectedJob.description || '').trim();
+    if (!jobDescription) {
+      setGuidedStatus('Add or paste a job description before generating drafts.', '#dc2626');
+      return;
+    }
+
+    const aiResumeInput = document.getElementById('aiTailorResume');
+    latestResumeText = String(aiResumeInput?.value || latestResumeText || '').trim();
+
+    generateGuidedApplyBtn.disabled = true;
+    setGuidedStatus('Generating tailored resume bullets, cover draft, and fit checklist...', '#475569');
+
+    try {
+      const payload = {
+        jobTitle: selectedJob.title || roleInput?.value || '',
+        jobDescription,
+        resumeText: latestResumeText
+      };
+      const response = await fetch(buildApiUrl('/api/apply/ai-tailor'), {
+        method: 'POST',
+        headers: getHeaders(true),
+        body: JSON.stringify(payload)
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to generate tailored drafts.');
+
+      if (workflowResumeDraft) workflowResumeDraft.value = String(data.resumeDraft || data.bullets || '').trim();
+      if (workflowCoverDraft) workflowCoverDraft.value = String(data.coverLetterDraft || data.coverLetter || '').trim();
+      if (workflowFitScore) workflowFitScore.value = String(Number(data.fitScore || 0) || '');
+      if (workflowChecklist) workflowChecklist.value = checklistToText(data.fitChecklist || []);
+
+      setGuidedStatus('Drafts generated. Review/edit then save to this job.', '#16a34a');
+    } catch (error) {
+      setGuidedStatus(error.message || 'Could not generate drafts right now.', '#dc2626');
+    } finally {
+      generateGuidedApplyBtn.disabled = false;
+    }
+  }
+
+  async function saveGuidedDrafts() {
+    if (!selectedJob || !selectedJob._id) {
+      setGuidedStatus('Select a saved job from queue or top matches before saving.', '#dc2626');
+      return;
+    }
+
+    saveGuidedApplyBtn.disabled = true;
+    setGuidedStatus('Saving guided apply drafts to this job...', '#475569');
+    try {
+      const payload = {
+        resumeDraft: String(workflowResumeDraft?.value || '').trim(),
+        coverLetterDraft: String(workflowCoverDraft?.value || '').trim(),
+        fitScore: Number(workflowFitScore?.value || 0),
+        fitChecklist: checklistFromText(workflowChecklist?.value || '')
+      };
+
+      const response = await fetch(buildApiUrl(`/api/jobs/${selectedJob._id}/materials`), {
+        method: 'PUT',
+        headers: getHeaders(true),
+        body: JSON.stringify(payload)
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to save guided drafts.');
+
+      await loadQueue();
+      await loadTopMatches();
+      setGuidedStatus('Drafts saved. You can now open the page or auto-submit (if integrated).', '#16a34a');
+    } catch (error) {
+      setGuidedStatus(error.message || 'Could not save drafts.', '#dc2626');
+    } finally {
+      saveGuidedApplyBtn.disabled = false;
+    }
+  }
+
+  async function executeGuidedApply(mode) {
+    if (!selectedJob || !selectedJob._id) {
+      setGuidedStatus('Select a job first.', '#dc2626');
+      return;
+    }
+
+    const isAuto = mode === 'auto-submit';
+    if (isAuto) {
+      autoSubmitApplicationBtn.disabled = true;
+    } else {
+      openApplicationBtn.disabled = true;
+    }
+
+    setGuidedStatus(isAuto ? 'Trying auto-submit via integration...' : 'Preparing application page...', '#475569');
+    try {
+      const response = await fetch(buildApiUrl('/api/apply/execute'), {
+        method: 'POST',
+        headers: getHeaders(true),
+        body: JSON.stringify({ jobId: selectedJob._id, mode })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Could not execute apply workflow.');
+
+      if (data.link && data.action === 'opened') {
+        window.open(String(data.link), '_blank', 'noopener,noreferrer');
+      }
+
+      await loadQueue();
+      await loadTopMatches();
+      setGuidedStatus(String(data.message || 'Apply step completed.'), '#16a34a');
+      setMessage(String(data.message || 'Apply step completed.'), '#16a34a');
+    } catch (error) {
+      setGuidedStatus(error.message || 'Could not execute apply workflow.', '#dc2626');
+    } finally {
+      openApplicationBtn.disabled = false;
+      autoSubmitApplicationBtn.disabled = false;
+    }
+  }
+
+  async function markSelectedSubmitted() {
+    if (!selectedJob || !selectedJob._id) {
+      setGuidedStatus('Select a job first.', '#dc2626');
+      return;
+    }
+    markSubmittedBtn.disabled = true;
+    try {
+      await updateJob(selectedJob._id, 'applied');
+      setGuidedStatus('Status updated to Applied.', '#16a34a');
+    } finally {
+      markSubmittedBtn.disabled = false;
+    }
+  }
+
   queueBtn?.addEventListener('click', queueApplications);
   refreshBtn?.addEventListener('click', async function () {
     setMessage('Refreshing queue...', '#475569');
@@ -505,11 +691,45 @@ document.addEventListener('DOMContentLoaded', function () {
   });
   topMatchesBtn?.addEventListener('click', loadTopMatches);
   autoSubmitBtn?.addEventListener('click', autoSubmitReadyJobs);
+  generateGuidedApplyBtn?.addEventListener('click', generateGuidedDrafts);
+  saveGuidedApplyBtn?.addEventListener('click', saveGuidedDrafts);
+  openApplicationBtn?.addEventListener('click', function () { executeGuidedApply('open'); });
+  autoSubmitApplicationBtn?.addEventListener('click', function () { executeGuidedApply('auto-submit'); });
+  markSubmittedBtn?.addEventListener('click', markSelectedSubmitted);
 
   queuedJobsList?.addEventListener('click', async function (event) {
     const button = event.target.closest('button[data-job-id][data-action]');
     if (!button) return;
-    await updateJob(button.getAttribute('data-job-id'), button.getAttribute('data-action'));
+    const action = button.getAttribute('data-action');
+    const jobId = button.getAttribute('data-job-id');
+    if (action === 'select') {
+      const job = currentJobs.find((item) => String(item._id) === String(jobId));
+      if (job) selectJob(job);
+      return;
+    }
+    await updateJob(jobId, action);
+  });
+
+  recommendationsList?.addEventListener('click', function (event) {
+    const button = event.target.closest('button[data-action="select"]');
+    if (!button) return;
+
+    const jobId = String(button.getAttribute('data-job-id') || '').trim();
+    const existing = currentJobs.find((job) => String(job._id) === jobId);
+    if (existing) {
+      selectJob(existing);
+      return;
+    }
+
+    selectJob({
+      _id: jobId,
+      title: button.getAttribute('data-job-title') || '',
+      company: button.getAttribute('data-job-company') || '',
+      link: button.getAttribute('data-job-link') || '',
+      description: button.getAttribute('data-job-description') || '',
+      matchScore: Number(button.getAttribute('data-job-match') || 0),
+      status: 'ready'
+    });
   });
 
   loadQueue();

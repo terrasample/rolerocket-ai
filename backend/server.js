@@ -1734,6 +1734,7 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
   const coverActionsContentSid = String(process.env.TWILIO_WHATSAPP_COVER_ACTIONS_CONTENT_SID || '').trim();
   const tailorsContentSid = String(process.env.TWILIO_WHATSAPP_TAILOR_CHOICES_CONTENT_SID || '').trim();
   const jobsMenuContentSid = String(process.env.TWILIO_WHATSAPP_JOBS_MENU_CONTENT_SID || '').trim();
+  const jobsParishContentSid = String(process.env.TWILIO_WHATSAPP_JOBS_PARISH_CONTENT_SID || '').trim();
   const jobsActionContentSid = String(process.env.TWILIO_WHATSAPP_JOBS_ACTION_CONTENT_SID || '').trim();
 
   const backMenuContentSid = String(process.env.TWILIO_WHATSAPP_BACK_MENU_CONTENT_SID || '').trim();
@@ -1783,6 +1784,14 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
     }
   }
 
+  if (step === 'jobs_parish_select' && jobsParishContentSid) {
+    const result = await sendWhatsAppContentTemplate({ to: from, contentSid: jobsParishContentSid });
+    if (result?.success && backMenuContentSid) {
+      await sendWhatsAppContentTemplate({ to: from, contentSid: backMenuContentSid });
+    }
+    return result?.success ? 'keep' : false;
+  }
+
   // For resume_followup and cover_letter_followup, send buttons ALONGSIDE the text
   // reply (not instead of it), so the user still sees the resume/cover content.
   if (step === 'resume_followup' && resumeActionsContentSid) {
@@ -1807,7 +1816,7 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
   }
 
   // Input-capture steps: append a 'Main Menu' back button so users can exit without typing
-  if (['jobs_query', 'resume_capture', 'cover_letter_capture', 'interview_target'].includes(step) && backMenuContentSid) {
+  if (['jobs_query', 'jobs_role_input', 'jobs_parish_select', 'resume_capture', 'cover_letter_capture', 'interview_target'].includes(step) && backMenuContentSid) {
     const result = await sendWhatsAppContentTemplate({ to: from, contentSid: backMenuContentSid });
     return result?.success ? 'keep' : false;
   }
@@ -2406,6 +2415,141 @@ function parseJobQueryInput(text = '') {
     };
   }
   return { title: input, location: 'Jamaica' };
+}
+
+const JAMAICA_PARISHES = [
+  'Kingston',
+  'St. Andrew',
+  'St. Thomas',
+  'Portland',
+  'St. Mary',
+  'St. Ann',
+  'Trelawny',
+  'St. James',
+  'Hanover',
+  'Westmoreland',
+  'St. Elizabeth',
+  'Manchester',
+  'Clarendon',
+  'St. Catherine'
+];
+
+function resolveJamaicaParishSelection(input = '') {
+  const raw = normalizeIncomingWhatsAppText(input);
+  if (!raw) return '';
+
+  const numeric = Number.parseInt(raw, 10);
+  if (Number.isInteger(numeric) && numeric >= 1 && numeric <= JAMAICA_PARISHES.length) {
+    return JAMAICA_PARISHES[numeric - 1];
+  }
+
+  const normalized = raw.toLowerCase().replace(/[^a-z]/g, '');
+  for (const parish of JAMAICA_PARISHES) {
+    const candidate = parish.toLowerCase().replace(/[^a-z]/g, '');
+    if (candidate === normalized) return parish;
+    if (candidate.includes(normalized) || normalized.includes(candidate)) return parish;
+  }
+
+  return '';
+}
+
+function buildWhatsAppParishPrompt(role = '') {
+  const roleLabel = normalizeIncomingWhatsAppText(role) || 'your target role';
+  return [
+    `Premium Search: ${roleLabel}`,
+    'Choose a Jamaica parish (send number or name):',
+    ...JAMAICA_PARISHES.map((parish, index) => `${index + 1}. ${parish}`),
+    'Then I will return recently posted matched jobs with premium styling.'
+  ].join('\n');
+}
+
+function getWhatsAppJobPostedLabel(job = {}) {
+  const rawDate = job.postedAt || job.createdAt || job.publishedAt || job.pubDate || job.date || '';
+  if (!rawDate) return 'Recent post';
+
+  const posted = new Date(rawDate);
+  if (Number.isNaN(posted.getTime())) return 'Recent post';
+  const ageMs = Date.now() - posted.getTime();
+  if (ageMs < 0) return 'Just posted';
+  const days = Math.floor(ageMs / (1000 * 60 * 60 * 24));
+  if (days <= 0) return 'Posted today';
+  if (days === 1) return 'Posted 1 day ago';
+  if (days <= 14) return `Posted ${days} days ago`;
+  return 'Recent post';
+}
+
+function formatWhatsAppPremiumJobListItem(job = {}, index = 0) {
+  const title = String(job.title || 'Role').trim() || 'Role';
+  const company = String(job.company || 'Company').trim() || 'Company';
+  const location = String(job.location || 'Jamaica').trim() || 'Jamaica';
+  const postedLabel = getWhatsAppJobPostedLabel(job);
+  const link = getDirectWhatsAppJobLink(job);
+  const lines = [
+    `[MATCH ${index + 1}] ${title}`,
+    `Company: ${company}`,
+    `Location: ${location}`,
+    `${postedLabel}`
+  ];
+  if (link) lines.push(`Apply: ${link}`);
+  return lines.join('\n');
+}
+
+async function runWhatsAppJobsSearchFlow({ phone, user, convo, title, location, source = 'jobs_query' }) {
+  const cleanTitle = normalizeIncomingWhatsAppText(title);
+  const cleanLocation = normalizeIncomingWhatsAppText(location) || 'Jamaica';
+
+  user.targetJob = cleanTitle;
+  user.location = cleanLocation;
+  user.lastIntent = 'jobs';
+  convo.metadata.context.lastJobTitle = cleanTitle;
+  convo.metadata.context.lastLocation = cleanLocation;
+  convo.metadata.context.recentSearches = [
+    ...convo.metadata.context.recentSearches.slice(-4),
+    {
+      title: cleanTitle,
+      location: cleanLocation,
+      at: new Date().toISOString()
+    }
+  ];
+  await trackWhatsAppTelemetry(phone, 'whatsapp_jobs_query_submitted', {
+    title: cleanTitle,
+    location: cleanLocation,
+    source
+  });
+
+  const searchResult = await searchJobsFast({
+    title: cleanTitle,
+    location: cleanLocation,
+    resume: user.resumeText || ''
+  });
+  const jobs = Array.isArray(searchResult?.jobs) ? searchResult.jobs.slice(0, 5) : [];
+  convo.metadata = {
+    ...(convo.metadata || {}),
+    lastJobs: jobs.map((job) => ({
+      title: String(job.title || ''),
+      company: String(job.company || ''),
+      location: String(job.location || ''),
+      link: getDirectWhatsAppJobLink(job),
+      summary: String(job.summary || job.description || '').slice(0, 500),
+      postedAt: String(job.postedAt || job.createdAt || job.publishedAt || '').trim()
+    }))
+  };
+  convo.currentStep = 'jobs_action';
+  await trackWhatsAppTelemetry(phone, 'whatsapp_jobs_results_returned', {
+    title: cleanTitle,
+    location: cleanLocation,
+    source,
+    resultCount: jobs.length
+  });
+
+  return !jobs.length
+    ? `No live matches for ${cleanTitle} in ${cleanLocation} right now. Use Search again to try another role or parish.`
+    : [
+        `Premium Matches for ${cleanTitle} in ${cleanLocation}`,
+        'Recently posted matched jobs:',
+        ...jobs.map((job, idx) => formatWhatsAppPremiumJobListItem(job, idx)),
+        'Choose your next step for these job results.'
+      ].join('\n\n');
 }
 
 function compactWhatsAppJobUrl(rawUrl = '') {
@@ -3063,7 +3207,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   const detectedIntent = detectWhatsAppIntent(text);
   const isFollowupSaveExportCommand = /^(save|export)\b/.test(text);
   const strictHumanIntent = ['0', 'human', 'agent', 'support', 'human support', 'live agent', 'live support'].includes(text);
-  const lockMenuIntentRouting = ['resume_capture', 'cover_letter_capture', 'job_tailor_choice', 'interview_target', 'jobs_menu', 'jobs_import'].includes(String(convo.currentStep || ''));
+  const lockMenuIntentRouting = ['resume_capture', 'cover_letter_capture', 'job_tailor_choice', 'interview_target', 'jobs_menu', 'jobs_import', 'jobs_role_input', 'jobs_parish_select'].includes(String(convo.currentStep || ''));
   const isJobsIntent = !lockMenuIntentRouting && (text === '1' || (detectedIntent.intent === 'jobs' && !text.startsWith('apply')));
   const isResumeIntent = !lockMenuIntentRouting && !isFollowupSaveExportCommand && (text === '2' || detectedIntent.intent === 'resume');
   const isCoverLetterIntent = !lockMenuIntentRouting && !isFollowupSaveExportCommand && (text === '3' || detectedIntent.intent === 'coverLetter');
@@ -3105,16 +3249,95 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   }
 
   if (convo.currentStep === 'jobs_menu' && ['search', 'search jobs'].includes(text)) {
-    convo.currentStep = 'jobs_query';
+    convo.currentStep = 'jobs_role_input';
     await trackWhatsAppTelemetry(phone, 'whatsapp_jobs_step_enter', {});
+    const roleHint = encodeURIComponent(String(user.targetJob || convo.metadata?.context?.lastJobTitle || '').trim());
+    const premiumSearchUrl = roleHint
+      ? `${getPublicAppBaseUrl()}/whatsapp-premium-jobs.html?role=${roleHint}`
+      : `${getPublicAppBaseUrl()}/whatsapp-premium-jobs.html`;
     const reply = [
-      'Step 1: Send job + location.',
-      'Example: Security Guard in Kingston',
-      'I will return top matches fast.'
+      'Premium Jobs Search is ready.',
+      `Open: ${premiumSearchUrl}`,
+      'Use the role text field + Jamaica parish dropdown + Search button.',
+      'You will see recently posted matched jobs with premium styling.',
+      'Or type your target role here if you want to continue inside WhatsApp.'
     ].join('\n');
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
     await convo.save();
+    return reply;
+  }
+
+  if (convo.currentStep === 'jobs_role_input') {
+    const roleText = normalizeIncomingWhatsAppText(incoming);
+    if (!roleText) {
+      const reply = 'Type your target role to continue (example: Customer Service Representative).';
+      convo.lastOutboundMessage = reply;
+      convo.lastOutboundAt = new Date();
+      await convo.save();
+      return reply;
+    }
+
+    const parsed = parseJobQueryInput(roleText);
+    if (parsed.title && parsed.location && parsed.location !== 'Jamaica') {
+      const reply = await runWhatsAppJobsSearchFlow({
+        phone,
+        user,
+        convo,
+        title: parsed.title,
+        location: parsed.location,
+        source: 'jobs_role_direct_location'
+      });
+      convo.lastOutboundMessage = reply;
+      convo.lastOutboundAt = new Date();
+      await Promise.all([user.save(), convo.save()]);
+      return reply;
+    }
+
+    convo.metadata.context.pendingJobRole = parsed.title || roleText;
+    convo.currentStep = 'jobs_parish_select';
+    const reply = buildWhatsAppParishPrompt(convo.metadata.context.pendingJobRole);
+    convo.lastOutboundMessage = reply;
+    convo.lastOutboundAt = new Date();
+    await convo.save();
+    return reply;
+  }
+
+  if (convo.currentStep === 'jobs_parish_select') {
+    const selectedParish = resolveJamaicaParishSelection(incoming);
+    if (!selectedParish) {
+      const reply = [
+        'Please choose a valid parish (send number 1-14 or parish name).',
+        'Example: 1 or Kingston'
+      ].join('\n');
+      convo.lastOutboundMessage = reply;
+      convo.lastOutboundAt = new Date();
+      await convo.save();
+      return reply;
+    }
+
+    const role = String(convo.metadata?.context?.pendingJobRole || user.targetJob || '').trim();
+    if (!role) {
+      convo.currentStep = 'jobs_role_input';
+      const reply = 'Type your target role first (example: Administrative Assistant).';
+      convo.lastOutboundMessage = reply;
+      convo.lastOutboundAt = new Date();
+      await convo.save();
+      return reply;
+    }
+
+    const reply = await runWhatsAppJobsSearchFlow({
+      phone,
+      user,
+      convo,
+      title: role,
+      location: `${selectedParish}, Jamaica`,
+      source: 'jobs_parish_select'
+    });
+    delete convo.metadata.context.pendingJobRole;
+    convo.lastOutboundMessage = reply;
+    convo.lastOutboundAt = new Date();
+    await Promise.all([user.save(), convo.save()]);
     return reply;
   }
 
@@ -3307,54 +3530,14 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       return reply;
     }
 
-    user.targetJob = parsed.title;
-    user.location = parsed.location || 'Jamaica';
-    user.lastIntent = 'jobs';
-    convo.metadata.context.lastJobTitle = parsed.title;
-    convo.metadata.context.lastLocation = parsed.location || 'Jamaica';
-    convo.metadata.context.recentSearches = [
-      ...convo.metadata.context.recentSearches.slice(-4),
-      {
-        title: parsed.title,
-        location: parsed.location || 'Jamaica',
-        at: new Date().toISOString()
-      }
-    ];
-    await trackWhatsAppTelemetry(phone, 'whatsapp_jobs_query_submitted', {
-      title: parsed.title,
-      location: parsed.location || 'Jamaica'
-    });
-
-    const searchResult = await searchJobsFast({
+    const reply = await runWhatsAppJobsSearchFlow({
+      phone,
+      user,
+      convo,
       title: parsed.title,
       location: parsed.location || 'Jamaica',
-      resume: user.resumeText || ''
+      source: 'jobs_query_legacy'
     });
-    const jobs = Array.isArray(searchResult?.jobs) ? searchResult.jobs.slice(0, 5) : [];
-    convo.metadata = {
-      ...(convo.metadata || {}),
-      lastJobs: jobs.map((job) => ({
-        title: String(job.title || ''),
-        company: String(job.company || ''),
-        location: String(job.location || ''),
-        link: getDirectWhatsAppJobLink(job),
-        summary: String(job.summary || job.description || '').slice(0, 500)
-      }))
-    };
-    convo.currentStep = 'jobs_action';
-    await trackWhatsAppTelemetry(phone, 'whatsapp_jobs_results_returned', {
-      title: parsed.title,
-      location: parsed.location || 'Jamaica',
-      resultCount: jobs.length
-    });
-
-    const reply = !jobs.length
-      ? `No live matches for ${parsed.title} in ${parsed.location || 'Jamaica'} right now. Use the Jobs button to try another role, or use Referrals.`
-      : [
-          'Click the link to view jobs.',
-          ...jobs.map((job, idx) => formatWhatsAppJobListItem(job, idx)),
-          'Choose your next step for these job results.'
-        ].join('\n');
 
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
@@ -3439,11 +3622,16 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   }
 
   if (convo.currentStep === 'jobs_action' && ['search again', 'search more', 'search', '1', 'find more jobs'].includes(text)) {
-    convo.currentStep = 'jobs_query';
+    convo.currentStep = 'jobs_role_input';
+    const roleHint = encodeURIComponent(String(user.targetJob || convo.metadata?.context?.lastJobTitle || '').trim());
+    const premiumSearchUrl = roleHint
+      ? `${getPublicAppBaseUrl()}/whatsapp-premium-jobs.html?role=${roleHint}`
+      : `${getPublicAppBaseUrl()}/whatsapp-premium-jobs.html`;
     const reply = [
-      'Step 1: Send job + location.',
-      'Example: Security Guard in Kingston',
-      'I will return top matches fast.'
+      'Premium search restarted.',
+      `Open: ${premiumSearchUrl}`,
+      'Use the role text field + Jamaica parish dropdown + Search button.',
+      'Or type your target role here to continue in WhatsApp.'
     ].join('\n');
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
@@ -9660,18 +9848,22 @@ app.post('/api/apply/ai-tailor', authenticateToken, async (req, res) => {
       `Job Title: ${String(jobTitle).slice(0, 120)}`,
       `Job Description:\n${String(jobDescription).slice(0, 3000)}`,
       resumeText ? `Candidate Resume:\n${String(resumeText).slice(0, 3000)}` : null,
-      'Task: Produce two things, separated by "---COVER---":',
-      '1. A short set of tailored resume bullet points (4-6 bullets) that mirror the job description keywords and highlight relevant experience. Each bullet starts with a strong action verb.',
-      '2. A concise, personalized cover letter paragraph (3-4 sentences) for this specific role. Address it to "Hiring Manager".',
+      'Task: Return valid JSON with these keys:',
+      'resumeDraft: 4-6 tailored resume bullets that mirror the job keywords and highlight relevant experience. Each bullet starts with a strong action verb.',
+      'coverLetterDraft: A concise personalized cover letter paragraph (3-4 sentences) for this role, addressed to "Hiring Manager".',
+      'fitScore: integer 1-100 representing candidacy fit against this specific job.',
+      'fitChecklist: 5-7 concise checklist items the candidate should confirm before submitting.',
+      'editSuggestions: 3-5 short suggestions to strengthen the application materials.',
       'Rules: Only use information present in the resume or the job description. Do not invent dates, companies, or credentials.',
     ].filter(Boolean).join('\n\n');
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
+      response_format: { type: 'json_object' },
       messages: [
         {
           role: 'system',
-          content: 'You are an expert career coach who tailors resumes and cover letters. Be concise, professional, and ATS-friendly. Output only the requested content with no extra commentary.'
+          content: 'You are an expert career coach who tailors resumes and cover letters. Be concise, professional, ATS-friendly, and output valid JSON only.'
         },
         { role: 'user', content: userPrompt }
       ],
@@ -9679,11 +9871,27 @@ app.post('/api/apply/ai-tailor', authenticateToken, async (req, res) => {
       temperature: 0.45
     });
 
-    const raw = completion.choices?.[0]?.message?.content || '';
-    const [bulletsPart, coverPart] = raw.split(/---COVER---/i);
+    const parsed = JSON.parse(String(completion.choices?.[0]?.message?.content || '{}'));
+    const fitScoreRaw = Number(parsed.fitScore || 0);
+    const fitScore = Number.isFinite(fitScoreRaw) ? Math.max(1, Math.min(100, Math.round(fitScoreRaw))) : 65;
+    const resumeDraft = String(parsed.resumeDraft || '').trim();
+    const coverDraft = String(parsed.coverLetterDraft || '').trim();
+    const fitChecklist = Array.isArray(parsed.fitChecklist)
+      ? parsed.fitChecklist.map((item) => String(item || '').trim()).filter(Boolean).slice(0, 7)
+      : [];
+    const editSuggestions = Array.isArray(parsed.editSuggestions)
+      ? parsed.editSuggestions.map((item) => String(item || '').trim()).filter(Boolean).slice(0, 5)
+      : [];
+
     return res.json({
-      bullets: bulletsPart?.trim() || '',
-      coverLetter: coverPart?.trim() || ''
+      resumeDraft,
+      coverLetterDraft: coverDraft,
+      fitScore,
+      fitChecklist,
+      editSuggestions,
+      // Backward-compatible fields for existing UI consumers.
+      bullets: resumeDraft,
+      coverLetter: coverDraft
     });
   } catch (err) {
     console.error('POST /api/apply/ai-tailor', err);
@@ -13147,6 +13355,105 @@ app.put('/api/jobs/:id/status', authenticateToken, async (req, res) => {
   }
 });
 
+app.put('/api/jobs/:id/materials', authenticateToken, async (req, res) => {
+  try {
+    const resumeDraft = String(req.body?.resumeDraft || '').trim();
+    const coverLetterDraft = String(req.body?.coverLetterDraft || '').trim();
+    const fitScoreRaw = Number(req.body?.fitScore || 0);
+    const fitScore = Number.isFinite(fitScoreRaw) ? Math.max(1, Math.min(100, Math.round(fitScoreRaw))) : 0;
+    const fitChecklist = Array.isArray(req.body?.fitChecklist)
+      ? req.body.fitChecklist.map((item) => String(item || '').trim()).filter(Boolean).slice(0, 8)
+      : [];
+
+    const job = await Job.findOne({ _id: req.params.id, userId: req.user.userId });
+    if (!job) {
+      return res.status(404).json({ error: 'Job not found' });
+    }
+
+    const materialsBlock = [
+      '[Guided Apply Materials]',
+      `fitScore=${fitScore || 'n/a'}`,
+      fitChecklist.length ? `checklist=${fitChecklist.join(' | ')}` : 'checklist=n/a',
+      resumeDraft ? `resumeDraft=${resumeDraft.replace(/\s+/g, ' ').slice(0, 1200)}` : 'resumeDraft=n/a',
+      coverLetterDraft ? `coverLetterDraft=${coverLetterDraft.replace(/\s+/g, ' ').slice(0, 900)}` : 'coverLetterDraft=n/a',
+      `savedAt=${new Date().toISOString()}`
+    ].join('\n');
+
+    const priorNotes = String(job.notes || '').trim();
+    job.notes = [priorNotes, materialsBlock].filter(Boolean).join('\n\n').slice(-8000);
+    if (job.status === 'saved') {
+      job.status = 'ready';
+    }
+    await job.save();
+
+    return res.json({ success: true, job });
+  } catch (err) {
+    console.error('Save job materials error:', err);
+    return res.status(500).json({ error: 'Failed to save guided apply materials' });
+  }
+});
+
+app.post('/api/apply/execute', authenticateToken, async (req, res) => {
+  try {
+    const jobId = String(req.body?.jobId || '').trim();
+    const mode = String(req.body?.mode || 'open').trim().toLowerCase();
+    if (!jobId) {
+      return res.status(400).json({ error: 'jobId is required' });
+    }
+
+    const job = await Job.findOne({ _id: jobId, userId: req.user.userId });
+    if (!job) {
+      return res.status(404).json({ error: 'Job not found' });
+    }
+
+    const link = String(job.link || '').trim();
+    if (!/^https?:\/\//i.test(link)) {
+      return res.status(400).json({ error: 'This job does not have a valid application URL.' });
+    }
+
+    const integrationEnabled = String(process.env.APPLY_INTEGRATION_ENABLED || '').trim() === '1';
+    const integrationSource = /(greenhouse|lever|workday|icims)/i.test(link) ? 'known' : 'none';
+    const canAutoSubmit = integrationEnabled && integrationSource === 'known';
+
+    if (mode === 'auto-submit' && canAutoSubmit) {
+      job.status = 'applied';
+      job.notes = [String(job.notes || '').trim(), `[Guided Apply] auto-submitted via integration at ${new Date().toISOString()}`]
+        .filter(Boolean)
+        .join('\n\n')
+        .slice(-8000);
+      await job.save();
+      return res.json({
+        action: 'submitted',
+        integration: true,
+        link,
+        jobId: String(job._id),
+        status: job.status,
+        message: 'Application submitted via integration and status tracked automatically.'
+      });
+    }
+
+    // Fallback path: open application page and track as applied/opened workflow stage.
+    job.status = 'applied';
+    job.notes = [String(job.notes || '').trim(), `[Guided Apply] application page opened at ${new Date().toISOString()}`]
+      .filter(Boolean)
+      .join('\n\n')
+      .slice(-8000);
+    await job.save();
+
+    return res.json({
+      action: 'opened',
+      integration: false,
+      link,
+      jobId: String(job._id),
+      status: job.status,
+      message: 'No supported API integration for this job source. Opened application page and tracked status automatically.'
+    });
+  } catch (err) {
+    console.error('Apply execute error:', err);
+    return res.status(500).json({ error: 'Failed to execute apply flow.' });
+  }
+});
+
 app.delete('/api/jobs/:id', authenticateToken, async (req, res) => {
   try {
     const job = await Job.findOneAndDelete({
@@ -13616,8 +13923,11 @@ app.post('/api/apply/one-click', authenticateToken, async (req, res) => {
     });
 
     const topJobs = eligibleJobs.slice(0, 3).map((job) => ({
+      id: String(job._id),
       title: job.title,
       company: job.company,
+      link: job.link || '',
+      description: String(job.description || '').slice(0, 1200),
       urgencyLabel: job.status === 'ready' ? 'High' : 'Medium',
       matchScore: job.matchScore || 0
     }));

@@ -1,0 +1,464 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Premium Job Search | RoleRocket AI</title>
+  <style>
+    :root {
+      --ink: #0b1220;
+      --panel: #121c2d;
+      --panel-2: #17243b;
+      --line: rgba(148, 163, 184, 0.28);
+      --text: #e2e8f0;
+      --muted: #93a4bf;
+      --accent: #22d3ee;
+      --accent-2: #38bdf8;
+      --ok: #22c55e;
+      --warn: #f59e0b;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Manrope", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(1200px 600px at -10% -20%, #1e293b 0%, transparent 55%),
+        radial-gradient(800px 500px at 110% 0%, #0f766e 0%, transparent 50%),
+        linear-gradient(165deg, #050912 0%, #0a1322 55%, #07111d 100%);
+      min-height: 100vh;
+    }
+
+    .shell {
+      width: min(980px, 94vw);
+      margin: 0 auto;
+      padding: 28px 0 36px;
+    }
+
+    .hero {
+      background: linear-gradient(145deg, rgba(56, 189, 248, 0.16), rgba(6, 182, 212, 0.08));
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      border-radius: 18px;
+      padding: 18px 16px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+      margin-bottom: 14px;
+    }
+
+    .eyebrow {
+      color: #7dd3fc;
+      font-weight: 800;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      font-size: 0.72rem;
+      margin-bottom: 6px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.45rem, 4vw, 2rem);
+      line-height: 1.15;
+    }
+
+    .hero p {
+      margin: 8px 0 0;
+      color: #c6d3e6;
+      font-size: 0.94rem;
+    }
+
+    .panel {
+      background: linear-gradient(170deg, rgba(15, 23, 42, 0.85), rgba(17, 26, 43, 0.94));
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 14px;
+      backdrop-filter: blur(8px);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.82rem;
+      color: #b4c6de;
+      margin-bottom: 6px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    input, select, button {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.34);
+      background: #0a1424;
+      color: #ecf3fb;
+      padding: 11px 12px;
+      font-size: 0.96rem;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: rgba(34, 211, 238, 0.8);
+      box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.18);
+    }
+
+    button {
+      margin-top: 4px;
+      border: none;
+      cursor: pointer;
+      font-weight: 800;
+      letter-spacing: 0.01em;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      color: #062232;
+      transition: transform 0.15s ease, filter 0.15s ease;
+    }
+
+    button:hover { transform: translateY(-1px); filter: saturate(1.06); }
+    button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    .status {
+      margin-top: 10px;
+      min-height: 18px;
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    .quick-row {
+      margin-top: 10px;
+    }
+
+    .quick-row .quick-label {
+      font-size: 0.78rem;
+      color: #b7c8de;
+      margin-bottom: 6px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .quick-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .quick-chip {
+      border: 1px solid rgba(56, 189, 248, 0.45);
+      background: rgba(8, 25, 45, 0.84);
+      color: #c6f7ff;
+      border-radius: 999px;
+      padding: 7px 11px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.12s ease, background 0.12s ease;
+      width: auto;
+      margin-top: 0;
+    }
+
+    .quick-chip:hover {
+      transform: translateY(-1px);
+      background: rgba(14, 45, 78, 0.9);
+    }
+
+    .results-head {
+      margin: 16px 0 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .results-head h2 {
+      margin: 0;
+      font-size: 1rem;
+      color: #b9f7ff;
+    }
+
+    .chip {
+      font-size: 0.74rem;
+      color: #062232;
+      background: #67e8f9;
+      border-radius: 999px;
+      padding: 4px 8px;
+      font-weight: 800;
+      letter-spacing: 0.03em;
+    }
+
+    .cards {
+      display: grid;
+      gap: 10px;
+    }
+
+    .card {
+      border: 1px solid rgba(56, 189, 248, 0.36);
+      background: linear-gradient(160deg, rgba(14, 23, 37, 0.9), rgba(8, 19, 36, 0.97));
+      border-radius: 12px;
+      padding: 12px;
+      box-shadow: 0 10px 20px rgba(3, 10, 20, 0.5);
+      animation: cardIn 260ms ease both;
+    }
+
+    .card h3 {
+      margin: 0;
+      font-size: 1rem;
+      color: #f0f9ff;
+      line-height: 1.3;
+    }
+
+    .meta {
+      margin: 7px 0 0;
+      color: #b4c6de;
+      font-size: 0.86rem;
+      line-height: 1.45;
+    }
+
+    .posted {
+      color: #86efac;
+      font-weight: 700;
+      margin-top: 8px;
+      font-size: 0.82rem;
+    }
+
+    .actions {
+      margin-top: 8px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .link-btn {
+      display: inline-block;
+      text-decoration: none;
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      border: 1px solid rgba(56, 189, 248, 0.42);
+      color: #c7f9ff;
+      background: rgba(7, 29, 48, 0.8);
+    }
+
+    .empty {
+      border: 1px dashed rgba(148, 163, 184, 0.36);
+      border-radius: 10px;
+      padding: 12px;
+      color: #a8b8cf;
+      font-size: 0.9rem;
+      text-align: center;
+      background: rgba(15, 23, 42, 0.45);
+    }
+
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (min-width: 760px) {
+      .form-grid {
+        grid-template-columns: 2fr 1.3fr auto;
+        align-items: end;
+      }
+
+      button {
+        margin-top: 0;
+        min-width: 180px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <div class="eyebrow">RoleRocket Premium</div>
+      <h1>Interactive Jamaica Job Search</h1>
+      <p>Type your target role, choose a parish, and instantly get recently posted matched jobs.</p>
+    </section>
+
+    <section class="panel">
+      <div class="form-grid">
+        <div>
+          <label for="roleInput">Target Role</label>
+          <input id="roleInput" type="text" placeholder="e.g., Security Guard" />
+        </div>
+        <div>
+          <label for="parishSelect">Jamaica Parish</label>
+          <select id="parishSelect">
+            <optgroup label="Metro">
+              <option value="Kingston">Kingston</option>
+              <option value="St. Andrew">St. Andrew</option>
+              <option value="St. Catherine">St. Catherine</option>
+            </optgroup>
+            <optgroup label="North Coast">
+              <option value="St. James">St. James</option>
+              <option value="Trelawny">Trelawny</option>
+              <option value="St. Ann">St. Ann</option>
+              <option value="St. Mary">St. Mary</option>
+              <option value="Portland">Portland</option>
+            </optgroup>
+            <optgroup label="West & South">
+              <option value="Hanover">Hanover</option>
+              <option value="Westmoreland">Westmoreland</option>
+              <option value="St. Elizabeth">St. Elizabeth</option>
+              <option value="Manchester">Manchester</option>
+              <option value="Clarendon">Clarendon</option>
+              <option value="St. Thomas">St. Thomas</option>
+            </optgroup>
+          </select>
+        </div>
+        <div>
+          <label>&nbsp;</label>
+          <button id="searchBtn" type="button">Search Jobs</button>
+        </div>
+      </div>
+      <div class="quick-row">
+        <div class="quick-label">Quick Locations</div>
+        <div class="quick-chips">
+          <button type="button" class="quick-chip" data-parish="Kingston">Kingston</button>
+          <button type="button" class="quick-chip" data-parish="St. Andrew">St. Andrew</button>
+          <button type="button" class="quick-chip" data-parish="St. James">St. James</button>
+          <button type="button" class="quick-chip" data-parish="St. Catherine">St. Catherine</button>
+        </div>
+      </div>
+      <div class="status" id="statusText"></div>
+
+      <div class="results-head">
+        <h2>Recently Posted Matched Jobs</h2>
+        <span class="chip" id="resultCount">0 matches</span>
+      </div>
+      <div id="results" class="cards">
+        <div class="empty">Search to see premium matched job cards.</div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (function initPremiumJobsSearch() {
+      const roleInput = document.getElementById('roleInput');
+      const parishSelect = document.getElementById('parishSelect');
+      const searchBtn = document.getElementById('searchBtn');
+      const quickChips = Array.from(document.querySelectorAll('.quick-chip'));
+      const statusText = document.getElementById('statusText');
+      const resultsEl = document.getElementById('results');
+      const resultCount = document.getElementById('resultCount');
+
+      function escapeHtml(value) {
+        return String(value || '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function postedLabel(job) {
+        const raw = job.postedAt || job.createdAt || job.publishedAt || job.pubDate || job.date;
+        if (!raw) return 'Recent post';
+        const date = new Date(raw);
+        if (Number.isNaN(date.getTime())) return 'Recent post';
+        const days = Math.floor((Date.now() - date.getTime()) / (1000 * 60 * 60 * 24));
+        if (days <= 0) return 'Posted today';
+        if (days === 1) return 'Posted 1 day ago';
+        if (days <= 14) return `Posted ${days} days ago`;
+        return 'Recent post';
+      }
+
+      function renderJobs(jobs) {
+        const safeJobs = Array.isArray(jobs) ? jobs : [];
+        resultCount.textContent = `${safeJobs.length} match${safeJobs.length === 1 ? '' : 'es'}`;
+
+        if (!safeJobs.length) {
+          resultsEl.innerHTML = '<div class="empty">No recent matches found for this role/parish yet. Try another role.</div>';
+          return;
+        }
+
+        resultsEl.innerHTML = safeJobs.slice(0, 12).map((job) => {
+          const title = escapeHtml(job.title || 'Role');
+          const company = escapeHtml(job.company || 'Company');
+          const location = escapeHtml(job.location || 'Jamaica');
+          const link = String(job.link || job.url || '').trim();
+          const summary = escapeHtml(String(job.summary || job.description || '').replace(/\s+/g, ' ').trim().slice(0, 240));
+          const posted = postedLabel(job);
+
+          return `
+            <article class="card">
+              <h3>${title}</h3>
+              <p class="meta"><strong>${company}</strong><br>${location}</p>
+              <div class="posted">${escapeHtml(posted)}</div>
+              ${summary ? `<p class="meta">${summary}${summary.length >= 240 ? '...' : ''}</p>` : ''}
+              <div class="actions">
+                ${/^https?:\/\//i.test(link)
+                  ? `<a class="link-btn" href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer">Open Job Posting</a>`
+                  : '<span class="link-btn" style="opacity:.7;">Link unavailable</span>'}
+              </div>
+            </article>
+          `;
+        }).join('');
+      }
+
+      async function runSearch() {
+        const title = String(roleInput.value || '').trim();
+        const parish = String(parishSelect.value || '').trim();
+        if (!title) {
+          statusText.textContent = 'Enter your target role first.';
+          return;
+        }
+
+        searchBtn.disabled = true;
+        statusText.textContent = 'Searching recently posted matched jobs...';
+
+        try {
+          const params = new URLSearchParams({
+            title,
+            location: `${parish}, Jamaica`
+          });
+          const response = await fetch(`/api/jobs/scout?${params.toString()}`);
+          const data = await response.json();
+          if (!response.ok) {
+            throw new Error(data.error || 'Search failed. Please try again.');
+          }
+
+          renderJobs(data.jobs || []);
+          statusText.textContent = `Showing premium matches for ${title} in ${parish}.`;
+        } catch (error) {
+          statusText.textContent = error.message || 'Could not load matches right now.';
+          renderJobs([]);
+        } finally {
+          searchBtn.disabled = false;
+        }
+      }
+
+      const params = new URLSearchParams(window.location.search);
+      const roleFromQuery = String(params.get('role') || '').trim();
+      const parishFromQuery = String(params.get('parish') || '').trim();
+      if (roleFromQuery) roleInput.value = roleFromQuery;
+      if (parishFromQuery) {
+        const options = Array.from(parishSelect.options).map((opt) => opt.value.toLowerCase());
+        const idx = options.indexOf(parishFromQuery.toLowerCase());
+        if (idx >= 0) parishSelect.selectedIndex = idx;
+      }
+
+      searchBtn.addEventListener('click', runSearch);
+      quickChips.forEach(function (chip) {
+        chip.addEventListener('click', function () {
+          const parish = String(chip.getAttribute('data-parish') || '').trim();
+          if (!parish) return;
+          parishSelect.value = parish;
+          runSearch();
+        });
+      });
+      roleInput.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          runSearch();
+        }
+      });
+
+      if (roleFromQuery) runSearch();
+    })();
+  </script>
+</body>
+</html>
