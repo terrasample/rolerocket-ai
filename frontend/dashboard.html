@@ -766,6 +766,18 @@
 
 
           var esc = function(s){ return String(s).replace(/[&<>"]/g, function(c){ return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]); }); };
+          var activeExperienceCountry = String(window.__rrExperienceCountry || '').toUpperCase();
+          var isUSExperience = activeExperienceCountry === 'US';
+          var usLocationSignal = /\bunited\s*states\b|\busa\b|\bu\.s\.\b|new\s*york|florida|texas|california|washington|illinois|massachusetts|georgia|north\s*carolina|south\s*carolina|virginia|pennsylvania|ohio|michigan|new\s*jersey|maryland|arizona|colorado|oregon|utah|nevada|tennessee|miami|orlando|tampa|jacksonville|atlanta|chicago|seattle|boston|dallas|houston|austin|san\s*francisco|los\s*angeles/i;
+          var ukLocationSignal = /\bunited\s*kingdom\b|\buk\b|england|scotland|wales|northern\s*ireland|london|manchester|birmingham|glasgow|bedford|swansea/i;
+          var isUSCompatibleJob = function(job) {
+            if (!isUSExperience) return true;
+            var haystack = [job && job.location, job && job.description, job && job.company, job && job.link].join(' ').toLowerCase();
+            var remoteOnly = /\bremote\b|\bwork\s*from\s*home\b|\bdistributed\b/.test(haystack);
+            if (ukLocationSignal.test(haystack)) return false;
+            if (usLocationSignal.test(haystack)) return true;
+            return remoteOnly;
+          };
 
           var list = document.getElementById('rrShotJobMatches');
           var panelLink = document.getElementById('rrShotPanelLink');
@@ -879,7 +891,7 @@
               var primaryScoutTitle = scoutTitles.length ? scoutTitles[0] : 'Software Engineer';
 
               var scoutLocation = forcedJamaicaMode ? 'Jamaica'
-                : (jad.location && jad.location !== 'Remote') ? jad.location : 'Remote';
+                : (jad.location && jad.location !== 'Remote') ? jad.location : (isUSExperience ? 'United States' : 'Remote');
               var scoutRadiusMiles = Number(jad.searchRadius) > 0 ? Number(jad.searchRadius) : 100;
 
               if (panelLink && !forcedJamaicaMode) {
@@ -913,7 +925,7 @@
 
                 // Add Remote as a secondary source but never bare "United States"
                 // which pulls in geographically irrelevant results (Hawaii, Alaska, territories).
-                if (!forcedJamaicaMode && normalized.indexOf('remote') === -1) {
+                if (!forcedJamaicaMode && !isUSExperience && normalized.indexOf('remote') === -1) {
                   locations.push('Remote');
                 }
 
@@ -977,6 +989,10 @@
                   seenScoutJobs.add(key);
                   return true;
                 });
+              }
+
+              if (isUSExperience) {
+                scoutJobs = scoutJobs.filter(isUSCompatibleJob);
               }
 
               // Remove geographically irrelevant outlier locations unless the user
@@ -1103,7 +1119,7 @@
                 scopedJobs = ranked.slice(0, 6).map(function(item) { return item.job; });
               }
 
-              if (!scopedJobs.length) scopedJobs = jobs.filter(jobMeetsSalaryFloor).slice(0, 6);
+              if (!scopedJobs.length) scopedJobs = jobs.filter(jobMeetsSalaryFloor).filter(isUSCompatibleJob).slice(0, 6);
 
               if (scopedJobs.length) {
                 list.innerHTML = scopedJobs.map(function(j) {
@@ -1127,7 +1143,7 @@
                 var min = Number((job.salaryRange && job.salaryRange.min) || job.salaryMin || 0);
                 if (max <= 0 && min <= 0) return true;
                 return Math.max(max, min) >= prefSalaryMin;
-              }).slice(0, 6);
+              }).filter(isUSCompatibleJob).slice(0, 6);
               if (fallback.length) {
                 list.innerHTML = fallback.map(function(j) {
                   var applyLink = (j.link && /^https?:\/\//i.test(String(j.link).trim())) ? String(j.link).trim()

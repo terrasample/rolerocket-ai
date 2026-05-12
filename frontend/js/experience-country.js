@@ -267,6 +267,7 @@
     };
 
     var selected = variants[countryCode] || variants.GLOBAL;
+    window.__rrExperienceCountry = countryCode;
 
     setText('rrShotLead', selected.lead);
     setText('rrShotPanelTitle', selected.panelTitle);
