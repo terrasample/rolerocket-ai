@@ -3793,7 +3793,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       'Resume Generator is ready.',
       `Open: ${resumeUrl}`,
       'Use the web form to generate and export your resume quickly.',
-      'Or continue here by replying UPLOAD or TYPE.'
+      'Or reply UPLOAD or TYPE to continue here.'
     ].join('\n');
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
@@ -4257,7 +4257,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     }
 
     // Unrecognised — re-prompt
-    const reply = 'Please reply with UPLOAD or TYPE to continue.';
+    const reply = 'Reply UPLOAD or TYPE to continue.';
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
     await convo.save();
