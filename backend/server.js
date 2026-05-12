@@ -4781,18 +4781,18 @@ app.get('/whatsapp-start', (req, res) => {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>RoleRocket AI | Your Career Execution System?</title>
+  <title>RoleRocket AI | Your Career Execution System</title>
   <meta name="description" content="Start your RoleRocket AI WhatsApp assistant and execute your job search smarter." />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="RoleRocket AI" />
-  <meta property="og:title" content="Your Career Execution System?" />
+  <meta property="og:title" content="Your Career Execution System" />
   <meta property="og:description" content="Open the RoleRocket AI WhatsApp assistant and run your job-search execution plan." />
   <meta property="og:url" content="https://www.rolerocketai.com/whatsapp-start" />
   <meta property="og:image" content="https://www.rolerocketai.com/assets/rolerocket-logo-new.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Your Career Execution System?" />
+  <meta name="twitter:title" content="Your Career Execution System" />
   <meta name="twitter:description" content="Open the RoleRocket AI WhatsApp assistant and run your job-search execution plan." />
   <meta name="twitter:image" content="https://www.rolerocketai.com/assets/rolerocket-logo-new.png" />
   <style>
@@ -4806,7 +4806,7 @@ app.get('/whatsapp-start', (req, res) => {
 </head>
 <body>
   <main class="card">
-    <h1>Your Career Execution System?</h1>
+    <h1>Your Career Execution System</h1>
     <p>Opening your RoleRocket AI WhatsApp assistant with message: <strong>${escapedText}</strong>.</p>
     <a href="${escapedWaLink}">Open WhatsApp Assistant</a>
     <div class="mini">If nothing happens automatically, tap the button above.</div>
