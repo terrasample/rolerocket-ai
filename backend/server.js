@@ -4768,7 +4768,54 @@ app.get('/whatsapp-start', (req, res) => {
     const fallbackBase = String(process.env.CLIENT_URL || 'https://www.rolerocketai.com').replace(/\/$/, '');
     return res.redirect(302, `${fallbackBase}/login.html`);
   }
-  return res.redirect(302, waLink);
+
+  const escapedWaLink = String(waLink).replace(/"/g, '&quot;');
+  const escapedText = String(prefillText)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+
+  return res.status(200).send(`<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RoleRocket AI | Your Career Execution System?</title>
+  <meta name="description" content="Start your RoleRocket AI WhatsApp assistant and execute your job search smarter." />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="RoleRocket AI" />
+  <meta property="og:title" content="Your Career Execution System?" />
+  <meta property="og:description" content="Open the RoleRocket AI WhatsApp assistant and run your job-search execution plan." />
+  <meta property="og:url" content="https://www.rolerocketai.com/whatsapp-start" />
+  <meta property="og:image" content="https://www.rolerocketai.com/assets/rolerocket-logo-new.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Your Career Execution System?" />
+  <meta name="twitter:description" content="Open the RoleRocket AI WhatsApp assistant and run your job-search execution plan." />
+  <meta name="twitter:image" content="https://www.rolerocketai.com/assets/rolerocket-logo-new.png" />
+  <style>
+    body { margin: 0; font-family: 'Segoe UI', sans-serif; color: #e2e8f0; background: radial-gradient(circle at top right, #0b3d91, #050b18 60%); min-height: 100vh; display: grid; place-items: center; }
+    .card { width: min(92vw, 560px); border: 1px solid rgba(148,163,184,.3); border-radius: 16px; background: rgba(15,23,42,.82); padding: 22px; box-shadow: 0 20px 50px rgba(0,0,0,.45); }
+    h1 { margin: 0 0 8px; font-size: 1.6rem; }
+    p { margin: 0; color: #cbd5e1; line-height: 1.45; }
+    a { display: inline-block; margin-top: 14px; text-decoration: none; font-weight: 700; color: #021726; background: linear-gradient(90deg, #22d3ee, #38bdf8); padding: 11px 14px; border-radius: 10px; }
+    .mini { margin-top: 10px; font-size: .86rem; color: #94a3b8; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>Your Career Execution System?</h1>
+    <p>Opening your RoleRocket AI WhatsApp assistant with message: <strong>${escapedText}</strong>.</p>
+    <a href="${escapedWaLink}">Open WhatsApp Assistant</a>
+    <div class="mini">If nothing happens automatically, tap the button above.</div>
+  </main>
+  <script>
+    setTimeout(function () { window.location.href = "${escapedWaLink}"; }, 650);
+  </script>
+</body>
+</html>`);
 });
 
 app.get('/RoleRocketWhatsAppStartLink', (req, res) => {
