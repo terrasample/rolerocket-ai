@@ -127,6 +127,19 @@
     var list = document.getElementById('rrShotJobMatches');
     if (!list) return;
 
+    var renderMatchRow = function (job) {
+      var href = (job.href || '').trim();
+      return [
+        '<a class="rr-shot-row rr-shot-row-link" href="' + escapeHtml(href) + '" target="_blank" rel="noopener noreferrer">',
+        '  <div>',
+        '    <div class="title">' + escapeHtml(job.title) + '</div>',
+        '    <div class="meta">' + escapeHtml(job.meta) + '</div>',
+        '  </div>',
+        '  <span class="rr-shot-apply">Open job</span>',
+        '</a>'
+      ].join('');
+    };
+
     var jobsByCountry = {
       JM: [
         {
@@ -182,17 +195,7 @@
     };
 
     var jobs = jobsByCountry[countryCode] || jobsByCountry.GLOBAL;
-    list.innerHTML = jobs.map(function (job) {
-      return [
-        '<div class="rr-shot-row">',
-        '  <div>',
-        '    <div class="title">' + escapeHtml(job.title) + '</div>',
-        '    <div class="meta">' + escapeHtml(job.meta) + '</div>',
-        '  </div>',
-        '  <a class="rr-shot-apply" href="' + escapeHtml(job.href) + '">Apply</a>',
-        '</div>'
-      ].join('');
-    }).join('');
+    list.innerHTML = jobs.map(renderMatchRow).join('');
   }
 
   function applyToolCards(countryCode) {
