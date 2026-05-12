@@ -1707,6 +1707,20 @@ function normalizeIncomingWhatsAppText(body = '') {
   return String(body || '').replace(/\s+/g, ' ').trim();
 }
 
+function createWhatsAppImportToken(phone = '') {
+  const normalized = normalizeWhatsAppPhone(phone);
+  if (!normalized || !process.env.JWT_SECRET) return '';
+  try {
+    return jwt.sign(
+      { purpose: 'wa_import', phone: normalized },
+      process.env.JWT_SECRET,
+      { expiresIn: '12h' }
+    );
+  } catch {
+    return '';
+  }
+}
+
 function extractWhatsAppInboundText(payload = {}) {
   const candidates = [
     payload.Body,
@@ -3363,7 +3377,10 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     'import save jobs'
   ].includes(textCanonical)) {
     convo.currentStep = 'jobs_import';
-    const premiumImportUrl = `${getPublicAppBaseUrl()}/job-tracking.html?focus=import`;
+    const importToken = createWhatsAppImportToken(phone);
+    const premiumImportUrl = importToken
+      ? `${getPublicAppBaseUrl()}/whatsapp-import-save-jobs.html?phone=${encodeURIComponent(phone)}&token=${encodeURIComponent(importToken)}`
+      : `${getPublicAppBaseUrl()}/whatsapp-import-save-jobs.html`;
     const reply = [
       'Import & Save Jobs is ready.',
       `Open: ${premiumImportUrl}`,
@@ -4672,6 +4689,78 @@ app.get('/index.html', (_req, res) => {
   return res.sendFile(path.join(__dirname, '../frontend/index.html'));
 });
 
+app.post('/api/whatsapp/jobs/import-public', async (req, res) => {
+  try {
+    const phone = normalizeWhatsAppPhone(String(req.body?.phone || '').trim());
+    const token = String(req.body?.token || '').trim();
+    const sourceUrlRaw = String(req.body?.sourceUrl || '').trim();
+    const additionalNotes = String(req.body?.additionalNotes || '').trim();
+
+    if (!phone || !token) {
+      return res.status(400).json({ error: 'Missing phone or token.' });
+    }
+
+    if (!process.env.JWT_SECRET) {
+      return res.status(500).json({ error: 'Server token secret is not configured.' });
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch {
+      return res.status(401).json({ error: 'Import link expired. Return to WhatsApp and tap Import & Save Jobs again.' });
+    }
+
+    const tokenPhone = normalizeWhatsAppPhone(String(decoded?.phone || '').trim());
+    if (decoded?.purpose !== 'wa_import' || !tokenPhone || tokenPhone !== phone) {
+      return res.status(403).json({ error: 'Invalid import link token.' });
+    }
+
+    if (!sourceUrlRaw) {
+      return res.status(400).json({ error: 'Job URL is required.' });
+    }
+
+    let sourceUrl = '';
+    try {
+      const u = new URL(sourceUrlRaw);
+      if (!['http:', 'https:'].includes(u.protocol)) {
+        return res.status(400).json({ error: 'Please provide a valid http(s) job URL.' });
+      }
+      sourceUrl = u.toString();
+    } catch {
+      return res.status(400).json({ error: 'Please provide a valid job URL.' });
+    }
+
+    const parsed = await parseJobFromAnywhere(additionalNotes || sourceUrl, sourceUrl);
+    const jobTitle = String(parsed.title || '').trim() || sourceUrl.slice(0, 120);
+    const company = String(parsed.company || '').trim();
+
+    await Application.create({
+      userId: phone,
+      jobTitle,
+      company,
+      status: 'saved'
+    });
+
+    await trackWhatsAppTelemetry(phone, 'whatsapp_job_imported_public_link', {
+      title: jobTitle,
+      company
+    });
+
+    return res.json({
+      success: true,
+      job: {
+        title: jobTitle,
+        company,
+        sourceUrl
+      }
+    });
+  } catch (err) {
+    console.error('WhatsApp public import error:', err);
+    return res.status(500).json({ error: 'Could not import this job right now. Please try again.' });
+  }
+});
+
 app.get('/whatsapp-start', (req, res) => {
   const prefillText = String(req.query.text || 'START').trim() || 'START';
   const waLink = getConfiguredWhatsAppShareLink(prefillText);
@@ -4680,6 +4769,11 @@ app.get('/whatsapp-start', (req, res) => {
     return res.redirect(302, `${fallbackBase}/login.html`);
   }
   return res.redirect(302, waLink);
+});
+
+app.get('/RoleRocketWhatsAppStartLink', (req, res) => {
+  const prefillText = String(req.query.text || 'START').trim() || 'START';
+  return res.redirect(302, `/whatsapp-start?text=${encodeURIComponent(prefillText)}`);
 });
 
 app.get('/api/whatsapp/share-link', (_req, res) => {

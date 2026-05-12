@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WhatsApp Import & Save Jobs | RoleRocket AI</title>
+  <style>
+    :root {
+      --bg: #0b1220;
+      --panel: #122037;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --line: rgba(148, 163, 184, 0.35);
+      --accent: #22d3ee;
+      --accent2: #0ea5e9;
+      --ok: #22c55e;
+      --err: #ef4444;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Manrope", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(1000px 500px at -10% -15%, #1f2937 0%, transparent 55%),
+        radial-gradient(700px 450px at 110% -5%, #0f766e 0%, transparent 50%),
+        linear-gradient(165deg, #050912 0%, #0a1322 55%, #07111d 100%);
+      min-height: 100vh;
+    }
+    .shell {
+      width: min(760px, 94vw);
+      margin: 0 auto;
+      padding: 28px 0 32px;
+    }
+    .card {
+      background: linear-gradient(170deg, rgba(15, 23, 42, 0.84), rgba(17, 26, 43, 0.95));
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+    }
+    h1 {
+      margin: 0;
+      font-size: clamp(1.2rem, 4vw, 1.7rem);
+    }
+    .sub {
+      margin-top: 8px;
+      color: #c6d3e6;
+      font-size: 0.94rem;
+      line-height: 1.45;
+    }
+    label {
+      display: block;
+      margin: 14px 0 6px;
+      color: #b4c6de;
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+    input, textarea, button {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      background: #0a1424;
+      color: #ecf3fb;
+      padding: 11px 12px;
+      font-size: 0.96rem;
+    }
+    textarea { min-height: 96px; resize: vertical; }
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: rgba(34, 211, 238, 0.8);
+      box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.16);
+    }
+    button {
+      margin-top: 12px;
+      border: none;
+      cursor: pointer;
+      font-weight: 800;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      color: #062232;
+    }
+    button:disabled { opacity: 0.65; cursor: not-allowed; }
+    .status {
+      margin-top: 12px;
+      min-height: 20px;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.45;
+      white-space: pre-wrap;
+    }
+    .ok { color: #86efac; }
+    .err { color: #fca5a5; }
+    .home {
+      display: inline-block;
+      margin-top: 12px;
+      color: #7dd3fc;
+      text-decoration: none;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="card">
+      <h1>Import & Save Jobs</h1>
+      <p class="sub">Paste a job URL and save it directly to your RoleRocket WhatsApp pipeline.</p>
+
+      <label for="jobUrl">Job URL</label>
+      <input id="jobUrl" type="url" placeholder="https://example.com/job-posting" />
+
+      <label for="notes">Optional Notes</label>
+      <textarea id="notes" placeholder="Add role/company details if needed."></textarea>
+
+      <button id="importBtn" type="button">Import & Save</button>
+      <div id="statusText" class="status"></div>
+
+      <a class="home" href="/whatsapp-start">Open WhatsApp Start Link</a>
+    </section>
+  </main>
+
+  <script>
+    (function initWhatsAppImportPage() {
+      const params = new URLSearchParams(window.location.search);
+      const phone = String(params.get('phone') || '').trim();
+      const token = String(params.get('token') || '').trim();
+      const jobUrlInput = document.getElementById('jobUrl');
+      const notesInput = document.getElementById('notes');
+      const importBtn = document.getElementById('importBtn');
+      const statusText = document.getElementById('statusText');
+
+      function setStatus(message, tone) {
+        statusText.textContent = message || '';
+        statusText.className = 'status' + (tone ? ' ' + tone : '');
+      }
+
+      importBtn.addEventListener('click', async function () {
+        const sourceUrl = String(jobUrlInput.value || '').trim();
+        const additionalNotes = String(notesInput.value || '').trim();
+
+        if (!sourceUrl) {
+          setStatus('Please paste a job URL first.', 'err');
+          return;
+        }
+        if (!phone || !token) {
+          setStatus('This import link is incomplete. Return to WhatsApp and tap Import & Save Jobs again.', 'err');
+          return;
+        }
+
+        importBtn.disabled = true;
+        setStatus('Importing and saving your job...', '');
+
+        try {
+          const response = await fetch('/api/whatsapp/jobs/import-public', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone, token, sourceUrl, additionalNotes })
+          });
+          const data = await response.json();
+          if (!response.ok) {
+            throw new Error(data.error || 'Could not import this job.');
+          }
+
+          const title = String(data.job?.title || 'Role').trim();
+          const company = String(data.job?.company || '').trim();
+          const label = company ? (title + ' @ ' + company) : title;
+          setStatus('Saved successfully: ' + label + '\nReturn to WhatsApp to continue.', 'ok');
+          jobUrlInput.value = '';
+          notesInput.value = '';
+        } catch (error) {
+          setStatus(error.message || 'Could not import this job right now.', 'err');
+        } finally {
+          importBtn.disabled = false;
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
