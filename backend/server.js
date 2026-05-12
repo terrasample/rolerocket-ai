@@ -4874,23 +4874,23 @@ app.get('/rolerocket', (req, res) => {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>RoleRocket AI | Your Career Execution System</title>
+  <title>RoleRocket AI | Apply Smarter. Get Hired Faster.</title>
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="RoleRocket AI" />
-  <meta property="og:title" content="RoleRocket AI | Your Career Execution System" />
-  <meta property="og:description" content="AI-powered job search, resume optimizer, cover letter generator, and interview prep — all in one platform." />
+  <meta property="og:title" content="RoleRocket AI | Apply Smarter. Get Hired Faster." />
+  <meta property="og:description" content="AI-powered job search, resume optimizer, cover letter generator, interview prep, and application tracking in one platform." />
   <meta property="og:url" content="https://www.rolerocketai.com/rolerocket" />
   <meta property="og:image" content="https://www.rolerocketai.com/assets/rolerocket-logo-new.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="RoleRocket AI | Your Career Execution System" />
-  <meta name="twitter:description" content="AI-powered job search, resume optimizer, cover letter generator, and interview prep — all in one platform." />
+  <meta name="twitter:title" content="RoleRocket AI | Apply Smarter. Get Hired Faster." />
+  <meta name="twitter:description" content="AI-powered job search, resume optimizer, cover letter generator, interview prep, and application tracking in one platform." />
   <meta name="twitter:image" content="https://www.rolerocketai.com/assets/rolerocket-logo-new.png" />
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     body{min-height:100vh;display:grid;place-items:center;font-family:'Segoe UI',sans-serif;
-      background:linear-gradient(135deg,#000000 0%,#007847 50%,#fdb714 100%);}
+      background:radial-gradient(circle at 20% 10%, #0b3d91 0%, #050b18 48%, #040711 100%);}
     .wrap{text-align:center;padding:32px 20px;}
     span{font-size:3.5rem;display:block;margin-bottom:16px;}
     h1{color:#fff;font-size:clamp(1.4rem,4vw,2rem);font-weight:800;margin-bottom:10px;}
@@ -4906,6 +4906,10 @@ app.get('/rolerocket', (req, res) => {
   <script>window.location.href="${destination}";<\/script>
 </body>
 </html>`);
+});
+
+app.get('/rolerocket-login', (req, res) => {
+  return res.redirect(302, '/rolerocket');
 });
 
 app.get('/api/whatsapp/share-link', (_req, res) => {
