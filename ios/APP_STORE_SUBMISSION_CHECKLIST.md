@@ -7,7 +7,7 @@ This project is prepped locally for iOS metadata and versioning.
 - App display name: RoleRocketAI
 - Bundle ID: com.rolerocket.ai
 - iOS deployment target: 15.0
-- Version/build: 1.0.1 (2)
+- Version/build: 1.0.2 (3)
 - Export compliance key: ITSAppUsesNonExemptEncryption = false
 - App icon asset exists (1024x1024)
 
