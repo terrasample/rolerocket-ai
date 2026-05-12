@@ -767,6 +767,18 @@
 
           var esc = function(s){ return String(s).replace(/[&<>"]/g, function(c){ return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]); }); };
           var activeExperienceCountry = String(window.__rrExperienceCountry || '').toUpperCase();
+          if (!activeExperienceCountry) {
+            try {
+              var expRes = await fetch(apiUrl('/api/experience/context'), {
+                headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' },
+                credentials: 'include'
+              });
+              if (expRes.ok) {
+                var expData = await expRes.json();
+                activeExperienceCountry = String((expData && expData.effectiveCountry) || '').toUpperCase();
+              }
+            } catch (_expErr) {}
+          }
           var isUSExperience = activeExperienceCountry === 'US';
           var usLocationSignal = /\bunited\s*states\b|\busa\b|\bu\.s\.\b|new\s*york|florida|texas|california|washington|illinois|massachusetts|georgia|north\s*carolina|south\s*carolina|virginia|pennsylvania|ohio|michigan|new\s*jersey|maryland|arizona|colorado|oregon|utah|nevada|tennessee|miami|orlando|tampa|jacksonville|atlanta|chicago|seattle|boston|dallas|houston|austin|san\s*francisco|los\s*angeles/i;
           var ukLocationSignal = /\bunited\s*kingdom\b|\buk\b|england|scotland|wales|northern\s*ireland|london|manchester|birmingham|glasgow|bedford|swansea/i;
