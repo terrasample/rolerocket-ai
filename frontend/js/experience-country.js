@@ -295,12 +295,13 @@
       '.rr-exp-country-row{display:flex;gap:8px;align-items:center;}',
       '.rr-exp-country-row select{flex:1;min-width:0;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:8px;padding:8px;}',
       '.rr-exp-country-row button{border:1px solid #3b82f6;background:#1d4ed8;color:#eff6ff;border-radius:8px;padding:8px 10px;font-weight:700;cursor:pointer;}',
-      '.rr-exp-overlay{position:fixed;inset:0;background:rgba(2,6,23,.75);display:grid;place-items:center;z-index:9999;padding:16px;}',
-      '.rr-exp-card{width:min(460px,100%);background:linear-gradient(180deg,#0f172a 0%,#111827 100%);border:1px solid rgba(59,130,246,.4);border-radius:14px;padding:20px;color:#e2e8f0;box-shadow:0 20px 50px rgba(2,6,23,.55);}',
+      '.rr-exp-overlay{position:fixed;inset:0;background:rgba(2,6,23,.85);display:grid;place-items:center;z-index:99999;padding:16px;backdrop-filter:blur(4px);}',
+      '.rr-exp-overlay *{pointer-events:auto;}',
+      '.rr-exp-card{width:min(460px,100%);background:linear-gradient(180deg,#0f172a 0%,#111827 100%);border:2px solid rgba(59,130,246,.5);border-radius:14px;padding:20px;color:#e2e8f0;box-shadow:0 20px 50px rgba(2,6,23,.85);position:relative;z-index:100000;}',
       '.rr-exp-card h3{margin:0 0 8px;font-size:1.2rem;color:#f8fafc;}',
       '.rr-exp-card p{margin:0 0 14px;color:#cbd5e1;line-height:1.5;}',
       '.rr-exp-card select{width:100%;margin-bottom:12px;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:8px;padding:10px;}',
-      '.rr-exp-card button{width:100%;border:1px solid #3b82f6;background:#1d4ed8;color:#eff6ff;border-radius:8px;padding:10px 12px;font-weight:800;cursor:pointer;}'
+      '.rr-exp-card button{width:100%;border:1px solid #3b82f6;background:#1d4ed8;color:#eff6ff;border-radius:8px;padding:10px 12px;font-weight:800;cursor:pointer;transition:all 200ms ease;}'
     ].join('');
     document.head.appendChild(style);
   }
@@ -378,9 +379,12 @@
     var overlay = document.createElement('div');
     overlay.id = 'rrExpOverlay';
     overlay.className = 'rr-exp-overlay';
+    // Mandatory modal: prevent closing by clicking outside
+    overlay.style.pointerEvents = 'none';
 
     var card = document.createElement('div');
     card.className = 'rr-exp-card';
+    card.style.pointerEvents = 'auto';
 
     var heading = document.createElement('h3');
     heading.textContent = 'Choose your country experience';
@@ -401,16 +405,24 @@
     button.type = 'button';
     button.textContent = 'Continue';
 
+    var isSubmitting = false;
+
     button.addEventListener('click', async function () {
+      if (isSubmitting) return;
       var selected = (select.value || 'GLOBAL').toUpperCase();
       button.disabled = true;
       button.textContent = 'Saving...';
+      isSubmitting = true;
       try {
         var saved = await savePreference(selected);
         hideJamaicaElements(saved.showJamaicaHub);
         applyDashboardVariant(selected);
         overlay.remove();
+        // Clean up event listeners once modal is closed
+        document.removeEventListener('keydown', handleEscape, true);
+        window.removeEventListener('popstate', preventNavigation);
       } catch (_) {
+        isSubmitting = false;
         button.disabled = false;
         button.textContent = 'Continue';
       }
@@ -422,6 +434,44 @@
     card.appendChild(button);
     overlay.appendChild(card);
     document.body.appendChild(overlay);
+
+    // Prevent bypassing with Escape key
+    var handleEscape = function (e) {
+      if (e.key === 'Escape' && document.getElementById('rrExpOverlay')) {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      }
+    };
+    document.addEventListener('keydown', handleEscape, true);
+
+    // Prevent browser back button during experience selection
+    var preventNavigation = function (e) {
+      if (document.getElementById('rrExpOverlay')) {
+        e.preventDefault();
+        window.history.pushState(null, '', window.location.href);
+      }
+    };
+    window.addEventListener('popstate', preventNavigation);
+    window.history.pushState(null, '', window.location.href);
+
+    // Prevent accidental clicks outside the modal from closing it
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    });
+
+    // Prevent page unload before choice is made
+    var preventUnload = function (e) {
+      if (document.getElementById('rrExpOverlay') && !isSubmitting) {
+        e.preventDefault();
+        e.returnValue = '';
+        return '';
+      }
+    };
+    window.addEventListener('beforeunload', preventUnload);
   }
 
   async function init() {
