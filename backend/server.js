@@ -1755,6 +1755,7 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
   const jobsParishContentSid = String(process.env.TWILIO_WHATSAPP_JOBS_PARISH_CONTENT_SID || '').trim();
   const jobsActionContentSid = String(process.env.TWILIO_WHATSAPP_JOBS_ACTION_CONTENT_SID || '').trim();
   const backMenuContentSid = String(process.env.TWILIO_WHATSAPP_BACK_MENU_CONTENT_SID || '').trim();
+  const paidFeaturesContentSid = String(process.env.TWILIO_WHATSAPP_PAID_FEATURES_CONTENT_SID || '').trim();
 
   const hasInteractiveTemplates = [
     languageContentSid,
@@ -1766,7 +1767,8 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
     jobsMenuContentSid,
     jobsParishContentSid,
     jobsActionContentSid,
-    backMenuContentSid
+    backMenuContentSid,
+    paidFeaturesContentSid
   ].some(Boolean);
 
   const interactiveEnabled = interactiveToggle === '1' || interactiveToggle === 'true' || (interactiveToggle === '' && hasInteractiveTemplates);
@@ -1820,6 +1822,14 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
     if (hasJobs) {
       return 'defer';
     }
+  }
+
+  if (step === 'explore_features' && paidFeaturesContentSid) {
+    const result = await sendWhatsAppContentTemplate({ to: from, contentSid: paidFeaturesContentSid });
+    if (result?.success && backMenuContentSid) {
+      await sendWhatsAppContentTemplate({ to: from, contentSid: backMenuContentSid });
+    }
+    return result?.success ? 'keep' : false;
   }
 
   if (step === 'jobs_parish_select' && jobsParishContentSid) {
@@ -2306,6 +2316,136 @@ function getWhatsAppExploreFeaturesText(plan = 'free', language = 'english') {
     upgradeHint || (f.interview ? 'For interview prep, reply INTERVIEW.' : ''),
     'Reply START to return to the main menu.'
   ].filter(Boolean).join('\n');
+}
+
+function getWhatsAppPaidFeaturesOverviewText(language = 'english') {
+  if (language === 'spanish') {
+    return [
+      '🚀 Funciones premium de RoleRocket AI',
+      '',
+      'PRO',
+      '1) CV completo con IA: crea un CV profesional listo para aplicar.',
+      '2) Exportar PDF/Word: descarga y comparte facilmente.',
+      '3) Analisis de CV: detecta mejoras para filtros ATS.',
+      '',
+      'PREMIUM',
+      '4) Entrevistas: preguntas realistas y guias de respuesta.',
+      '5) Insights del mercado: demanda, salarios y habilidades por rol.',
+      '6) Auto-Apply: acelera solicitudes para roles compatibles.',
+      '',
+      'ELITE',
+      '7) Learning & Courses: rutas de aprendizaje para cerrar brechas.',
+      '8) Portfolio Builder: crea una vitrina profesional de logros.',
+      '',
+      'Toca un boton para abrir una funcion. Usa Main Menu para volver.'
+    ].join('\n');
+  }
+
+  return [
+    '🚀 RoleRocket AI Paid Features',
+    '',
+    'PRO',
+    '1) Full AI Resume Builder: creates a polished role-ready resume draft.',
+    '2) PDF/Word Export: download and share job-ready documents quickly.',
+    '3) Resume Analysis: finds gaps and improvements for ATS performance.',
+    '',
+    'PREMIUM',
+    '4) Interview Practice: realistic interview questions and guided answers.',
+    '5) Market Insights: role demand, salary direction, and skill trends.',
+    '6) Auto-Apply: speeds up applications to matching opportunities.',
+    '',
+    'ELITE',
+    '7) Learning & Courses: guided upskilling paths for target roles.',
+    '8) Portfolio Builder: presents projects and achievements professionally.',
+    '',
+    'Tap a feature button to open it. Use Main Menu to return anytime.'
+  ].join('\n');
+}
+
+function getWhatsAppPreviousStep(currentStep = '') {
+  const step = String(currentStep || '').trim();
+  const previousByStep = {
+    jobs_role_input: 'jobs_menu',
+    jobs_parish_select: 'jobs_role_input',
+    jobs_import: 'jobs_menu',
+    jobs_action: 'jobs_menu',
+    jobs_query: 'jobs_menu',
+    resume_input_choice: 'menu',
+    resume_capture: 'resume_input_choice',
+    resume_followup: 'resume_input_choice',
+    cover_letter_capture: 'menu',
+    cover_letter_followup: 'cover_letter_capture',
+    interview_target: 'menu',
+    job_tailor_choice: 'jobs_action',
+    human_handoff: 'menu',
+    explore_features: 'menu'
+  };
+  return previousByStep[step] || 'menu';
+}
+
+function getWhatsAppStepPrompt(step = '', user = {}, convo = {}) {
+  const safeStep = String(step || '').trim();
+  const language = String(convo?.metadata?.context?.language || 'english');
+  const roleHint = encodeURIComponent(String(user?.targetJob || convo?.metadata?.context?.lastJobTitle || '').trim());
+
+  if (safeStep === 'menu') return getWhatsAppMenuText(language);
+  if (safeStep === 'jobs_menu') return 'What would you like to do with jobs? Use SEARCH, IMPORT, SAVE, or MAIN MENU.';
+  if (safeStep === 'jobs_role_input') {
+    const premiumSearchUrl = roleHint
+      ? `${getPublicAppBaseUrl()}/whatsapp-premium-jobs.html?role=${roleHint}`
+      : `${getPublicAppBaseUrl()}/whatsapp-premium-jobs.html`;
+    return [
+      'Premium Jobs Search is ready.',
+      `Open: ${premiumSearchUrl}`,
+      'Use the role text field + Jamaica parish dropdown + Search button.',
+      'Or type your target role here if you want to continue inside WhatsApp.'
+    ].join('\n');
+  }
+  if (safeStep === 'jobs_parish_select') {
+    const role = String(convo?.metadata?.context?.pendingJobRole || user?.targetJob || '').trim();
+    return buildWhatsAppParishPrompt(role);
+  }
+  if (safeStep === 'jobs_import') {
+    const phone = normalizeWhatsAppPhone(String(user?.phone || convo?.phone || ''));
+    const importToken = createWhatsAppImportToken(phone);
+    const premiumImportUrl = importToken
+      ? `${getPublicAppBaseUrl()}/whatsapp-import-save-jobs.html?phone=${encodeURIComponent(phone)}&token=${encodeURIComponent(importToken)}`
+      : `${getPublicAppBaseUrl()}/whatsapp-import-save-jobs.html`;
+    return [
+      'Import & Save Jobs is ready.',
+      `Open: ${premiumImportUrl}`,
+      'Paste a job URL in the Import box and save it to your pipeline.',
+      'Or paste the job URL/details here in WhatsApp and I will save it for you.'
+    ].join('\n');
+  }
+  if (safeStep === 'resume_input_choice') {
+    const resumeUrl = `${getPublicAppBaseUrl()}/resume-generator.html?source=whatsapp`;
+    return [
+      'Resume Generator is ready.',
+      `Open: ${resumeUrl}`,
+      'Use the web form to generate and export your resume quickly.',
+      'Or continue here: tap UPLOAD to send a resume file, or TYPE to send your work history.'
+    ].join('\n');
+  }
+  if (safeStep === 'resume_capture') return 'Send your resume as a PDF/Word file or share your recent work history (text/voice).';
+  if (safeStep === 'cover_letter_capture') {
+    const coverLetterUrl = `${getPublicAppBaseUrl()}/cover-letter-generator.html?source=whatsapp`;
+    return [
+      'Cover Letter Generator is ready.',
+      `Open: ${coverLetterUrl}`,
+      'Use the web form to generate and export your cover letter quickly.',
+      'Or continue here by sending role + company (example: Customer Service Rep at GraceKennedy).'
+    ].join('\n');
+  }
+  if (safeStep === 'interview_target') {
+    return [
+      'Step 1: Send role or company.',
+      'Example: GraceKennedy Customer Service Rep',
+      'I will give likely questions + best answers.'
+    ].join('\n');
+  }
+  if (safeStep === 'explore_features') return getWhatsAppPaidFeaturesOverviewText(language);
+  return getWhatsAppMenuText(language);
 }
 
 function getWhatsAppCoverLetterFallback(jobTarget = '') {
@@ -3041,6 +3181,18 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     return reply;
   }
 
+  const isGoBackIntent = ['go_back', 'go back', 'back', 'previous', 'prev', 'go to previous'].includes(text);
+  if (isGoBackIntent) {
+    const priorStep = getWhatsAppPreviousStep(convo.currentStep);
+    convo.currentStep = priorStep;
+    if (priorStep === 'menu') convo.lastIntent = 'menu';
+    const reply = getWhatsAppStepPrompt(priorStep, user, convo);
+    convo.lastOutboundMessage = reply;
+    convo.lastOutboundAt = new Date();
+    await convo.save();
+    return reply;
+  }
+
   if (convo.currentStep === 'language_select') {
     const languageValue = getWhatsAppLanguageValue(text);
     if (!languageValue) {
@@ -3506,12 +3658,69 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   if (isExploreIntent) {
     user.lastIntent = 'explore';
     convo.lastIntent = 'explore';
-    convo.currentStep = 'menu';
+    convo.currentStep = 'explore_features';
     const language = String(convo.metadata?.context?.language || 'english');
-    const reply = getWhatsAppExploreFeaturesText(user.plan || 'free', language);
+    const reply = [
+      getWhatsAppExploreFeaturesText(user.plan || 'free', language),
+      '',
+      getWhatsAppPaidFeaturesOverviewText(language)
+    ].join('\n');
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
     await Promise.all([user.save(), convo.save()]);
+    return reply;
+  }
+
+  if (convo.currentStep === 'explore_features') {
+    const featureLinks = {
+      pro_resume_builder: `${getPublicAppBaseUrl()}/resume-generator.html?plan=pro`,
+      pro_export_suite: `${getPublicAppBaseUrl()}/resume-generator.html?export=1`,
+      pro_resume_analysis: `${getPublicAppBaseUrl()}/resume-builder.html#analysis`,
+      premium_interview_practice: `${getPublicAppBaseUrl()}/interview-prep.html`,
+      premium_market_insights: `${getPublicAppBaseUrl()}/job-search.html?source=market`,
+      premium_auto_apply: `${getPublicAppBaseUrl()}/dashboard.html#auto-apply`,
+      elite_learning_courses: `${getPublicAppBaseUrl()}/course-learning.html`,
+      elite_portfolio_builder: `${getPublicAppBaseUrl()}/executive-presence-builder.html`
+    };
+
+    const featureDescriptions = {
+      pro_resume_builder: 'Full AI Resume Builder: creates a polished role-ready resume draft.',
+      pro_export_suite: 'PDF/Word Export: download and share job-ready documents quickly.',
+      pro_resume_analysis: 'Resume Analysis: identifies ATS issues and improvement opportunities.',
+      premium_interview_practice: 'Interview Practice: realistic questions with guided answer structure.',
+      premium_market_insights: 'Market Insights: role demand, pay direction, and key skill trends.',
+      premium_auto_apply: 'Auto-Apply: helps you move faster on matching opportunities.',
+      elite_learning_courses: 'Learning & Courses: targeted upskilling tracks for your next role.',
+      elite_portfolio_builder: 'Portfolio Builder: showcase projects, wins, and credibility clearly.'
+    };
+
+    const selectedFeature = Object.keys(featureLinks).find((key) => text === key)
+      || (text.includes('resume builder') ? 'pro_resume_builder' : '')
+      || (text.includes('export') ? 'pro_export_suite' : '')
+      || (text.includes('analysis') ? 'pro_resume_analysis' : '')
+      || (text.includes('interview') ? 'premium_interview_practice' : '')
+      || (text.includes('market') ? 'premium_market_insights' : '')
+      || (text.includes('auto-apply') || text.includes('auto apply') ? 'premium_auto_apply' : '')
+      || (text.includes('learning') || text.includes('course') ? 'elite_learning_courses' : '')
+      || (text.includes('portfolio') ? 'elite_portfolio_builder' : '');
+
+    if (selectedFeature) {
+      const reply = [
+        featureDescriptions[selectedFeature],
+        `Open: ${featureLinks[selectedFeature]}`,
+        'Tap another paid feature button to explore more, or use Main Menu.'
+      ].join('\n');
+      convo.lastOutboundMessage = reply;
+      convo.lastOutboundAt = new Date();
+      await convo.save();
+      return reply;
+    }
+
+    const language = String(convo.metadata?.context?.language || 'english');
+    const reply = getWhatsAppPaidFeaturesOverviewText(language);
+    convo.lastOutboundMessage = reply;
+    convo.lastOutboundAt = new Date();
+    await convo.save();
     return reply;
   }
 
