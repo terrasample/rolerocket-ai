@@ -1742,11 +1742,9 @@ function extractWhatsAppInboundText(payload = {}) {
 }
 
 async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText = '', convo = null }) {
-  const interactiveEnabled = String(process.env.TWILIO_WHATSAPP_INTERACTIVE_ENABLED || '').trim() === '1';
-  if (!interactiveEnabled || !from || !convo) return false;
+  if (!from || !convo) return false;
 
-  const step = String(convo.currentStep || '').trim();
-
+  const interactiveToggle = String(process.env.TWILIO_WHATSAPP_INTERACTIVE_ENABLED || '').trim().toLowerCase();
   const languageContentSid = String(process.env.TWILIO_WHATSAPP_LANGUAGE_CONTENT_SID || '').trim();
   const menuContentSid = String(process.env.TWILIO_WHATSAPP_MENU_CONTENT_SID || '').trim();
   const resumeActionsContentSid = String(process.env.TWILIO_WHATSAPP_RESUME_ACTIONS_CONTENT_SID || '').trim();
@@ -1756,8 +1754,25 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
   const jobsMenuContentSid = String(process.env.TWILIO_WHATSAPP_JOBS_MENU_CONTENT_SID || '').trim();
   const jobsParishContentSid = String(process.env.TWILIO_WHATSAPP_JOBS_PARISH_CONTENT_SID || '').trim();
   const jobsActionContentSid = String(process.env.TWILIO_WHATSAPP_JOBS_ACTION_CONTENT_SID || '').trim();
-
   const backMenuContentSid = String(process.env.TWILIO_WHATSAPP_BACK_MENU_CONTENT_SID || '').trim();
+
+  const hasInteractiveTemplates = [
+    languageContentSid,
+    menuContentSid,
+    resumeActionsContentSid,
+    resumeInputChoiceContentSid,
+    coverActionsContentSid,
+    tailorsContentSid,
+    jobsMenuContentSid,
+    jobsParishContentSid,
+    jobsActionContentSid,
+    backMenuContentSid
+  ].some(Boolean);
+
+  const interactiveEnabled = interactiveToggle === '1' || interactiveToggle === 'true' || (interactiveToggle === '' && hasInteractiveTemplates);
+  if (!interactiveEnabled) return false;
+
+  const step = String(convo.currentStep || '').trim();
 
   // 'suppress' = template replaces the text reply entirely (language select / pure menu / tailor choice)
   // 'keep'     = template sends buttons alongside the text reply (content pages + nav, resume, cover, jobs)
@@ -2909,7 +2924,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   const textCanonical = text.replace(/&/g, ' and ').replace(/\s+/g, ' ').trim();
 
   if (!phone) return 'Could not identify your number. Please try again.';
-  if (!incoming && !hasInboundAudio) return `${getWhatsAppMenuText()}\n\nType START to begin.`;
+  if (!incoming && !hasInboundAudio) return `${getWhatsAppMenuText()}\n\nUse the menu buttons to begin.`;
 
   const [profile, conversation] = await Promise.all([
     WhatsAppRecruitingUser.findOne({ phone }),
@@ -3011,8 +3026,8 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     return reply;
   }
 
-  // Handle 'main_menu' button ID from the back-button template — skip language re-select
-  if (text === 'main_menu') {
+  // Handle main-menu button/list values globally — skip language re-select
+  if (['main_menu', 'main menu', 'menu', 'home'].includes(text)) {
     const language = String(convo.metadata?.context?.language || 'english');
     convo.currentStep = 'menu';
     convo.lastIntent = 'menu';
