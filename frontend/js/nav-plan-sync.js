@@ -7,7 +7,6 @@
     'index.html': '🏠 Home',
     'about-us.html': '📖 About Us',
     'features.html': '✨ Features',
-    'networking-ai.html': '🤝 Networking Hub',
     'job-tracking.html': '🔎 Find, Search & Track',
     'ai-recruiter-assist.html': '🤖 AI Recruiter Assist',
     'pricing.html': '💳 Pricing',
@@ -72,7 +71,6 @@
     const links = Array.from(nav.querySelectorAll('a.sidebar-link-btn'));
     const findByPath = (p) => links.find((l) => normalizePath(l.getAttribute('href') || '') === p);
 
-    ensureNetworkingHubLink(nav);
     const jamaica = findByPath('jamaica-workforce-accelerator.html');
 
     // Section labels are now baked into every page's HTML; only inject if missing.
@@ -101,7 +99,6 @@
       'index.html',
       'about-us.html',
       'features.html',
-      'networking-ai.html',
       'job-tracking.html',
       'ai-recruiter-assist.html',
       'pricing.html',
@@ -197,34 +194,32 @@
     }
   }
 
-  function ensureNetworkingHubLink(nav) {
-    if (!nav) return null;
+  function applyJamaicaHubVisibility(show) {
+    const nav = document.querySelector('#sidebarNav nav, .sidebar nav');
+    if (!nav) return;
+    const jamaicaLabel = nav.querySelector('.sidebar-section-label[data-section="jamaica"]');
+    const jamaicaLink = Array.from(nav.querySelectorAll('a.sidebar-link-btn'))
+      .find((l) => normalizePath(l.getAttribute('href') || '') === 'jamaica-workforce-accelerator.html');
+    const cohortLink = Array.from(nav.querySelectorAll('a.sidebar-link-btn'))
+      .find((l) => normalizePath(l.getAttribute('href') || '') === 'institution-cohort-manager.html');
+    const display = show ? '' : 'none';
+    if (jamaicaLabel) jamaicaLabel.style.display = display;
+    if (jamaicaLink) jamaicaLink.style.display = display;
+    if (cohortLink) cohortLink.style.display = display;
+  }
 
-    const currentPage = normalizePath(window.location.href) || 'index.html';
-    let existing = Array.from(nav.querySelectorAll('a.sidebar-link-btn'))
-      .find((l) => normalizePath(l.getAttribute('href') || '') === 'networking-ai.html');
-
-    if (!existing) {
-      existing = document.createElement('a');
-      existing.className = 'sidebar-link-btn';
-      existing.href = 'networking-ai.html';
-
-      const allLinks = Array.from(nav.querySelectorAll('a.sidebar-link-btn'));
-      const featuresLink = allLinks.find((l) => normalizePath(l.getAttribute('href') || '') === 'features.html');
-      const jobTrackingLink = allLinks.find((l) => normalizePath(l.getAttribute('href') || '') === 'job-tracking.html');
-
-      if (jobTrackingLink) {
-        nav.insertBefore(existing, jobTrackingLink);
-      } else if (featuresLink) {
-        insertAfter(existing, featuresLink);
-      } else {
-        nav.appendChild(existing);
-      }
+  async function syncJamaicaHubVisibility(token) {
+    try {
+      const apiBase = (typeof getApiBase === 'function') ? getApiBase() : '';
+      const headers = { Accept: 'application/json' };
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+      const res = await fetch(apiBase + '/api/experience/context', { headers, credentials: 'include' });
+      if (!res.ok) return;
+      const data = await res.json();
+      applyJamaicaHubVisibility(data.showJamaicaHub === true);
+    } catch (_) {
+      // On error, leave Jamaica hub in its current state
     }
-
-    existing.textContent = '🤝 Networking Hub';
-    existing.classList.toggle('active', currentPage === 'networking-ai.html');
-    return existing;
   }
 
   function upsertAdminInvitesLink(isAdmin) {
@@ -365,6 +360,9 @@
       const plan = (data.user && data.user.plan) || 'free';
       const isAdmin = resolveIsAdmin(data && data.user);
       if (badge) badge.textContent = formatPlanLabel(plan);
+
+      // Sync Jamaica Hub visibility based on experience context
+      syncJamaicaHubVisibility(token);
 
       if (isAdmin) {
         // Confirmed admin — show link, clear any accumulated strikes.
