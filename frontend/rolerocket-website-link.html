@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RoleRocket AI | Your Career Execution System</title>
+  <meta name="description" content="AI-powered job search, resume optimizer, cover letter generator, and interview prep — all in one platform." />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="RoleRocket AI" />
+  <meta property="og:title" content="Your Career Execution System" />
+  <meta property="og:description" content="AI-powered job search, resume optimizer, cover letter generator, and interview prep — all in one platform." />
+  <meta property="og:url" content="https://www.rolerocketai.com/rolerocket" />
+  <meta property="og:image" content="https://www.rolerocketai.com/assets/rolerocket-logo-new.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Your Career Execution System" />
+  <meta name="twitter:description" content="AI-powered job search, resume optimizer, cover letter generator, and interview prep — all in one platform." />
+  <meta name="twitter:image" content="https://www.rolerocketai.com/assets/rolerocket-logo-new.png" />
+
+  <style>
+    :root {
+      --bg0: #040818;
+      --bg1: #08122a;
+      --bg2: #061f3f;
+      --line: rgba(103, 232, 249, 0.3);
+      --txt: #e5efff;
+      --muted: #b6c6df;
+      --cyan: #22d3ee;
+      --blue: #3b82f6;
+      --orange: #fb923c;
+      --ring: rgba(251, 146, 60, 0.35);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--txt);
+      font-family: "Space Grotesk", "Segoe UI", sans-serif;
+      background:
+        radial-gradient(900px 500px at -10% -20%, rgba(34, 211, 238, 0.2), transparent 55%),
+        radial-gradient(800px 500px at 120% -10%, rgba(251, 146, 60, 0.18), transparent 55%),
+        linear-gradient(160deg, var(--bg0) 0%, var(--bg1) 50%, var(--bg2) 100%);
+      display: grid;
+      place-items: center;
+      padding: 22px;
+    }
+    .frame {
+      width: min(720px, 100%);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: 0 28px 70px rgba(0, 0, 0, 0.45);
+      background: linear-gradient(175deg, rgba(7, 16, 36, 0.9), rgba(9, 20, 44, 0.92));
+    }
+    .hero {
+      padding: clamp(22px, 4vw, 36px);
+      position: relative;
+      isolation: isolate;
+    }
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: -80px -60px auto;
+      height: 220px;
+      background: conic-gradient(from 240deg at 50% 50%, #22d3ee 0deg, #3b82f6 120deg, #fb923c 240deg, #22d3ee 360deg);
+      filter: blur(56px);
+      opacity: 0.25;
+      z-index: -1;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid rgba(125, 211, 252, 0.35);
+      border-radius: 999px;
+      padding: 7px 12px;
+      font-size: 0.76rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #b9e6ff;
+      background: rgba(2, 12, 30, 0.42);
+    }
+    h1 {
+      margin: 14px 0 8px;
+      font-size: clamp(1.7rem, 4.4vw, 2.8rem);
+      line-height: 1.06;
+      letter-spacing: -0.015em;
+    }
+    .gradient {
+      background: linear-gradient(90deg, var(--cyan), var(--blue), var(--orange));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: clamp(0.95rem, 2.2vw, 1.05rem);
+      max-width: 56ch;
+    }
+    .actions {
+      margin-top: 22px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      appearance: none;
+      border: 0;
+      border-radius: 12px;
+      padding: 12px 20px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn-primary {
+      color: #031526;
+      background: linear-gradient(92deg, var(--cyan), #38bdf8);
+      box-shadow: 0 0 0 1px rgba(125, 211, 252, 0.15), 0 10px 26px rgba(14, 165, 233, 0.4);
+    }
+    .footer {
+      border-top: 1px solid rgba(148, 163, 184, 0.18);
+      padding: 12px clamp(22px, 4vw, 36px) 18px;
+      font-size: 0.86rem;
+      color: #9ab3d2;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--orange);
+      box-shadow: 0 0 0 7px var(--ring);
+      display: inline-block;
+      margin-right: 8px;
+      transform: translateY(1px);
+    }
+  </style>
+</head>
+<body>
+  <section class="frame">
+    <div class="hero">
+      <span class="badge">RoleRocket AI</span>
+      <h1><span class="gradient">Your Career</span><br />Execution System</h1>
+      <p>AI-powered job search, resume optimizer, cover letter generator, and interview prep — all in one platform.</p>
+      <div class="actions">
+        <a class="btn btn-primary" href="https://www.rolerocketai.com">Open RoleRocket AI</a>
+      </div>
+    </div>
+    <div class="footer">
+      <span><span class="dot"></span>Apply Smarter. Get Hired Faster.</span>
+      <span>rolerocketai.com</span>
+    </div>
+  </section>
+</body>
+</html>
