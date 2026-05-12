@@ -180,7 +180,20 @@ document.addEventListener('DOMContentLoaded', function () {
   const isWhatsAppSourceFlow = String(pageQueryParams.get('source') || '').toLowerCase() === 'whatsapp';
 
   function getAuthToken() {
-    return (typeof getStoredToken === 'function' ? getStoredToken() : localStorage.getItem('token')) || '';
+    if (typeof getStoredToken === 'function') {
+      const stored = getStoredToken();
+      if (stored) return stored;
+    }
+
+    return (
+      localStorage.getItem('token') ||
+      sessionStorage.getItem('token') ||
+      localStorage.getItem('rr_token') ||
+      sessionStorage.getItem('rr_token') ||
+      localStorage.getItem('authToken') ||
+      sessionStorage.getItem('authToken') ||
+      ''
+    );
   }
 
   function setBillingButtonsDisabled(disabled) {
