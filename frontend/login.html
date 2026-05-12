@@ -522,6 +522,25 @@
           throw new Error('Could not save session in this browser.');
         }
         setStoredUser(data.user || { email });
+
+        // Enforce country-experience choice on first authenticated login before general app navigation.
+        // The dashboard has the blocking picker gate when requiresChoice=true.
+        const expRes = await fetch(apiUrl('/api/experience/context'), {
+          method: 'GET',
+          headers: {
+            Accept: 'application/json',
+            Authorization: `Bearer ${data.token}`
+          },
+          credentials: 'include'
+        });
+        const expData = expRes.ok ? safeJson(await expRes.text()) : null;
+        const requiresChoice = !!(expData && expData.requiresChoice === true);
+
+        if (requiresChoice) {
+          window.location.replace('dashboard.html');
+          return;
+        }
+
         window.location.replace('index.html');
       } catch (err) {
         let apiTarget = 'unknown';
