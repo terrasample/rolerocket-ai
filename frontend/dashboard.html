@@ -1327,6 +1327,52 @@
                 scoutJobs = scoutJobs.filter(isJamaicaCompatibleJob);
               }
 
+              // If strict US locality returns zero hits (for example Bronx/NY),
+              // broaden one step to nationwide US + remote so users still see valid matches.
+              if (isUSExperience && !scoutJobs.length && usLocationScope === 'strict-local') {
+                try {
+                  var fallbackScoutRequests = [
+                    { title: primaryScoutTitle, location: 'United States' },
+                    { title: primaryScoutTitle, location: 'Remote' }
+                  ];
+
+                  var fallbackResponses = await Promise.all(fallbackScoutRequests.map(function(request) {
+                    return fetch(apiUrl('/api/jobs/scout?title=' + encodeURIComponent(request.title) + '&location=' + encodeURIComponent(request.location) + '&preferences=' + encodeURIComponent(profilePreferenceText) + '&radius=' + encodeURIComponent(String(Math.max(scoutRadiusMiles, 250)))), {
+                      headers: { Authorization: 'Bearer ' + token }
+                    }).then(function(res) {
+                      return { ok: res.ok, res: res };
+                    }).catch(function() {
+                      return { ok: false, res: null };
+                    });
+                  }));
+
+                  var fallbackJobs = [];
+                  for (var frIdx = 0; frIdx < fallbackResponses.length; frIdx += 1) {
+                    var fallbackResponse = fallbackResponses[frIdx];
+                    if (!fallbackResponse.ok || !fallbackResponse.res) continue;
+                    try {
+                      var fallbackData = await fallbackResponse.res.json();
+                      var fallbackList = Array.isArray(fallbackData.jobs) ? fallbackData.jobs : [];
+                      fallbackJobs = fallbackJobs.concat(fallbackList);
+                    } catch (_fallbackJsonErr) {
+                      // Ignore malformed fallback payloads.
+                    }
+                  }
+
+                  if (fallbackJobs.length) {
+                    var seenFallbackJobs = new Set();
+                    scoutJobs = fallbackJobs.filter(function(job) {
+                      var key = [job && job.link, job && job.title, job && job.company, job && job.location].join('|').toLowerCase();
+                      if (seenFallbackJobs.has(key)) return false;
+                      seenFallbackJobs.add(key);
+                      return true;
+                    }).filter(isUSCompatibleJob);
+                  }
+                } catch (_usFallbackErr) {
+                  // Keep scoutJobs empty and let UI show empty-state copy.
+                }
+              }
+
               // Remove geographically irrelevant outlier locations unless the user
               // is specifically targeting them.
               var OUTLIER_REGIONS = ['hawaii', 'alaska', 'wake island', 'guam', 'puerto rico', 'virgin islands', 'american samoa', 'northern mariana'];
