@@ -1887,31 +1887,35 @@ function createWhatsAppImportToken(phone = '') {
 }
 
 function extractWhatsAppInboundText(payload = {}) {
-  const interactiveFirst = [
-    payload.ButtonPayload,
+  const interactiveCandidates = [
     payload.ButtonText,
     payload.ListSelectionTitle,
-    payload.ListSelection,
     payload.ListSelectionDescription,
+    payload.ListSelection,
+    payload.ButtonPayload,
     payload.InteractiveData,
     payload.InteractiveResponse,
     payload.Body
   ];
 
-  for (const candidate of interactiveFirst) {
+  const flattened = [];
+  for (const candidate of interactiveCandidates) {
+    if (!candidate) continue;
     if (candidate && typeof candidate === 'object') {
-      const merged = [candidate.id, candidate.payload, candidate.title, candidate.text, candidate.value]
-        .filter(Boolean)
-        .map((item) => String(item))
-        .join(' ');
-      const text = normalizeIncomingWhatsAppText(merged);
-      if (text) return text;
+      flattened.push(candidate.id, candidate.payload, candidate.title, candidate.text, candidate.value);
       continue;
     }
-
-    const text = normalizeIncomingWhatsAppText(candidate || '');
-    if (text) return text;
+    flattened.push(candidate);
   }
+
+  const mergedInteractiveText = normalizeIncomingWhatsAppText(
+    flattened
+      .filter(Boolean)
+      .map((item) => String(item))
+      .join(' ')
+  );
+
+  if (mergedInteractiveText) return mergedInteractiveText;
 
   const candidates = [
     payload.Body,
@@ -2467,6 +2471,9 @@ function getWhatsAppForcedIntent(textCanonical = '') {
     .replace(/\s+/g, ' ')
     .trim();
   if (!text) return '';
+
+  if (/\b(option|menu|choice|action)\s*3\b/.test(text)) return 'resume';
+  if (/\b(option|menu|choice|action)\s*4\b/.test(text)) return 'coverLetter';
 
   const exact = new Map([
     ['start', 'start'],
