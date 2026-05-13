@@ -122,6 +122,10 @@
         if (token) return { Authorization: 'Bearer ' + token };
       }
     } catch (_) {}
+    try {
+      var fallbackToken = localStorage.getItem('token') || sessionStorage.getItem('token') || '';
+      if (fallbackToken) return { Authorization: 'Bearer ' + fallbackToken };
+    } catch (_) {}
     return {};
   }
 

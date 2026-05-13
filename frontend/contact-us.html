@@ -16,50 +16,56 @@
       box-shadow: 0 4px 32px #0ea5e930;
     }
     .contact-form {
-      background: #fff;
+      background: linear-gradient(180deg, rgba(30, 64, 175, 0.42), rgba(15, 23, 42, 0.34));
       max-width: none;
       width: min(1120px, calc(100vw - 64px));
       margin: 32px auto;
       padding: 32px 28px 28px 28px;
       border-radius: 18px;
-      box-shadow: 0 8px 32px #0ea5e950;
+      box-shadow: 0 12px 30px rgba(2, 6, 23, 0.28);
+      border: 1px solid rgba(191, 10, 48, 0.28);
       display: flex;
       flex-direction: column;
       gap: 18px;
     }
     .contact-form label {
       font-weight: 600;
-      color: #1e293b;
+      color: #e2e8f0;
       margin-bottom: 6px;
     }
     .contact-form input, .contact-form textarea {
-      border: 1.5px solid #cbd5e1;
+      border: 1.5px solid rgba(147, 197, 253, 0.34);
       border-radius: 8px;
       padding: 12px 14px;
       font-size: 1.1em;
-      background: #f8fafc;
-      color: #1e293b;
+      background: rgba(15, 23, 42, 0.35);
+      color: #f8fafc;
       margin-bottom: 8px;
-      transition: border 0.2s;
+      transition: border 0.2s, background 0.2s;
     }
     .contact-form input:focus, .contact-form textarea:focus {
-      border: 1.5px solid #facc15;
+      border: 1.5px solid #f87171;
+      background: rgba(30, 64, 175, 0.3);
       outline: none;
     }
+    .contact-form input::placeholder,
+    .contact-form textarea::placeholder {
+      color: #bfdbfe;
+    }
     .contact-form button {
-      background: linear-gradient(90deg, #facc15 0%, #fef9c3 100%);
-      color: #1e293b;
+      background: linear-gradient(180deg, #bf0a30 0%, #1d4ed8 100%);
+      color: #ffffff;
       font-weight: 700;
-      border: none;
+      border: 1px solid rgba(254, 202, 202, 0.72);
       border-radius: 8px;
       padding: 14px 0;
       font-size: 1.15em;
       cursor: pointer;
-      box-shadow: 0 2px 12px #facc1530;
+      box-shadow: 0 8px 18px rgba(2, 6, 23, 0.3);
       transition: background 0.2s;
     }
     .contact-form button:hover {
-      background: linear-gradient(90deg, #fde68a 0%, #facc15 100%);
+      background: linear-gradient(180deg, #dc2626 0%, #1e40af 100%);
     }
     .contact-success {
       color: #16a34a;
@@ -75,12 +81,12 @@
       margin-top: 32px;
     }
     .contact-social a {
-      color: #0f172a;
+      color: #bfdbfe;
       font-size: 2.2em;
       transition: color 0.2s;
     }
     .contact-social a:hover {
-      color: #facc15;
+      color: #fda4af;
     }
     .contact-rocket {
       font-size: 2.5em;
@@ -201,6 +207,7 @@
   </script>
   <script src="js/api-base.js"></script>
   <script src="js/auth-storage.js"></script>
+  <script src="js/experience-country.js"></script>
   <script src="js/nav-plan-sync.js"></script>
   <script src="js/return-navigation.js"></script>
 </body>
