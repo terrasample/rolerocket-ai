@@ -137,6 +137,39 @@
       .alerts-type-grid { grid-template-columns: 1fr; }
       .alerts-type-opt label { flex-direction: row; justify-content: flex-start; padding: 10px 14px; }
     }
+
+    body.rr-theme-us,
+    body.rr-theme-us .main-content {
+      background: #0b1d3f !important;
+      color: #e2e8f0;
+    }
+    body.rr-theme-us .alerts-hero {
+      background: linear-gradient(135deg, #0a1a3a 0%, #173a73 58%, #bf0a30 100%);
+    }
+    body.rr-theme-us .alerts-card {
+      background: linear-gradient(180deg, rgba(30, 64, 175, 0.42), rgba(15, 23, 42, 0.34));
+      border: 1px solid rgba(191, 10, 48, 0.28);
+    }
+    body.rr-theme-us .alerts-field label,
+    body.rr-theme-us .alerts-status,
+    body.rr-theme-us .wa-quickstart-copy,
+    body.rr-theme-us .wa-quickstart-code {
+      color: #bfdbfe;
+    }
+    body.rr-theme-us .alerts-input,
+    body.rr-theme-us .alerts-select {
+      background: rgba(15, 23, 42, 0.4);
+      border-color: rgba(147, 197, 253, 0.34);
+      color: #f8fafc;
+    }
+    body.rr-theme-us .alerts-btn {
+      background: linear-gradient(180deg, #bf0a30 0%, #1d4ed8 100%);
+      border: 1px solid rgba(254, 202, 202, 0.72);
+    }
+    body.rr-theme-us .alerts-btn--secondary {
+      background: linear-gradient(180deg, #1e3a8a 0%, #1e293b 100%);
+      border-color: rgba(147, 197, 253, 0.34);
+    }
   </style>
 </head>
 <body>
@@ -285,6 +318,7 @@
 
   <script src="js/auth-storage.js"></script>
   <script src="js/api-base.js"></script>
+  <script src="js/experience-country.js"></script>
   <script src="js/nav-plan-sync.js"></script>
   <script>
     // ── Sidebar mobile toggle ─────────────────────────────────────────────

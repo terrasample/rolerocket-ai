@@ -9,6 +9,9 @@
   <link rel="stylesheet" href="styles.css" />
   <style>
     body { background: radial-gradient(circle at 82% 8%, #0f305e 0%, #071123 42%, #050b16 100%) !important; }
+    body.rr-theme-us {
+      background: linear-gradient(180deg, #0b1d3f 0%, #102a58 56%, #173a73 100%) !important;
+    }
     .hero {
       display: block !important;
       background: linear-gradient(135deg, var(--rr-exp-dark, #082f49) 0%, #0f172a 48%, var(--rr-exp-primary, #0c4a6e) 100%) !important;
@@ -18,6 +21,10 @@
     }
     .hero h1 { color: #f8fafc !important; }
     .hero p { color: #dbeafe !important; }
+    body.rr-theme-us .hero {
+      background: linear-gradient(135deg, #0a1a3a 0%, #173a73 58%, #bf0a30 100%) !important;
+      border-bottom-color: rgba(191, 10, 48, 0.35) !important;
+    }
     #profileMain.main.marketing-main {
       max-width: none !important;
       width: 100% !important;
@@ -696,6 +703,7 @@
 
   <script src="js/api-base.js"></script>
   <script src="js/auth-storage.js"></script>
+  <script src="js/experience-country.js"></script>
   <script src="js/nav-plan-sync.js"></script>
   <script>
     (function () {
