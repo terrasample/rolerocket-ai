@@ -1079,24 +1079,34 @@
                   : ((jad.location && jad.location !== 'Remote') ? jad.location : 'Remote');
               var scoutRadiusMiles = Number(jad.searchRadius) > 0 ? Number(jad.searchRadius) : 100;
 
-              // Update the panel title to show the actual scout location
               var panelTitleEl = document.getElementById('rrShotPanelTitle');
-              if (panelTitleEl) {
-                if (isJamaicaExperience) {
-                  var normalizedJmLocation = String(scoutLocation || '').trim();
-                  if (!normalizedJmLocation || normalizedJmLocation.toLowerCase() === 'jamaica') {
-                    panelTitleEl.textContent = 'Top Job Matches for Jamaica';
-                  } else if (/jamaica/i.test(normalizedJmLocation)) {
-                    panelTitleEl.textContent = 'Top Job Matches for ' + normalizedJmLocation;
+              var panelLink = document.getElementById('rrShotPanelLink');
+              var panelLocationLabel = scoutLocation;
+              var panelLocationQuery = scoutLocation;
+              var setPanelHeadingAndLink = function() {
+                if (panelTitleEl) {
+                  if (isJamaicaExperience) {
+                    var normalizedJmLocation = String(panelLocationLabel || '').trim();
+                    if (!normalizedJmLocation || normalizedJmLocation.toLowerCase() === 'jamaica') {
+                      panelTitleEl.textContent = 'Top Job Matches for Jamaica';
+                    } else if (/jamaica/i.test(normalizedJmLocation)) {
+                      panelTitleEl.textContent = 'Top Job Matches for ' + normalizedJmLocation;
+                    } else {
+                      panelTitleEl.textContent = 'Top Job Matches for ' + normalizedJmLocation + ', Jamaica';
+                    }
+                  } else if (isUSExperience) {
+                    panelTitleEl.textContent = 'Top Job Matches for ' + panelLocationLabel;
                   } else {
-                    panelTitleEl.textContent = 'Top Job Matches for ' + normalizedJmLocation + ', Jamaica';
+                    panelTitleEl.textContent = 'Top Job Matches for You';
                   }
-                } else if (isUSExperience) {
-                  panelTitleEl.textContent = 'Top Job Matches for ' + scoutLocation;
-                } else {
-                  panelTitleEl.textContent = 'Top Job Matches for You';
                 }
-              }
+
+                if (panelLink && !forcedJamaicaMode) {
+                  panelLink.href = 'job-search.html?query=' + encodeURIComponent(primaryScoutTitle) + '&location=' + encodeURIComponent(panelLocationQuery) + '&source=market';
+                }
+              };
+
+              setPanelHeadingAndLink();
 
               if (isUSExperience) {
                 var scopeFromProfile = String(jad.locationScope || '').toLowerCase().trim();
@@ -1225,10 +1235,6 @@
                   matchScopeHint.innerHTML = scopeBadge + existingHtml;
                   matchScopeHint.style.display = 'block';
                 }
-              }
-
-              if (panelLink && !forcedJamaicaMode) {
-                panelLink.href = 'job-search.html?query=' + encodeURIComponent(primaryScoutTitle) + '&location=' + encodeURIComponent(scoutLocation) + '&source=market';
               }
 
               var buildExpandedScoutLocations = function(baseLocation) {
@@ -1367,6 +1373,12 @@
                       seenFallbackJobs.add(key);
                       return true;
                     }).filter(isUSCompatibleJob);
+
+                    if (scoutJobs.length) {
+                      panelLocationLabel = 'US (Expanded from ' + scoutLocation + ')';
+                      panelLocationQuery = 'United States';
+                      setPanelHeadingAndLink();
+                    }
                   }
                 } catch (_usFallbackErr) {
                   // Keep scoutJobs empty and let UI show empty-state copy.
