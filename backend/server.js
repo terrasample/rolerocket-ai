@@ -7074,7 +7074,7 @@ function locationToAdzunaCountries(location) {
   if (/\bnew zealand\b|\bnz\b|auckland|wellington/.test(loc)) return ['nz'];
   if (/\bjam[ai]+ca\b|kingston|montego/.test(loc)) return ['gb', 'us', 'ca']; // Jamaica not on Adzuna; broaden search
   if (/\bcaribbean\b|trinidad|barbados|bahamas|guyana|st\s*lucia|antigua|grenada|cayman|belize|suriname/.test(loc)) return ['gb', 'us', 'ca'];
-  if (/\bus\b|united states|usa|new york|california|texas|florida/.test(loc)) return ['us'];
+  if (/\bus\b|\bny\b|\bca\b|\bfl\b|\bco\b|united states|usa|new york|california|texas|florida|denver|denver|chicago|los angeles|houston|dallas/.test(loc)) return ['us'];
   if (/remote|worldwide|global|anywhere/.test(loc)) return [ADZUNA_COUNTRY, 'gb', 'ca'];
   return [ADZUNA_COUNTRY];
 }
@@ -8076,7 +8076,7 @@ function buildSourceTasks({ title, location, resume, radiusMiles = 100 }) {
     timeoutPromise(fetchTheMuseJobs(title, location, resume), 4000)
   ];
 
-  if (/united\s*states|\busa\b|\bus\b/.test(q) || !q) {
+  if (/united\s*states|\busa\b|\bus\b|\bny\b|\bca\b|\bfl\b|\bco\b|new york|california|texas|florida|denver|chicago|los angeles|houston|dallas/.test(q) || !q) {
     tasks.push(timeoutPromise(fetchUsaJobs(title, location, resume), 7000));
   }
 
