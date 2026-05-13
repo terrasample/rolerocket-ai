@@ -210,7 +210,10 @@ function buildExperienceContext({ req, user = null }) {
   const userCountry = normalizeExperienceCountryCode(user?.experienceCountry || '');
   const detectedCountry = detectCountryFromRequest(req);
 
-  const selectedCountry = userCountry || cookieCountry || '';
+  // For authenticated users, only use their saved experience country from the database.
+  // For anonymous users, use cookies. This ensures first-time users always see the gate.
+  const isAuthenticated = !!user;
+  const selectedCountry = isAuthenticated ? userCountry : (userCountry || cookieCountry || '');
   const effectiveCountry = selectedCountry || detectedCountry || 'GLOBAL';
 
   return {

@@ -222,6 +222,8 @@
         writeCachedExperienceCountry(effective);
         applyExperienceTheme(effective);
         applyJamaicaHubVisibility(saved && saved.showJamaicaHub === true);
+        // Set global for dashboard.js to access
+        window.__rrExperienceCountry = effective;
         overlay.remove();
         document.removeEventListener('keydown', stopEscape, true);
         window.removeEventListener('popstate', stopPopState);
