@@ -2,11 +2,64 @@
   var CONTEXT_ENDPOINT = '/api/experience/context';
   var PREFERENCE_ENDPOINT = '/api/experience/preference';
   var LOCAL_STORAGE_KEY = 'rr_exp_country_local_v1';
+  var TELEMETRY_ENDPOINT = '/api/telemetry';
+  var reportedMismatchKeys = {};
 
   function normalizeCountryCode(value) {
     var code = String(value || '').trim().toUpperCase();
     if (code === 'GLOBAL' || code === 'JM' || code === 'US') return code;
     return 'GLOBAL';
+  }
+
+  function getAuthTokenForTelemetry() {
+    try {
+      if (typeof getToken === 'function') {
+        var token = getToken();
+        if (token) return token;
+      }
+    } catch (_) {}
+    try {
+      return localStorage.getItem('token') || sessionStorage.getItem('token') || '';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  function reportExperienceMismatch(type, details) {
+    var safeDetails = details && typeof details === 'object' ? details : {};
+    var dedupeKey = [
+      type,
+      String(safeDetails.country || ''),
+      String(safeDetails.source || ''),
+      String(safeDetails.rawShowJamaicaHub || ''),
+      String(window.location.pathname || '')
+    ].join('|');
+
+    if (reportedMismatchKeys[dedupeKey]) return;
+    reportedMismatchKeys[dedupeKey] = true;
+
+    var payload = {
+      event: 'experience_personalization_mismatch',
+      funnel: 'experience_consistency',
+      page: String(window.location.pathname || '').slice(0, 120),
+      variant: 'experience-country',
+      meta: Object.assign({ type: type }, safeDetails)
+    };
+
+    var headers = {
+      'Content-Type': 'application/json',
+      Accept: 'application/json'
+    };
+    var token = getAuthTokenForTelemetry();
+    if (token) headers.Authorization = 'Bearer ' + token;
+
+    fetch(typeof apiUrl === 'function' ? apiUrl(TELEMETRY_ENDPOINT) : TELEMETRY_ENDPOINT, {
+      method: 'POST',
+      headers: headers,
+      credentials: 'include',
+      keepalive: true,
+      body: JSON.stringify(payload)
+    }).catch(function () {});
   }
 
   function readPublishedPersonalization() {
@@ -21,9 +74,18 @@
   }
 
   function publishPersonalizationContext(context) {
+    var normalizedCountry = normalizeCountryCode(context && context.effectiveCountry);
+    var rawShowJamaicaHub = !!(context && context.showJamaicaHub === true);
+    if (rawShowJamaicaHub && normalizedCountry !== 'JM') {
+      reportExperienceMismatch('show_jamaica_outside_jm', {
+        country: normalizedCountry,
+        source: String((context && context.source) || 'client'),
+        rawShowJamaicaHub: true
+      });
+    }
     var normalized = {
-      effectiveCountry: normalizeCountryCode(context && context.effectiveCountry),
-      showJamaicaHub: !!(context && context.showJamaicaHub === true),
+      effectiveCountry: normalizedCountry,
+      showJamaicaHub: rawShowJamaicaHub && normalizedCountry === 'JM',
       requiresChoice: !!(context && context.requiresChoice === true),
       source: String((context && context.source) || 'client'),
       updatedAt: Date.now()
@@ -667,6 +729,13 @@
     var context = await fetchExperienceContext();
 
     var effectiveCountry = context.effectiveCountry || 'GLOBAL';
+    if (context.showJamaicaHub === true && effectiveCountry !== 'JM') {
+      reportExperienceMismatch('server_context_hub_country_conflict', {
+        country: effectiveCountry,
+        source: String(context.source || 'server'),
+        rawShowJamaicaHub: true
+      });
+    }
     var normalizedShowJamaicaHub = context.showJamaicaHub === true && effectiveCountry === 'JM';
     publishPersonalizationContext(Object.assign({}, context, { showJamaicaHub: normalizedShowJamaicaHub }));
     hideJamaicaElements(normalizedShowJamaicaHub);

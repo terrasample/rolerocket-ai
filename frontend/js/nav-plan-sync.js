@@ -5,6 +5,8 @@
   const LOCAL_EXP_KEY = 'rr_exp_country_local_v1';
   const EXP_CONTEXT_ENDPOINT = '/api/experience/context';
   const EXP_PREFERENCE_ENDPOINT = '/api/experience/preference';
+  const TELEMETRY_ENDPOINT = '/api/telemetry';
+  const reportedMismatchKeys = new Set();
 
   const NAV_LABELS = {
     'index.html': '🏠 Home',
@@ -38,9 +40,66 @@
     return 'GLOBAL';
   }
 
+  function getAuthTokenForTelemetry() {
+    try {
+      if (typeof getStoredToken === 'function') {
+        const token = getStoredToken();
+        if (token) return token;
+      }
+    } catch (_) {}
+    try {
+      return localStorage.getItem('token') || sessionStorage.getItem('token') || '';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  function reportExperienceMismatch(type, details) {
+    const safeDetails = details && typeof details === 'object' ? details : {};
+    const dedupeKey = [
+      type,
+      String(safeDetails.country || ''),
+      String(safeDetails.source || ''),
+      String(safeDetails.rawShowJamaicaHub || ''),
+      String(window.location.pathname || '')
+    ].join('|');
+    if (reportedMismatchKeys.has(dedupeKey)) return;
+    reportedMismatchKeys.add(dedupeKey);
+
+    const payload = {
+      event: 'experience_personalization_mismatch',
+      funnel: 'experience_consistency',
+      page: String(window.location.pathname || '').slice(0, 120),
+      variant: 'nav',
+      meta: Object.assign({ type: type }, safeDetails)
+    };
+
+    const token = getAuthTokenForTelemetry();
+    const headers = {
+      'Content-Type': 'application/json',
+      Accept: 'application/json'
+    };
+    if (token) headers.Authorization = 'Bearer ' + token;
+
+    fetch((typeof getApiBase === 'function' ? getApiBase() : '') + TELEMETRY_ENDPOINT, {
+      method: 'POST',
+      headers,
+      credentials: 'include',
+      keepalive: true,
+      body: JSON.stringify(payload)
+    }).catch(() => {});
+  }
+
   function buildPersonalizationContext(context, fallbackCountry) {
     const source = context && typeof context === 'object' ? context : {};
     const country = normalizeCountryCode(source.effectiveCountry || fallbackCountry || readCachedExperienceCountry());
+    if (source.showJamaicaHub === true && country !== 'JM') {
+      reportExperienceMismatch('show_jamaica_outside_jm', {
+        country,
+        source: source.source || (source.effectiveCountry ? 'server' : 'fallback'),
+        rawShowJamaicaHub: true
+      });
+    }
     return {
       effectiveCountry: country,
       showJamaicaHub: source.showJamaicaHub === true && country === 'JM',
