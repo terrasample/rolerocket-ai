@@ -6682,8 +6682,25 @@ function buildLocationHints(queryLocation = '') {
     }
   ];
 
-  if (normalizedQuery === 'ny' || normalizedQuery === 'new york' || normalizedQuery === 'new york, ny') {
-    return ['new york', 'ny', 'nyc', 'manhattan', 'brooklyn', 'queens', 'bronx', 'staten island'];
+  // US state codes - map to common location variants
+  const usStateMap = {
+    'ny': ['new york', 'ny', 'nyc'],
+    'ca': ['california', 'ca', 'los angeles', 'san francisco', 'san diego'],
+    'fl': ['florida', 'fl', 'miami', 'orlando', 'tampa', 'jacksonville'],
+    'tx': ['texas', 'tx', 'houston', 'dallas', 'austin', 'san antonio'],
+    'wa': ['washington', 'wa', 'seattle', 'spokane'],
+    'co': ['colorado', 'co', 'denver'],
+    'il': ['illinois', 'il', 'chicago'],
+    'ga': ['georgia', 'ga', 'atlanta'],
+    'ma': ['massachusetts', 'ma', 'boston']
+  };
+
+  if (usStateMap[normalizedQuery]) {
+    return usStateMap[normalizedQuery];
+  }
+
+  if (normalizedQuery === 'new york') {
+    return ['new york', 'ny', 'nyc'];
   }
 
   const matched = hintMap.find((entry) => entry.match.some((token) => normalizedQuery === token));
@@ -6701,18 +6718,16 @@ function locationHintMatches(haystack = '', hint = '') {
   if (!value) return false;
 
   const compact = value.replace(/\s+/g, ' ');
-  const pattern = escapeRegex(compact).replace(/\s+/g, '\\s+');
+  const haystackLower = String(haystack || '').toLowerCase();
 
-  // Short location tokens (for example NY, UK, US) must match full words.
-  if (/^[a-z]{2,3}$/.test(compact)) {
-    return new RegExp('\\b' + pattern + '\\b', 'i').test(haystack);
+  // For short tokens (2-4 chars like NY, CA, FL), require word boundary
+  if (/^[a-z]{2,4}$/.test(compact)) {
+    const pattern = compact.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp('\\b' + pattern + '\\b', 'i').test(haystackLower);
   }
 
-  if (compact.includes(' ')) {
-    return new RegExp('\\b' + pattern + '\\b', 'i').test(haystack);
-  }
-
-  return haystack.includes(compact);
+  // For longer phrases, just do substring match (more lenient)
+  return haystackLower.includes(compact);
 }
 
 function isLocationCompatible(job = {}, queryLocation = '') {
