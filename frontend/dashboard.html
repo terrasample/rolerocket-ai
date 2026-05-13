@@ -702,17 +702,16 @@
       }
 
       async function loadSnapshotData() {
-        // Wait for experience country to be initialized by experience-country.js
-        // It's set in applyDashboardVariant() which runs on DOMContentLoaded
+        // Wait for personalization context to initialize from shared nav/experience scripts.
         for (var waitAttempt = 0; waitAttempt < 50; waitAttempt++) {
-          if (window.__rrExperienceCountry) break;
+          if ((window.__rrPersonalization && window.__rrPersonalization.effectiveCountry) || window.__rrExperienceCountry) break;
           await new Promise(function(resolve) { setTimeout(resolve, 20); });
         }
         var params = new URLSearchParams(window.location.search);
         var themePreference = readThemePreference(params);
-        var forcedJamaicaMode = themePreference === 'jamaica';
+        var jamaicaModeRequested = themePreference === 'jamaica';
+        var forcedJamaicaMode = false;
         var meUser = null;
-        if (forcedJamaicaMode) applyJamaicaVariant();
 
         var token = (typeof getStoredToken === 'function' ? getStoredToken() : '') || localStorage.getItem('token') || sessionStorage.getItem('token') || '';
         if (!token) return;
@@ -820,8 +819,11 @@
           if (ringEl) ringEl.style.setProperty('--rr-ats-angle', Math.round((atsScore / 100) * 360) + 'deg');
 
 
-          var esc = function(s){ return String(s).replace(/[&<>"]/g, function(c){ return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]); }); };
-          var activeExperienceCountry = String(window.__rrExperienceCountry || '').toUpperCase();
+          var esc = function(s){ return String(s).replace(/[&<>\"]/g, function(c){ return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]); }); };
+          var personalization = window.__rrPersonalization && typeof window.__rrPersonalization === 'object'
+            ? window.__rrPersonalization
+            : null;
+          var activeExperienceCountry = String((personalization && personalization.effectiveCountry) || window.__rrExperienceCountry || '').toUpperCase();
           if (!activeExperienceCountry) {
             try {
               var expRes = await fetch(apiUrl('/api/experience/context'), {
@@ -831,11 +833,22 @@
               if (expRes.ok) {
                 var expData = await expRes.json();
                 activeExperienceCountry = String((expData && expData.effectiveCountry) || '').toUpperCase();
+                  window.__rrPersonalization = {
+                    effectiveCountry: activeExperienceCountry,
+                    showJamaicaHub: expData && expData.showJamaicaHub === true,
+                    requiresChoice: expData && expData.requiresChoice === true,
+                    source: 'dashboard-fallback',
+                    updatedAt: Date.now()
+                  };
               }
             } catch (_expErr) {}
           }
           var isUSExperience = activeExperienceCountry === 'US';
           var isJamaicaExperience = activeExperienceCountry === 'JM';
+          forcedJamaicaMode = jamaicaModeRequested && isJamaicaExperience;
+          if (forcedJamaicaMode) {
+            applyJamaicaVariant();
+          }
           var usLocationSignal = /\bunited\s*states\b|\busa\b|\bu\.s\.\b|new\s*york|florida|texas|california|washington|illinois|massachusetts|georgia|north\s*carolina|south\s*carolina|virginia|pennsylvania|ohio|michigan|new\s*jersey|maryland|arizona|colorado|oregon|utah|nevada|tennessee|miami|orlando|tampa|jacksonville|atlanta|chicago|seattle|boston|dallas|houston|austin|san\s*francisco|los\s*angeles/i;
           var ukLocationSignal = /\bunited\s*kingdom\b|\buk\b|england|scotland|wales|northern\s*ireland|london|manchester|birmingham|glasgow|bedford|swansea/i;
           var isUSCompatibleJob = function(job) {

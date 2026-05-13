@@ -3,6 +3,39 @@
   var PREFERENCE_ENDPOINT = '/api/experience/preference';
   var LOCAL_STORAGE_KEY = 'rr_exp_country_local_v1';
 
+  function normalizeCountryCode(value) {
+    var code = String(value || '').trim().toUpperCase();
+    if (code === 'GLOBAL' || code === 'JM' || code === 'US') return code;
+    return 'GLOBAL';
+  }
+
+  function readPublishedPersonalization() {
+    var ctx = window.__rrPersonalization;
+    if (!ctx || typeof ctx !== 'object') return null;
+    return {
+      effectiveCountry: normalizeCountryCode(ctx.effectiveCountry),
+      showJamaicaHub: ctx.showJamaicaHub === true,
+      requiresChoice: ctx.requiresChoice === true,
+      source: String(ctx.source || '')
+    };
+  }
+
+  function publishPersonalizationContext(context) {
+    var normalized = {
+      effectiveCountry: normalizeCountryCode(context && context.effectiveCountry),
+      showJamaicaHub: !!(context && context.showJamaicaHub === true),
+      requiresChoice: !!(context && context.requiresChoice === true),
+      source: String((context && context.source) || 'client'),
+      updatedAt: Date.now()
+    };
+    window.__rrPersonalization = normalized;
+    window.__rrExperienceCountry = normalized.effectiveCountry;
+    try {
+      document.dispatchEvent(new CustomEvent('rr:personalization-updated', { detail: normalized }));
+    } catch (_) {}
+    return normalized;
+  }
+
   function getAuthHeader() {
     try {
       if (typeof getToken === 'function') {
@@ -28,15 +61,17 @@
   }
 
   function defaultContext() {
+    var published = readPublishedPersonalization();
+    var fallbackCountry = published ? published.effectiveCountry : (getSavedLocalCountry() || 'GLOBAL');
     return {
       detectedCountry: 'GLOBAL',
       selectedCountry: getSavedLocalCountry() || '',
-      effectiveCountry: getSavedLocalCountry() || 'GLOBAL',
+      effectiveCountry: fallbackCountry,
       source: 'system',
-      requiresChoice: false,
+      requiresChoice: published ? published.requiresChoice : false,
       // Server response should be the only source of truth for Jamaica hub.
-      showJamaicaHub: false,
-      experienceVariant: getSavedLocalCountry() === 'JM' ? 'jamaica' : 'global',
+      showJamaicaHub: published ? published.showJamaicaHub : false,
+      experienceVariant: fallbackCountry === 'JM' ? 'jamaica' : 'global',
       supportedCountries: [
         { code: 'GLOBAL', label: 'Global' },
         { code: 'JM', label: 'Jamaica' },
@@ -58,7 +93,9 @@
       if (data && data.effectiveCountry) {
         setSavedLocalCountry(data.effectiveCountry);
       }
-      return Object.assign(defaultContext(), data || {});
+      var merged = Object.assign(defaultContext(), data || {});
+      publishPersonalizationContext(merged);
+      return merged;
     } catch (_) {
       return defaultContext();
     }
@@ -83,6 +120,7 @@
     if (data && data.effectiveCountry) {
       setSavedLocalCountry(data.effectiveCountry);
     }
+    publishPersonalizationContext(data || {});
     return data;
   }
 
@@ -377,10 +415,17 @@
         btn.textContent = 'Saving...';
         try {
           var saved = await savePreference(selected);
-          hideJamaicaElements(saved.showJamaicaHub);
-          applyDashboardVariant(selected);
-          applyCountryTheme(selected);
-          updateHeaderButtonStates(saved.effectiveCountry || selected);
+          var savedCountry = normalizeCountryCode((saved && saved.effectiveCountry) || selected);
+          var savedContext = publishPersonalizationContext({
+            effectiveCountry: savedCountry,
+            showJamaicaHub: saved && saved.showJamaicaHub === true,
+            requiresChoice: false,
+            source: 'user'
+          });
+          hideJamaicaElements(savedContext.showJamaicaHub);
+          applyDashboardVariant(savedContext.effectiveCountry);
+          applyCountryTheme(savedContext.effectiveCountry);
+          updateHeaderButtonStates(savedContext.effectiveCountry);
         } catch (_) {
           btn.disabled = false;
           btn.textContent = originalText;
@@ -468,10 +513,17 @@
       status.textContent = 'Saving...';
       try {
         var saved = await savePreference(selected);
-        hideJamaicaElements(saved.showJamaicaHub);
-        applyDashboardVariant(selected);
-        applyCountryTheme(selected);
-        updateHeaderButtonStates(selected);
+        var savedCountry = normalizeCountryCode((saved && saved.effectiveCountry) || selected);
+        var savedContext = publishPersonalizationContext({
+          effectiveCountry: savedCountry,
+          showJamaicaHub: saved && saved.showJamaicaHub === true,
+          requiresChoice: false,
+          source: 'user'
+        });
+        hideJamaicaElements(savedContext.showJamaicaHub);
+        applyDashboardVariant(savedContext.effectiveCountry);
+        applyCountryTheme(savedContext.effectiveCountry);
+        updateHeaderButtonStates(savedContext.effectiveCountry);
         status.textContent = 'Saved';
 
         if (selected !== 'JM' && window.location.pathname.indexOf('jamaica-workforce-accelerator.html') !== -1) {
@@ -540,11 +592,18 @@
       isSubmitting = true;
       try {
         var saved = await savePreference(selected);
-        hideJamaicaElements(saved.showJamaicaHub);
-        applyDashboardVariant(selected);
-        applyCountryTheme(selected);
+        var savedCountry = normalizeCountryCode((saved && saved.effectiveCountry) || selected);
+        var savedContext = publishPersonalizationContext({
+          effectiveCountry: savedCountry,
+          showJamaicaHub: saved && saved.showJamaicaHub === true,
+          requiresChoice: false,
+          source: 'user'
+        });
+        hideJamaicaElements(savedContext.showJamaicaHub);
+        applyDashboardVariant(savedContext.effectiveCountry);
+        applyCountryTheme(savedContext.effectiveCountry);
         // Recreate header selector with new context
-        var newContext = Object.assign({}, context, { effectiveCountry: selected, showJamaicaHub: saved.showJamaicaHub });
+        var newContext = Object.assign({}, context, { effectiveCountry: savedContext.effectiveCountry, showJamaicaHub: savedContext.showJamaicaHub });
         createHeaderExperienceSelector(newContext);
         overlay.remove();
         // Clean up event listeners once modal is closed
@@ -608,6 +667,7 @@
     var context = await fetchExperienceContext();
 
     var effectiveCountry = context.effectiveCountry || 'GLOBAL';
+    publishPersonalizationContext(context);
     hideJamaicaElements(context.showJamaicaHub);
     applyDashboardVariant(effectiveCountry);
     applyCountryTheme(effectiveCountry);

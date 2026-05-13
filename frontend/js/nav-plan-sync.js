@@ -38,6 +38,30 @@
     return 'GLOBAL';
   }
 
+  function buildPersonalizationContext(context, fallbackCountry) {
+    const source = context && typeof context === 'object' ? context : {};
+    const country = normalizeCountryCode(source.effectiveCountry || fallbackCountry || readCachedExperienceCountry());
+    return {
+      effectiveCountry: country,
+      showJamaicaHub: source.showJamaicaHub === true,
+      requiresChoice: source.requiresChoice === true,
+      source: source.source || (source.effectiveCountry ? 'server' : 'fallback'),
+      updatedAt: Date.now()
+    };
+  }
+
+  function publishPersonalizationContext(context) {
+    const normalized = buildPersonalizationContext(context, context && context.effectiveCountry);
+    window.__rrPersonalization = normalized;
+    window.__rrExperienceCountry = normalized.effectiveCountry;
+    try {
+      document.dispatchEvent(new CustomEvent('rr:personalization-updated', { detail: normalized }));
+    } catch (_) {
+      // ignore custom event failures
+    }
+    return normalized;
+  }
+
   function getSidebarContainer() {
     return document.querySelector('#sidebarNav nav, .sidebar nav, .sidebar');
   }
@@ -225,9 +249,11 @@
         const effective = normalizeCountryCode((saved && saved.effectiveCountry) || selected);
         writeCachedExperienceCountry(effective);
         applyExperienceTheme(effective);
-        applyJamaicaHubVisibility(saved && saved.showJamaicaHub === true);
-        // Set global for dashboard.js to access
-        window.__rrExperienceCountry = effective;
+        const personalization = publishPersonalizationContext(Object.assign({}, saved || {}, {
+          effectiveCountry: effective,
+          showJamaicaHub: saved && saved.showJamaicaHub === true
+        }));
+        applyJamaicaHubVisibility(personalization.showJamaicaHub);
         overlay.remove();
         document.removeEventListener('keydown', stopEscape, true);
         window.removeEventListener('popstate', stopPopState);
@@ -464,7 +490,8 @@
       const res = await fetch(apiBase + '/api/experience/context', { headers, credentials: 'include' });
       if (!res.ok) return;
       const data = await res.json();
-      applyJamaicaHubVisibility(data.showJamaicaHub === true);
+      const personalization = publishPersonalizationContext(data || {});
+      applyJamaicaHubVisibility(personalization.showJamaicaHub);
     } catch (_) {
       // On error, leave Jamaica hub in its current state
     }
@@ -481,7 +508,12 @@
       const context = await res.json();
       const country = normalizeCountryCode((context && context.effectiveCountry) || readCachedExperienceCountry());
       writeCachedExperienceCountry(country);
+      const personalization = publishPersonalizationContext(Object.assign({}, context || {}, {
+        effectiveCountry: country,
+        showJamaicaHub: context && context.showJamaicaHub === true
+      }));
       applyExperienceTheme(country);
+      applyJamaicaHubVisibility(personalization.showJamaicaHub);
 
       const currentPage = normalizePath(window.location.href) || 'index.html';
       const noAuthPages = new Set([
@@ -504,7 +536,14 @@
 
       showHomepageExperienceGate(context, token);
     } catch (_) {
-      applyExperienceTheme(readCachedExperienceCountry());
+      const fallback = publishPersonalizationContext({
+        effectiveCountry: readCachedExperienceCountry(),
+        showJamaicaHub: false,
+        requiresChoice: false,
+        source: 'fallback'
+      });
+      applyExperienceTheme(fallback.effectiveCountry);
+      applyJamaicaHubVisibility(fallback.showJamaicaHub);
     }
   }
 
@@ -696,9 +735,15 @@
 
   function bootstrapNav() {
     decorateSidebarNav();
-    applyExperienceTheme(readCachedExperienceCountry());
+    const fallback = publishPersonalizationContext({
+      effectiveCountry: readCachedExperienceCountry(),
+      showJamaicaHub: false,
+      requiresChoice: false,
+      source: 'bootstrap'
+    });
+    applyExperienceTheme(fallback.effectiveCountry);
     // Hide by default; only server-confirmed context should re-enable Jamaica hub.
-    applyJamaicaHubVisibility(false);
+    applyJamaicaHubVisibility(fallback.showJamaicaHub);
     syncNavPlan();
   }
 
