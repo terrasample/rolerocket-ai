@@ -383,6 +383,7 @@
 
     // Inject "My Profile" link if not already present in this nav.
     ensureProfileLink(nav);
+    ensureFaqLink(nav);
 
     // Normalize sidebar order so users see a stable nav across all pages.
     stabilizeNavOrder(nav);
@@ -480,11 +481,9 @@
       existing.href = 'profile.html';
 
       // Insert near account/logout so adding this link does not reshuffle primary nav order.
-      const accountLink = Array.from(nav.querySelectorAll('a.sidebar-link-btn'))
-        .find((l) => normalizePath(l.getAttribute('href') || '') === 'account.html');
       const logoutLink = Array.from(nav.querySelectorAll('a.sidebar-link-btn'))
         .find((l) => normalizePath(l.getAttribute('href') || '') === 'login.html');
-      const anchor = accountLink || logoutLink;
+      const anchor = logoutLink;
       if (anchor) {
         nav.insertBefore(existing, anchor);
       } else {
@@ -494,6 +493,35 @@
 
     existing.textContent = '🧑 My Profile';
     if (currentPage === 'profile.html') {
+      existing.classList.add('active');
+    }
+  }
+
+  function ensureFaqLink(nav) {
+    if (!nav) return;
+    const currentPage = normalizePath(window.location.href) || 'index.html';
+    const noAuthPages = ['login.html', 'signup.html', 'forgot-password.html', 'reset-password.html', 'verify-email.html'];
+    if (noAuthPages.includes(currentPage)) return;
+
+    let existing = Array.from(nav.querySelectorAll('a.sidebar-link-btn'))
+      .find((l) => normalizePath(l.getAttribute('href') || '') === 'faq.html');
+
+    if (!existing) {
+      existing = document.createElement('a');
+      existing.className = 'sidebar-link-btn';
+      existing.href = 'faq.html';
+
+      const logoutLink = Array.from(nav.querySelectorAll('a.sidebar-link-btn'))
+        .find((l) => normalizePath(l.getAttribute('href') || '') === 'login.html');
+      if (logoutLink) {
+        nav.insertBefore(existing, logoutLink);
+      } else {
+        nav.appendChild(existing);
+      }
+    }
+
+    existing.textContent = '❓ FAQ';
+    if (currentPage === 'faq.html') {
       existing.classList.add('active');
     }
   }
