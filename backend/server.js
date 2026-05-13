@@ -5631,43 +5631,70 @@ app.post(
   express.raw({ type: 'application/json' }),
   async (req, res) => {
     try {
-      const event = stripe.webhooks.constructEvent(
-        req.body,
-        req.headers['stripe-signature'],
-        process.env.STRIPE_WEBHOOK_SECRET
-      );
+      const signature = req.headers['stripe-signature'];
+      if (!signature) {
+        console.error('[STRIPE WEBHOOK] Missing stripe-signature header');
+        return res.status(400).send('Missing stripe-signature');
+      }
+
+      let event;
+      try {
+        event = stripe.webhooks.constructEvent(
+          req.body,
+          signature,
+          process.env.STRIPE_WEBHOOK_SECRET
+        );
+      } catch (err) {
+        console.error(`[STRIPE WEBHOOK] Signature verification failed: ${err.message}`);
+        return res.status(400).send(`Webhook Error: ${err.message}`);
+      }
+
+      console.log(`[STRIPE WEBHOOK] Received event type: ${event.type} | event_id: ${event.id}`);
 
       if (event.type === 'checkout.session.completed') {
         const session = event.data.object;
         const userId = session.metadata?.userId;
 
-        console.log(`[STRIPE WEBHOOK] checkout.session.completed | session=${session.id} | type=${session.metadata?.type} | userId=${userId || 'MISSING'}`);
+        console.log(`[STRIPE WEBHOOK] checkout.session.completed | session=${session.id} | type=${session.metadata?.type} | userId=${userId || 'MISSING'} | status=${session.payment_status}`);
 
         if (session.metadata?.type === 'document_bundle') {
           const credits = Number(session.metadata?.docCredits || 0);
+          console.log(`[STRIPE WEBHOOK] Document bundle detected: ${credits} credits | bundleId=${session.metadata?.docBundle}`);
+          
           // Resolve user by userId first, fall back to email from metadata or Stripe customer_details
           let resolvedUserId = userId;
           if (!resolvedUserId) {
             const fallbackEmail = String(session.metadata?.userEmail || session.customer_details?.email || '').toLowerCase().trim();
             console.log(`[STRIPE WEBHOOK] userId missing, attempting email fallback: ${fallbackEmail}`);
             if (fallbackEmail) {
-              const fallbackUser = await User.findOne({ email: fallbackEmail }).select('_id').lean();
-              if (fallbackUser) resolvedUserId = String(fallbackUser._id);
+              const fallbackUser = await User.findOne({ email: fallbackEmail }).select('_id email').lean();
+              if (fallbackUser) {
+                resolvedUserId = String(fallbackUser._id);
+                console.log(`[STRIPE WEBHOOK] User resolved by email: ${fallbackUser.email} -> userId=${resolvedUserId}`);
+              } else {
+                console.error(`[STRIPE WEBHOOK] No user found with email: ${fallbackEmail}`);
+              }
             }
           }
+          
           if (resolvedUserId) {
             console.log(`[STRIPE WEBHOOK] Granting ${credits} document credits to userId=${resolvedUserId}`);
-            await grantDocumentCreditsFromCheckout({
-              userId: resolvedUserId,
-              credits,
-              bundleId: session.metadata?.docBundle || 'custom',
-              amountCents: Number(session.metadata?.docAmountCents || 0),
-              currency: session.currency || 'usd',
-              stripeSessionId: session.id || ''
-            });
-            console.log(`[STRIPE WEBHOOK] Successfully granted credits to userId=${resolvedUserId}`);
+            try {
+              await grantDocumentCreditsFromCheckout({
+                userId: resolvedUserId,
+                credits,
+                bundleId: session.metadata?.docBundle || 'custom',
+                amountCents: Number(session.metadata?.docAmountCents || 0),
+                currency: session.currency || 'usd',
+                stripeSessionId: session.id || ''
+              });
+              console.log(`[STRIPE WEBHOOK] ✅ Successfully granted ${credits} credits to userId=${resolvedUserId} for session ${session.id}`);
+            } catch (grantErr) {
+              console.error(`[STRIPE WEBHOOK] ❌ Failed to grant credits: ${grantErr.message}`);
+              throw grantErr;
+            }
           } else {
-            console.error(`[STRIPE WEBHOOK] FAILED: could not resolve userId for session ${session.id}. metadata=${JSON.stringify(session.metadata)}`);
+            console.error(`[STRIPE WEBHOOK] ❌ FAILED: could not resolve userId for session ${session.id}. metadata=${JSON.stringify(session.metadata)}`);
           }
         } else if (userId) {
           if (session.metadata?.type === 'lifetime') {
@@ -5712,11 +5739,75 @@ app.post(
 
       return res.json({ received: true });
     } catch (err) {
-      console.error('Webhook error:', err.message);
+      console.error(`[STRIPE WEBHOOK] Unhandled error: ${err.message}`, err);
       return res.status(400).send('Webhook Error');
     }
   }
 );
+
+// Recovery endpoint: Check Stripe for pending payments and grant credits if webhook missed
+app.post('/api/document-credits/sync-from-stripe', authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId).select('email documentGeneration');
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    console.log(`[CREDIT SYNC] Checking Stripe for pending payments for ${user.email}`);
+
+    // List all checkout sessions for this customer to find unpaid ones
+    const sessions = await stripe.checkout.sessions.list({
+      customer_email: user.email,
+      limit: 100
+    });
+
+    const pendingSessions = sessions.data.filter(
+      (s) => s.metadata?.type === 'document_bundle' && s.payment_status === 'paid'
+    );
+
+    if (pendingSessions.length === 0) {
+      console.log(`[CREDIT SYNC] No pending paid document bundles found for ${user.email}`);
+      return res.json({
+        synced: false,
+        reason: 'No pending payments found',
+        currentCredits: user.documentGeneration?.paidCredits || 0
+      });
+    }
+
+    console.log(`[CREDIT SYNC] Found ${pendingSessions.length} paid sessions that may have missed webhook`);
+
+    let totalCreditsGranted = 0;
+    for (const session of pendingSessions) {
+      const credits = Number(session.metadata?.docCredits || 0);
+      const alreadyProcessed = (user.documentGeneration?.purchases || []).some(
+        (p) => String(p.stripeSessionId || '') === String(session.id)
+      );
+
+      if (!alreadyProcessed && credits > 0) {
+        console.log(`[CREDIT SYNC] Processing missed session ${session.id} with ${credits} credits`);
+        await grantDocumentCreditsFromCheckout({
+          userId: String(user._id),
+          credits,
+          bundleId: session.metadata?.docBundle || 'custom',
+          amountCents: Number(session.metadata?.docAmountCents || 0),
+          currency: session.currency || 'usd',
+          stripeSessionId: session.id || ''
+        });
+        totalCreditsGranted += credits;
+      }
+    }
+
+    const updatedUser = await User.findById(req.user.userId).select('documentGeneration');
+    console.log(`[CREDIT SYNC] Synced ${totalCreditsGranted} credits for ${user.email}. New balance: ${updatedUser?.documentGeneration?.paidCredits || 0}`);
+
+    return res.json({
+      synced: totalCreditsGranted > 0,
+      creditsGranted: totalCreditsGranted,
+      newBalance: updatedUser?.documentGeneration?.paidCredits || 0
+    });
+  } catch (err) {
+    console.error(`[CREDIT SYNC] Error: ${err.message}`);
+    return res.status(500).json({ error: 'Failed to sync credits from Stripe' });
+  }
+});
 
 app.use(express.json({ limit: '2mb' }));
 

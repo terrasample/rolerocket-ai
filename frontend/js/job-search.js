@@ -258,7 +258,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const encoded = encodeURIComponent(String(searchSeed || '').trim());
     const linkedInUrl = `https://www.linkedin.com/jobs/search/?keywords=${encoded}`;
     const googleUrl = `https://www.google.com/search?q=${encoded}+jobs+Jamaica`;
-    const indeedUrl = `https://jm.indeed.com/jobs?q=${encoded}`;
 
     results.innerHTML = `
       <div style="margin-bottom:8px;font-weight:700;">${fromMarket ? `Find <strong>${safeHtml(searchSeed)}</strong> jobs now:` : `${searchSeed ? `<strong>${safeHtml(searchSeed)}</strong>` : 'This search'} has no current match in the internal partner board.`}</div>
@@ -266,7 +265,6 @@ document.addEventListener('DOMContentLoaded', function () {
       <div style="display:flex;gap:10px;flex-wrap:wrap;">
         <a href="${linkedInUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border-radius:10px;background:#0ea5e9;color:#fff;text-decoration:none;font-weight:700;">🔵 LinkedIn Jobs</a>
         <a href="${googleUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border-radius:10px;background:#2563eb;color:#fff;text-decoration:none;font-weight:700;">🔍 Google Jobs</a>
-        <a href="${indeedUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border-radius:10px;background:#0f766e;color:#fff;text-decoration:none;font-weight:700;">🟢 Indeed Jamaica</a>
       </div>
     `;
 
@@ -307,8 +305,8 @@ document.addEventListener('DOMContentLoaded', function () {
         // Fall back below if live source lookup fails.
       }
 
-      const encoded = encodeURIComponent(parsed.keywordQuery || parsed.employerQuery || raw);
-      window.location.href = `https://jm.indeed.com/jobs?q=${encoded}`;
+      const internalQuery = encodeURIComponent(parsed.keywordQuery || parsed.employerQuery || raw);
+      window.location.href = `job-search.html?query=${internalQuery}&source=market`;
       return;
     }
 
