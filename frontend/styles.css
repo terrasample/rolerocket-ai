@@ -1869,9 +1869,9 @@ h3,
   position: relative;
   padding: 14px 20px;
   background:
-    radial-gradient(1200px 220px at 8% -40%, rgba(56, 189, 248, 0.35), transparent 50%),
-    radial-gradient(900px 240px at 92% 130%, rgba(59, 130, 246, 0.28), transparent 55%),
-    linear-gradient(120deg, #0f172a 0%, #111827 58%, #0b1224 100%);
+    radial-gradient(1200px 220px at 8% -40%, var(--rr-exp-bg), transparent 50%),
+    radial-gradient(900px 240px at 92% 130%, var(--rr-exp-bg), transparent 55%),
+    linear-gradient(120deg, var(--rr-exp-dark) 0%, #0f172a 62%, var(--rr-exp-primary) 100%);
   border-bottom: 1px solid rgba(148, 163, 184, 0.24);
 }
 

@@ -2428,6 +2428,111 @@ function getWhatsAppPlanLevel(plan = 'free') {
   return levels[String(plan || 'free').toLowerCase()] ?? 0;
 }
 
+function normalizeWhatsAppPlanValue(plan = 'free') {
+  const raw = String(plan || 'free').toLowerCase().trim();
+  if (raw === 'business') return 'elite';
+  return normalizePlan(raw);
+}
+
+function getWhatsAppForcedIntent(textCanonical = '') {
+  const text = String(textCanonical || '').trim().toLowerCase();
+  if (!text) return '';
+
+  const map = {
+    demo: new Set([
+      'watch demo features',
+      'watch demo feature',
+      'watch demo',
+      'demo features',
+      'show demo features',
+      'show demo'
+    ]),
+    jobs: new Set([
+      'search & save jobs',
+      'search and save jobs',
+      'jobs'
+    ]),
+    resume: new Set([
+      'create and save/export resume',
+      'create and save export resume',
+      'resume'
+    ]),
+    coverLetter: new Set([
+      'create and save/export cover letter',
+      'create and save export cover letter',
+      'cover letter'
+    ]),
+    explore: new Set([
+      'explore other features',
+      'explore features'
+    ]),
+    human: new Set([
+      'technical support',
+      'live support',
+      'human support'
+    ]),
+    status: new Set(['status'])
+  };
+
+  if (map.demo.has(text)) return 'demo';
+  if (map.jobs.has(text)) return 'jobs';
+  if (map.resume.has(text)) return 'resume';
+  if (map.coverLetter.has(text)) return 'coverLetter';
+  if (map.explore.has(text)) return 'explore';
+  if (map.human.has(text)) return 'human';
+  if (map.status.has(text)) return 'status';
+  return '';
+}
+
+async function resolveEffectiveWhatsAppPlan(user, phone = '') {
+  const profilePlan = normalizeWhatsAppPlanValue(user?.plan || 'free');
+  const normalizedPhone = normalizeWhatsAppPhone(phone || user?.phone || '');
+  const digits = String(normalizedPhone || '').replace(/[^0-9]/g, '');
+  const last10 = digits.slice(-10);
+
+  if (!last10) {
+    return { plan: profilePlan, source: 'profile', isAdmin: false };
+  }
+
+  try {
+    const phoneRegex = new RegExp(`${last10}$`);
+    const linkedAlert = await SMSJobAlert.findOne({
+      phoneVerified: true,
+      phoneNumber: { $regex: phoneRegex }
+    })
+      .sort({ updatedAt: -1 })
+      .select('userId')
+      .lean();
+
+    if (!linkedAlert?.userId) {
+      return { plan: profilePlan, source: 'profile', isAdmin: false };
+    }
+
+    const account = await User.findById(linkedAlert.userId)
+      .select('email plan isAdmin isSubscribed accountType institutionAccessType institutionLicensedPlan institutionTrialEndsAt')
+      .lean();
+
+    if (!account) {
+      return { plan: profilePlan, source: 'profile', isAdmin: false };
+    }
+
+    const email = String(account.email || '').toLowerCase();
+    const isAdmin = account.isAdmin === true || (ADMIN_EMAILS.length && ADMIN_EMAILS.includes(email));
+    const trialEntitlements = applyInstitutionTrialEntitlements(account);
+    const linkedPlan = isAdmin
+      ? 'lifetime'
+      : normalizeWhatsAppPlanValue((trialEntitlements && trialEntitlements.plan) || account.plan || profilePlan);
+
+    return {
+      plan: linkedPlan,
+      source: 'linked_account',
+      isAdmin
+    };
+  } catch (_) {
+    return { plan: profilePlan, source: 'profile', isAdmin: false };
+  }
+}
+
 function getWhatsAppDemoFeaturesText(language = 'english') {
   if (language === 'spanish') {
     return [
@@ -3372,6 +3477,11 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
 
   const user = profile || await WhatsAppRecruitingUser.create({ phone, optedIn: true, optedInAt: new Date() });
   const convo = conversation || await WhatsAppConversation.create({ phone, currentStep: 'menu', lastIntent: 'menu', metadata: {} });
+  const effectivePlanInfo = await resolveEffectiveWhatsAppPlan(user, phone);
+  const effectivePlan = normalizeWhatsAppPlanValue(effectivePlanInfo.plan || user.plan || 'free');
+  if (user.plan !== effectivePlan) {
+    user.plan = effectivePlan;
+  }
   const priorInboundAt = convo.lastInboundAt ? new Date(convo.lastInboundAt).getTime() : 0;
   const threeDaysMs = 3 * 24 * 60 * 60 * 1000;
   const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
@@ -3705,24 +3815,26 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   }
 
     const detectedIntent = detectWhatsAppIntent(text);
+    const forcedIntent = getWhatsAppForcedIntent(textCanonical);
   const isFollowupSaveExportCommand = /^(save|export)\b/.test(text);
   const strictHumanIntent = ['0', 'human', 'agent', 'support', 'human support', 'live agent', 'live support'].includes(text);
   // jobs_menu is a navigation step — not a data-capture step — so resume/cover/explore intents can break out of it freely.
   // Only true data-capture steps (where a typed response is expected) should be locked.
   const lockMenuIntentRouting = ['resume_capture', 'cover_letter_capture', 'job_tailor_choice', 'interview_target', 'jobs_import', 'jobs_role_input', 'jobs_parish_select', 'demo_features'].includes(String(convo.currentStep || ''));
-    const forceDemoIntent = /\bwatch\s+demo\s+features\b/.test(textCanonical)
+    const forceDemoIntent = forcedIntent === 'demo'
+      || /\bwatch\s+demo\s+features\b/.test(textCanonical)
       || /^demo\s+features$/.test(textCanonical)
       || /^watch_demo_features$/.test(textCanonical)
       || /^demo_features$/.test(textCanonical);
     const isDemoIntent = forceDemoIntent || (!lockMenuIntentRouting && (text === '1' || detectedIntent.intent === 'demo'));
-  const isJobsIntent = !lockMenuIntentRouting && (text === '2' || (detectedIntent.intent === 'jobs' && !text.startsWith('apply')));
-  const isResumeIntent = !lockMenuIntentRouting && !isFollowupSaveExportCommand && (text === '3' || detectedIntent.intent === 'resume');
-  const isCoverLetterIntent = !lockMenuIntentRouting && !isFollowupSaveExportCommand && (text === '4' || detectedIntent.intent === 'coverLetter');
+    const isJobsIntent = (forcedIntent === 'jobs') || (!lockMenuIntentRouting && (text === '2' || (detectedIntent.intent === 'jobs' && !text.startsWith('apply'))));
+    const isResumeIntent = (forcedIntent === 'resume') || (!lockMenuIntentRouting && !isFollowupSaveExportCommand && (text === '3' || detectedIntent.intent === 'resume'));
+    const isCoverLetterIntent = (forcedIntent === 'coverLetter') || (!lockMenuIntentRouting && !isFollowupSaveExportCommand && (text === '4' || detectedIntent.intent === 'coverLetter'));
   // Explore intent: match '5', detected explore, or button text containing 'explore' + 'features'/'paid' (for interactive template buttons)
-  const isExploreIntent = !lockMenuIntentRouting && (text === '5' || detectedIntent.intent === 'explore' || (/\bexplore\b/.test(String(text).toLowerCase()) && /\b(features|paid|upgrade)\b/.test(String(text).toLowerCase())));
+  const isExploreIntent = (forcedIntent === 'explore') || (!lockMenuIntentRouting && (text === '5' || detectedIntent.intent === 'explore' || (/\bexplore\b/.test(String(text).toLowerCase()) && /\b(features|paid|upgrade)\b/.test(String(text).toLowerCase()))));
   const isInterviewIntent = !lockMenuIntentRouting && (text === 'interview' || detectedIntent.intent === 'interview');
-  const isStatusIntent = !lockMenuIntentRouting && (text === 'status' || detectedIntent.intent === 'status');
-  const isHumanIntent = strictHumanIntent;
+  const isStatusIntent = (forcedIntent === 'status') || (!lockMenuIntentRouting && (text === 'status' || detectedIntent.intent === 'status'));
+  const isHumanIntent = strictHumanIntent || forcedIntent === 'human';
 
   if (convo.currentStep === 'menu' && incoming && !hasInboundAudio && detectedIntent.intent === 'unclear') {
     await trackWhatsAppTelemetry(phone, 'whatsapp_intent_clarification_prompt', {
@@ -3750,7 +3862,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     // Send users straight to the live demo features page when they tap this option.
     convo.currentStep = 'menu';
     const language = String(convo.metadata?.context?.language || 'english');
-    const planLevel = getWhatsAppPlanLevel(user.plan || 'free');
+    const planLevel = getWhatsAppPlanLevel(effectivePlan || 'free');
     const isFreePlan = planLevel === 0;
     const demoFeaturesUrl = `${getPublicAppBaseUrl()}/features.html#feature-snippets`;
     const reply = language === 'spanish'
@@ -4100,7 +4212,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     convo.currentStep = 'explore_features';
     const language = String(convo.metadata?.context?.language || 'english');
     const reply = [
-      getWhatsAppExploreFeaturesText(user.plan || 'free', language),
+      getWhatsAppExploreFeaturesText(effectivePlan || 'free', language),
       '',
       getWhatsAppPaidFeaturesOverviewText(language)
     ].join('\n');
@@ -4112,7 +4224,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
 
   if (convo.currentStep === 'explore_features') {
     const language = String(convo.metadata?.context?.language || 'english');
-    const userPlan = String(user.plan || 'free').toLowerCase();
+    const userPlan = String(effectivePlan || 'free').toLowerCase();
     const userPlanLevel = getWhatsAppPlanLevel(userPlan);
     const featureLinks = {
       pro_resume_builder: `${getPublicAppBaseUrl()}/resume-generator.html?plan=pro`,

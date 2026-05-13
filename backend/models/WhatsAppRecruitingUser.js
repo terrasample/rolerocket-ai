@@ -10,7 +10,7 @@ const WhatsAppRecruitingUserSchema = new mongoose.Schema(
     targetJob: { type: String, default: '', trim: true },
     plan: {
       type: String,
-      enum: ['free', 'premium', 'business'],
+        enum: ['free', 'pro', 'premium', 'elite', 'lifetime', 'business'],
       default: 'free'
     },
     jobAlertFrequency: {
