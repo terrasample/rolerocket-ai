@@ -234,8 +234,6 @@
   }
 
   function showHomepageExperienceGate(context, token) {
-    const currentPage = normalizePath(window.location.href) || 'index.html';
-    if (currentPage !== 'index.html') return;
     if (!context || context.requiresChoice !== true) return;
     if (!token) return;
     if (document.getElementById('rrExpGateOverlay')) return;
@@ -426,8 +424,10 @@
     prePlanOrder.forEach((path) => {
       const link = findByPath(path);
       if (!link) return;
-      if (coreAnchor) {
+      if (coreAnchor && coreAnchor.parentNode === nav) {
         nav.insertBefore(link, coreAnchor);
+      } else {
+        nav.appendChild(link);
       }
     });
 
@@ -444,7 +444,7 @@
     accountOrder.forEach((path) => {
       const link = findByPath(path);
       if (!link) return;
-      if (logoutLink) {
+      if (logoutLink && logoutLink.parentNode === nav) {
         nav.insertBefore(link, logoutLink);
       } else {
         nav.appendChild(link);
@@ -583,7 +583,7 @@
     }
   }
 
-            (coreAnchor.parentNode || nav).insertBefore(link, coreAnchor);
+  async function syncExperienceThemeAndGate(token) {
     const apiBase = (typeof getApiBase === 'function') ? getApiBase() : '';
     const headers = { Accept: 'application/json' };
     if (token) headers.Authorization = 'Bearer ' + token;
@@ -600,26 +600,6 @@
       }));
       applyExperienceTheme(country);
       applyJamaicaHubVisibility(personalization.showJamaicaHub);
-
-            (logoutLink.parentNode || nav).insertBefore(link, logoutLink);
-      const noAuthPages = new Set([
-        'login.html',
-        'signup.html',
-        'forgot-password.html',
-        'reset-password.html',
-        'verify-email.html'
-      ]);
-      var shouldRouteToHomeForChoice = !!token
-        && !!(context && context.requiresChoice === true)
-        && currentPage !== 'index.html'
-        && !noAuthPages.has(currentPage);
-
-      if (shouldRouteToHomeForChoice) {
-        const target = 'index.html?experienceRequired=1&returnTo=' + encodeURIComponent(window.location.pathname + window.location.search + window.location.hash);
-        window.location.replace(target);
-        return;
-      }
-
       showHomepageExperienceGate(context, token);
     } catch (_) {
       const fallback = publishPersonalizationContext({
