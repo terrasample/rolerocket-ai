@@ -209,6 +209,7 @@
         </div>
         </div>
       </div>
+      </div>
     </div>
   </section>
 
@@ -707,6 +708,28 @@
         : `${window.location.origin}/login.html`;
       linkEl.href = loginUrl;
       qrEl.src = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(loginUrl)}`;
+    })();
+
+    (function syncLoginCardHeights() {
+      const leftCard = document.querySelector('.premium-features-card');
+      const rightCard = document.querySelector('.auth-card');
+      if (!leftCard || !rightCard) return;
+
+      function applyEqualHeights() {
+        leftCard.style.height = '';
+        rightCard.style.height = '';
+
+        if (window.innerWidth <= 640) return;
+
+        const targetHeight = Math.max(leftCard.offsetHeight, rightCard.offsetHeight);
+        leftCard.style.height = `${targetHeight}px`;
+        rightCard.style.height = `${targetHeight}px`;
+      }
+
+      window.addEventListener('load', applyEqualHeights);
+      window.addEventListener('resize', applyEqualHeights);
+      requestAnimationFrame(applyEqualHeights);
+      setTimeout(applyEqualHeights, 120);
     })();
   </script>
 

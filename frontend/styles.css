@@ -4008,17 +4008,35 @@ pre {
 }
 
 .auth-left-bottom {
-  margin-bottom: 24px;
+  margin-bottom: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Auth right sections */
 .auth-right-top {
-  margin-bottom: 24px;
+  position: absolute;
+  top: 116px;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  margin-bottom: 0;
 }
 
 .auth-right-middle {
   position: relative;
-  margin-top: -85px;
+  margin-top: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.auth-right {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
 .auth-card {
@@ -4412,6 +4430,14 @@ pre {
 
   .auth-right-middle {
     margin-top: 0;
+  }
+
+  .auth-right-top {
+    position: static;
+    top: auto;
+    left: auto;
+    right: auto;
+    margin-bottom: 16px;
   }
 
   .landing-proof-row,
