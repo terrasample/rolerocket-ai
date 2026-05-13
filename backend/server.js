@@ -1953,6 +1953,10 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
   // menu step: suppress for pure menu display; keep when returning from content (explore/status/interview)
   if (step === 'menu' && menuContentSid) {
     const lastMsg = String(convo?.lastOutboundMessage || '').trim();
+    const isDemoFeaturesLinkReply = /open demo features here|abre demo features aqui/i.test(lastMsg);
+    if (isDemoFeaturesLinkReply) {
+      return false;
+    }
     const isPureMenu = !lastMsg || lastMsg.startsWith('RoleRocket AI Recruit');
     const result = await sendWhatsAppContentTemplate({ to: from, contentSid: menuContentSid });
     if (!result?.success) return false;
