@@ -1226,7 +1226,10 @@ document.addEventListener('DOMContentLoaded', function () {
       let key = line.replace(/[:\-]/g, '').trim().toUpperCase();
       // Strip common prefixes from section headers (e.g., "CORE SKILLS" → "SKILLS")
       key = key.replace(/^(CORE|PROFESSIONAL|MY|PRIMARY|ADDITIONAL|KEY)\s+/, '');
-      if (Object.prototype.hasOwnProperty.call(sectionIndex, key)) sectionIndex[key] = idx;
+      if (Object.prototype.hasOwnProperty.call(sectionIndex, key)) {
+        sectionIndex[key] = idx;
+        console.log('[Resume Parser] Detected section:', key, 'at line', idx);
+      }
     });
 
     function between(startIdx, endIdx) {
@@ -1278,6 +1281,13 @@ document.addEventListener('DOMContentLoaded', function () {
       ? between(certSectionStart, nextSectionStart(certSectionStart === sectionIndex.CERTIFICATIONS ? 'CERTIFICATIONS' : 'CERTIFICATION'))
       : [];
 
+    console.log('[Resume Parser] Certifications debug:', {
+      certSectionStart,
+      certificationLinesCount: certificationLines.length,
+      certificationLines: certificationLines.slice(0, 5),
+      sectionIndex: { CERTIFICATION: sectionIndex.CERTIFICATION, CERTIFICATIONS: sectionIndex.CERTIFICATIONS }
+    });
+
     // Split certification section into actual degrees (for education) and certifications
     const degreeLines = [];
     const actualCertifications = [];
@@ -1285,13 +1295,17 @@ document.addEventListener('DOMContentLoaded', function () {
     certificationLines.forEach((line) => {
       const normalized = normalizeBulletText(line);
       if (normalized) {
-        if (isDegreeLine(line)) {
+        const isDegree = isDegreeLine(line);
+        console.log('[Resume Parser] Cert line check:', { line: line.substring(0, 60), isDegree, normalized });
+        if (isDegree) {
           degreeLines.push(normalized);
         } else {
           actualCertifications.push(normalized);
         }
       }
     });
+
+    console.log('[Resume Parser] Parsed certifications:', { degreeLines, actualCertifications });
 
     // Add degree lines to education
     structured.education = [...structured.education, ...degreeLines];
