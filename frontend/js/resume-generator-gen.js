@@ -250,7 +250,7 @@ document.addEventListener('DOMContentLoaded', function () {
         headers,
         body: JSON.stringify({
           bundle,
-          returnPath: '/resume-generator.html'
+          returnPath: '/payment-success.html'
         })
       });
       const data = await response.json();

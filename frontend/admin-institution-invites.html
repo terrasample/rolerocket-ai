@@ -102,6 +102,10 @@
     #aimAccessDenied { display:none; text-align:center; padding:60px 20px; }
     #aimAccessDenied h2 { color:#f87171; margin-bottom:8px; }
     #aimAccessDenied p { color:#94a3b8; max-width:440px; margin:0 auto; }
+
+    /* ── Two-column layout ── */
+    .aim-two-col { display:grid; grid-template-columns:1fr 1fr; gap:24px; }
+    @media(max-width:700px) { .aim-two-col { grid-template-columns:1fr; } }
   </style>
 </head>
 <body>
@@ -266,6 +270,35 @@
             <tr><td colspan="10" class="aim-empty">Loading…</td></tr>
           </tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- ─── Grant Document Credits ─────────────────────── -->
+    <div class="aim-card">
+      <div class="aim-card-title">💳 Grant Document Credits</div>
+      <p style="font-size:.86rem;color:#94a3b8;margin:0 0 14px;">Manually give a user resume/cover letter credits — use this when a payment went through but credits weren't delivered.</p>
+      <div class="aim-two-col">
+        <div>
+          <div class="aim-form">
+            <label>Customer Email *</label>
+            <input id="gcEmail" type="email" placeholder="customer@example.com" />
+            <label>Credits to Grant *</label>
+            <input id="gcCredits" type="number" value="1" min="1" max="100" />
+            <label>Internal Note (optional)</label>
+            <input id="gcNote" type="text" placeholder="e.g. Webhook missed after Stripe payment on May 13" />
+            <button type="button" class="aim-btn-primary" id="gcGrantBtn" onclick="grantCredits()">Grant Credits</button>
+            <div class="aim-msg" id="gcMsg"></div>
+          </div>
+        </div>
+        <div>
+          <div class="aim-form">
+            <label>Look Up Credit Balance</label>
+            <input id="gcLookupEmail" type="email" placeholder="customer@example.com" />
+            <button type="button" class="aim-btn-primary" style="background:linear-gradient(135deg,#1e40af,#2563eb);" onclick="lookupCredits()">Check Balance</button>
+            <div class="aim-msg" id="gcLookupMsg"></div>
+            <div id="gcLookupResult" style="display:none;margin-top:10px;background:#0f172a;border-radius:10px;padding:12px;font-size:.85rem;color:#e2e8f0;"></div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -541,6 +574,86 @@
     updateAccessDaysUi();
     init();
   })();
+
+  /* ── Grant / Lookup credits ── */
+  function showGcMsg(id, text, type) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = text;
+    el.className = 'aim-msg ' + (type || 'info');
+    el.style.display = text ? '' : 'none';
+  }
+
+  async function getAdminToken() {
+    if (typeof getStoredToken === 'function') return getStoredToken();
+    return localStorage.getItem('token') || sessionStorage.getItem('token') || '';
+  }
+
+  window.grantCredits = async function() {
+    const email = (document.getElementById('gcEmail')?.value || '').trim();
+    const credits = parseInt(document.getElementById('gcCredits')?.value || '1', 10);
+    const note = (document.getElementById('gcNote')?.value || '').trim();
+    const btn = document.getElementById('gcGrantBtn');
+
+    if (!email) { showGcMsg('gcMsg', 'Email is required.', 'error'); return; }
+    if (!credits || credits < 1) { showGcMsg('gcMsg', 'Enter a valid credit count.', 'error'); return; }
+
+    btn.disabled = true;
+    btn.textContent = 'Granting…';
+    showGcMsg('gcMsg', '', '');
+
+    try {
+      const token = await getAdminToken();
+      const base = typeof getApiBase === 'function' ? getApiBase() : '/api';
+      const res = await fetch(base + '/admin/grant-document-credits', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({ email, credits, note })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed');
+      showGcMsg('gcMsg', '✅ Granted ' + data.granted + ' credit(s) to ' + data.email + '. New balance: ' + data.newBalance, 'success');
+    } catch (err) {
+      showGcMsg('gcMsg', '❌ ' + (err.message || 'Failed to grant credits'), 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Grant Credits';
+    }
+  };
+
+  window.lookupCredits = async function() {
+    const email = (document.getElementById('gcLookupEmail')?.value || '').trim();
+    if (!email) { showGcMsg('gcLookupMsg', 'Email is required.', 'error'); return; }
+
+    showGcMsg('gcLookupMsg', 'Loading…', 'info');
+    document.getElementById('gcLookupResult').style.display = 'none';
+
+    try {
+      const token = await getAdminToken();
+      const base = typeof getApiBase === 'function' ? getApiBase() : '/api';
+      const res = await fetch(base + '/admin/document-credits?email=' + encodeURIComponent(email), {
+        headers: { Authorization: 'Bearer ' + token }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed');
+
+      showGcMsg('gcLookupMsg', '', '');
+      const el = document.getElementById('gcLookupResult');
+      el.style.display = '';
+      el.innerHTML = [
+        '<strong>' + escHtml(data.name || data.email) + '</strong>',
+        '<div style="margin-top:8px;display:flex;gap:16px;flex-wrap:wrap;">',
+        '  <span>Plan: <strong>' + escHtml(data.plan) + '</strong></span>',
+        '  <span>Paid Credits: <strong style="color:' + (data.paidCredits > 0 ? '#86efac' : '#fca5a5') + '">' + data.paidCredits + '</strong></span>',
+        '  <span>Total Purchased: <strong>' + data.totalCreditsPurchased + '</strong></span>',
+        '  <span>Free Resume Used: <strong>' + (data.resumeFirstFreeUsed ? 'Yes' : 'No') + '</strong></span>',
+        '</div>',
+        data.purchases && data.purchases.length ? '<div style="margin-top:10px;font-size:.8rem;color:#94a3b8;">Last purchase: ' + new Date(data.purchases[data.purchases.length-1].purchasedAt).toLocaleString() + ' — ' + data.purchases[data.purchases.length-1].credits + ' credit(s) via ' + escHtml(data.purchases[data.purchases.length-1].bundleId) + '</div>' : ''
+      ].join('');
+    } catch (err) {
+      showGcMsg('gcLookupMsg', '❌ ' + (err.message || 'Lookup failed'), 'error');
+    }
+  };
   </script>
   <script src="js/nav-plan-sync.js"></script>
 </body>

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Payment Successful | RoleRocket AI</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    body { background: #0b1628; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+    .success-card {
+      background: linear-gradient(145deg, #0b1628 0%, #0e2044 60%, #0c4a6e 100%);
+      border: 1px solid rgba(99, 190, 245, 0.22);
+      border-radius: 20px;
+      padding: 48px 40px;
+      max-width: 520px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 24px 52px rgba(8, 47, 73, 0.5);
+    }
+    .success-icon {
+      font-size: 4rem;
+      margin-bottom: 16px;
+      animation: pop 0.5s ease-out;
+    }
+    @keyframes pop {
+      0% { transform: scale(0.3); opacity: 0; }
+      70% { transform: scale(1.15); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .success-title {
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: #f0fdf4;
+      margin: 0 0 10px;
+    }
+    .success-sub {
+      color: #bfdbfe;
+      font-size: 1rem;
+      line-height: 1.6;
+      margin: 0 0 28px;
+    }
+    .credits-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(34, 197, 94, 0.12);
+      border: 1px solid rgba(34, 197, 94, 0.35);
+      border-radius: 999px;
+      padding: 8px 20px;
+      color: #86efac;
+      font-weight: 700;
+      font-size: 1.05rem;
+      margin-bottom: 28px;
+    }
+    .status-row {
+      background: rgba(15, 23, 42, 0.6);
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin-bottom: 24px;
+      font-size: .9rem;
+      color: #93c5fd;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid rgba(147, 197, 253, 0.3);
+      border-top-color: #93c5fd;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .cta-btn {
+      display: inline-block;
+      background: linear-gradient(135deg, #2563eb, #0ea5e9);
+      color: #fff;
+      font-weight: 700;
+      font-size: 1rem;
+      padding: 14px 32px;
+      border-radius: 999px;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      margin-bottom: 14px;
+      width: 100%;
+    }
+    .cta-btn:hover { opacity: 0.88; }
+    .cta-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .secondary-link {
+      display: block;
+      color: #7dd3fc;
+      font-size: .88rem;
+      text-decoration: none;
+      margin-top: 8px;
+    }
+    .secondary-link:hover { text-decoration: underline; }
+    #statusMsg.ready { color: #86efac; }
+    #statusMsg.waiting { color: #93c5fd; }
+    #statusMsg.error { color: #fca5a5; }
+  </style>
+</head>
+<body>
+  <div class="success-card">
+    <div class="success-icon">✅</div>
+    <h1 class="success-title">Payment Successful!</h1>
+    <p class="success-sub">Thank you — your resume generation credits are being added to your account right now.</p>
+
+    <div class="credits-badge" id="creditsBadge">
+      🎯 Credits loading…
+    </div>
+
+    <div class="status-row" id="statusRow">
+      <div class="spinner" id="statusSpinner"></div>
+      <span id="statusMsg" class="waiting">Confirming your credits with Stripe…</span>
+    </div>
+
+    <a href="resume-generator.html" class="cta-btn" id="generateBtn" style="pointer-events:none;opacity:0.5;">
+      Generate My Resume →
+    </a>
+    <a href="dashboard.html" class="secondary-link">Go to My Dashboard</a>
+  </div>
+
+  <script src="js/api-base.js"></script>
+  <script src="js/auth-storage.js"></script>
+  <script>
+  (function() {
+    var MAX_ATTEMPTS = 12;
+    var INTERVAL_MS = 2500;
+    var attempts = 0;
+
+    function getToken() {
+      if (typeof getStoredToken === 'function') return getStoredToken();
+      return localStorage.getItem('token') || sessionStorage.getItem('token') || '';
+    }
+
+    function setReady(paidCredits) {
+      document.getElementById('creditsBadge').textContent = '🎯 ' + paidCredits + ' credit' + (paidCredits === 1 ? '' : 's') + ' added to your account';
+      document.getElementById('statusSpinner').style.display = 'none';
+      var msg = document.getElementById('statusMsg');
+      msg.textContent = 'Credits confirmed! You\'re ready to generate.';
+      msg.className = 'ready';
+      document.getElementById('statusRow').style.borderColor = 'rgba(34,197,94,0.3)';
+      document.getElementById('statusRow').style.background = 'rgba(34,197,94,0.06)';
+      var btn = document.getElementById('generateBtn');
+      btn.style.pointerEvents = '';
+      btn.style.opacity = '';
+    }
+
+    function setError() {
+      document.getElementById('statusSpinner').style.display = 'none';
+      var msg = document.getElementById('statusMsg');
+      msg.textContent = 'Credits may take a moment to appear. You can generate now or refresh this page.';
+      msg.className = 'error';
+      var btn = document.getElementById('generateBtn');
+      btn.style.pointerEvents = '';
+      btn.style.opacity = '';
+    }
+
+    function checkCredits() {
+      var token = getToken();
+      var base = typeof getApiBase === 'function' ? getApiBase() : '/api';
+      var headers = token ? { Authorization: 'Bearer ' + token } : {};
+
+      fetch(base + '/document-credits/status?feature=resume', { headers: headers })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          var status = data.status || {};
+          if (status.unlimited) {
+            document.getElementById('creditsBadge').textContent = '🎯 Unlimited credits (paid plan)';
+            setReady(99);
+            return;
+          }
+          var paid = Number(status.paidCredits || 0);
+          if (paid > 0 || status.canGenerate) {
+            setReady(paid);
+            return;
+          }
+          attempts++;
+          if (attempts < MAX_ATTEMPTS) {
+            setTimeout(checkCredits, INTERVAL_MS);
+          } else {
+            setError();
+          }
+        })
+        .catch(function() {
+          attempts++;
+          if (attempts < MAX_ATTEMPTS) {
+            setTimeout(checkCredits, INTERVAL_MS);
+          } else {
+            setError();
+          }
+        });
+    }
+
+    // Start checking immediately
+    checkCredits();
+  })();
+  </script>
+</body>
+</html>

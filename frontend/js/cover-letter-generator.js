@@ -95,7 +95,7 @@ document.addEventListener('DOMContentLoaded', function () {
         headers,
         body: JSON.stringify({
           bundle,
-          returnPath: '/cover-letter-generator.html'
+          returnPath: '/payment-success.html'
         })
       });
       const data = await response.json();
