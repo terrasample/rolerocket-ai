@@ -463,6 +463,27 @@ document.addEventListener('DOMContentLoaded', function () {
     };
   }
 
+  function mergeUniqueLines(primary, secondary) {
+    const seen = new Set();
+    const merged = [];
+    const blocked = new Set([
+      'education details available upon request',
+      'n/a'
+    ]);
+
+    [...(primary || []), ...(secondary || [])].forEach((line) => {
+      const clean = normalizeBulletText(line);
+      if (!clean) return;
+      const key = clean.toLowerCase();
+      if (blocked.has(key)) return;
+      if (seen.has(key)) return;
+      seen.add(key);
+      merged.push(clean);
+    });
+
+    return merged;
+  }
+
   function getSelectedThemeId() {
     const selected = String(templateSelect?.value || BLANK_LAYOUT_ID);
     if (selected === BLANK_LAYOUT_ID) return BLANK_LAYOUT_ID;
@@ -824,6 +845,12 @@ document.addEventListener('DOMContentLoaded', function () {
       const cleaned = removeImprovementsSection(String(data.result || ''));
       lastRawResume = cleaned;
       const parsed = parseResume(cleaned, extractContactInfo(baseResume));
+      const parsedBaseline = parseResume(baseResume, extractContactInfo(baseResume));
+
+      // Keep user-provided education/certifications complete even if AI rewrite omits items.
+      parsed.education = mergeUniqueLines(parsed.education, parsedBaseline.education);
+      parsed.awards = mergeUniqueLines(parsed.awards, parsedBaseline.awards);
+
       lastStructuredResume = buildResumeModel(parsed, jobTitle, selectedThemeId);
       output.innerHTML = renderResumeTemplate(lastStructuredResume);
       output.insertAdjacentHTML(
