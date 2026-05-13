@@ -162,18 +162,18 @@
     const code = normalizeCountryCode(countryCode);
     const themes = {
       JM: {
-        primary: '#007A5E',
-        accent: '#FFD700',
+        primary: '#009B3A',
+        accent: '#FED100',
         dark: '#000000',
-        border: 'rgba(0,122,94,.42)',
-        bg: 'rgba(0,122,94,.10)'
+        border: 'rgba(254,209,0,.45)',
+        bg: 'rgba(0,155,58,.12)'
       },
       US: {
-        primary: '#1D4ED8',
-        accent: '#DC2626',
-        dark: '#1E3A8A',
-        border: 'rgba(29,78,216,.40)',
-        bg: 'rgba(29,78,216,.10)'
+        primary: '#3C3B6E',
+        accent: '#B22234',
+        dark: '#1A1F3F',
+        border: 'rgba(255,255,255,.62)',
+        bg: 'rgba(255,255,255,.16)'
       },
       GLOBAL: {
         primary: '#F97316',

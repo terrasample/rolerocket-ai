@@ -2435,7 +2435,11 @@ function normalizeWhatsAppPlanValue(plan = 'free') {
 }
 
 function getWhatsAppForcedIntent(textCanonical = '') {
-  const text = String(textCanonical || '').trim().toLowerCase();
+  const text = normalizeIncomingWhatsAppText(textCanonical)
+    .toLowerCase()
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
   if (!text) return '';
 
   const map = {
@@ -2473,6 +2477,20 @@ function getWhatsAppForcedIntent(textCanonical = '') {
     ]),
     status: new Set(['status'])
   };
+
+  // Flexible matching for interactive list/button payloads that often include
+  // title + description in one message (for example: "Generate Resume ...").
+  if (/\bwatch\s+demo(\s+features?)?\b/.test(text) || /\bdemo\s+features?\b/.test(text)) return 'demo';
+  if (/\b(search|find)\s*(and|&)\s*save\s+jobs\b/.test(text)) return 'jobs';
+  if (/\bcreate\s+and\s+save\/?export\s+resume\b/.test(text)) return 'resume';
+  if (/\bgenerate\s+resume\b/.test(text)) return 'resume';
+  if (/\bresume\s+menu\b/.test(text)) return 'resume';
+  if (/\b(generate|create)\s+and\s+export\s+your\s+resume\b/.test(text)) return 'resume';
+  if (/\bcreate\s+and\s+save\/?export\s+cover\s+letter\b/.test(text)) return 'coverLetter';
+  if (/\bgenerate\s+cover\s+letter\b/.test(text)) return 'coverLetter';
+  if (/\bcover\s+letter\s+menu\b/.test(text)) return 'coverLetter';
+  if (/\bexplore\s+other\s+features\b/.test(text) || /\bexplore\s+features\b/.test(text)) return 'explore';
+  if (/\btechnical\s+support\b/.test(text) || /\blive\s+support\b/.test(text) || /\bhuman\s+support\b/.test(text)) return 'human';
 
   if (map.demo.has(text)) return 'demo';
   if (map.jobs.has(text)) return 'jobs';
