@@ -4018,6 +4018,7 @@ pre {
 
 .auth-right-middle {
   position: relative;
+  margin-top: -85px;
 }
 
 .auth-card {
@@ -4407,6 +4408,10 @@ pre {
   .landing-hero-inner,
   .auth-shell {
     grid-template-columns: 1fr;
+  }
+
+  .auth-right-middle {
+    margin-top: 0;
   }
 
   .landing-proof-row,
