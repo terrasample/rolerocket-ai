@@ -161,6 +161,30 @@ function renderPlanMix(usersByPlan = {}) {
     .join('');
 }
 
+function renderMismatchInsights(experienceConsistency = {}) {
+  const el = document.getElementById('mismatchInsights');
+  if (!el) return;
+
+  const total = Number(experienceConsistency.mismatchTotal || 0);
+  const rows = Array.isArray(experienceConsistency.mismatchByType)
+    ? experienceConsistency.mismatchByType
+    : [];
+
+  if (!total) {
+    el.innerHTML = '<div class="empty-state">No mismatch events recorded in this window</div>';
+    return;
+  }
+
+  const topRows = rows.slice(0, 6)
+    .map((row) => `<div class="analytics-row"><strong>${escapeHtml(row.type || 'unknown')}</strong><span>${formatNumber(row.count || 0)}</span></div>`)
+    .join('');
+
+  el.innerHTML = [
+    `<div class="analytics-row"><strong>Total mismatch events</strong><span>${formatNumber(total)}</span></div>`,
+    topRows || '<div class="empty-state">No mismatch type details available</div>'
+  ].join('');
+}
+
 function renderPlatformLeadership(summary, publicStats) {
   const usersTotalEl = document.getElementById('analyticsUsersTotal');
   const subscribersTotalEl = document.getElementById('analyticsSubscribersTotal');
@@ -222,11 +246,13 @@ async function loadAnalytics() {
     ]);
 
     if (overview) {
+      const mismatchTotal = Number(data.experienceConsistency?.mismatchTotal || 0);
       overview.innerHTML = `
         <strong>${data.windowDays}-day snapshot</strong><br>
         Events: ${formatNumber(data.totals?.events || 0)}<br>
         Users: ${formatNumber(data.totals?.users || 0)}<br>
-        Jobs: ${formatNumber(data.totals?.jobs || 0)}
+        Jobs: ${formatNumber(data.totals?.jobs || 0)}<br>
+        Experience mismatches: ${formatNumber(mismatchTotal)}
       `;
     }
 
@@ -235,6 +261,7 @@ async function loadAnalytics() {
     renderList('topEvents', data.topEvents || [], 'event', 'count');
     renderList('funnelEvents', data.funnels || [], 'funnel', 'count');
     renderList('dailyTrend', data.trend || [], 'day', 'count');
+    renderMismatchInsights(data.experienceConsistency || {});
     renderCohorts(data.cohorts || []);
     if (Array.isArray(usersData.users)) {
       renderSignedUpUsers(usersData.users);

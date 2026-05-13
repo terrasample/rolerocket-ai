@@ -9675,7 +9675,7 @@ app.get('/api/admin/telemetry/summary', authenticateToken, requireAnalyticsAcces
     const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
     const [events, users, jobs] = await Promise.all([
-      Telemetry.find({ ts: { $gte: since } }).select('event funnel ts variant').lean(),
+      Telemetry.find({ ts: { $gte: since } }).select('event funnel ts variant meta').lean(),
       User.find({}).select('_id plan createdAt').lean(),
       Job.find({ createdAt: { $gte: since } }).select('userId status createdAt').lean()
     ]);
@@ -9683,6 +9683,8 @@ app.get('/api/admin/telemetry/summary', authenticateToken, requireAnalyticsAcces
     const eventCounts = {};
     const funnelCounts = {};
     const daily = {};
+    const mismatchByType = {};
+    let mismatchTotal = 0;
 
     events.forEach((evt) => {
       const event = evt.event || 'unknown';
@@ -9692,6 +9694,12 @@ app.get('/api/admin/telemetry/summary', authenticateToken, requireAnalyticsAcces
       eventCounts[event] = (eventCounts[event] || 0) + 1;
       funnelCounts[funnel] = (funnelCounts[funnel] || 0) + 1;
       daily[day] = (daily[day] || 0) + 1;
+
+      if (event === 'experience_personalization_mismatch') {
+        mismatchTotal += 1;
+        const mismatchType = String((evt.meta && evt.meta.type) || 'unknown');
+        mismatchByType[mismatchType] = (mismatchByType[mismatchType] || 0) + 1;
+      }
     });
 
     const usersByPlan = { free: 0, pro: 0, premium: 0, elite: 0, lifetime: 0 };
@@ -9746,6 +9754,12 @@ app.get('/api/admin/telemetry/summary', authenticateToken, requireAnalyticsAcces
       trend: Object.entries(daily)
         .sort(([a], [b]) => a.localeCompare(b))
         .map(([day, count]) => ({ day, count })),
+      experienceConsistency: {
+        mismatchTotal,
+        mismatchByType: Object.entries(mismatchByType)
+          .sort((a, b) => b[1] - a[1])
+          .map(([type, count]) => ({ type, count }))
+      },
       usersByPlan,
       cohorts: cohortWithRates
     });
