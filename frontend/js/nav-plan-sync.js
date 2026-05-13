@@ -146,7 +146,7 @@
     const style = document.createElement('style');
     style.id = 'rrNavExpThemeStyle';
     style.textContent = [
-      ':root{--rr-exp-primary:#3b82f6;--rr-exp-accent:#06b6d4;--rr-exp-dark:#1e40af;--rr-exp-border:rgba(59,130,246,.35);--rr-exp-bg:rgba(59,130,246,.08);}',
+      ':root{--rr-exp-primary:#F97316;--rr-exp-accent:#0EA5E9;--rr-exp-dark:#0F172A;--rr-exp-border:rgba(249,115,22,.40);--rr-exp-bg:rgba(249,115,22,.12);}',
       '.business-bar{border-bottom:1px solid var(--rr-exp-border) !important;box-shadow:0 8px 24px var(--rr-exp-bg) !important;}',
       '.sidebar-link-btn.active{background:linear-gradient(180deg,var(--rr-exp-primary),var(--rr-exp-dark)) !important;border-color:var(--rr-exp-primary) !important;color:#fff !important;}',
       '.sidebar-link-btn:hover{border-color:var(--rr-exp-primary) !important;box-shadow:0 0 0 1px var(--rr-exp-border) inset;}',
@@ -176,11 +176,11 @@
         bg: 'rgba(29,78,216,.10)'
       },
       GLOBAL: {
-        primary: '#3B82F6',
-        accent: '#06B6D4',
-        dark: '#1E40AF',
-        border: 'rgba(59,130,246,.35)',
-        bg: 'rgba(59,130,246,.08)'
+        primary: '#F97316',
+        accent: '#0EA5E9',
+        dark: '#0F172A',
+        border: 'rgba(249,115,22,.40)',
+        bg: 'rgba(249,115,22,.12)'
       }
     };
     const theme = themes[code] || themes.GLOBAL;
