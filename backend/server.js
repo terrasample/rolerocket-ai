@@ -134,7 +134,9 @@ function normalizeExperienceCountryCode(value = '') {
   const code = String(value || '').trim().toUpperCase();
   if (!code) return '';
   if (code === 'ZZ') return 'GLOBAL';
-  return EXPERIENCE_COUNTRY_CODES.has(code) ? code : '';
+  if (EXPERIENCE_COUNTRY_CODES.has(code)) return code;
+  if (/^[A-Z]{2}$/.test(code)) return code;
+  return '';
 }
 
 function parseCookieMap(cookieHeader = '') {
