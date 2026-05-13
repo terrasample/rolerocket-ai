@@ -2418,6 +2418,16 @@ function getWhatsAppMenuText(language = 'english') {
   ].join('\n');
 }
 
+function getWhatsAppMainMenuReturnText(language = 'english') {
+  if (language === 'spanish') return 'Escribe Main Menu en cualquier momento para volver.';
+  return 'Type Main Menu at anytime to return.';
+}
+
+function getWhatsAppPlanLevel(plan = 'free') {
+  const levels = { free: 0, pro: 1, premium: 2, elite: 3, lifetime: 3, business: 3 };
+  return levels[String(plan || 'free').toLowerCase()] ?? 0;
+}
+
 function getWhatsAppDemoFeaturesText(language = 'english') {
   if (language === 'spanish') {
     return [
@@ -2434,7 +2444,7 @@ function getWhatsAppDemoFeaturesText(language = 'english') {
     '1) Resume + Cover Letter demo',
     '2) Search + Import + Track demo',
     '3) Show both demos',
-    'Reply 1, 2, or 3. Use Main Menu to return anytime.'
+    'Reply 1, 2, or 3. Type Main Menu at anytime to return.'
   ].join('\n');
 }
 
@@ -2507,7 +2517,7 @@ function getWhatsAppExploreFeaturesText(plan = 'free', language = 'english') {
     `${u(f.portfolio)} Portfolio Builder (Elite)`,
     '',
     upgradeHint || (f.interview ? 'Use the Interview button for interview prep.' : ''),
-    'Use the Main Menu button to return anytime.'
+    'Type Main Menu at anytime to return.'
   ].filter(Boolean).join('\n');
 }
 
@@ -2551,7 +2561,7 @@ function getWhatsAppPaidFeaturesOverviewText(language = 'english') {
     '7) Learning & Courses: guided upskilling paths for target roles.',
     '8) Portfolio Builder: presents projects and achievements professionally.',
     '',
-    'Tap a feature button to open it. Use Main Menu to return anytime.'
+    'Tap a feature button to open it. Type Main Menu at anytime to return.'
   ].join('\n');
 }
 
@@ -2592,7 +2602,8 @@ function getWhatsAppStepPrompt(step = '', user = {}, convo = {}) {
       'Premium Jobs Search is ready.',
       `Open: ${premiumSearchUrl}`,
       'Use the role text field + Jamaica parish dropdown + Search button.',
-      'Or type your target role here if you want to continue inside WhatsApp.'
+      'Or type your target role here if you want to continue inside WhatsApp.',
+      getWhatsAppMainMenuReturnText(language)
     ].join('\n');
   }
   if (safeStep === 'jobs_parish_select') {
@@ -2609,7 +2620,8 @@ function getWhatsAppStepPrompt(step = '', user = {}, convo = {}) {
       'Import & Save Jobs is ready.',
       `Open: ${premiumImportUrl}`,
       'Paste a job URL in the Import box and save it to your pipeline.',
-      'Or paste the job URL/details here in WhatsApp and I will save it for you.'
+      'Or paste the job URL/details here in WhatsApp and I will save it for you.',
+      getWhatsAppMainMenuReturnText(language)
     ].join('\n');
   }
   if (safeStep === 'resume_input_choice') {
@@ -2618,7 +2630,8 @@ function getWhatsAppStepPrompt(step = '', user = {}, convo = {}) {
       'Resume Generator is ready.',
       `Open: ${resumeUrl}`,
       'Use the web form to generate and export your resume quickly.',
-      'Or continue here: reply UPLOAD to send a resume file, or TYPE to send your work history.'
+      'Or continue here: reply UPLOAD to send a resume file, or TYPE to send your work history.',
+      getWhatsAppMainMenuReturnText(language)
     ].join('\n');
   }
   if (safeStep === 'resume_capture') return 'Send your resume as a PDF/Word file or share your recent work history (text/voice).';
@@ -2628,7 +2641,8 @@ function getWhatsAppStepPrompt(step = '', user = {}, convo = {}) {
       'Cover Letter Generator is ready.',
       `Open: ${coverLetterUrl}`,
       'Use the web form to generate and export your cover letter quickly.',
-      'Or continue here by sending role + company (example: Customer Service Rep at GraceKennedy).'
+      'Or continue here by sending role + company (example: Customer Service Rep at GraceKennedy).',
+      getWhatsAppMainMenuReturnText(language)
     ].join('\n');
   }
   if (safeStep === 'interview_target') {
@@ -3732,19 +3746,23 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     // Send users straight to the live demo features page when they tap this option.
     convo.currentStep = 'menu';
     const language = String(convo.metadata?.context?.language || 'english');
+    const planLevel = getWhatsAppPlanLevel(user.plan || 'free');
+    const isFreePlan = planLevel === 0;
     const demoFeaturesUrl = `${getPublicAppBaseUrl()}/features.html#feature-snippets`;
     const reply = language === 'spanish'
       ? [
           'Perfecto. Abre Demo Features aqui:',
           demoFeaturesUrl,
           '',
-          'Cuando termines, toca Main Menu para volver.'
+          isFreePlan ? 'Tu plan actual es Free: las funciones pagadas seguiran bloqueadas.' : 'Tu plan desbloquea funciones adicionales dentro de la plataforma.',
+          getWhatsAppMainMenuReturnText(language)
         ].join('\n')
       : [
           'Perfect. Open Demo Features here:',
           demoFeaturesUrl,
           '',
-          'When you are done, tap Main Menu to return.'
+          isFreePlan ? 'You are currently on Free: paid features stay locked until you upgrade.' : 'Your plan unlocks additional features in-platform.',
+          getWhatsAppMainMenuReturnText(language)
         ].join('\n');
     await trackWhatsAppTelemetry(phone, 'whatsapp_demo_features_enter', {});
     convo.lastOutboundMessage = reply;
@@ -3768,6 +3786,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   if (convo.currentStep === 'jobs_menu' && ['search', 'search jobs'].includes(textCanonical)) {
     convo.currentStep = 'jobs_role_input';
     await trackWhatsAppTelemetry(phone, 'whatsapp_jobs_step_enter', {});
+    const language = String(convo.metadata?.context?.language || 'english');
     const experienceCountry = resolveWhatsAppExperienceCountry({ user, convo });
     const roleHint = encodeURIComponent(String(user.targetJob || convo.metadata?.context?.lastJobTitle || '').trim());
     const premiumSearchUrl = roleHint
@@ -3780,7 +3799,8 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
         ? 'Use the role text field + Jamaica parish dropdown + Search button.'
         : 'Use the role text field + location field + Search button.',
       'You will see recently posted matched jobs with premium styling.',
-      'Or type your target role here if you want to continue inside WhatsApp.'
+      'Or type your target role here if you want to continue inside WhatsApp.',
+      getWhatsAppMainMenuReturnText(language)
     ].join('\n');
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
@@ -3907,7 +3927,8 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       'Import & Save Jobs is ready.',
       `Open: ${premiumImportUrl}`,
       'Paste a job URL in the Import box and save it to your pipeline.',
-      'Or paste the job URL/details here in WhatsApp and I will save it for you.'
+      'Or paste the job URL/details here in WhatsApp and I will save it for you.',
+      getWhatsAppMainMenuReturnText(String(convo.metadata?.context?.language || 'english'))
     ].join('\n');
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
@@ -3963,7 +3984,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     const reply = [
       `Your saved jobs (${saved.length}):`,
       ...saved.map((j, i) => `${i + 1}) ${j.jobTitle || 'Role'}${j.company ? ' @ ' + j.company : ''}`),
-      'Use Jobs actions for Search, or Main Menu to return.'
+      getWhatsAppMainMenuReturnText(String(convo.metadata?.context?.language || 'english'))
     ].join('\n');
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
@@ -4042,7 +4063,8 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       'Resume Generator is ready.',
       `Open: ${resumeUrl}`,
       'Use the web form to generate and export your resume quickly.',
-      'Or reply UPLOAD or TYPE to continue here.'
+      'Or reply UPLOAD or TYPE to continue here.',
+      getWhatsAppMainMenuReturnText(String(convo.metadata?.context?.language || 'english'))
     ].join('\n');
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
@@ -4059,7 +4081,8 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       'Cover Letter Generator is ready.',
       `Open: ${coverLetterUrl}`,
       'Use the web form to generate and export your cover letter quickly.',
-      'Or continue here by sending role + company (example: Customer Service Rep at GraceKennedy).'
+      'Or continue here by sending role + company (example: Customer Service Rep at GraceKennedy).',
+      getWhatsAppMainMenuReturnText(String(convo.metadata?.context?.language || 'english'))
     ].join('\n');
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
@@ -4084,6 +4107,9 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   }
 
   if (convo.currentStep === 'explore_features') {
+    const language = String(convo.metadata?.context?.language || 'english');
+    const userPlan = String(user.plan || 'free').toLowerCase();
+    const userPlanLevel = getWhatsAppPlanLevel(userPlan);
     const featureLinks = {
       pro_resume_builder: `${getPublicAppBaseUrl()}/resume-generator.html?plan=pro`,
       pro_export_suite: `${getPublicAppBaseUrl()}/resume-generator.html?export=1`,
@@ -4093,6 +4119,17 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       premium_auto_apply: `${getPublicAppBaseUrl()}/dashboard.html#auto-apply`,
       elite_learning_courses: `${getPublicAppBaseUrl()}/course-learning.html`,
       elite_portfolio_builder: `${getPublicAppBaseUrl()}/executive-presence-builder.html`
+    };
+
+    const requiredPlanLevel = {
+      pro_resume_builder: 1,
+      pro_export_suite: 1,
+      pro_resume_analysis: 1,
+      premium_interview_practice: 2,
+      premium_market_insights: 2,
+      premium_auto_apply: 2,
+      elite_learning_courses: 3,
+      elite_portfolio_builder: 3
     };
 
     const featureDescriptions = {
@@ -4117,10 +4154,25 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       || (text.includes('portfolio') ? 'elite_portfolio_builder' : '');
 
     if (selectedFeature) {
+      const neededLevel = requiredPlanLevel[selectedFeature] ?? 0;
+      if (userPlanLevel < neededLevel) {
+        const neededPlanName = neededLevel === 1 ? 'Pro' : neededLevel === 2 ? 'Premium' : 'Elite';
+        const reply = [
+          `That feature is locked on your current ${userPlan} plan.`,
+          `Upgrade to ${neededPlanName} to unlock it: ${getPublicAppBaseUrl()}/pricing.html`,
+          getWhatsAppMainMenuReturnText(language)
+        ].join('\n');
+        convo.lastOutboundMessage = reply;
+        convo.lastOutboundAt = new Date();
+        await convo.save();
+        return reply;
+      }
+
       const reply = [
         featureDescriptions[selectedFeature],
         `Open: ${featureLinks[selectedFeature]}`,
-        'Tap another paid feature button to explore more, or use Main Menu.'
+        'Tap another paid feature button to explore more.',
+        getWhatsAppMainMenuReturnText(language)
       ].join('\n');
       convo.lastOutboundMessage = reply;
       convo.lastOutboundAt = new Date();
@@ -4128,7 +4180,6 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       return reply;
     }
 
-    const language = String(convo.metadata?.context?.language || 'english');
     const reply = getWhatsAppPaidFeaturesOverviewText(language);
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
