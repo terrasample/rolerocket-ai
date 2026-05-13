@@ -3972,13 +3972,8 @@ pre {
   }
 }
 
-/* Login heading overlay on right card */
-.login-heading-overlay {
-  position: absolute;
-  top: -85px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 10;
+/* Login heading on right side top */
+.login-heading {
   font-size: 1.95rem;
   line-height: 1.2;
   margin: 0;
@@ -3986,11 +3981,10 @@ pre {
   font-weight: 800;
   color: #ffffff;
   text-shadow: 0 2px 8px rgba(15, 23, 42, 0.2);
-  width: 90%;
   text-align: center;
 }
 
-.login-heading-overlay span {
+.login-heading span {
   display: block;
 }
 
@@ -4002,11 +3996,35 @@ pre {
   font-weight: 900;
 }
 
+/* Auth left sections */
+.auth-left-top {
+  margin-bottom: 16px;
+}
+
+.auth-left-middle {
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: center;
+}
+
+.auth-left-bottom {
+  margin-bottom: 24px;
+}
+
+/* Auth right sections */
+.auth-right-top {
+  margin-bottom: 24px;
+}
+
+.auth-right-middle {
+  position: relative;
+}
+
 .auth-card {
   position: relative;
   background: rgba(255, 255, 255, 0.97);
   color: #111827;
-  margin-top: 60px;
+  margin-top: 0;
   width: 100%;
   border-radius: 24px;
   padding: 28px;
