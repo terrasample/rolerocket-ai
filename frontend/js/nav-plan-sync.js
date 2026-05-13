@@ -158,7 +158,8 @@
       ':root[data-exp-country] .hero.contact-hero{background:linear-gradient(135deg,var(--rr-exp-dark) 0%, var(--rr-exp-primary) 100%) !important;}',
       ':root[data-exp-country] .marketing-hero-card{border-color:var(--rr-exp-border) !important;background:linear-gradient(180deg,var(--rr-exp-bg) 0%, rgba(15,23,42,.9) 100%) !important;}',
       ':root[data-exp-country] .marketing-card{border-color:var(--rr-exp-border) !important;box-shadow:0 8px 24px var(--rr-exp-bg) !important;}',
-      ':root[data-exp-country] .marketing-card h2,:root[data-exp-country] .marketing-card h3,:root[data-exp-country] .marketing-hero-card h2{color:var(--rr-exp-primary) !important;}',
+      ':root[data-exp-country] .marketing-card h2,:root[data-exp-country] .marketing-hero-card h2{color:var(--rr-exp-primary) !important;}',
+      ':root[data-exp-country] .marketing-card h3{color:#f5f5f5 !important;}',
       ':root[data-exp-country] .back-arrow-btn{color:var(--rr-exp-primary) !important;}',
       ':root[data-exp-country] .sidebar-link-btn.active{box-shadow:0 0 0 1px var(--rr-exp-border) inset, 0 10px 20px var(--rr-exp-bg) !important;}'
     ].join('');
