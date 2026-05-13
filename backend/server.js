@@ -2442,6 +2442,104 @@ function getWhatsAppForcedIntent(textCanonical = '') {
     .trim();
   if (!text) return '';
 
+  const exact = new Map([
+    ['start', 'start'],
+    ['join', 'start'],
+    ['hi', 'start'],
+    ['hello', 'start'],
+    ['help', 'help'],
+    ['main menu', 'mainMenu'],
+    ['menu', 'mainMenu'],
+    ['home', 'mainMenu'],
+    ['go back', 'goBack'],
+    ['back', 'goBack'],
+    ['previous', 'goBack'],
+    ['prev', 'goBack'],
+    ['status', 'status'],
+    ['technical support', 'human'],
+    ['live support', 'human'],
+    ['human support', 'human'],
+    ['live agent', 'human'],
+    ['agent', 'human'],
+    ['support', 'human'],
+    ['english', 'english'],
+    ['en', 'english'],
+    ['spanish', 'spanish'],
+    ['es', 'spanish'],
+    ['espanol', 'spanish'],
+    ['español', 'spanish'],
+    ['1', 'demo'],
+    ['2', 'jobs'],
+    ['3', 'resume'],
+    ['4', 'coverLetter'],
+    ['5', 'explore'],
+    ['0', 'human'],
+    ['watch demo features', 'demo'],
+    ['watch demo feature', 'demo'],
+    ['watch demo', 'demo'],
+    ['demo features', 'demo'],
+    ['show demo features', 'demo'],
+    ['show demo', 'demo'],
+    ['search & save jobs', 'jobs'],
+    ['search and save jobs', 'jobs'],
+    ['jobs', 'jobs'],
+    ['create and save/export resume', 'resume'],
+    ['create and save export resume', 'resume'],
+    ['resume', 'resume'],
+    ['resume menu', 'resume'],
+    ['create and save/export cover letter', 'coverLetter'],
+    ['create and save export cover letter', 'coverLetter'],
+    ['cover letter', 'coverLetter'],
+    ['cover letter menu', 'coverLetter'],
+    ['explore other features', 'explore'],
+    ['explore features', 'explore'],
+    ['search jobs', 'jobsSearch'],
+    ['import jobs', 'jobsImport'],
+    ['saved jobs', 'jobsSaved'],
+    ['my jobs', 'jobsSaved'],
+    ['view saved', 'jobsSaved'],
+    ['view jobs', 'jobsView'],
+    ['view all jobs', 'jobsView'],
+    ['show jobs', 'jobsView'],
+    ['show all jobs', 'jobsView'],
+    ['save jobs', 'jobsSaveAll'],
+    ['save all jobs', 'jobsSaveAll'],
+    ['search again', 'jobsSearchAgain'],
+    ['search more', 'jobsSearchAgain'],
+    ['find more jobs', 'jobsSearchAgain'],
+    ['email jobs', 'jobsEmail'],
+    ['email all jobs', 'jobsEmail'],
+    ['send jobs', 'jobsEmail'],
+    ['send to email', 'jobsEmail'],
+    ['apply ready', 'jobsApplyReady'],
+    ['upload', 'resumeUpload'],
+    ['type', 'resumeType'],
+    ['full draft', 'resumeFullDraft'],
+    ['save resume', 'resumeSave'],
+    ['export resume', 'resumeExport'],
+    ['export cv', 'resumeExport'],
+    ['save cover', 'coverSave'],
+    ['save letter', 'coverSave'],
+    ['export cover', 'coverExport'],
+    ['export letter', 'coverExport'],
+    ['export cover letter', 'coverExport'],
+    ['resume demo', 'demoResume'],
+    ['cover letter demo', 'demoResume'],
+    ['resume and cover letter', 'demoResume'],
+    ['resume + cover letter', 'demoResume'],
+    ['jobs demo', 'demoJobs'],
+    ['search import track', 'demoJobs'],
+    ['search + import + track', 'demoJobs'],
+    ['search and import and track', 'demoJobs'],
+    ['all demos', 'demoBoth'],
+    ['show both demos', 'demoBoth'],
+    ['tailor resume', 'tailorResume'],
+    ['tailor cover', 'tailorCover'],
+    ['tailor cover letter', 'tailorCover']
+  ]);
+
+  if (exact.has(text)) return exact.get(text);
+
   const map = {
     demo: new Set([
       'watch demo features',
@@ -2489,8 +2587,17 @@ function getWhatsAppForcedIntent(textCanonical = '') {
   if (/\bcreate\s+and\s+save\/?export\s+cover\s+letter\b/.test(text)) return 'coverLetter';
   if (/\bgenerate\s+cover\s+letter\b/.test(text)) return 'coverLetter';
   if (/\bcover\s+letter\s+menu\b/.test(text)) return 'coverLetter';
+  if (/\bcover\s+letter\s+options\b/.test(text)) return 'coverLetter';
   if (/\bexplore\s+other\s+features\b/.test(text) || /\bexplore\s+features\b/.test(text)) return 'explore';
   if (/\btechnical\s+support\b/.test(text) || /\blive\s+support\b/.test(text) || /\bhuman\s+support\b/.test(text)) return 'human';
+  if (/^apply\s+ready$/.test(text)) return 'jobsApplyReady';
+  if (/^save\s+resume$/.test(text)) return 'resumeSave';
+  if (/^export\s+(resume|cv)$/.test(text)) return 'resumeExport';
+  if (/^save\s+(cover|letter)$/.test(text)) return 'coverSave';
+  if (/^export\s+(cover|letter|cover\s+letter)$/.test(text)) return 'coverExport';
+  if (/^edit\b/.test(text)) return 'resumeEdit';
+  if (/^apply\b/.test(text)) return 'jobsApply';
+  if (/^tailor\b/.test(text)) return 'jobsTailor';
 
   if (map.demo.has(text)) return 'demo';
   if (map.jobs.has(text)) return 'jobs';
@@ -2500,6 +2607,45 @@ function getWhatsAppForcedIntent(textCanonical = '') {
   if (map.human.has(text)) return 'human';
   if (map.status.has(text)) return 'status';
   return '';
+}
+
+function getWhatsAppForcedCommandText(route = '') {
+  const key = String(route || '').trim();
+  if (!key) return '';
+
+  const command = {
+    start: 'start',
+    help: 'help',
+    mainMenu: 'main menu',
+    goBack: 'go back',
+    english: 'english',
+    spanish: 'spanish',
+    jobsSearch: 'search jobs',
+    jobsImport: 'import jobs',
+    jobsSaved: 'saved jobs',
+    jobsView: 'view jobs',
+    jobsSaveAll: 'save jobs',
+    jobsSearchAgain: 'search again',
+    jobsEmail: 'email jobs',
+    jobsApplyReady: 'apply ready',
+    jobsApply: 'apply',
+    jobsTailor: 'tailor',
+    resumeUpload: 'upload',
+    resumeType: 'type',
+    resumeFullDraft: 'full draft',
+    resumeSave: 'save resume',
+    resumeExport: 'export resume',
+    resumeEdit: 'edit',
+    coverSave: 'save cover',
+    coverExport: 'export cover',
+    demoResume: 'resume demo',
+    demoJobs: 'jobs demo',
+    demoBoth: 'all demos',
+    tailorResume: 'tailor resume',
+    tailorCover: 'tailor cover'
+  };
+
+  return command[key] || '';
 }
 
 async function resolveEffectiveWhatsAppPlan(user, phone = '') {
@@ -3482,8 +3628,14 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   const incoming = normalizeIncomingWhatsAppText(body);
   const hasInboundAudio = !!inboundAudioMedia?.mediaUrl;
   const hasInboundDocument = !!inboundDocumentMedia?.mediaUrl;
-  const text = incoming.toLowerCase();
-  const textCanonical = text.replace(/&/g, ' and ').replace(/\s+/g, ' ').trim();
+  let text = incoming.toLowerCase();
+  let textCanonical = text.replace(/&/g, ' and ').replace(/\s+/g, ' ').trim();
+  const forcedRoute = getWhatsAppForcedIntent(textCanonical);
+  const forcedCommand = getWhatsAppForcedCommandText(forcedRoute);
+  if (forcedCommand) {
+    text = forcedCommand;
+    textCanonical = forcedCommand;
+  }
 
   if (!phone) return 'Could not identify your number. Please try again.';
   if (!incoming && !hasInboundAudio) return `${getWhatsAppMenuText()}\n\nUse the menu buttons to begin.`;
