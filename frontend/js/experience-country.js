@@ -85,7 +85,7 @@
     }
     var normalized = {
       effectiveCountry: normalizedCountry,
-      showJamaicaHub: rawShowJamaicaHub && normalizedCountry === 'JM',
+      showJamaicaHub: normalizedCountry === 'JM',
       requiresChoice: !!(context && context.requiresChoice === true),
       source: String((context && context.source) || 'client'),
       updatedAt: Date.now()
@@ -246,51 +246,51 @@
         {
           title: 'Customer Service Representative',
           meta: 'Kingston, Jamaica · BPO / Customer Success',
-          href: 'job-search.html?query=Customer%20Service%20Representative&source=market&region=jm'
+          href: 'https://www.linkedin.com/jobs/search/?keywords=Customer%20Service%20Representative&location=Jamaica'
         },
         {
           title: 'Administrative Assistant',
           meta: 'Montego Bay, Jamaica · Operations',
-          href: 'job-search.html?query=Administrative%20Assistant&source=market&region=jm'
+          href: 'https://www.linkedin.com/jobs/search/?keywords=Administrative%20Assistant&location=Jamaica'
         },
         {
           title: 'Project Coordinator',
           meta: 'Portmore, Jamaica · Project Operations',
-          href: 'job-search.html?query=Project%20Coordinator&source=market&region=jm'
+          href: 'https://www.linkedin.com/jobs/search/?keywords=Project%20Coordinator&location=Jamaica'
         }
       ],
       US: [
         {
           title: 'Product Manager',
           meta: 'United States · Product',
-          href: 'job-search.html?query=Product%20Manager&source=market&region=us'
+          href: 'https://www.linkedin.com/jobs/search/?keywords=Product%20Manager&location=United%20States'
         },
         {
           title: 'AI/ML Engineer',
           meta: 'United States · Engineering',
-          href: 'job-search.html?query=AI%20ML%20Engineer&source=market&region=us'
+          href: 'https://www.linkedin.com/jobs/search/?keywords=AI%2FML%20Engineer&location=United%20States'
         },
         {
           title: 'Software Engineer',
           meta: 'United States · Engineering',
-          href: 'job-search.html?query=Software%20Engineer&source=market&region=us'
+          href: 'https://www.linkedin.com/jobs/search/?keywords=Software%20Engineer&location=United%20States'
         }
       ],
       GLOBAL: [
         {
           title: 'Customer Success Manager',
           meta: 'Remote · Global Market',
-          href: 'job-search.html?query=Customer%20Success%20Manager&source=market'
+          href: 'https://www.linkedin.com/jobs/search/?keywords=Customer%20Success%20Manager&location=Remote'
         },
         {
           title: 'Data Analyst',
           meta: 'Hybrid · International Opportunities',
-          href: 'job-search.html?query=Data%20Analyst&source=market'
+          href: 'https://www.linkedin.com/jobs/search/?keywords=Data%20Analyst&location=Remote'
         },
         {
           title: 'Project Manager',
           meta: 'Remote · Cross-Region Roles',
-          href: 'job-search.html?query=Project%20Manager&source=market'
+          href: 'https://www.linkedin.com/jobs/search/?keywords=Project%20Manager&location=Remote'
         }
       ]
     };
@@ -350,7 +350,7 @@
         panelTitle: 'Top Job Matches for Jamaica',
         panelLink: 'job-search.html?source=market&region=jm',
         matchLabel: 'Jamaica Match Score',
-        profileLabel: 'Market Readiness'
+        profileLabel: 'Profile Strength'
       },
       US: {
         badge: '🇺🇸 United States Experience',
@@ -378,12 +378,11 @@
     setHref('rrShotPanelLink', selected.panelLink);
     setText('rrShotMatchLabel', selected.matchLabel);
     setText('rrShotProfileLabel', selected.profileLabel);
-    applyJobMatches(countryCode);
 
     var badge = document.getElementById('rrShotBadge');
     if (badge) {
-      badge.textContent = selected.badge;
-      badge.style.display = 'inline-flex';
+      badge.textContent = '';
+      badge.style.display = 'none';
     }
 
     applyToolCards(countryCode);
@@ -400,11 +399,11 @@
         label: '🇯🇲'
       },
       US: {
-        primary: '#1D4ED8',
-        accent: '#DC2626',
-        dark: '#1E3A8A',
-        border: 'rgba(29, 78, 216, 0.4)',
-        bg: 'rgba(29, 78, 216, 0.08)',
+        primary: '#002868',
+        accent: '#BF0A30',
+        dark: '#001F4D',
+        border: 'rgba(255, 255, 255, 0.68)',
+        bg: 'rgba(191, 10, 48, 0.12)',
         label: '🇺🇸'
       },
       GLOBAL: {
@@ -438,7 +437,8 @@
 
   function createHeaderExperienceSelector(context) {
     var isDashboard = window.location.pathname.indexOf('dashboard.html') !== -1 || window.location.pathname === '/dashboard';
-    if (!isDashboard || document.getElementById('rrExpHeaderSelector')) return;
+    if (isDashboard) return;
+    if (document.getElementById('rrExpHeaderSelector')) return;
 
     var header = document.querySelector('.rr-shot-header');
     if (!header) return;
@@ -480,7 +480,7 @@
           var savedCountry = normalizeCountryCode((saved && saved.effectiveCountry) || selected);
           var savedContext = publishPersonalizationContext({
             effectiveCountry: savedCountry,
-            showJamaicaHub: saved && saved.showJamaicaHub === true && savedCountry === 'JM',
+            showJamaicaHub: savedCountry === 'JM' || (saved && saved.showJamaicaHub === true),
             requiresChoice: false,
             source: 'user'
           });
@@ -537,6 +537,9 @@
   }
 
   function insertSidebarSwitcher(context) {
+    var isDashboard = window.location.pathname.indexOf('dashboard.html') !== -1 || window.location.pathname === '/dashboard';
+    if (isDashboard) return;
+
     var nav = document.querySelector('.sidebar nav');
     if (!nav || document.getElementById('rrExpCountryWrap')) return;
 
@@ -578,7 +581,7 @@
         var savedCountry = normalizeCountryCode((saved && saved.effectiveCountry) || selected);
         var savedContext = publishPersonalizationContext({
           effectiveCountry: savedCountry,
-          showJamaicaHub: saved && saved.showJamaicaHub === true && savedCountry === 'JM',
+          showJamaicaHub: savedCountry === 'JM' || (saved && saved.showJamaicaHub === true),
           requiresChoice: false,
           source: 'user'
         });
@@ -657,7 +660,7 @@
         var savedCountry = normalizeCountryCode((saved && saved.effectiveCountry) || selected);
         var savedContext = publishPersonalizationContext({
           effectiveCountry: savedCountry,
-          showJamaicaHub: saved && saved.showJamaicaHub === true && savedCountry === 'JM',
+          showJamaicaHub: savedCountry === 'JM' || (saved && saved.showJamaicaHub === true),
           requiresChoice: false,
           source: 'user'
         });
@@ -736,7 +739,7 @@
         rawShowJamaicaHub: true
       });
     }
-    var normalizedShowJamaicaHub = context.showJamaicaHub === true && effectiveCountry === 'JM';
+    var normalizedShowJamaicaHub = effectiveCountry === 'JM' || context.showJamaicaHub === true;
     publishPersonalizationContext(Object.assign({}, context, { showJamaicaHub: normalizedShowJamaicaHub }));
     hideJamaicaElements(normalizedShowJamaicaHub);
     applyDashboardVariant(effectiveCountry);
