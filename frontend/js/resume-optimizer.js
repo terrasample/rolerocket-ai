@@ -13,39 +13,81 @@ document.addEventListener('DOMContentLoaded', function () {
   let lastResume = '';
 
   const templateConfigs = {
-    classic: {
-      label: 'Classic Professional',
-      prompt: 'Use a classic professional structure with clear section headings, balanced bullet points, and conservative wording that is recruiter-friendly.',
+    'blank-template': {
+      label: 'Blank Template',
+      prompt: 'Use a neutral resume structure with clear ATS-friendly headings and no stylistic assumptions.',
       preview: "font-family:'Times New Roman', Times, serif;",
       pdfFont: 'times',
-      fileSuffix: 'classic-professional'
+      fileSuffix: 'blank-template'
     },
-    modern: {
-      label: 'Modern Clean',
-      prompt: 'Use a modern clean structure with concise bullets, strong action verbs, and compact section flow while keeping ATS readability high.',
+    'forest-ribbon': {
+      label: 'Forest Ribbon',
+      prompt: 'Use a forest-themed professional layout style with clear hierarchy and concise achievement bullets.',
+      preview: "font-family:'Trebuchet MS', 'Segoe UI', Tahoma, sans-serif;",
+      pdfFont: 'helvetica',
+      fileSuffix: 'forest-ribbon'
+    },
+    'gold-sidebar': {
+      label: 'Golden Sidebar',
+      prompt: 'Use a golden sidebar style with strong section clarity and concise role impact statements.',
+      preview: "font-family:'Arial Narrow', Arial, sans-serif;",
+      pdfFont: 'helvetica',
+      fileSuffix: 'gold-sidebar'
+    },
+    'slate-modern': {
+      label: 'Slate Modern',
+      prompt: 'Use a slate modern style with compact spacing, clear section titles, and metrics-forward bullets.',
       preview: "font-family:'Segoe UI', Tahoma, Arial, sans-serif;",
       pdfFont: 'helvetica',
-      fileSuffix: 'modern-clean'
+      fileSuffix: 'slate-modern'
     },
-    executive: {
-      label: 'Executive Impact',
-      prompt: 'Use an executive-impact structure emphasizing leadership outcomes, measurable results, and strategic scope for senior roles.',
+    'copper-clean': {
+      label: 'Copper Clean',
+      prompt: 'Use a copper clean layout style that balances readability with polished, professional tone.',
       preview: "font-family:'Georgia', 'Times New Roman', serif;",
       pdfFont: 'times',
-      fileSuffix: 'executive-impact'
+      fileSuffix: 'copper-clean'
     },
-    ats: {
-      label: 'ATS Minimal',
-      prompt: 'Use an ATS-minimal structure with plain headings, straightforward bullets, no visual symbols, and strict parser-safe formatting.',
+    'midnight-column': {
+      label: 'Midnight Column',
+      prompt: 'Use a midnight column style emphasizing leadership and impact with bold, concise phrasing.',
+      preview: "font-family:'Gill Sans', 'Segoe UI', sans-serif;",
+      pdfFont: 'helvetica',
+      fileSuffix: 'midnight-column'
+    },
+    'sage-editorial': {
+      label: 'Sage Editorial',
+      prompt: 'Use a sage editorial style with refined headings and balanced storytelling plus measurable results.',
+      preview: "font-family:'Palatino Linotype', 'Book Antiqua', serif;",
+      pdfFont: 'times',
+      fileSuffix: 'sage-editorial'
+    },
+    'berry-executive': {
+      label: 'Berry Executive',
+      prompt: 'Use a berry executive style focused on strategic outcomes, team leadership, and business impact.',
+      preview: "font-family:'Avenir Next', 'Segoe UI', sans-serif;",
+      pdfFont: 'helvetica',
+      fileSuffix: 'berry-executive'
+    },
+    'onyx-portfolio': {
+      label: 'Onyx Portfolio',
+      prompt: 'Use an onyx portfolio style with crisp section structure, modern phrasing, and concise impact bullets.',
       preview: "font-family:Arial, Helvetica, sans-serif;",
       pdfFont: 'helvetica',
-      fileSuffix: 'ats-minimal'
+      fileSuffix: 'onyx-portfolio'
+    },
+    'ocean-balance': {
+      label: 'Ocean Balance',
+      prompt: 'Use an ocean balance style with clean hierarchy, calm professional tone, and ATS-safe sectioning.',
+      preview: "font-family:'Optima', 'Segoe UI', sans-serif;",
+      pdfFont: 'helvetica',
+      fileSuffix: 'ocean-balance'
     }
   };
 
   function getSelectedTemplate() {
-    const selected = String(templateSelect?.value || 'classic').toLowerCase();
-    return templateConfigs[selected] ? selected : 'classic';
+    const selected = String(templateSelect?.value || 'blank-template').toLowerCase();
+    return templateConfigs[selected] ? selected : 'blank-template';
   }
 
   async function loadResumeFileIntoField(file, textarea, messageEl) {
@@ -91,7 +133,7 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   function buildJobDescription(jobTitle, company, fullJobDescription, templateKey) {
-    const template = templateConfigs[templateKey] || templateConfigs.classic;
+    const template = templateConfigs[templateKey] || templateConfigs['blank-template'];
     return [
       `Job Title: ${jobTitle}`,
       company ? `Company: ${company}` : '',
@@ -140,7 +182,7 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   function formatResumeForPdf(text, doc, templateKey) {
-    const template = templateConfigs[templateKey] || templateConfigs.classic;
+    const template = templateConfigs[templateKey] || templateConfigs['blank-template'];
     const lines = text.split(/\r?\n/);
     let y = 20;
     doc.setFont(template.pdfFont, 'bold');
@@ -224,7 +266,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function formatResumeForWord(text, templateKey) {
-    const template = templateConfigs[templateKey] || templateConfigs.classic;
+    const template = templateConfigs[templateKey] || templateConfigs['blank-template'];
     return (
       `Optimized Resume - ${template.label}\n\n` +
       text
@@ -303,7 +345,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (company) company.value = '';
     if (baseResume) baseResume.value = '';
     if (jobDescription) jobDescription.value = '';
-    if (templateSelect) templateSelect.value = 'classic';
+    if (templateSelect) templateSelect.value = 'blank-template';
     if (resumeUploadInput) resumeUploadInput.value = '';
 
     if (resumeUploadMessage) {
