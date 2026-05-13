@@ -539,12 +539,8 @@
         const expData = expRes.ok ? safeJson(await expRes.text()) : null;
         const requiresChoice = !!(expData && expData.requiresChoice === true);
 
-        if (requiresChoice) {
-          window.location.replace('index.html');
-          return;
-        }
-
-        window.location.replace('dashboard.html');
+        // All users (new and returning) land on the home page first
+        window.location.replace('index.html');
       } catch (err) {
         let apiTarget = 'unknown';
         try { apiTarget = getApiBase(); } catch {}
