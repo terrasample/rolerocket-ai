@@ -3725,9 +3725,23 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   if (isDemoIntent) {
     user.lastIntent = 'demo_features';
     convo.lastIntent = 'demo_features';
-    convo.currentStep = 'demo_features';
+    // Send users straight to the live demo features page when they tap this option.
+    convo.currentStep = 'menu';
     const language = String(convo.metadata?.context?.language || 'english');
-    const reply = getWhatsAppDemoFeaturesText(language);
+    const demoFeaturesUrl = `${getPublicAppBaseUrl()}/features.html#feature-snippets`;
+    const reply = language === 'spanish'
+      ? [
+          'Perfecto. Abre Demo Features aqui:',
+          demoFeaturesUrl,
+          '',
+          'Cuando termines, toca Main Menu para volver.'
+        ].join('\n')
+      : [
+          'Perfect. Open Demo Features here:',
+          demoFeaturesUrl,
+          '',
+          'When you are done, tap Main Menu to return.'
+        ].join('\n');
     await trackWhatsAppTelemetry(phone, 'whatsapp_demo_features_enter', {});
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
