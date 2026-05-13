@@ -5961,3 +5961,123 @@ body.rr-theme-us .site-footer,
 body.rr-theme-us .site-footer a {
   color: #bfdbfe;
 }
+
+/* Shared Jamaica experience theme across all tabs/pages. */
+body.rr-theme-jm {
+  background: linear-gradient(180deg, #000000 0%, #04150f 54%, #06281e 100%) !important;
+  color: #f5f5f5;
+}
+
+body.rr-theme-jm .layout,
+body.rr-theme-jm .sidebar {
+  background: linear-gradient(180deg, #000000 0%, #03140f 60%, #06241b 100%) !important;
+}
+
+body.rr-theme-jm .sidebar-link-btn {
+  background: linear-gradient(180deg, rgba(0, 122, 94, 0.22), rgba(0, 0, 0, 0.56)) !important;
+  border: 1px solid rgba(255, 215, 0, 0.34) !important;
+  color: #f5f5f5 !important;
+}
+
+body.rr-theme-jm .sidebar-link-btn:hover,
+body.rr-theme-jm .sidebar-link-btn:focus-visible {
+  border-color: rgba(255, 215, 0, 0.72) !important;
+  box-shadow: 0 0 0 1px rgba(255, 215, 0, 0.24) inset !important;
+}
+
+body.rr-theme-jm .sidebar-link-btn.active {
+  background: linear-gradient(180deg, #007a5e 0%, #03140f 100%) !important;
+  border-color: rgba(255, 215, 0, 0.86) !important;
+  box-shadow: 0 0 0 1px rgba(255, 215, 0, 0.24), 0 12px 24px rgba(0, 0, 0, 0.42) !important;
+}
+
+body.rr-theme-jm .hero,
+body.rr-theme-jm .experience-home-strip {
+  background: linear-gradient(135deg, #000000 0%, #007a5e 62%, #ffd700 100%) !important;
+}
+
+body.rr-theme-jm .hero h1,
+body.rr-theme-jm .hero h2,
+body.rr-theme-jm .hero h3,
+body.rr-theme-jm .home-brand-subtitle,
+body.rr-theme-jm .experience-home-strip__sub {
+  color: #ffd700 !important;
+}
+
+body.rr-theme-jm .hero p,
+body.rr-theme-jm .experience-home-strip p {
+  color: #ecfdf5 !important;
+}
+
+body.rr-theme-jm .main,
+body.rr-theme-jm .marketing-main {
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.84) 0%, rgba(4, 20, 15, 0.88) 100%);
+}
+
+body.rr-theme-jm .marketing-card,
+body.rr-theme-jm .marketing-hero-card,
+body.rr-theme-jm .card,
+body.rr-theme-jm .today-card,
+body.rr-theme-jm .trust-metric,
+body.rr-theme-jm .trust-security,
+body.rr-theme-jm .plan-guide,
+body.rr-theme-jm .plan-guide-panel,
+body.rr-theme-jm .queue-job-card,
+body.rr-theme-jm .queue-match-card,
+body.rr-theme-jm .ia-prompt,
+body.rr-theme-jm .coach-insight {
+  background: linear-gradient(180deg, rgba(0, 122, 94, 0.2), rgba(0, 0, 0, 0.62)) !important;
+  border: 1px solid rgba(255, 215, 0, 0.3) !important;
+  color: #f5f5f5 !important;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.34) !important;
+}
+
+body.rr-theme-jm .marketing-card h1,
+body.rr-theme-jm .marketing-card h2,
+body.rr-theme-jm .marketing-card h3,
+body.rr-theme-jm .card h1,
+body.rr-theme-jm .card h2,
+body.rr-theme-jm .card h3,
+body.rr-theme-jm .today-card h3,
+body.rr-theme-jm .queue-job-title,
+body.rr-theme-jm .queue-match-title {
+  color: #ffd700 !important;
+}
+
+body.rr-theme-jm .marketing-card p,
+body.rr-theme-jm .marketing-card li,
+body.rr-theme-jm .card p,
+body.rr-theme-jm .card li,
+body.rr-theme-jm .today-card p,
+body.rr-theme-jm .queue-job-meta,
+body.rr-theme-jm .queue-match-meta,
+body.rr-theme-jm .tool-helper-text,
+body.rr-theme-jm .mode-summary,
+body.rr-theme-jm .veteran-tier-note {
+  color: #dcfce7 !important;
+}
+
+body.rr-theme-jm .auth-submit-btn,
+body.rr-theme-jm .checkout-btn,
+body.rr-theme-jm .feature-launch-btn,
+body.rr-theme-jm .secondary-btn,
+body.rr-theme-jm button {
+  border-color: rgba(255, 215, 0, 0.82);
+}
+
+body.rr-theme-jm .auth-submit-btn,
+body.rr-theme-jm .checkout-btn,
+body.rr-theme-jm .feature-launch-btn {
+  background: linear-gradient(180deg, #007a5e 0%, #03140f 100%) !important;
+  color: #ffd700 !important;
+}
+
+body.rr-theme-jm .site-footer {
+  background: #000000;
+  border-top: 1px solid rgba(255, 215, 0, 0.28);
+}
+
+body.rr-theme-jm .site-footer,
+body.rr-theme-jm .site-footer a {
+  color: #fef08a;
+}
