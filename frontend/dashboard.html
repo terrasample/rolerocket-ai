@@ -702,6 +702,12 @@
       }
 
       async function loadSnapshotData() {
+        // Wait for experience country to be initialized by experience-country.js
+        // It's set in applyDashboardVariant() which runs on DOMContentLoaded
+        for (var waitAttempt = 0; waitAttempt < 50; waitAttempt++) {
+          if (window.__rrExperienceCountry) break;
+          await new Promise(function(resolve) { setTimeout(resolve, 20); });
+        }
         var params = new URLSearchParams(window.location.search);
         var themePreference = readThemePreference(params);
         var forcedJamaicaMode = themePreference === 'jamaica';
