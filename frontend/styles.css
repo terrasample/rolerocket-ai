@@ -4378,7 +4378,7 @@ pre {
   }
 }
 
-@media (max-width: 1000px) {
+@media (max-width: 640px) {
   .landing-hero-inner,
   .auth-shell {
     grid-template-columns: 1fr;
