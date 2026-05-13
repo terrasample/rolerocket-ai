@@ -38,6 +38,10 @@
     return 'GLOBAL';
   }
 
+  function getSidebarContainer() {
+    return document.querySelector('#sidebarNav nav, .sidebar nav, .sidebar');
+  }
+
   function readCachedExperienceCountry() {
     try {
       return normalizeCountryCode(localStorage.getItem(LOCAL_EXP_KEY) || '');
@@ -260,7 +264,7 @@
   }
 
   function decorateSidebarNav() {
-    const nav = document.querySelector('#sidebarNav nav, .sidebar nav');
+    const nav = getSidebarContainer();
     if (!nav) return;
 
     const allLinks = Array.from(nav.querySelectorAll('a.sidebar-link-btn'));
@@ -347,6 +351,7 @@
       'dashboard.html',
       'job-alerts-sms.html',
       'account.html',
+      'faq.html',
       'admin-institution-invites.html'
     ];
 
@@ -484,7 +489,7 @@
   }
 
   function upsertAdminInvitesLink(isAdmin) {
-    const nav = document.querySelector('#sidebarNav nav, .sidebar nav');
+    const nav = getSidebarContainer();
     if (!nav) return;
 
     let adminLink = nav.querySelector('a.sidebar-link-btn[data-nav-admin="1"]')
@@ -664,6 +669,7 @@
   function bootstrapNav() {
     decorateSidebarNav();
     applyExperienceTheme(readCachedExperienceCountry());
+    applyJamaicaHubVisibility(readCachedExperienceCountry() === 'JM');
     syncNavPlan();
   }
 

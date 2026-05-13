@@ -165,6 +165,8 @@ document.addEventListener('DOMContentLoaded', function () {
   let lastPhotoPosition = { x: 50, y: 35 };
   let userPlan = 'free';
   let accountName = '';
+  let currentUserPreferredLocation = '';
+  let currentUserProfileSummary = '';
   let selectedLayoutId = '';
   let templateQueue = [];
   let lastTemplateIdx = -1;
@@ -408,12 +410,18 @@ document.addEventListener('DOMContentLoaded', function () {
           skills: []
         };
 
+    const savedLocation = String(currentUserPreferredLocation || '').trim();
+    const parsedProfile = normalizeBulletText(parsed.profile);
+    const savedProfileSummary = normalizeBulletText(currentUserProfileSummary);
+
     const hasRealName = Boolean(cleanCandidateName(parsed.fullName));
     const hasEmail = Boolean(fallbackContact.email);
     const hasPhone = Boolean(fallbackContact.phone);
-    const hasLocation = Boolean(fallbackContact.location);
-    const hasProfile = Boolean(normalizeBulletText(parsed.profile))
-      && normalizeBulletText(parsed.profile).toLowerCase() !== 'results-driven professional with relevant experience and a strong record of delivering measurable outcomes.';
+    const hasLocation = Boolean(fallbackContact.location)
+      || (Boolean(savedLocation) && savedLocation.toLowerCase() !== 'remote');
+    const hasProfile = (Boolean(parsedProfile)
+      && parsedProfile.toLowerCase() !== 'results-driven professional with relevant experience and a strong record of delivering measurable outcomes.')
+      || Boolean(savedProfileSummary);
     const hasExperience = Array.isArray(parsed.experiences)
       && parsed.experiences.some((entry) => normalizeBulletText(entry?.title) && normalizeBulletText(entry.title).toLowerCase() !== 'professional experience');
     const hasEducation = Array.isArray(parsed.education)
@@ -659,6 +667,8 @@ document.addEventListener('DOMContentLoaded', function () {
       const data = await res.json();
       userPlan = normalizePlan(data?.user?.plan || 'free');
       accountName = String(data?.user?.name || '').trim();
+      currentUserPreferredLocation = String(data?.user?.jobAlertDefaults?.location || '').trim();
+      currentUserProfileSummary = String(data?.user?.networkingProfile?.bio || '').trim();
     } catch (err) {
       userPlan = 'free';
     }

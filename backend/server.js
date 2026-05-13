@@ -15215,6 +15215,10 @@ app.patch('/api/profile', authenticateToken, async (req, res) => {
       const name = req.body.name.trim().slice(0, 120);
       if (name) updates.name = name;
     }
+    if (req.body && typeof req.body.profileSummary === 'string') {
+      updates['networkingProfile.bio'] = req.body.profileSummary.trim().slice(0, 400);
+      updates['networkingProfile.updatedAt'] = new Date();
+    }
     if (!Object.keys(updates).length) {
       return res.status(400).json({ error: 'No valid fields to update' });
     }

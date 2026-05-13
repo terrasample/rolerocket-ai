@@ -1042,12 +1042,13 @@
                 isUSLocalityMatch = function(job) {
                   if (usLocationScope === 'nationwide-us') return true;
                   if (!usPrefLocation) return true;
-                  var haystack = [job && job.location, job && job.description, job && job.workMode, job && job.remoteType].join(' ').toLowerCase();
-                  if (/\bremote\b|work\s*from\s*home|distributed/.test(haystack)) return true;
+                  var locationHaystack = [job && job.location, job && job.city, job && job.region, job && job.state, job && job.country].join(' ').toLowerCase();
+                  var remoteHaystack = [job && job.location, job && job.description, job && job.workMode, job && job.remoteType].join(' ').toLowerCase();
+                  if (/\bremote\b|work\s*from\s*home|distributed/.test(remoteHaystack)) return true;
 
                   var stateMatch = false;
-                  if (usPrefLocation.stateCode && new RegExp('\\b' + usPrefLocation.stateCode + '\\b', 'i').test(haystack)) stateMatch = true;
-                  if (!stateMatch && usPrefLocation.stateName && new RegExp('\\b' + usPrefLocation.stateName.replace(/\s+/g, '\\s*') + '\\b', 'i').test(haystack)) stateMatch = true;
+                  if (usPrefLocation.stateCode && new RegExp('\\b' + usPrefLocation.stateCode + '\\b', 'i').test(locationHaystack)) stateMatch = true;
+                  if (!stateMatch && usPrefLocation.stateName && new RegExp('\\b' + usPrefLocation.stateName.replace(/\s+/g, '\\s*') + '\\b', 'i').test(locationHaystack)) stateMatch = true;
 
                   if (!stateMatch && usLocationScope === 'nearby-radius') {
                     var nearbyByState = {
@@ -1060,17 +1061,24 @@
                     };
                     var nearbyStates = nearbyByState[usPrefLocation.stateCode] || [];
                     stateMatch = nearbyStates.some(function(stateName) {
-                      return new RegExp('\\b' + stateName.replace(/\s+/g, '\\s*') + '\\b', 'i').test(haystack);
+                      return new RegExp('\\b' + stateName.replace(/\s+/g, '\\s*') + '\\b', 'i').test(locationHaystack);
                     });
                   }
 
                   if (!stateMatch) return false;
 
+                  var citySignal = usPrefLocation.city ? new RegExp('\\b' + usPrefLocation.city.replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, '\\s*') + '\\b', 'i') : null;
+
+                  if (usLocationScope === 'strict-local' && usPrefLocation.city) {
+                    if (usPrefLocation.stateCode !== 'ny') {
+                      return citySignal ? citySignal.test(locationHaystack) : stateMatch;
+                    }
+                  }
+
                   // NYC borough normalization: Bronx users should still see NYC borough roles.
                   if (usLocationScope === 'strict-local' && usPrefLocation.stateCode === 'ny') {
                     var nycSignal = /\b(new\s*york\s*city|nyc|new\s*york|manhattan|brooklyn|queens|bronx|staten\s*island)\b/i;
-                    var citySignal = usPrefLocation.city ? new RegExp('\\b' + usPrefLocation.city.replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, '\\s*') + '\\b', 'i') : null;
-                    return nycSignal.test(haystack) || (citySignal ? citySignal.test(haystack) : true);
+                    return nycSignal.test(locationHaystack) || (citySignal ? citySignal.test(locationHaystack) : true);
                   }
 
                   return true;

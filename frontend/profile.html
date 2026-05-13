@@ -176,7 +176,8 @@
       margin-bottom: 6px;
     }
     .rr-field input[type="text"],
-    .rr-field input[type="number"] {
+      .rr-field input[type="number"],
+      .rr-field textarea {
       width: 100%;
       box-sizing: border-box;
       background: rgba(15, 23, 42, .85);
@@ -189,7 +190,8 @@
       transition: border-color .2s;
     }
     .rr-field input[type="text"]:focus,
-    .rr-field input[type="number"]:focus {
+    .rr-field input[type="number"]:focus,
+    .rr-field textarea:focus {
       border-color: #3b82f6;
     }
     .rr-field .rr-hint {
@@ -462,6 +464,12 @@
             </div>
 
             <div class="rr-field">
+              <label for="rrFieldSummary">Professional Summary</label>
+              <textarea id="rrFieldSummary" rows="4" maxlength="400" placeholder="Write 2-4 sentences highlighting your experience, strengths, and the roles you want."></textarea>
+              <p class="rr-hint">Used across resume and application workflows to personalise your profile</p>
+            </div>
+
+            <div class="rr-field">
               <label>Target Role Keywords <span style="font-weight:400;color:#64748b;">(what job titles are you targeting?)</span></label>
               <div class="rr-keywords-wrap">
                 <input type="text" id="rrKeywordInput" placeholder="e.g. Product Manager" maxlength="60" />
@@ -612,6 +620,7 @@
           userId: currentUserId || '',
           name: (document.getElementById('rrFieldName').value || '').trim(),
           location: (document.getElementById('rrFieldLocation').value || '').trim(),
+          profileSummary: (document.getElementById('rrFieldSummary').value || '').trim(),
           salaryMin: (document.getElementById('rrSalaryMin').value || '').trim(),
           includeKeywords: keywords.slice(0, 12),
           industries: industries.slice(0, 8),
@@ -658,10 +667,12 @@
         if (!draft) return;
         var nameEl = document.getElementById('rrFieldName');
         var locEl = document.getElementById('rrFieldLocation');
+        var summaryEl = document.getElementById('rrFieldSummary');
         var salEl = document.getElementById('rrSalaryMin');
 
         if (nameEl && typeof draft.name === 'string') nameEl.value = draft.name;
         if (locEl && typeof draft.location === 'string') locEl.value = draft.location;
+        if (summaryEl && typeof draft.profileSummary === 'string') summaryEl.value = draft.profileSummary;
         if (salEl && typeof draft.salaryMin === 'string') salEl.value = draft.salaryMin;
 
         keywords = Array.isArray(draft.includeKeywords) ? draft.includeKeywords.slice(0, 12) : keywords;
@@ -756,6 +767,11 @@
       var nameField = document.getElementById('rrFieldName');
       if (nameField) {
         nameField.addEventListener('input', persistDraft);
+      }
+
+      var summaryField = document.getElementById('rrFieldSummary');
+      if (summaryField) {
+        summaryField.addEventListener('input', persistDraft);
       }
 
       var salaryField = document.getElementById('rrSalaryMin');
@@ -863,6 +879,10 @@
             currentUserId = String(u._id || u.id || u.email || '');
             var nameField = document.getElementById('rrFieldName');
             if (nameField && u.name) nameField.value = u.name;
+            var summaryField = document.getElementById('rrFieldSummary');
+            if (summaryField && u.networkingProfile && typeof u.networkingProfile.bio === 'string') {
+              summaryField.value = u.networkingProfile.bio;
+            }
             var welcomeEl = document.getElementById('rrProfileWelcome');
             if (welcomeEl && u.name) welcomeEl.textContent = 'Hi, ' + u.name.split(' ')[0] + ' 👋';
           }
@@ -943,6 +963,7 @@
         try {
           var name = (document.getElementById('rrFieldName').value || '').trim();
           var location = (document.getElementById('rrFieldLocation').value || '').trim() || 'Remote';
+          var profileSummary = (document.getElementById('rrFieldSummary').value || '').trim();
           var salary = Number(document.getElementById('rrSalaryMin').value || 0) || null;
 
           var seniorityLevels = Array.from(document.querySelectorAll('#rrSeniorityTags .rr-tag.active')).map(function (t) { return t.dataset.val; });
@@ -952,11 +973,11 @@
           var requests = [];
 
           // Save name if provided
-          if (name) {
+          if (name || profileSummary) {
             requests.push(fetch(apiUrl('/api/profile'), {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-              body: JSON.stringify({ name: name })
+              body: JSON.stringify({ name: name, profileSummary: profileSummary })
             }));
           }
 
