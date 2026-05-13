@@ -6734,21 +6734,33 @@ function isLocationCompatible(job = {}, queryLocation = '') {
   const query = String(queryLocation || '').trim().toLowerCase();
   if (!query) return true;
   
-  // For US state codes/names, accept any US-based job
+  // For US state codes/names: require strong state-specific signals in job location/desc
   const usStateMap = {
-    'ny': true, 'ca': true, 'fl': true, 'tx': true, 'co': true, 'il': true, 'wa': true, 'ma': true, 'ga': true,
-    'new york': true, 'california': true, 'florida': true, 'texas': true, 'colorado': true, 'illinois': true, 'washington': true, 'massachusetts': true, 'georgia': true
+    'ny': { full: 'new york', cities: ['new york', 'nyc', 'manhattan', 'brooklyn', 'queens', 'bronx', 'staten island', 'buffalo', 'rochester', 'albany', 'syracuse', 'yonkers'] },
+    'ca': { full: 'california', cities: ['los angeles', 'san francisco', 'san diego', 'sacramento', 'oak', 'fresno', 'long beach'] },
+    'fl': { full: 'florida', cities: ['miami', 'orlando', 'tampa', 'jacksonville', 'clearwater', 'fort lauderdale'] },
+    'tx': { full: 'texas', cities: ['houston', 'dallas', 'austin', 'san antonio', 'fort worth', 'el paso'] },
+    'co': { full: 'colorado', cities: ['denver', 'colorado springs', 'aurora', 'fort collins', 'boulder'] },
+    'il': { full: 'illinois', cities: ['chicago', 'chicago,', 'evanston', 'naperville'] },
+    'wa': { full: 'washington', cities: ['seattle', 'tacoma', 'spokane', 'vancouver'] },
+    'ma': { full: 'massachusetts', cities: ['boston', 'cambridge', 'worcester', 'springfield'] },
+    'ga': { full: 'georgia', cities: ['atlanta', 'savannah', 'augusta', 'athens'] }
   };
   
   if (usStateMap[query]) {
+    const stateInfo = usStateMap[query];
     const jobText = `${String(job?.location || '')} ${String(job?.description || '')}`.toLowerCase();
-    // Accept if job is US-based
-    if (/usa|united states|\bus\b|america/.test(jobText)) return true;
-    // Accept if job has a US city or state
-    if (/new york|california|florida|texas|colorado|illinois|washington|massachusetts|georgia|denver|chicago|los angeles|houston|dallas|phoenix|philadelphia|san antonio|san diego|austin|seattle|boston|miami|atlanta|new jersey/.test(jobText)) return true;
-    // For NY specifically, also accept NYC-area metro
-    if (query === 'ny' && /ny|nyc|new york|manhattan|brooklyn|queens|bronx/.test(jobText)) return true;
-    // Default: reject if no US signal found
+    
+    // Require full state name OR recognized city OR state code
+    const statePattern = new RegExp(`\\b${stateInfo.full}\\b|\\b${query}\\b|,\\s*${query}\\b`, 'i');
+    if (statePattern.test(jobText)) return true;
+    
+    // Or check if it matches a major city in that state
+    for (const city of stateInfo.cities) {
+      if (jobText.includes(city)) return true;
+    }
+    
+    // Default: reject if no state signal found
     return false;
   }
   
