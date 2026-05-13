@@ -1576,6 +1576,10 @@
             }
           }
         } catch (_e2) {
+          var listElCatch = document.getElementById('rrShotJobMatches');
+          if (listElCatch) {
+            listElCatch.innerHTML = '<div class="rr-shot-row"><div><div class="title">No top matches available right now</div><div class="meta">We could not complete your live match refresh. Please refresh and try again.</div></div></div>';
+          }
           var usedTrackerFallbackOuter = await tryTrackerKpiFallback(token, forcedJamaicaMode);
           if (!usedTrackerFallbackOuter) applyKpiFallback('Unable to refresh right now');
         }
