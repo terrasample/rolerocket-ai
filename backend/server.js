@@ -5643,20 +5643,34 @@ app.post(
 
         console.log(`[STRIPE WEBHOOK] checkout.session.completed | session=${session.id} | type=${session.metadata?.type} | userId=${userId || 'MISSING'}`);
 
-        if (userId) {
-          if (session.metadata?.type === 'document_bundle') {
-            const credits = Number(session.metadata?.docCredits || 0);
-            console.log(`[STRIPE WEBHOOK] Granting ${credits} document credits to userId=${userId}`);
+        if (session.metadata?.type === 'document_bundle') {
+          const credits = Number(session.metadata?.docCredits || 0);
+          // Resolve user by userId first, fall back to email from metadata or Stripe customer_details
+          let resolvedUserId = userId;
+          if (!resolvedUserId) {
+            const fallbackEmail = String(session.metadata?.userEmail || session.customer_details?.email || '').toLowerCase().trim();
+            console.log(`[STRIPE WEBHOOK] userId missing, attempting email fallback: ${fallbackEmail}`);
+            if (fallbackEmail) {
+              const fallbackUser = await User.findOne({ email: fallbackEmail }).select('_id').lean();
+              if (fallbackUser) resolvedUserId = String(fallbackUser._id);
+            }
+          }
+          if (resolvedUserId) {
+            console.log(`[STRIPE WEBHOOK] Granting ${credits} document credits to userId=${resolvedUserId}`);
             await grantDocumentCreditsFromCheckout({
-              userId,
+              userId: resolvedUserId,
               credits,
               bundleId: session.metadata?.docBundle || 'custom',
               amountCents: Number(session.metadata?.docAmountCents || 0),
               currency: session.currency || 'usd',
               stripeSessionId: session.id || ''
             });
-            console.log(`[STRIPE WEBHOOK] Successfully granted credits to userId=${userId}`);
-          } else if (session.metadata?.type === 'lifetime') {
+            console.log(`[STRIPE WEBHOOK] Successfully granted credits to userId=${resolvedUserId}`);
+          } else {
+            console.error(`[STRIPE WEBHOOK] FAILED: could not resolve userId for session ${session.id}. metadata=${JSON.stringify(session.metadata)}`);
+          }
+        } else if (userId) {
+          if (session.metadata?.type === 'lifetime') {
             await User.findByIdAndUpdate(userId, {
               isSubscribed: true,
               plan: 'lifetime'
@@ -15669,7 +15683,7 @@ app.post('/api/document-credits/create-checkout-session', paymentLimiter, authen
       return res.status(400).json({ error: 'Unknown bundle.' });
     }
 
-    const user = await User.findById(req.user.userId).select('plan isAdmin');
+    const user = await User.findById(req.user.userId).select('plan isAdmin email');
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     const plan = String(user.plan || 'free').toLowerCase();
@@ -15705,6 +15719,7 @@ app.post('/api/document-credits/create-checkout-session', paymentLimiter, authen
       metadata: {
         type: 'document_bundle',
         userId: String(req.user.userId),
+        userEmail: String(user.email || '').toLowerCase(),
         docCredits: String(bundle.credits),
         docBundle: bundle.id,
         docAmountCents: String(bundle.amountCents)
