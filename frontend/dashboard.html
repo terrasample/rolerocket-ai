@@ -56,14 +56,14 @@
     /* Dashboard shell should inherit the shared home/about site theme. */
     #dashboardMain { padding-top: 20px; }
     .rr-shot-shell {
-      background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
-      border: 1px solid #dbeafe;
-      box-shadow: 0 12px 34px rgba(37, 99, 235, .1), inset 0 1px 0 rgba(255, 255, 255, .75);
+      background: linear-gradient(180deg, #0f274f 0%, #12356b 55%, #194b8f 100%);
+      border: 1px solid rgba(147, 197, 253, .35);
+      box-shadow: 0 18px 42px rgba(15, 23, 42, .36), inset 0 1px 0 rgba(191, 219, 254, .22);
       border-radius: 18px;
       padding: 30px 24px 24px;
       max-width: 1220px;
       margin: 12px auto 18px;
-      color: #0f172a;
+      color: #eff6ff;
       position: relative;
       overflow: hidden;
     }
@@ -78,11 +78,11 @@
       margin: 0;
       font-size: clamp(1.5rem, 2.8vw, 2.2rem);
       letter-spacing: -.02em;
-      color: #0f172a;
+      color: #f8fafc;
     }
     .rr-shot-header p {
       margin: 6px 0 20px;
-      color: #334155;
+      color: #bfdbfe;
       font-size: 1.04rem;
     }
     .rr-shot-badge {
@@ -91,9 +91,9 @@
       gap: 8px;
       padding: 6px 14px;
       border-radius: 999px;
-      border: 1px solid rgba(37, 99, 235, .18);
-      background: #eff6ff;
-      color: #92400e;
+      border: 1px solid rgba(147, 197, 253, .45);
+      background: rgba(30, 64, 175, .36);
+      color: #dbeafe;
       font-size: .82rem;
       font-weight: 800;
       margin-bottom: 14px;
@@ -106,8 +106,8 @@
       margin-bottom: 18px;
     }
     .rr-shot-kpi {
-      background: linear-gradient(180deg, #ffffff, #f8fbff);
-      border: 1px solid #dbeafe;
+      background: linear-gradient(180deg, rgba(30, 64, 175, .45), rgba(15, 23, 42, .28));
+      border: 1px solid rgba(147, 197, 253, .32);
       border-radius: 14px;
       padding: 14px;
       min-height: 122px;
@@ -115,17 +115,17 @@
       flex-direction: column;
       justify-content: space-between;
     }
-    .rr-shot-kpi .label { color: #475569; font-size: .86rem; font-weight: 700; }
-    .rr-shot-kpi .value { color: #0f172a; font-size: 2.05rem; font-weight: 800; line-height: 1.1; }
-    .rr-shot-kpi .sub { color: #1d4ed8; font-size: .97rem; font-weight: 700; }
+    .rr-shot-kpi .label { color: #bfdbfe; font-size: .86rem; font-weight: 700; }
+    .rr-shot-kpi .value { color: #f8fafc; font-size: 2.05rem; font-weight: 800; line-height: 1.1; }
+    .rr-shot-kpi .sub { color: #93c5fd; font-size: .97rem; font-weight: 700; }
     .rr-shot-main {
       display: grid;
       grid-template-columns: 1.45fr 1fr;
       gap: 16px;
     }
     .rr-shot-card {
-      background: linear-gradient(180deg, #ffffff, #f8fbff);
-      border: 1px solid #dbeafe;
+      background: linear-gradient(180deg, rgba(30, 58, 138, .42), rgba(15, 23, 42, .34));
+      border: 1px solid rgba(147, 197, 253, .32);
       border-radius: 14px;
       padding: 16px;
       box-shadow: 0 10px 30px rgba(15, 23, 42, .06);
@@ -133,22 +133,22 @@
     .rr-shot-card h3 {
       margin: 0 0 12px;
       font-size: 1.3rem;
-      color: #0f172a;
+      color: #eff6ff;
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
-    .rr-shot-viewall { color: #1d4ed8; font-size: .95rem; text-decoration: none; }
+    .rr-shot-viewall { color: #93c5fd; font-size: .95rem; text-decoration: none; }
     .rr-shot-list { display: grid; gap: 10px; }
     .rr-shot-row {
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
       gap: 10px;
       align-items: center;
-      border: 1px solid #dbeafe;
+      border: 1px solid rgba(147, 197, 253, .32);
       border-radius: 10px;
       padding: 10px 12px;
-      background: #ffffff;
+      background: linear-gradient(180deg, rgba(15, 23, 42, .2), rgba(15, 23, 42, .1));
     }
     .rr-shot-row-link {
       text-decoration: none;
@@ -158,16 +158,16 @@
     .rr-shot-row-link:hover,
     .rr-shot-row-link:focus-visible {
       transform: translateY(-1px);
-      border-color: rgba(37, 99, 235, .45);
-      background: rgba(239, 246, 255, .98);
-      box-shadow: 0 10px 24px rgba(37, 99, 235, .12);
+      border-color: rgba(147, 197, 253, .5);
+      background: rgba(30, 64, 175, .34);
+      box-shadow: 0 10px 24px rgba(15, 23, 42, .25);
       outline: none;
     }
     .rr-shot-row > div { min-width: 0; }
     .rr-shot-row .title {
       font-size: 1.02rem;
       font-weight: 700;
-      color: #0f172a;
+      color: #f8fafc;
       line-height: 1.25;
       display: -webkit-box;
       -webkit-line-clamp: 2;
@@ -177,7 +177,7 @@
     }
     .rr-shot-row .meta {
       font-size: .88rem;
-      color: #475569;
+      color: #bfdbfe;
       margin-top: 4px;
       line-height: 1.35;
       display: -webkit-box;
@@ -190,9 +190,9 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      border: 1px solid #1d4ed8;
-      color: #eff6ff;
-      background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
+      border: 1px solid rgba(191, 219, 254, .65);
+      color: #0f172a;
+      background: linear-gradient(180deg, #bfdbfe 0%, #93c5fd 100%);
       padding: 7px 14px;
       border-radius: 9px;
       font-weight: 800;
@@ -208,7 +208,7 @@
       height: 220px;
       margin: 6px auto 12px;
       border-radius: 50%;
-      background: conic-gradient(#2563eb 0 var(--rr-ats-angle, 338deg), #dbeafe var(--rr-ats-angle, 338deg) 360deg);
+      background: conic-gradient(#93c5fd 0 var(--rr-ats-angle, 338deg), rgba(30, 41, 59, .45) var(--rr-ats-angle, 338deg) 360deg);
       display: grid;
       place-items: center;
       position: relative;
@@ -218,13 +218,13 @@
       position: absolute;
       inset: 16px;
       border-radius: 50%;
-      background: linear-gradient(180deg, #ffffff 0%, #eff6ff 100%);
-      border: 1px solid rgba(37, 99, 235, .15);
+      background: linear-gradient(180deg, #0f274f 0%, #173766 100%);
+      border: 1px solid rgba(147, 197, 253, .35);
     }
     .rr-shot-ats-core { position: relative; z-index: 1; }
-    .rr-shot-ats-score { font-size: 3rem; font-weight: 900; line-height: 1; color: #0f172a; }
-    .rr-shot-ats-grade { font-size: 1.5rem; font-weight: 800; color: #1d4ed8; margin-top: 6px; }
-    .rr-shot-ats-msg { color: #475569; font-size: 1.02rem; margin: 4px 0 16px; }
+    .rr-shot-ats-score { font-size: 3rem; font-weight: 900; line-height: 1; color: #f8fafc; }
+    .rr-shot-ats-grade { font-size: 1.5rem; font-weight: 800; color: #93c5fd; margin-top: 6px; }
+    .rr-shot-ats-msg { color: #bfdbfe; font-size: 1.02rem; margin: 4px 0 16px; }
     .rr-shot-btn {
       display: inline-flex;
       align-items: center;
@@ -232,10 +232,10 @@
       min-width: 180px;
       padding: 11px 16px;
       border-radius: 10px;
-      border: 1px solid #2563eb;
-      color: #dbeafe;
+      border: 1px solid rgba(191, 219, 254, .65);
+      color: #0f172a;
       text-decoration: none;
-      background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
+      background: linear-gradient(180deg, #bfdbfe 0%, #93c5fd 100%);
       font-weight: 800;
     }
     .rr-shot-tools {
@@ -248,22 +248,22 @@
       display: block;
       text-decoration: none;
       color: inherit;
-      background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
-      border: 1px solid #dbeafe;
+      background: linear-gradient(180deg, rgba(30, 64, 175, .45), rgba(15, 23, 42, .34));
+      border: 1px solid rgba(147, 197, 253, .32);
       border-radius: 14px;
       padding: 16px;
       min-height: 110px;
-      box-shadow: 0 10px 24px rgba(37, 99, 235, .08);
+      box-shadow: 0 10px 24px rgba(15, 23, 42, .2);
     }
     .rr-shot-tool-title {
-      color: #0f172a;
+      color: #eff6ff;
       font-size: 1rem;
       font-weight: 800;
       margin-bottom: 6px;
       line-height: 1.35;
     }
     .rr-shot-tool-sub {
-      color: #475569;
+      color: #bfdbfe;
       font-size: .88rem;
       line-height: 1.5;
     }
