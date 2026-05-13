@@ -6,10 +6,47 @@ document.addEventListener('DOMContentLoaded', function () {
   const sendEmailBtn = document.getElementById('sendResumeEmailBtn');
   const rewriteBtn = document.getElementById('rewriteResumeBtn');
   const clearFieldsBtn = document.getElementById('clearResumeOptimizerFieldsBtn');
+  const templateSelect = document.getElementById('resumeTemplate');
   const output = document.getElementById('resumeOutput');
   const resumeUploadInput = document.getElementById('resumeBaseUpload');
   const resumeUploadMessage = document.getElementById('resumeBaseUploadMessage');
   let lastResume = '';
+
+  const templateConfigs = {
+    classic: {
+      label: 'Classic Professional',
+      prompt: 'Use a classic professional structure with clear section headings, balanced bullet points, and conservative wording that is recruiter-friendly.',
+      preview: "font-family:'Times New Roman', Times, serif;",
+      pdfFont: 'times',
+      fileSuffix: 'classic-professional'
+    },
+    modern: {
+      label: 'Modern Clean',
+      prompt: 'Use a modern clean structure with concise bullets, strong action verbs, and compact section flow while keeping ATS readability high.',
+      preview: "font-family:'Segoe UI', Tahoma, Arial, sans-serif;",
+      pdfFont: 'helvetica',
+      fileSuffix: 'modern-clean'
+    },
+    executive: {
+      label: 'Executive Impact',
+      prompt: 'Use an executive-impact structure emphasizing leadership outcomes, measurable results, and strategic scope for senior roles.',
+      preview: "font-family:'Georgia', 'Times New Roman', serif;",
+      pdfFont: 'times',
+      fileSuffix: 'executive-impact'
+    },
+    ats: {
+      label: 'ATS Minimal',
+      prompt: 'Use an ATS-minimal structure with plain headings, straightforward bullets, no visual symbols, and strict parser-safe formatting.',
+      preview: "font-family:Arial, Helvetica, sans-serif;",
+      pdfFont: 'helvetica',
+      fileSuffix: 'ats-minimal'
+    }
+  };
+
+  function getSelectedTemplate() {
+    const selected = String(templateSelect?.value || 'classic').toLowerCase();
+    return templateConfigs[selected] ? selected : 'classic';
+  }
 
   async function loadResumeFileIntoField(file, textarea, messageEl) {
     const token = typeof getStoredToken === 'function' ? getStoredToken() : localStorage.getItem('token');
@@ -53,10 +90,13 @@ document.addEventListener('DOMContentLoaded', function () {
     await loadResumeFileIntoField(file, document.getElementById('resumeBase'), resumeUploadMessage);
   });
 
-  function buildJobDescription(jobTitle, company, fullJobDescription) {
+  function buildJobDescription(jobTitle, company, fullJobDescription, templateKey) {
+    const template = templateConfigs[templateKey] || templateConfigs.classic;
     return [
       `Job Title: ${jobTitle}`,
       company ? `Company: ${company}` : '',
+      `Resume Template: ${template.label}`,
+      `Template Guidance: ${template.prompt}`,
       '',
       'Full Job Description:',
       fullJobDescription
@@ -68,13 +108,15 @@ document.addEventListener('DOMContentLoaded', function () {
     const company = document.getElementById('resumeCompany').value.trim();
     const baseResume = document.getElementById('resumeBase').value.trim();
     const fullJobDescription = document.getElementById('resumeJobDescription').value.trim();
+    const templateKey = getSelectedTemplate();
+    const template = templateConfigs[templateKey];
     if (!jobTitle || !baseResume || !fullJobDescription) {
       output.innerHTML = '<div style="color:#dc2626;">Please add the job title, your resume, and the full job description.</div>';
       return;
     }
     output.innerHTML = 'Rewriting resume...';
     try {
-      const jobDescription = buildJobDescription(jobTitle, company, fullJobDescription);
+      const jobDescription = buildJobDescription(jobTitle, company, fullJobDescription, templateKey);
       const token = typeof getStoredToken === 'function' ? getStoredToken() : localStorage.getItem('token');
       const headers = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
@@ -86,7 +128,7 @@ document.addEventListener('DOMContentLoaded', function () {
       const data = await res.json();
       if (res.ok && data.result) {
         lastResume = data.result;
-        output.innerHTML = `<pre style="background:#fffbe6;padding:22px 18px;border-radius:12px;max-height:420px;overflow:auto;font-size:1.18em;line-height:1.7;color:#1e293b;font-family:'Inter', 'Segoe UI', Arial, sans-serif;border:2.5px solid #f59e42;box-shadow:0 2px 16px #facc1530;">${data.result}</pre>`;
+        output.innerHTML = `<div style="margin:0 0 8px 0;font-weight:700;color:#334155;">Template: ${template.label}</div><pre style="background:#fffbe6;padding:22px 18px;border-radius:12px;max-height:420px;overflow:auto;font-size:1.04em;line-height:1.65;color:#1e293b;${template.preview}border:2.5px solid #f59e42;box-shadow:0 2px 16px #facc1530;">${data.result}</pre>`;
       } else {
         lastResume = '';
         output.innerHTML = `<div style="color:#dc2626;font-size:1.1em;padding:12px 0;">${data.error || 'Failed to rewrite resume.'}</div>`;
@@ -97,38 +139,39 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
-  function formatResumeForPdf(text, doc) {
+  function formatResumeForPdf(text, doc, templateKey) {
+    const template = templateConfigs[templateKey] || templateConfigs.classic;
     const lines = text.split(/\r?\n/);
     let y = 20;
-    doc.setFont('times', 'bold');
+    doc.setFont(template.pdfFont, 'bold');
     doc.setFontSize(12);
-    doc.text('Optimized Resume', 10, y);
+    doc.text(`Optimized Resume - ${template.label}`, 10, y);
     y += 10;
-    doc.setFont('times', 'normal');
+    doc.setFont(template.pdfFont, 'normal');
     doc.setFontSize(12);
     lines.forEach(line => {
       if (/^### /.test(line)) {
         y += 8;
-        doc.setFont('times', 'bold');
+        doc.setFont(template.pdfFont, 'bold');
         doc.setFontSize(12);
         doc.text(line.replace(/^### /, ''), 10, y);
-        doc.setFont('times', 'normal');
+        doc.setFont(template.pdfFont, 'normal');
         doc.setFontSize(12);
         y += 6;
       } else if (/^## /.test(line)) {
         y += 8;
-        doc.setFont('times', 'bold');
+        doc.setFont(template.pdfFont, 'bold');
         doc.setFontSize(12);
         doc.text(line.replace(/^## /, ''), 10, y);
-        doc.setFont('times', 'normal');
+        doc.setFont(template.pdfFont, 'normal');
         doc.setFontSize(12);
         y += 5;
       } else if (/^# /.test(line)) {
         y += 10;
-        doc.setFont('times', 'bold');
+        doc.setFont(template.pdfFont, 'bold');
         doc.setFontSize(12);
         doc.text(line.replace(/^# /, ''), 10, y);
-        doc.setFont('times', 'normal');
+        doc.setFont(template.pdfFont, 'normal');
         doc.setFontSize(12);
         y += 6;
       } else if (/^\d+\. /.test(line)) {
@@ -138,9 +181,9 @@ document.addEventListener('DOMContentLoaded', function () {
         doc.text(line.replace(/^- /, '\u2022 '), 18, y);
         y += 6;
       } else if (/^\*\*.*\*\*$/.test(line)) {
-        doc.setFont('times', 'bold');
+        doc.setFont(template.pdfFont, 'bold');
         doc.text(line.replace(/\*\*/g, ''), 10, y);
-        doc.setFont('times', 'normal');
+        doc.setFont(template.pdfFont, 'normal');
         y += 6;
       } else if (line.trim() === '') {
         y += 4;
@@ -152,11 +195,11 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  function createResumeOptimizerPdfBlob(text) {
+  function createResumeOptimizerPdfBlob(text, templateKey) {
     if (!window.jspdf) throw new Error('PDF library not loaded.');
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
-    formatResumeForPdf(text, doc);
+    formatResumeForPdf(text, doc, templateKey);
     return doc.output('blob');
   }
 
@@ -172,15 +215,18 @@ document.addEventListener('DOMContentLoaded', function () {
       }
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
-      formatResumeForPdf(lastResume, doc);
-      doc.save('resume.pdf');
+      const templateKey = getSelectedTemplate();
+      const template = templateConfigs[templateKey];
+      formatResumeForPdf(lastResume, doc, templateKey);
+      doc.save(`resume-${template.fileSuffix}.pdf`);
       output.innerHTML = '<div style="color:#16a34a;">PDF downloaded.</div>';
     };
   }
 
-  function formatResumeForWord(text) {
+  function formatResumeForWord(text, templateKey) {
+    const template = templateConfigs[templateKey] || templateConfigs.classic;
     return (
-      'Optimized Resume\n\n' +
+      `Optimized Resume - ${template.label}\n\n` +
       text
         .replace(/^### (.*)$/gm, '\n\n$1\n' + '-'.repeat(40))
         .replace(/^## (.*)$/gm, '\n\n$1\n' + '-'.repeat(30))
@@ -197,12 +243,14 @@ document.addEventListener('DOMContentLoaded', function () {
         output.innerHTML = '<div style="color:#dc2626;">No resume to save. Please rewrite first.</div>';
         return;
       }
-      const content = formatResumeForWord(lastResume);
+      const templateKey = getSelectedTemplate();
+      const template = templateConfigs[templateKey];
+      const content = formatResumeForWord(lastResume, templateKey);
       const html = `<!DOCTYPE html><html><body style="font-family:'Times New Roman', Times, serif;font-size:12pt;line-height:1.5;color:#000;white-space:pre-wrap;">${content.replace(/\n/g, '<br>')}</body></html>`;
       const blob = new Blob(['\ufeff', html], { type: 'application/msword;charset=utf-8' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = 'resume.doc';
+      a.download = `resume-${template.fileSuffix}.doc`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -217,20 +265,23 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
       }
 
-      const content = formatResumeForWord(lastResume);
+      const templateKey = getSelectedTemplate();
+      const template = templateConfigs[templateKey];
+
+      const content = formatResumeForWord(lastResume, templateKey);
       const htmlContent = `<!DOCTYPE html><html><body style="font-family:'Times New Roman', Times, serif;font-size:12pt;line-height:1.5;color:#000;white-space:pre-wrap;">${content.replace(/\n/g, '<br>')}</body></html>`;
-      const pdfBlob = createResumeOptimizerPdfBlob(lastResume);
+      const pdfBlob = createResumeOptimizerPdfBlob(lastResume, templateKey);
       const wordBlob = new Blob(['\ufeff', htmlContent], { type: 'application/msword;charset=utf-8' });
       sendEmailBtn.disabled = true;
       sendEmailBtn.textContent = 'Sending...';
       const result = await window.sendDocumentToAccountEmail({
-        feature: 'Resume Optimizer',
-        filename: 'optimized-resume',
+        feature: `Resume Optimizer (${template.label})`,
+        filename: `optimized-resume-${template.fileSuffix}`,
         htmlContent,
         textContent: lastResume,
         attachments: [
-          { filename: 'optimized-resume.pdf', blob: pdfBlob, contentType: 'application/pdf' },
-          { filename: 'optimized-resume.doc', blob: wordBlob, contentType: 'application/msword' }
+          { filename: `optimized-resume-${template.fileSuffix}.pdf`, blob: pdfBlob, contentType: 'application/pdf' },
+          { filename: `optimized-resume-${template.fileSuffix}.doc`, blob: wordBlob, contentType: 'application/msword' }
         ]
       });
       sendEmailBtn.disabled = false;
@@ -252,6 +303,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (company) company.value = '';
     if (baseResume) baseResume.value = '';
     if (jobDescription) jobDescription.value = '';
+    if (templateSelect) templateSelect.value = 'classic';
     if (resumeUploadInput) resumeUploadInput.value = '';
 
     if (resumeUploadMessage) {
