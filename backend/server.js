@@ -6733,6 +6733,25 @@ function locationHintMatches(haystack = '', hint = '') {
 function isLocationCompatible(job = {}, queryLocation = '') {
   const query = String(queryLocation || '').trim().toLowerCase();
   if (!query) return true;
+  
+  // For US state codes/names, accept any US-based job
+  const usStateMap = {
+    'ny': true, 'ca': true, 'fl': true, 'tx': true, 'co': true, 'il': true, 'wa': true, 'ma': true, 'ga': true,
+    'new york': true, 'california': true, 'florida': true, 'texas': true, 'colorado': true, 'illinois': true, 'washington': true, 'massachusetts': true, 'georgia': true
+  };
+  
+  if (usStateMap[query]) {
+    const jobText = `${String(job?.location || '')} ${String(job?.description || '')}`.toLowerCase();
+    // Accept if job is US-based
+    if (/usa|united states|\bus\b|america/.test(jobText)) return true;
+    // Accept if job has a US city or state
+    if (/new york|california|florida|texas|colorado|illinois|washington|massachusetts|georgia|denver|chicago|los angeles|houston|dallas|phoenix|philadelphia|san antonio|san diego|austin|seattle|boston|miami|atlanta|new jersey/.test(jobText)) return true;
+    // For NY specifically, also accept NYC-area metro
+    if (query === 'ny' && /ny|nyc|new york|manhattan|brooklyn|queens|bronx/.test(jobText)) return true;
+    // Default: reject if no US signal found
+    return false;
+  }
+  
   if (query.includes('remote')) {
     const remoteText = `${String(job?.location || '')} ${String(job?.description || '')}`.toLowerCase();
     return /remote|worldwide|work from home|distributed/.test(remoteText);
