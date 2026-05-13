@@ -1887,6 +1887,32 @@ function createWhatsAppImportToken(phone = '') {
 }
 
 function extractWhatsAppInboundText(payload = {}) {
+  const interactiveFirst = [
+    payload.ButtonPayload,
+    payload.ButtonText,
+    payload.ListSelectionTitle,
+    payload.ListSelection,
+    payload.ListSelectionDescription,
+    payload.InteractiveData,
+    payload.InteractiveResponse,
+    payload.Body
+  ];
+
+  for (const candidate of interactiveFirst) {
+    if (candidate && typeof candidate === 'object') {
+      const merged = [candidate.id, candidate.payload, candidate.title, candidate.text, candidate.value]
+        .filter(Boolean)
+        .map((item) => String(item))
+        .join(' ');
+      const text = normalizeIncomingWhatsAppText(merged);
+      if (text) return text;
+      continue;
+    }
+
+    const text = normalizeIncomingWhatsAppText(candidate || '');
+    if (text) return text;
+  }
+
   const candidates = [
     payload.Body,
     payload.ButtonPayload,
@@ -2615,6 +2641,13 @@ function getWhatsAppForcedCommandText(route = '') {
 
   const command = {
     start: 'start',
+    demo: 'watch demo features',
+    jobs: 'search and save jobs',
+    resume: 'resume',
+    coverLetter: 'cover letter',
+    explore: 'explore other features',
+    human: 'technical support',
+    status: 'status',
     help: 'help',
     mainMenu: 'main menu',
     goBack: 'go back',
