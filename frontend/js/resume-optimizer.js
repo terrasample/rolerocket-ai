@@ -366,9 +366,13 @@ document.addEventListener('DOMContentLoaded', function () {
     const allHeadingPositions = Object.values(headings).filter((idx) => idx >= 0).sort((a, b) => a - b);
     const firstHeading = allHeadingPositions.length ? allHeadingPositions[0] : lines.length;
     const headerLines = lines.slice(0, firstHeading).map((line) => line.trim()).filter(Boolean);
+    const cleanedHeaderLines = headerLines
+      .map((line) => normalizeBulletText(line))
+      .filter(Boolean)
+      .filter((line) => !/^optimized\s+resume\s*(?:-|:)?/i.test(line));
 
-    const fullName = normalizeBulletText(headerLines[0] || fallbackContact.fullName || 'Professional Candidate') || 'Professional Candidate';
-    const contactLines = headerLines.slice(1, 4).map((line) => normalizeBulletText(line)).filter(Boolean);
+    const fullName = normalizeBulletText(cleanedHeaderLines[0] || fallbackContact.fullName || 'Professional Candidate') || 'Professional Candidate';
+    const contactLines = cleanedHeaderLines.slice(1, 4).map((line) => normalizeBulletText(line)).filter(Boolean);
     if (!contactLines.length) {
       [fallbackContact.phone, fallbackContact.email, fallbackContact.linkedin].filter(Boolean).forEach((entry) => contactLines.push(entry));
     }
@@ -630,14 +634,6 @@ document.addEventListener('DOMContentLoaded', function () {
   async function buildTemplatePdfDoc(model) {
     if (!window.jspdf) throw new Error('PDF library not loaded.');
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-
-    // jsPDF.html gives closest parity with the rendered template card.
-    if (typeof doc.html !== 'function') {
-      console.warn('[Resume Optimizer PDF] jsPDF.html not available, using fallback');
-      return buildResumePdfDoc(model);
-    }
-
     const host = document.createElement('div');
     host.style.position = 'fixed';
     host.style.left = '-10000px';
@@ -651,18 +647,63 @@ document.addEventListener('DOMContentLoaded', function () {
 
     try {
       console.log('[Resume Optimizer PDF] Rendering template-based PDF, theme:', model.theme?.name || 'default');
-      await doc.html(host, {
-        margin: [20, 20, 20, 20],
-        autoPaging: 'text',
-        width: 555,
-        windowWidth: 860,
-        html2canvas: {
+      if (window.html2canvas && typeof window.html2canvas === 'function') {
+        const canvas = await window.html2canvas(host, {
           backgroundColor: '#ffffff',
-          scale: 0.72,
-          useCORS: true
+          scale: 2,
+          useCORS: true,
+          logging: false
+        });
+
+        const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const margin = 8;
+        const usableWidth = pageWidth - (margin * 2);
+        const usableHeight = pageHeight - (margin * 2);
+
+        const pixelPerMm = canvas.width / usableWidth;
+        const pagePixelHeight = Math.floor(usableHeight * pixelPerMm);
+        let offsetY = 0;
+        let isFirstPage = true;
+
+        while (offsetY < canvas.height) {
+          const sliceHeight = Math.min(pagePixelHeight, canvas.height - offsetY);
+          const pageCanvas = document.createElement('canvas');
+          pageCanvas.width = canvas.width;
+          pageCanvas.height = sliceHeight;
+
+          const ctx = pageCanvas.getContext('2d');
+          if (!ctx) break;
+
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+          ctx.drawImage(
+            canvas,
+            0,
+            offsetY,
+            canvas.width,
+            sliceHeight,
+            0,
+            0,
+            canvas.width,
+            sliceHeight
+          );
+
+          const imgData = pageCanvas.toDataURL('image/png');
+          const renderedHeight = sliceHeight / pixelPerMm;
+          if (!isFirstPage) doc.addPage();
+          doc.addImage(imgData, 'PNG', margin, margin, usableWidth, renderedHeight, undefined, 'FAST');
+
+          isFirstPage = false;
+          offsetY += sliceHeight;
         }
-      });
-      return doc;
+
+        return doc;
+      }
+
+      console.warn('[Resume Optimizer PDF] html2canvas unavailable, using fallback');
+      return buildResumePdfDoc(model);
     } catch (error) {
       console.warn('[Resume Optimizer PDF] Template render failed, using fallback renderer:', error?.message || error);
       return buildResumePdfDoc(model);
