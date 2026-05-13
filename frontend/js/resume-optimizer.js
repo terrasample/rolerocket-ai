@@ -312,12 +312,22 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function removeImprovementsSection(text) {
-    const input = String(text || '').replace(/\r/g, '');
-    const stripped = input.replace(
-      /(?:^|\n)\s*IMPROVEMENTS\s*:?[ \t]*\n[\s\S]*?(?=\n\s*(?:PROFILE|SUMMARY|EXPERIENCE|EDUCATION|SKILLS|AWARDS|CERTIFICATION|CERTIFICATIONS|PROJECTS)\b[ \t]*:?\s*\n|$)/i,
+    let input = String(text || '').replace(/\r/g, '');
+    
+    // Remove IMPROVEMENTS section and any content before next real section
+    input = input.replace(
+      /(?:^|\n)\s*(?:IMPROVEMENTS|SUGGESTED IMPROVEMENTS|ENHANCEMENTS)\s*:?[ \t]*(?:\n|$)[\s\S]*?(?=\n\s*(?:CONTACT|PROFILE|SUMMARY|EXPERIENCE|EDUCATION|SKILLS|AWARDS|CERTIFICATION|CERTIFICATIONS|PROJECTS|CORE\s+SKILLS)\b|$)/i,
       '\n'
     );
-    return stripped.replace(/\n{3,}/g, '\n\n').trim();
+    
+    // Also remove bullet-point improvements at the end
+    input = input.replace(
+      /(?:^|\n)\s*(?:•|−|−|-|\*)\s+(?:Tailored|Incorporated|Enhanced|Removed|Emphasized|Highlighted)[^\n]*(?:\n\s*(?:•|−|−|-|\*)\s+[^\n]*)*(?:\n|$)/gi,
+      '\n'
+    );
+    
+    // Clean up excessive whitespace
+    return input.replace(/\n{3,}/g, '\n\n').trim();
   }
 
   function extractContactInfo(baseResumeText) {
@@ -605,7 +615,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     rightY += 2;
     drawTitle('CERTIFICATIONS');
-    (model.awards.length ? model.awards : ['N/A']).forEach((line) => {
+    const certs = model.awards || model.certifications || [];
+    (certs.length ? certs : ['N/A']).forEach((line) => {
       const clean = normalizeBulletText(line);
       if (!clean) return;
       const wrapped = doc.splitTextToSize(`• ${clean}`, rightW);
@@ -623,6 +634,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // jsPDF.html gives closest parity with the rendered template card.
     if (typeof doc.html !== 'function') {
+      console.warn('[Resume Optimizer PDF] jsPDF.html not available, using fallback');
       return buildResumePdfDoc(model);
     }
 
@@ -638,6 +650,7 @@ document.addEventListener('DOMContentLoaded', function () {
     document.body.appendChild(host);
 
     try {
+      console.log('[Resume Optimizer PDF] Rendering template-based PDF, theme:', model.theme?.name || 'default');
       await doc.html(host, {
         margin: [20, 20, 20, 20],
         autoPaging: 'text',
@@ -784,11 +797,18 @@ document.addEventListener('DOMContentLoaded', function () {
         statusBanner('No resume to save. Please rewrite first.', false);
         return;
       }
+      console.log('[Resume Optimizer] Building PDF with model:', {
+        fullName: lastStructuredResume.fullName,
+        theme: lastStructuredResume.theme?.name,
+        awards: (lastStructuredResume.awards || []).length,
+        experience: (lastStructuredResume.experiences || []).length
+      });
       const doc = await buildTemplatePdfDoc(lastStructuredResume);
       doc.save('tailored-resume.pdf');
       output.innerHTML = renderResumeTemplate(lastStructuredResume);
-      statusBanner('PDF downloaded.', true);
+      statusBanner('PDF downloaded with template styling.', true);
     } catch (error) {
+      console.error('[Resume Optimizer PDF Error]', error);
       statusBanner(error.message || 'Could not generate PDF.', false);
     }
   });

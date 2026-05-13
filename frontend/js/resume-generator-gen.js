@@ -1829,7 +1829,8 @@ document.addEventListener('DOMContentLoaded', function () {
     drawTitle('CERTIFICATIONS');
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(12);
-    (model.awards.length ? model.awards : ['N/A']).forEach((line) => {
+    const certifications = model.awards || model.certifications || [];
+    (certifications.length ? certifications : ['N/A']).forEach((line) => {
       const cleanLine = normalizeBulletText(line);
       if (!cleanLine) return;
       wrapped = doc.splitTextToSize(`• ${cleanLine}`, rightW);
