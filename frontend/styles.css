@@ -4160,6 +4160,54 @@ pre {
   color: #6b7280;
 }
 
+.login-attention {
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border: 1px solid rgba(37, 99, 235, 0.24);
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(219, 234, 254, 0.75) 0%, rgba(224, 242, 254, 0.58) 100%);
+  box-shadow: 0 10px 20px rgba(30, 64, 175, 0.09);
+}
+
+.login-attention-kicker {
+  display: inline-block;
+  margin-bottom: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #1d4ed8;
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+#loginAttentionText {
+  margin: 0 0 10px;
+  color: #1e293b;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  transition: opacity 0.2s ease;
+}
+
+.login-attention-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid #1d4ed8;
+  background: #ffffff;
+  color: #1d4ed8;
+  font-size: 0.86rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.login-attention-cta:hover {
+  background: #dbeafe;
+}
+
 /* Top badge section with secondary CTA */
 .top-badge-section {
   display: flex;

@@ -138,6 +138,12 @@
         <h2>Welcome back</h2>
         <p class="auth-subtext">Log in and continue your job-winning workflow.</p>
 
+        <div class="login-attention" id="loginAttention" aria-live="polite">
+          <div class="login-attention-kicker">Fastest path to offers</div>
+          <p id="loginAttentionText">Candidates who tailor resume + cover letter before applying get more interview callbacks.</p>
+          <a href="signup.html" class="login-attention-cta">Start Free and Launch Your Workflow</a>
+        </div>
+
         <div style="margin:12px 0 18px;padding:12px;border:1px solid rgba(148,163,184,.35);border-radius:12px;background:rgba(15,23,42,.45);text-align:center;">
           <p style="margin:0 0 8px;color:#cbd5e1;font-size:.92rem;">Scan to open RoleRocket login on your phone</p>
           <a id="mobileLoginLink" href="https://www.rolerocketai.com/login.html" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin-bottom:10px;color:#93c5fd;font-size:.9rem;">Open login link</a>
@@ -540,6 +546,29 @@
         submitBtn.textContent = 'Log In';
       }
     });
+
+    (function initLoginAttentionRotator() {
+      const attentionText = document.getElementById('loginAttentionText');
+      if (!attentionText) return;
+
+      const prompts = [
+        'Candidates who tailor resume + cover letter before applying get more interview callbacks.',
+        'Use RoleRocket to search, tailor, and track in one flow so fewer opportunities slip through.',
+        'Build momentum fast: resume draft, role-targeted cover letter, then apply-ready actions.'
+      ];
+
+      let idx = 0;
+      const rotate = () => {
+        idx = (idx + 1) % prompts.length;
+        attentionText.style.opacity = '0.2';
+        setTimeout(() => {
+          attentionText.textContent = prompts[idx];
+          attentionText.style.opacity = '1';
+        }, 160);
+      };
+
+      setInterval(rotate, 3600);
+    })();
   </script>
 
   <!-- Add handleCheckout for pricing buttons -->

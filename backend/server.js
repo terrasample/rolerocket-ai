@@ -16183,13 +16183,33 @@ app.get('/api/community-hubs/all', async (req, res) => {
   }
 });
 
+app.get('/healthz', (_req, res) => {
+  return res.json({
+    ok: true,
+    service: 'rolerocket-backend',
+    uptimeSeconds: Math.round(process.uptime()),
+    timestamp: new Date().toISOString()
+  });
+});
+
+app.get('/readyz', (_req, res) => {
+  const mongoReady = mongoose.connection.readyState === 1;
+  return res.status(mongoReady ? 200 : 503).json({
+    ok: mongoReady,
+    service: 'rolerocket-backend',
+    mongoState: mongoose.connection.readyState,
+    uptimeSeconds: Math.round(process.uptime()),
+    timestamp: new Date().toISOString()
+  });
+});
+
 app.get('/{*path}', (req, res) => {
   return res.sendFile(path.join(__dirname, '../frontend/index.html'));
 });
 
 
 if (process.env.NODE_ENV !== 'test') {
-  app.listen(PORT, () => {
+  const server = app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
     startJobAlertScheduler();
     startWhatsAppStatusNudgeScheduler();
@@ -16199,6 +16219,15 @@ if (process.env.NODE_ENV !== 'test') {
       });
     }, 500);
     console.log('DEBUG: app.listen callback completed');
+  });
+
+  server.on('error', (error) => {
+    if (error && error.code === 'EADDRINUSE') {
+      console.error(`Startup failed: port ${PORT} is already in use.`);
+      process.exit(1);
+    }
+    console.error('Startup failed with server error:', error);
+    process.exit(1);
   });
 }
 
