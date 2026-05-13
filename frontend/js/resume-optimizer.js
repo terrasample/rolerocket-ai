@@ -484,6 +484,57 @@ document.addEventListener('DOMContentLoaded', function () {
     return merged;
   }
 
+  function isEducationInstitutionLine(line) {
+    const value = normalizeBulletText(line);
+    if (!value) return false;
+    const institutionSignals = /(university|college|institute|school|academy|polytechnic|abet|campus)/i;
+    const degreeSignals = /(bachelor|master|doctor|associate|ph\.?d|mba|degree|certificate|diploma|expected|\d{2}\/\d{4})/i;
+    return institutionSignals.test(value) && !degreeSignals.test(value);
+  }
+
+  function isEducationProgramLine(line) {
+    const value = normalizeBulletText(line);
+    if (!value) return false;
+    return /(bachelor|master|doctor|associate|ph\.?d|mba|degree|certificate|diploma|expected|\d{2}\/\d{4}|\d{4}|present)/i.test(value);
+  }
+
+  function formatEducationEntries(lines) {
+    const entries = (lines || []).map((line) => normalizeBulletText(line)).filter(Boolean);
+    const formatted = [];
+
+    for (let i = 0; i < entries.length; i += 1) {
+      const current = entries[i];
+
+      if (!isEducationInstitutionLine(current)) {
+        formatted.push(current);
+        continue;
+      }
+
+      let j = i + 1;
+      const programs = [];
+      while (j < entries.length && !isEducationInstitutionLine(entries[j])) {
+        if (isEducationProgramLine(entries[j])) programs.push(entries[j]);
+        j += 1;
+      }
+
+      if (!programs.length) {
+        formatted.push(current);
+        continue;
+      }
+
+      programs.forEach((program) => {
+        const combined = program.toLowerCase().includes(current.toLowerCase())
+          ? program
+          : `${current} - ${program}`;
+        formatted.push(combined);
+      });
+
+      i = j - 1;
+    }
+
+    return mergeUniqueLines(formatted, []);
+  }
+
   function getSelectedThemeId() {
     const selected = String(templateSelect?.value || BLANK_LAYOUT_ID);
     if (selected === BLANK_LAYOUT_ID) return BLANK_LAYOUT_ID;
@@ -850,6 +901,7 @@ document.addEventListener('DOMContentLoaded', function () {
       // Keep user-provided education/certifications complete even if AI rewrite omits items.
       parsed.education = mergeUniqueLines(parsed.education, parsedBaseline.education);
       parsed.awards = mergeUniqueLines(parsed.awards, parsedBaseline.awards);
+      parsed.education = formatEducationEntries(parsed.education);
 
       lastStructuredResume = buildResumeModel(parsed, jobTitle, selectedThemeId);
       output.innerHTML = renderResumeTemplate(lastStructuredResume);
