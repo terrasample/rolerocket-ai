@@ -2167,8 +2167,26 @@ document.addEventListener('DOMContentLoaded', function () {
   const checkoutParams = new URLSearchParams(window.location.search);
   const checkoutResult = checkoutParams.get('docCredits');
   if (checkoutResult === 'success') {
-    statusBanner('Credits added successfully. You can generate now.', true);
-    loadResumeCreditStatus().catch(() => {});
+    statusBanner('Payment received! Loading your credits...', true);
+
+    // Poll until credits appear (webhook may be slightly delayed)
+    let attempts = 0;
+    const maxAttempts = 10;
+    const pollInterval = setInterval(async () => {
+      attempts++;
+      try {
+        const status = await loadResumeCreditStatus();
+        if (status && (status.unlimited || status.canGenerate)) {
+          clearInterval(pollInterval);
+          statusBanner('Credits added successfully. You can generate now.', true);
+        } else if (attempts >= maxAttempts) {
+          clearInterval(pollInterval);
+          statusBanner('Credits may take a moment to appear. Refresh the page if the button is still locked.', false);
+        }
+      } catch (_) {
+        if (attempts >= maxAttempts) clearInterval(pollInterval);
+      }
+    }, 2000);
   } else if (checkoutResult === 'cancel') {
     statusBanner('Checkout canceled. You can continue with your free generation or purchase anytime.', false);
   }

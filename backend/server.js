@@ -5641,16 +5641,21 @@ app.post(
         const session = event.data.object;
         const userId = session.metadata?.userId;
 
+        console.log(`[STRIPE WEBHOOK] checkout.session.completed | session=${session.id} | type=${session.metadata?.type} | userId=${userId || 'MISSING'}`);
+
         if (userId) {
           if (session.metadata?.type === 'document_bundle') {
+            const credits = Number(session.metadata?.docCredits || 0);
+            console.log(`[STRIPE WEBHOOK] Granting ${credits} document credits to userId=${userId}`);
             await grantDocumentCreditsFromCheckout({
               userId,
-              credits: Number(session.metadata?.docCredits || 0),
+              credits,
               bundleId: session.metadata?.docBundle || 'custom',
               amountCents: Number(session.metadata?.docAmountCents || 0),
               currency: session.currency || 'usd',
               stripeSessionId: session.id || ''
             });
+            console.log(`[STRIPE WEBHOOK] Successfully granted credits to userId=${userId}`);
           } else if (session.metadata?.type === 'lifetime') {
             await User.findByIdAndUpdate(userId, {
               isSubscribed: true,
@@ -10391,6 +10396,79 @@ app.get('/api/admin/telemetry/summary', authenticateToken, requireAnalyticsAcces
   } catch (err) {
     console.error('Telemetry summary error:', err);
     return res.status(500).json({ error: 'Failed to load telemetry summary' });
+  }
+});
+
+// Admin: manually grant document credits to a user (e.g. if webhook failed after payment)
+app.post('/api/admin/grant-document-credits', authenticateToken, requireAdminAccess, async (req, res) => {
+  try {
+    const { email, credits, note } = req.body || {};
+    if (!email || !Number.isFinite(Number(credits)) || Number(credits) <= 0) {
+      return res.status(400).json({ error: 'email and a positive credits number are required' });
+    }
+
+    const target = await User.findOne({ email: String(email).toLowerCase().trim() }).select('email name plan documentGeneration');
+    if (!target) return res.status(404).json({ error: `No user found with email: ${email}` });
+
+    const { ensureWallet } = require('./services/documentGenerationBilling');
+    if (!target.documentGeneration || typeof target.documentGeneration !== 'object') {
+      target.documentGeneration = { paidCredits: 0, resumeFirstFreeUsed: false, coverLetterFirstFreeUsed: false, totalCreditsPurchased: 0, purchases: [] };
+    }
+    if (!Array.isArray(target.documentGeneration.purchases)) target.documentGeneration.purchases = [];
+    if (!Number.isFinite(Number(target.documentGeneration.paidCredits))) target.documentGeneration.paidCredits = 0;
+    if (!Number.isFinite(Number(target.documentGeneration.totalCreditsPurchased))) target.documentGeneration.totalCreditsPurchased = 0;
+
+    const grantCount = Math.max(1, Math.floor(Number(credits)));
+    target.documentGeneration.paidCredits = Number(target.documentGeneration.paidCredits) + grantCount;
+    target.documentGeneration.totalCreditsPurchased = Number(target.documentGeneration.totalCreditsPurchased) + grantCount;
+    target.documentGeneration.purchases.push({
+      bundleId: 'admin-grant',
+      credits: grantCount,
+      amountCents: 0,
+      currency: 'usd',
+      stripeSessionId: '',
+      note: String(note || 'Manual admin grant').slice(0, 200),
+      purchasedAt: new Date()
+    });
+    target.markModified('documentGeneration');
+    await target.save();
+
+    console.log(`[ADMIN] Granted ${grantCount} document credits to ${email} by admin ${req.currentUser.email}`);
+
+    return res.json({
+      success: true,
+      email: target.email,
+      granted: grantCount,
+      newBalance: target.documentGeneration.paidCredits
+    });
+  } catch (err) {
+    console.error('Admin grant-document-credits error:', err);
+    return res.status(500).json({ error: err.message || 'Failed to grant credits' });
+  }
+});
+
+// Admin: view document credit balance for a user
+app.get('/api/admin/document-credits', authenticateToken, requireAdminAccess, async (req, res) => {
+  try {
+    const email = String(req.query.email || '').toLowerCase().trim();
+    if (!email) return res.status(400).json({ error: 'email query param required' });
+
+    const target = await User.findOne({ email }).select('email name plan documentGeneration');
+    if (!target) return res.status(404).json({ error: `No user found with email: ${email}` });
+
+    return res.json({
+      email: target.email,
+      name: target.name || '',
+      plan: target.plan || 'free',
+      paidCredits: Number(target.documentGeneration?.paidCredits || 0),
+      totalCreditsPurchased: Number(target.documentGeneration?.totalCreditsPurchased || 0),
+      resumeFirstFreeUsed: Boolean(target.documentGeneration?.resumeFirstFreeUsed),
+      coverLetterFirstFreeUsed: Boolean(target.documentGeneration?.coverLetterFirstFreeUsed),
+      purchases: target.documentGeneration?.purchases || []
+    });
+  } catch (err) {
+    console.error('Admin document-credits error:', err);
+    return res.status(500).json({ error: err.message || 'Failed to load credits' });
   }
 });
 
