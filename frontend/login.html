@@ -690,13 +690,14 @@
       const qrEl = document.getElementById('mobileLoginQr');
       if (!linkEl || !qrEl) return;
 
-      const loginUrl = `${window.location.origin}/login.html`;
+      const loginUrl = window.location.protocol === 'file:'
+        ? 'https://www.rolerocketai.com/login.html'
+        : `${window.location.origin}/login.html`;
       linkEl.href = loginUrl;
       qrEl.src = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(loginUrl)}`;
     })();
   </script>
 
   <script src="js/return-navigation.js"></script>
-  <script src="js/nav-plan-sync.js"></script>
 </body>
 </html>
