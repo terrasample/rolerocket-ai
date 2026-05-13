@@ -3617,7 +3617,7 @@ pre {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 48px;
-  align-items: stretch;
+  align-items: start;
 }
 
 .auth-shell > * {
@@ -4080,11 +4080,11 @@ pre {
 
 /* Auth left sections */
 .auth-left-top {
-  margin-bottom: 16px;
+  margin-bottom: 10px;
 }
 
 .auth-left-middle {
-  margin-bottom: 20px;
+  margin-bottom: 14px;
   display: flex;
   justify-content: center;
 }
@@ -4157,10 +4157,11 @@ pre {
 /* Top badge section with secondary CTA */
 .top-badge-section {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 20px;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 10px;
+  margin-bottom: 12px;
   flex-wrap: wrap;
 }
 
@@ -4169,12 +4170,12 @@ pre {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 8px 18px;
+  padding: 7px 16px;
   background: rgba(59, 130, 246, 0.15);
   color: #2563eb;
   border: 1.5px solid #3b82f6;
   border-radius: 8px;
-  font-size: 0.9rem;
+  font-size: 0.86rem;
   font-weight: 700;
   text-decoration: none;
   cursor: pointer;
