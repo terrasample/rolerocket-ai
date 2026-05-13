@@ -3991,19 +3991,20 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   // jobs_menu is a navigation step — not a data-capture step — so resume/cover/explore intents can break out of it freely.
   // Only true data-capture steps (where a typed response is expected) should be locked.
   const lockMenuIntentRouting = ['resume_capture', 'cover_letter_capture', 'job_tailor_choice', 'interview_target', 'jobs_import', 'jobs_role_input', 'jobs_parish_select', 'demo_features'].includes(String(convo.currentStep || ''));
+    const hasForcedIntent = Boolean(forcedIntent);
     const forceDemoIntent = forcedIntent === 'demo'
       || /\bwatch\s+demo\s+features\b/.test(textCanonical)
       || /^demo\s+features$/.test(textCanonical)
       || /^watch_demo_features$/.test(textCanonical)
       || /^demo_features$/.test(textCanonical);
-    const isDemoIntent = forceDemoIntent || (!lockMenuIntentRouting && (text === '1' || detectedIntent.intent === 'demo'));
-    const isJobsIntent = (forcedIntent === 'jobs') || (!lockMenuIntentRouting && (text === '2' || (detectedIntent.intent === 'jobs' && !text.startsWith('apply'))));
-    const isResumeIntent = (forcedIntent === 'resume') || (!lockMenuIntentRouting && !isFollowupSaveExportCommand && (text === '3' || detectedIntent.intent === 'resume'));
-    const isCoverLetterIntent = (forcedIntent === 'coverLetter') || (!lockMenuIntentRouting && !isFollowupSaveExportCommand && (text === '4' || detectedIntent.intent === 'coverLetter'));
+    const isDemoIntent = forceDemoIntent || (!lockMenuIntentRouting && !hasForcedIntent && (text === '1' || detectedIntent.intent === 'demo'));
+    const isJobsIntent = (forcedIntent === 'jobs') || (!lockMenuIntentRouting && !hasForcedIntent && (text === '2' || (detectedIntent.intent === 'jobs' && !text.startsWith('apply'))));
+    const isResumeIntent = (forcedIntent === 'resume') || (!lockMenuIntentRouting && !hasForcedIntent && !isFollowupSaveExportCommand && (text === '3' || detectedIntent.intent === 'resume'));
+    const isCoverLetterIntent = (forcedIntent === 'coverLetter') || (!lockMenuIntentRouting && !hasForcedIntent && !isFollowupSaveExportCommand && (text === '4' || detectedIntent.intent === 'coverLetter'));
   // Explore intent: match '5', detected explore, or button text containing 'explore' + 'features'/'paid' (for interactive template buttons)
-  const isExploreIntent = (forcedIntent === 'explore') || (!lockMenuIntentRouting && (text === '5' || detectedIntent.intent === 'explore' || (/\bexplore\b/.test(String(text).toLowerCase()) && /\b(features|paid|upgrade)\b/.test(String(text).toLowerCase()))));
-  const isInterviewIntent = !lockMenuIntentRouting && (text === 'interview' || detectedIntent.intent === 'interview');
-  const isStatusIntent = (forcedIntent === 'status') || (!lockMenuIntentRouting && (text === 'status' || detectedIntent.intent === 'status'));
+  const isExploreIntent = (forcedIntent === 'explore') || (!lockMenuIntentRouting && !hasForcedIntent && (text === '5' || detectedIntent.intent === 'explore' || (/\bexplore\b/.test(String(text).toLowerCase()) && /\b(features|paid|upgrade)\b/.test(String(text).toLowerCase()))));
+  const isInterviewIntent = (forcedIntent === 'interview') || (!lockMenuIntentRouting && !hasForcedIntent && (text === 'interview' || detectedIntent.intent === 'interview'));
+  const isStatusIntent = (forcedIntent === 'status') || (!lockMenuIntentRouting && !hasForcedIntent && (text === 'status' || detectedIntent.intent === 'status'));
   const isHumanIntent = strictHumanIntent || forcedIntent === 'human';
 
   if (convo.currentStep === 'menu' && incoming && !hasInboundAudio && detectedIntent.intent === 'unclear') {
@@ -4024,6 +4025,49 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       intent: detectedIntent.intent,
       confidence: detectedIntent.confidence
     });
+  }
+
+  if (isStatusIntent) {
+    const applications = await Application.find({ userId: phone }).sort({ createdAt: -1 }).limit(2).lean();
+    await trackWhatsAppTelemetry(phone, 'whatsapp_status_checked', { applicationCount: applications.length });
+    const reply = !applications.length
+      ? 'No tracked applications yet. Use the Jobs button to find roles now.'
+      : [
+          'Latest tracked applications:',
+          ...applications.map((item, idx) => `${idx + 1}. ${item.jobTitle || 'Role'} @ ${item.company || 'Company'} - ${String(item.status || 'applied').toUpperCase()}`),
+          'Use the interactive buttons for new jobs or support.'
+        ].join('\n');
+
+    user.lastIntent = 'status';
+    convo.lastIntent = 'status';
+    convo.currentStep = 'menu';
+    convo.lastOutboundMessage = reply;
+    convo.lastOutboundAt = new Date();
+    await Promise.all([user.save(), convo.save()]);
+    return reply;
+  }
+
+  if (isHumanIntent) {
+    user.lastIntent = 'human';
+    convo.lastIntent = 'human';
+    convo.currentStep = 'human_handoff';
+    await trackWhatsAppTelemetry(phone, 'whatsapp_human_handoff_requested', {});
+
+    const alertDelivered = await sendWhatsAppHumanSupportAlert({ phone, incoming, user, convo });
+    convo.metadata.pendingHumanAlert = !alertDelivered;
+    convo.metadata.lastHumanAlertAt = new Date().toISOString();
+
+    const reply = [
+      'You are connected to human support.',
+      'Share: target job, location, years exp.',
+      alertDelivered
+        ? 'Alert sent to support. A recruiter will follow up shortly.'
+        : 'Alert queued for support. Use the Human Support button again if urgent.'
+    ].join('\n');
+    convo.lastOutboundMessage = reply;
+    convo.lastOutboundAt = new Date();
+    await Promise.all([user.save(), convo.save()]);
+    return reply;
   }
 
   if (isDemoIntent) {
@@ -4057,18 +4101,6 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     return reply;
   }
 
-  if (isJobsIntent) {
-    user.lastIntent = 'jobs';
-    convo.lastIntent = 'jobs';
-    convo.currentStep = 'jobs_menu';
-    await trackWhatsAppTelemetry(phone, 'whatsapp_jobs_menu_enter', {});
-    const reply = 'What would you like to do with jobs? Use SEARCH, IMPORT, SAVE, or MAIN MENU.';
-    convo.lastOutboundMessage = reply;
-    convo.lastOutboundAt = new Date();
-    await Promise.all([user.save(), convo.save()]);
-    return reply;
-  }
-
   if (convo.currentStep === 'jobs_menu' && ['search', 'search jobs'].includes(textCanonical)) {
     convo.currentStep = 'jobs_role_input';
     await trackWhatsAppTelemetry(phone, 'whatsapp_jobs_step_enter', {});
@@ -4091,6 +4123,18 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
     await convo.save();
+    return reply;
+  }
+
+  if (isJobsIntent) {
+    user.lastIntent = 'jobs';
+    convo.lastIntent = 'jobs';
+    convo.currentStep = 'jobs_menu';
+    await trackWhatsAppTelemetry(phone, 'whatsapp_jobs_menu_enter', {});
+    const reply = 'What would you like to do with jobs? Use SEARCH, IMPORT, SAVE, or MAIN MENU.';
+    convo.lastOutboundMessage = reply;
+    convo.lastOutboundAt = new Date();
+    await Promise.all([user.save(), convo.save()]);
     return reply;
   }
 
@@ -4392,6 +4436,10 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     return reply;
   }
 
+  if (convo.currentStep === 'explore_features' && /^(status|0|human|agent|support|technical support|human support|live support|live agent)$/.test(textCanonical)) {
+    convo.currentStep = 'menu';
+  }
+
   if (convo.currentStep === 'explore_features') {
     const language = String(convo.metadata?.context?.language || 'english');
     const userPlan = String(effectivePlan || 'free').toLowerCase();
@@ -4482,49 +4530,6 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       'Step 1: Send role or company.',
       'Example: GraceKennedy Customer Service Rep',
       'I will give likely questions + best answers.'
-    ].join('\n');
-    convo.lastOutboundMessage = reply;
-    convo.lastOutboundAt = new Date();
-    await Promise.all([user.save(), convo.save()]);
-    return reply;
-  }
-
-  if (isStatusIntent) {
-    const applications = await Application.find({ userId: phone }).sort({ createdAt: -1 }).limit(2).lean();
-    await trackWhatsAppTelemetry(phone, 'whatsapp_status_checked', { applicationCount: applications.length });
-    const reply = !applications.length
-      ? 'No tracked applications yet. Use the Jobs button to find roles now.'
-      : [
-          'Latest tracked applications:',
-          ...applications.map((item, idx) => `${idx + 1}. ${item.jobTitle || 'Role'} @ ${item.company || 'Company'} - ${String(item.status || 'applied').toUpperCase()}`),
-          'Use the interactive buttons for new jobs or support.'
-        ].join('\n');
-
-    user.lastIntent = 'status';
-    convo.lastIntent = 'status';
-    convo.currentStep = 'menu';
-    convo.lastOutboundMessage = reply;
-    convo.lastOutboundAt = new Date();
-    await Promise.all([user.save(), convo.save()]);
-    return reply;
-  }
-
-  if (isHumanIntent) {
-    user.lastIntent = 'human';
-    convo.lastIntent = 'human';
-    convo.currentStep = 'human_handoff';
-    await trackWhatsAppTelemetry(phone, 'whatsapp_human_handoff_requested', {});
-
-    const alertDelivered = await sendWhatsAppHumanSupportAlert({ phone, incoming, user, convo });
-    convo.metadata.pendingHumanAlert = !alertDelivered;
-    convo.metadata.lastHumanAlertAt = new Date().toISOString();
-
-    const reply = [
-      'You are connected to human support.',
-      'Share: target job, location, years exp.',
-      alertDelivered
-        ? 'Alert sent to support. A recruiter will follow up shortly.'
-        : 'Alert queued for support. Use the Human Support button again if urgent.'
     ].join('\n');
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
