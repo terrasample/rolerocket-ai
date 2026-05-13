@@ -43,7 +43,7 @@
     const country = normalizeCountryCode(source.effectiveCountry || fallbackCountry || readCachedExperienceCountry());
     return {
       effectiveCountry: country,
-      showJamaicaHub: source.showJamaicaHub === true,
+      showJamaicaHub: source.showJamaicaHub === true && country === 'JM',
       requiresChoice: source.requiresChoice === true,
       source: source.source || (source.effectiveCountry ? 'server' : 'fallback'),
       updatedAt: Date.now()

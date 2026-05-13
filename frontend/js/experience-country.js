@@ -418,7 +418,7 @@
           var savedCountry = normalizeCountryCode((saved && saved.effectiveCountry) || selected);
           var savedContext = publishPersonalizationContext({
             effectiveCountry: savedCountry,
-            showJamaicaHub: saved && saved.showJamaicaHub === true,
+            showJamaicaHub: saved && saved.showJamaicaHub === true && savedCountry === 'JM',
             requiresChoice: false,
             source: 'user'
           });
@@ -516,7 +516,7 @@
         var savedCountry = normalizeCountryCode((saved && saved.effectiveCountry) || selected);
         var savedContext = publishPersonalizationContext({
           effectiveCountry: savedCountry,
-          showJamaicaHub: saved && saved.showJamaicaHub === true,
+          showJamaicaHub: saved && saved.showJamaicaHub === true && savedCountry === 'JM',
           requiresChoice: false,
           source: 'user'
         });
@@ -595,7 +595,7 @@
         var savedCountry = normalizeCountryCode((saved && saved.effectiveCountry) || selected);
         var savedContext = publishPersonalizationContext({
           effectiveCountry: savedCountry,
-          showJamaicaHub: saved && saved.showJamaicaHub === true,
+          showJamaicaHub: saved && saved.showJamaicaHub === true && savedCountry === 'JM',
           requiresChoice: false,
           source: 'user'
         });
@@ -667,8 +667,9 @@
     var context = await fetchExperienceContext();
 
     var effectiveCountry = context.effectiveCountry || 'GLOBAL';
-    publishPersonalizationContext(context);
-    hideJamaicaElements(context.showJamaicaHub);
+    var normalizedShowJamaicaHub = context.showJamaicaHub === true && effectiveCountry === 'JM';
+    publishPersonalizationContext(Object.assign({}, context, { showJamaicaHub: normalizedShowJamaicaHub }));
+    hideJamaicaElements(normalizedShowJamaicaHub);
     applyDashboardVariant(effectiveCountry);
     applyCountryTheme(effectiveCountry);
     insertSidebarSwitcher(context);
@@ -676,7 +677,7 @@
     showFirstVisitPickerIfNeeded(context);
 
     var onJamaicaPage = window.location.pathname.indexOf('jamaica-workforce-accelerator.html') !== -1;
-    if (onJamaicaPage && !context.showJamaicaHub) {
+    if (onJamaicaPage && !normalizedShowJamaicaHub) {
       window.location.replace('dashboard.html?experience=global');
     }
   }
