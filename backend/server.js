@@ -2226,6 +2226,7 @@ function detectWhatsAppIntent(text = '') {
   if (!normalized) return { intent: 'unclear', confidence: 0, topScore: 0, tie: false };
 
   const score = {
+    demo: 0,
     jobs: 0,
     resume: 0,
     coverLetter: 0,
@@ -2235,13 +2236,15 @@ function detectWhatsAppIntent(text = '') {
     human: 0
   };
 
-  if (normalized === '1') score.jobs += 10;
-  if (normalized === '2') score.resume += 10;
-  if (normalized === '3') score.coverLetter += 10;
-  if (normalized === '4') score.explore += 10;
+  if (normalized === '1') score.demo += 10;
+  if (normalized === '2') score.jobs += 10;
+  if (normalized === '3') score.resume += 10;
+  if (normalized === '4') score.coverLetter += 10;
+  if (normalized === '5') score.explore += 10;
   if (normalized === '0') score.human += 10;
   if (normalized === 'status') score.status += 10;
 
+  if (/(watch\s+demo|demo\s+features|feature\s+demo|show\s+demo|how\s+it\s+works|first\s+glance|quick\s+tour|walkthrough)/.test(normalized)) score.demo += 5;
   if (/\bjob|jobs|apply|vacanc|hiring|position\b/.test(normalized)) score.jobs += 3;
   if (/\bresume|cv|experience|work history|rewrite\b/.test(normalized)) score.resume += 3;
   if (/\bcover\s*letter|coverletter|letter\b/.test(normalized)) score.coverLetter += 3;
@@ -2263,8 +2266,8 @@ function detectWhatsAppIntent(text = '') {
 function getWhatsAppClarificationPrompt() {
   return [
     'I can help with one of these now:',
-    '1 Jobs | 2 Resume | 3 Cover Letter',
-    '4 Explore Features | STATUS | 0 Technical Support',
+    '1 Watch Demo Features | 2 Jobs | 3 Resume | 4 Cover Letter',
+    '5 Explore Features | STATUS | 0 Technical Support',
     'Reply with one option.'
   ].join('\n');
 }
@@ -2366,7 +2369,7 @@ async function sendWhatsAppHumanSupportAlert({ phone, incoming, user, convo }) {
 }
 
 function getWhatsAppNextStepPrompt() {
-  return 'Next: choose Jobs, Resume, Cover Letter, Explore, or Technical Support.';
+  return 'Next: choose Demo Features, Jobs, Resume, Cover Letter, Explore, or Technical Support.';
 }
 
 function getWhatsAppLanguagePrompt() {
@@ -2389,10 +2392,11 @@ function getWhatsAppMenuText(language = 'english') {
   if (language === 'spanish') {
     return [
       'RoleRocket AI Recruit: Lets Land Your Dream Career 🚀',
-      '1. Buscar y guardar empleos',
-      '2. Crear y guardar/exportar curriculo',
-      '3. Crear y guardar/exportar carta de presentacion',
-      '4. Explorar otras funciones',
+      '1. Ver demo de funciones',
+      '2. Buscar y guardar empleos',
+      '3. Crear y guardar/exportar curriculo',
+      '4. Crear y guardar/exportar carta de presentacion',
+      '5. Explorar otras funciones',
       '0. Soporte tecnico',
       'Usa los botones interactivos para continuar.'
     ].join('\n');
@@ -2400,12 +2404,33 @@ function getWhatsAppMenuText(language = 'english') {
 
   return [
     'RoleRocket AI Recruit: Lets Land Your Dream Career 🚀',
-    '1. Search & Save Jobs',
-    '2. Create and Save/Export Resume',
-    '3. Create and Save/Export Cover Letter',
-    '4. Explore other features',
+    '1. Watch Demo Features',
+    '2. Search & Save Jobs',
+    '3. Create and Save/Export Resume',
+    '4. Create and Save/Export Cover Letter',
+    '5. Explore other features',
     '0. Technical Support',
     'Use the interactive buttons to continue.'
+  ].join('\n');
+}
+
+function getWhatsAppDemoFeaturesText(language = 'english') {
+  if (language === 'spanish') {
+    return [
+      '🎬 Demo de funciones (primer vistazo):',
+      '1) Demo CV + Carta de presentacion',
+      '2) Demo Buscar + Importar + Seguimiento',
+      '3) Ver ambos demos',
+      'Responde 1, 2 o 3. Usa Main Menu para volver.'
+    ].join('\n');
+  }
+
+  return [
+    '🎬 Demo Features (first glance):',
+    '1) Resume + Cover Letter demo',
+    '2) Search + Import + Track demo',
+    '3) Show both demos',
+    'Reply 1, 2, or 3. Use Main Menu to return anytime.'
   ].join('\n');
 }
 
@@ -2542,7 +2567,8 @@ function getWhatsAppPreviousStep(currentStep = '') {
     interview_target: 'menu',
     job_tailor_choice: 'jobs_action',
     human_handoff: 'menu',
-    explore_features: 'menu'
+    explore_features: 'menu',
+    demo_features: 'menu'
   };
   return previousByStep[step] || 'menu';
 }
@@ -2608,6 +2634,7 @@ function getWhatsAppStepPrompt(step = '', user = {}, convo = {}) {
       'I will give likely questions + best answers.'
     ].join('\n');
   }
+  if (safeStep === 'demo_features') return getWhatsAppDemoFeaturesText(language);
   if (safeStep === 'explore_features') return getWhatsAppPaidFeaturesOverviewText(language);
   return getWhatsAppMenuText(language);
 }
@@ -3493,8 +3520,8 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   if (text === 'help') {
     const reply = [
       'Quick commands:',
-      'START | 1 Jobs | 2 Resume | 3 Cover Letter',
-      '4 Explore | STATUS | INTERVIEW | 0 Technical Support',
+      'START | 1 Watch Demo Features | 2 Jobs | 3 Resume | 4 Cover Letter',
+      '5 Explore | STATUS | INTERVIEW | 0 Technical Support',
       'STOP to opt out'
     ].join('\n');
     convo.lastOutboundMessage = reply;
@@ -3664,12 +3691,13 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   const strictHumanIntent = ['0', 'human', 'agent', 'support', 'human support', 'live agent', 'live support'].includes(text);
   // jobs_menu is a navigation step — not a data-capture step — so resume/cover/explore intents can break out of it freely.
   // Only true data-capture steps (where a typed response is expected) should be locked.
-  const lockMenuIntentRouting = ['resume_capture', 'cover_letter_capture', 'job_tailor_choice', 'interview_target', 'jobs_import', 'jobs_role_input', 'jobs_parish_select'].includes(String(convo.currentStep || ''));
-  const isJobsIntent = !lockMenuIntentRouting && (text === '1' || (detectedIntent.intent === 'jobs' && !text.startsWith('apply')));
-  const isResumeIntent = !lockMenuIntentRouting && !isFollowupSaveExportCommand && (text === '2' || detectedIntent.intent === 'resume');
-  const isCoverLetterIntent = !lockMenuIntentRouting && !isFollowupSaveExportCommand && (text === '3' || detectedIntent.intent === 'coverLetter');
-  // Explore intent: match '4', detected explore, or button text containing 'explore' + 'features'/'paid' (for interactive template buttons)
-  const isExploreIntent = !lockMenuIntentRouting && (text === '4' || detectedIntent.intent === 'explore' || (/\bexplore\b/.test(String(text).toLowerCase()) && /\b(features|paid|upgrade)\b/.test(String(text).toLowerCase())));
+  const lockMenuIntentRouting = ['resume_capture', 'cover_letter_capture', 'job_tailor_choice', 'interview_target', 'jobs_import', 'jobs_role_input', 'jobs_parish_select', 'demo_features'].includes(String(convo.currentStep || ''));
+  const isDemoIntent = !lockMenuIntentRouting && (text === '1' || detectedIntent.intent === 'demo');
+  const isJobsIntent = !lockMenuIntentRouting && (text === '2' || (detectedIntent.intent === 'jobs' && !text.startsWith('apply')));
+  const isResumeIntent = !lockMenuIntentRouting && !isFollowupSaveExportCommand && (text === '3' || detectedIntent.intent === 'resume');
+  const isCoverLetterIntent = !lockMenuIntentRouting && !isFollowupSaveExportCommand && (text === '4' || detectedIntent.intent === 'coverLetter');
+  // Explore intent: match '5', detected explore, or button text containing 'explore' + 'features'/'paid' (for interactive template buttons)
+  const isExploreIntent = !lockMenuIntentRouting && (text === '5' || detectedIntent.intent === 'explore' || (/\bexplore\b/.test(String(text).toLowerCase()) && /\b(features|paid|upgrade)\b/.test(String(text).toLowerCase())));
   const isInterviewIntent = !lockMenuIntentRouting && (text === 'interview' || detectedIntent.intent === 'interview');
   const isStatusIntent = !lockMenuIntentRouting && (text === 'status' || detectedIntent.intent === 'status');
   const isHumanIntent = strictHumanIntent;
@@ -3692,6 +3720,19 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       intent: detectedIntent.intent,
       confidence: detectedIntent.confidence
     });
+  }
+
+  if (isDemoIntent) {
+    user.lastIntent = 'demo_features';
+    convo.lastIntent = 'demo_features';
+    convo.currentStep = 'demo_features';
+    const language = String(convo.metadata?.context?.language || 'english');
+    const reply = getWhatsAppDemoFeaturesText(language);
+    await trackWhatsAppTelemetry(phone, 'whatsapp_demo_features_enter', {});
+    convo.lastOutboundMessage = reply;
+    convo.lastOutboundAt = new Date();
+    await Promise.all([user.save(), convo.save()]);
+    return reply;
   }
 
   if (isJobsIntent) {
@@ -3906,6 +3947,66 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       ...saved.map((j, i) => `${i + 1}) ${j.jobTitle || 'Role'}${j.company ? ' @ ' + j.company : ''}`),
       'Use Jobs actions for Search, or Main Menu to return.'
     ].join('\n');
+    convo.lastOutboundMessage = reply;
+    convo.lastOutboundAt = new Date();
+    await convo.save();
+    return reply;
+  }
+
+  if (convo.currentStep === 'demo_features') {
+    const experienceCountry = resolveWhatsAppExperienceCountry({ user, convo });
+    const importToken = createWhatsAppImportToken(phone);
+    const resumeUrl = `${getPublicAppBaseUrl()}/resume-generator.html?source=whatsapp-demo`;
+    const coverLetterUrl = `${getPublicAppBaseUrl()}/cover-letter-generator.html?source=whatsapp-demo`;
+    const jobsSearchUrl = `${getPublicAppBaseUrl()}/whatsapp-premium-jobs.html?country=${experienceCountry}`;
+    const jobsImportUrl = importToken
+      ? `${getPublicAppBaseUrl()}/whatsapp-import-save-jobs.html?phone=${encodeURIComponent(phone)}&token=${encodeURIComponent(importToken)}`
+      : `${getPublicAppBaseUrl()}/whatsapp-import-save-jobs.html`;
+    const trackerUrl = `${getPublicAppBaseUrl()}/job-tracking.html?source=whatsapp-demo`;
+    const wantsResumeDemo = ['1', 'resume', 'resume demo', 'cover letter demo', 'resume + cover letter', 'resume and cover letter'].includes(textCanonical);
+    const wantsJobsDemo = ['2', 'jobs', 'jobs demo', 'search import track', 'search + import + track', 'search and import and track'].includes(textCanonical);
+    const wantsBoth = ['3', 'both', 'all', 'all demos', 'show both demos'].includes(textCanonical);
+
+    if (!wantsResumeDemo && !wantsJobsDemo && !wantsBoth) {
+      const language = String(convo.metadata?.context?.language || 'english');
+      const reply = getWhatsAppDemoFeaturesText(language);
+      convo.lastOutboundMessage = reply;
+      convo.lastOutboundAt = new Date();
+      await convo.save();
+      return reply;
+    }
+
+    const sections = [];
+    if (wantsResumeDemo || wantsBoth) {
+      sections.push([
+        'Demo 1: Resume + Cover Letter',
+        `Resume Generator: ${resumeUrl}`,
+        `Cover Letter Generator: ${coverLetterUrl}`,
+        'Try this flow: open Resume -> create draft -> open Cover Letter -> generate a targeted letter.'
+      ].join('\n'));
+    }
+    if (wantsJobsDemo || wantsBoth) {
+      sections.push([
+        'Demo 2: Search + Import + Track',
+        `Search Jobs: ${jobsSearchUrl}`,
+        `Import Jobs: ${jobsImportUrl}`,
+        `Track Pipeline: ${trackerUrl}`,
+        'Try this flow: search jobs -> import/save one role -> update status in Job Tracking.'
+      ].join('\n'));
+    }
+
+    const reply = [
+      'Great pick. Here is your demo walkthrough:',
+      '',
+      sections.join('\n\n'),
+      '',
+      'Reply 1/2/3 for another demo, or use Main Menu anytime.'
+    ].join('\n');
+
+    await trackWhatsAppTelemetry(phone, 'whatsapp_demo_features_viewed', {
+      mode: wantsBoth ? 'both' : (wantsResumeDemo ? 'resume_cover' : 'search_import_track'),
+      country: experienceCountry
+    });
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
     await convo.save();
