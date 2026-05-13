@@ -8159,6 +8159,26 @@ function getMockNYProjectManagerJobs(title, location, resume) {
       postedAt: new Date(Date.now() - 2*24*60*60*1000),
       matchScore: 84,
       source: 'Sample Data'
+    },
+    {
+      title: 'Project Manager II - Infrastructure',
+      company: 'Morgan Stanley',
+      location: '1585 Broadway, New York, NY',
+      link: 'https://morganstanley.com/careers/project-manager-infrastructure',
+      description: 'Lead infrastructure modernization projects and manage vendor relationships.',
+      postedAt: new Date(Date.now() - 1*24*60*60*1000),
+      matchScore: 86,
+      source: 'Sample Data'
+    },
+    {
+      title: 'Senior Program Manager - Strategic Initiatives',
+      company: 'Alphabet Inc.',
+      location: 'New York, NY',
+      link: 'https://careers.google.com/jobs/results/project-manager-nyc',
+      description: 'Drive strategic initiatives and manage high-impact projects across teams.',
+      postedAt: new Date(Date.now() - 0*24*60*60*1000),
+      matchScore: 90,
+      source: 'Sample Data'
     }
   ];
 

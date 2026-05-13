@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Top Matches Test - RoleRocket</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 2.5em;
+        }
+        .search-section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 40px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+        .search-inputs {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        input {
+            flex: 1;
+            min-width: 200px;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        button {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .results {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        .job-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+        }
+        .job-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+        }
+        .job-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+        }
+        .job-title {
+            font-size: 1.3em;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .job-company {
+            font-size: 0.95em;
+            opacity: 0.95;
+        }
+        .job-body {
+            padding: 20px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .job-location {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #666;
+            margin-bottom: 12px;
+            font-size: 0.95em;
+        }
+        .job-match {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+            width: fit-content;
+            margin-bottom: 12px;
+        }
+        .job-description {
+            color: #555;
+            font-size: 0.95em;
+            line-height: 1.5;
+            margin-bottom: 15px;
+            flex: 1;
+        }
+        .job-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 12px;
+            border-top: 1px solid #e0e0e0;
+            font-size: 0.85em;
+            color: #999;
+        }
+        .view-link {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            padding: 10px 16px;
+            border-radius: 6px;
+            background: #f5f5f5;
+            display: inline-block;
+            transition: all 0.3s;
+        }
+        .view-link:hover {
+            background: #667eea;
+            color: white;
+        }
+        .loading {
+            text-align: center;
+            color: white;
+            font-size: 1.2em;
+        }
+        .error {
+            background: #ff6b6b;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .empty {
+            text-align: center;
+            padding: 40px;
+            background: white;
+            border-radius: 8px;
+            color: #999;
+        }
+        .badge {
+            display: inline-block;
+            background: #e0e0e0;
+            color: #333;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75em;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Top Job Matches</h1>
+        
+        <div class="search-section">
+            <div class="search-inputs">
+                <input type="text" id="jobTitle" placeholder="Job title (e.g., Project Manager)" value="Project Manager">
+                <input type="text" id="jobLocation" placeholder="Location (e.g., NY, New York)" value="NY">
+                <button onclick="searchJobs()">Search Matches</button>
+            </div>
+        </div>
+
+        <div id="results" class="results"></div>
+    </div>
+
+    <script>
+        async function searchJobs() {
+            const title = document.getElementById('jobTitle').value.trim();
+            const location = document.getElementById('jobLocation').value.trim();
+            
+            if (!title || !location) {
+                showError('Please enter both job title and location');
+                return;
+            }
+
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<div class="loading">🔍 Searching for matches...</div>';
+
+            try {
+                const response = await fetch(`http://localhost:5001/api/jobs/scout?title=${encodeURIComponent(title)}&location=${encodeURIComponent(location)}`);
+                const data = await response.json();
+
+                if (!data.jobs || data.jobs.length === 0) {
+                    resultsDiv.innerHTML = '<div class="empty">No matches found. Try a different search.</div>';
+                    return;
+                }
+
+                resultsDiv.innerHTML = data.jobs.map((job, i) => `
+                    <div class="job-card" onclick="openJob('${job.link}')">
+                        <div class="job-header">
+                            <div class="job-title">${job.title}</div>
+                            <div class="job-company">${job.company}</div>
+                        </div>
+                        <div class="job-body">
+                            <div class="job-location">📍 ${job.location}</div>
+                            <div class="job-match">${job.matchScore}% Match</div>
+                            <div class="job-description">${job.description || 'Learn more about this opportunity.'}</div>
+                            <div class="job-meta">
+                                <span>${job.source}</span>
+                                <span>${getPostedTime(job.postedAt)}</span>
+                            </div>
+                            <div style="margin-top: 12px;">
+                                <a href="${job.link}" target="_blank" class="view-link">View Job →</a>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                showError(`Error: ${error.message}`);
+            }
+        }
+
+        function openJob(link) {
+            if (link && link !== '#') {
+                window.open(link, '_blank');
+            }
+        }
+
+        function showError(message) {
+            document.getElementById('results').innerHTML = `<div class="error">${message}</div>`;
+        }
+
+        function getPostedTime(dateStr) {
+            const date = new Date(dateStr);
+            const now = new Date();
+            const diff = now - date;
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            
+            if (days === 0) return 'Today';
+            if (days === 1) return 'Yesterday';
+            if (days < 7) return `${days}d ago`;
+            if (days < 30) return `${Math.floor(days / 7)}w ago`;
+            return `${Math.floor(days / 30)}m ago`;
+        }
+
+        // Auto-search on load
+        window.addEventListener('load', () => {
+            setTimeout(() => searchJobs(), 500);
+        });
+    </script>
+</body>
+</html>
