@@ -3869,19 +3869,17 @@ pre {
   line-height: 1.4;
 }
 
-/* Logo overlay - positioned over the left card */
+/* Logo placement above intro text on the left panel */
 .logo-overlay {
-  position: absolute;
-  top: -90px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 10;
-  margin-bottom: 20px;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  margin: 10px 0 14px;
 }
 
 .logo-overlay .login-title-logo {
-  width: clamp(160px, 18vw, 220px);
-  height: clamp(160px, 18vw, 220px);
+  width: clamp(132px, 14vw, 180px);
+  height: clamp(132px, 14vw, 180px);
   border-radius: 18px;
   box-shadow: 0 12px 32px rgba(2, 6, 23, 0.55);
   display: block;
@@ -3889,7 +3887,6 @@ pre {
 
 .premium-features-card {
   position: relative;
-  padding-top: 130px;
 }
 
 .login-testimonials {
