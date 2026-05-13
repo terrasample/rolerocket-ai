@@ -7094,6 +7094,23 @@ function locationToAdzunaCountries(location) {
   return [ADZUNA_COUNTRY];
 }
 
+function normalizeLocationForApiQuery(location) {
+  const loc = String(location || '').toLowerCase().trim();
+  const stateMap = {
+    'ny': 'New York',
+    'ca': 'California',
+    'fl': 'Florida',
+    'tx': 'Texas',
+    'co': 'Colorado',
+    'il': 'Illinois',
+    'wa': 'Washington',
+    'ma': 'Massachusetts',
+    'ga': 'Georgia'
+  };
+  if (stateMap[loc]) return stateMap[loc];
+  return String(location || '').trim();
+}
+
 async function fetchAdzunaJobs(title, location, resume, radiusMiles = 100) {
   if (!ADZUNA_APP_ID || !ADZUNA_APP_KEY) return [];
 
@@ -7105,7 +7122,8 @@ async function fetchAdzunaJobs(title, location, resume, radiusMiles = 100) {
   // city/region is given (not bare country names or Remote).
   const radiusKm = Math.round(radiusMiles * 1.60934);
   const locationLower = String(location || '').toLowerCase().trim();
-  const isBroadLocation = !locationLower || locationLower === 'remote' || locationLower === 'united states' || locationLower === 'united kingdom' || locationLower === 'canada' || locationLower === 'australia' || locationLower === 'jamaica';
+  const isBroadLocation = !locationLower || /^(remote|united states|united kingdom|canada|australia|jamaica)$/i.test(locationLower);
+  const normalizedLocation = normalizeLocationForApiQuery(location);
 
   const adzunaRequests = [];
   countries.forEach((country) => {
@@ -7124,7 +7142,7 @@ async function fetchAdzunaJobs(title, location, resume, radiusMiles = 100) {
         'content-type': 'application/json'
       });
       if (!isBroadLocation) {
-        params.set('where', location);
+        params.set('where', normalizedLocation);
         params.set('distance', String(radiusKm));
       }
       const url = `https://api.adzuna.com/v1/api/jobs/${country}/search/${page}?${params.toString()}`;
@@ -8003,9 +8021,10 @@ async function fetchUsaJobs(title, location, resume) {
   if (!USAJOBS_API_KEY || !USAJOBS_USER_AGENT) return [];
 
   const keyword = encodeURIComponent(title || '');
-  const locationName = encodeURIComponent(location || '');
+  const normalizedLocation = normalizeLocationForApiQuery(location);
+  const locationName = encodeURIComponent(normalizedLocation || '');
   const locationQuery = String(location || '').toLowerCase();
-  const usaPages = /united\s*states|\busa\b|\bus\b|america/.test(locationQuery) ? 4 : 1;
+  const usaPages = /united\s*states|\busa\b|\bus\b|america|\bny\b|\bca\b|\bfl\b|\bco\b|new york|california|texas|florida/.test(locationQuery) ? 4 : 1;
 
   const responses = await Promise.allSettled(
     Array.from({ length: usaPages }, (_, idx) => idx + 1).map((page) => {
