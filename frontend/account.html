@@ -323,6 +323,7 @@
 
 
     async function fetchLatestResume() {
+      if (!latestResumeContent) return; // Guard: element doesn't exist on this page
       try {
         const token = getStoredToken();
         const res = await fetch('/api/resume', { headers: { Authorization: `Bearer ${token}` } });
@@ -333,7 +334,7 @@
           latestResumeContent.textContent = 'No resume saved yet.';
         }
       } catch (err) {
-        latestResumeContent.textContent = 'Could not load resume.';
+        if (latestResumeContent) latestResumeContent.textContent = 'Could not load resume.';
         // Log error for debugging
         console.error('Resume load error:', err);
       }
