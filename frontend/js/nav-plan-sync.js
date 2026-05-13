@@ -409,17 +409,46 @@
   }
 
   function applyJamaicaHubVisibility(show) {
-    const nav = document.querySelector('#sidebarNav nav, .sidebar nav');
-    if (!nav) return;
-    const jamaicaLabel = nav.querySelector('.sidebar-section-label[data-section="jamaica"]');
-    const jamaicaLink = Array.from(nav.querySelectorAll('a.sidebar-link-btn'))
-      .find((l) => normalizePath(l.getAttribute('href') || '') === 'jamaica-workforce-accelerator.html');
-    const cohortLink = Array.from(nav.querySelectorAll('a.sidebar-link-btn'))
-      .find((l) => normalizePath(l.getAttribute('href') || '') === 'institution-cohort-manager.html');
+    // Handle both sidebar structures: with nav element and direct sidebar
+    let sidebarElements = [];
+    
+    // Try to find sidebar with nav element
+    const navContainer = document.querySelector('#sidebarNav nav, .sidebar nav');
+    if (navContainer) {
+      sidebarElements = [navContainer];
+    }
+    
+    // Also check direct sidebar (no nav wrapper)
+    const directSidebar = document.querySelector('.sidebar');
+    if (directSidebar && directSidebar !== navContainer?.parentElement) {
+      sidebarElements.push(directSidebar);
+    }
+    
+    if (!sidebarElements.length) return;
+    
     const display = show ? '' : 'none';
-    if (jamaicaLabel) jamaicaLabel.style.display = display;
-    if (jamaicaLink) jamaicaLink.style.display = display;
-    if (cohortLink) cohortLink.style.display = display;
+    
+    sidebarElements.forEach((container) => {
+      // Hide/show Jamaica label
+      const jamaicaLabel = container.querySelector('.sidebar-section-label[data-section="jamaica"]');
+      if (jamaicaLabel) jamaicaLabel.style.display = display;
+      
+      // Hide/show Jamaica link
+      const jamaicaLink = Array.from(container.querySelectorAll('a.sidebar-link-btn'))
+        .find((l) => {
+          const href = String(l.getAttribute('href') || '');
+          return href.includes('jamaica-workforce-accelerator');
+        });
+      if (jamaicaLink) jamaicaLink.style.display = display;
+      
+      // Hide/show Cohort Manager link
+      const cohortLink = Array.from(container.querySelectorAll('a.sidebar-link-btn'))
+        .find((l) => {
+          const href = String(l.getAttribute('href') || '');
+          return href.includes('institution-cohort-manager');
+        });
+      if (cohortLink) cohortLink.style.display = display;
+    });
   }
 
   async function syncJamaicaHubVisibility(token) {

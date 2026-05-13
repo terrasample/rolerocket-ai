@@ -1019,6 +1019,18 @@
                   : ((jad.location && jad.location !== 'Remote') ? jad.location : 'Remote');
               var scoutRadiusMiles = Number(jad.searchRadius) > 0 ? Number(jad.searchRadius) : 100;
 
+              // Update the panel title to show the actual scout location
+              var panelTitleEl = document.getElementById('rrShotPanelTitle');
+              if (panelTitleEl) {
+                if (isJamaicaExperience) {
+                  panelTitleEl.textContent = 'Top Job Matches for Jamaica';
+                } else if (isUSExperience) {
+                  panelTitleEl.textContent = 'Top Job Matches for ' + scoutLocation;
+                } else {
+                  panelTitleEl.textContent = 'Top Job Matches for You';
+                }
+              }
+
               if (isUSExperience) {
                 var scopeFromProfile = String(jad.locationScope || '').toLowerCase().trim();
                 var scopeFromQuery = String(params.get('locationScope') || '').toLowerCase().trim();
