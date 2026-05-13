@@ -52,6 +52,16 @@
     );
   }
 
+  function readTokenFromStorage() {
+    return (
+      safeGet(global.localStorage, 'token') ||
+      safeGet(global.sessionStorage, 'token') ||
+      safeGet(global.localStorage, 'rr_token') ||
+      safeGet(global.sessionStorage, 'rr_token') ||
+      ''
+    );
+  }
+
   function isSessionExpired() {
     const last = readLastActivity();
     // If there is no stored timestamp, give the user the benefit of the doubt
@@ -80,8 +90,15 @@
       redirectToSessionExpired();
       return '';
     }
-    const token = safeGet(global.localStorage, 'token') || safeGet(global.sessionStorage, 'token') || '';
-    if (token) writeLastActivity(nowMs());
+    const token = readTokenFromStorage();
+    if (token) {
+      // Keep both key names populated for backward/forward compatibility.
+      safeSet(global.localStorage, 'token', token);
+      safeSet(global.sessionStorage, 'token', token);
+      safeSet(global.localStorage, 'rr_token', token);
+      safeSet(global.sessionStorage, 'rr_token', token);
+      writeLastActivity(nowMs());
+    }
     return token;
   }
 
@@ -98,10 +115,15 @@
 
   function setStoredToken(token) {
     if (!token) return false;
-    const localOk = safeSet(global.localStorage, 'token', token);
-    const sessionOk = safeSet(global.sessionStorage, 'token', token);
-    if (localOk || sessionOk) writeLastActivity(nowMs());
-    return localOk || sessionOk;
+    const writes = [
+      safeSet(global.localStorage, 'token', token),
+      safeSet(global.sessionStorage, 'token', token),
+      safeSet(global.localStorage, 'rr_token', token),
+      safeSet(global.sessionStorage, 'rr_token', token),
+    ];
+    const wroteAny = writes.some(Boolean);
+    if (wroteAny) writeLastActivity(nowMs());
+    return wroteAny;
   }
 
   function setStoredUser(user) {

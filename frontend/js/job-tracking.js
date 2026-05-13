@@ -48,7 +48,7 @@ function buildFallbackJobSearchUrl(job) {
 }
 
 function resolveJobUrl(job) {
-  const candidate = safeUrl(job.link);
+  const candidate = safeUrl(job.sourceUrl || job.link);
   if (candidate !== '#' && !isPlaceholderHost(candidate)) {
     return { href: candidate, label: 'Open Job' };
   }
@@ -357,6 +357,7 @@ async function saveJobToBackend(job, status) {
     company: job.company || '',
     location: job.location || '',
     link: job.link || '',
+    sourceUrl: job.sourceUrl || job.link || '',
     description: job.description || '',
     matchScore: Number(job.matchScore || 0),
     source: job.source || 'Imported',

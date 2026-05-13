@@ -8,8 +8,6 @@ if (!token) {
   window.location.href = 'login.html';
 }
 
-// ─── Session Timeout Auto-Logout ─────────────────────────────
-const SESSION_TIMEOUT_MINUTES = 30; // Set timeout duration here
 // ─── RoleRocket Dashboard (Personalized) ─────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
     function apiPath(path) {
@@ -195,17 +193,22 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (!featuresSection || !featuresGrid) return;
       featuresGrid.innerHTML = '';
       let userPlan = 'free';
-      let isAdmin = false;
+      let isAdmin = window.currentUserIsAdmin === true || readCachedAdminFlag();
       let isLifetime = false;
-      let isSubscribed = false;
+      let isSubscribed = window.currentUserIsSubscribed === true;
       let isRecruiter = false;
+      const adminInvitesLink = document.getElementById('adminInvitesLink');
+      if (adminInvitesLink && adminInvitesLink.style.display !== 'none') {
+        isAdmin = true;
+      }
       try {
         const res = await fetch(apiPath('/api/me'), { headers: { Authorization: `Bearer ${token}` } });
         const data = await res.json();
-        userPlan = (data.user && data.user.plan) || 'free';
-        isAdmin = isAdminUser(data.user);
-        isLifetime = data.user && data.user.plan === 'lifetime';
-        isSubscribed = data.user && data.user.isSubscribed === true;
+        const user = (data && (data.user || data)) || {};
+        userPlan = user.plan || 'free';
+        isAdmin = isAdminUser(user) || isAdmin;
+        isLifetime = user.plan === 'lifetime';
+        isSubscribed = user.isSubscribed === true || isSubscribed;
         isRecruiter = userPlan && String(userPlan).toLowerCase().includes('recruiter');
       } catch {}
 
@@ -730,28 +733,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 });
-const SESSION_TIMEOUT_MS = SESSION_TIMEOUT_MINUTES * 60 * 1000;
-let sessionTimeoutTimer = null;
-
-function resetSessionTimeout() {
-  if (sessionTimeoutTimer) clearTimeout(sessionTimeoutTimer);
-  sessionTimeoutTimer = setTimeout(() => {
-    if (typeof clearStoredToken === 'function') {
-      clearStoredToken();
-    } else {
-      localStorage.removeItem('token');
-    }
-    // Optionally, add a message to show on login page
-    sessionStorage.setItem('session_expired', '1');
-    window.location.href = 'login.html';
-  }, SESSION_TIMEOUT_MS);
-}
-
-// Reset timer on user activity
-['click', 'mousemove', 'keydown', 'scroll', 'touchstart'].forEach(evt => {
-  window.addEventListener(evt, resetSessionTimeout, { passive: true });
-});
-resetSessionTimeout();
 
 const jobsListEl = document.getElementById('jobsList');
 const topJobsEl = document.getElementById('topJobs');
@@ -1007,7 +988,29 @@ function safeUrl(url) {
 }
 
 function isAdminUser(user) {
-  return Boolean(user && user.isAdmin === true);
+  const role = String((user && user.role) || '').toLowerCase();
+  const accountType = String((user && user.accountType) || '').toLowerCase();
+  const roles = Array.isArray(user && user.roles)
+    ? user.roles.map((r) => String(r || '').toLowerCase())
+    : [];
+
+  return Boolean(
+    (user && user.isAdmin === true)
+    || (user && user.isInstitutionAdmin === true)
+    || accountType === 'institution'
+    || role === 'admin'
+    || roles.includes('admin')
+    || roles.includes('institution_admin')
+    || roles.includes('institution-admin')
+  );
+}
+
+function readCachedAdminFlag() {
+  try {
+    return String(localStorage.getItem('rr_nav_is_admin_v1') || '').toLowerCase() === 'true';
+  } catch (_) {
+    return false;
+  }
 }
 
 function getSidebarPlanButtons() {
@@ -1894,7 +1897,7 @@ const sessionId = (() => {
 
 // Only declare telemetryQueue if not already declared (prevents duplicate errors)
 window.telemetryQueue = window.telemetryQueue || [];
-const telemetryQueue = window.telemetryQueue;
+var telemetryQueue = window.telemetryQueue;
 
 function setOfflineBanner(offline) {
   if (!offlineBanner) return;
@@ -2630,6 +2633,7 @@ async function saveJobToBackend(job, status = 'saved') {
     company: job.company || '',
     location: job.location || '',
     link: job.link || '',
+    sourceUrl: job.sourceUrl || job.link || '',
     description: job.description || '',
     matchScore: job.matchScore || 0,
     source: job.source || 'Imported',

@@ -22,6 +22,10 @@ const JobSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  sourceUrl: {
+    type: String,
+    default: ''
+  },
   description: {
     type: String,
     default: ''

@@ -270,6 +270,8 @@
       margin-bottom: 8px;
       letter-spacing: .03em;
     }
+    /* Dashboard should not show experience selection controls. */
+    .sidebar .rr-exp-country-wrap { display: none !important; }
     @media (max-width: 1040px) {
       .rr-shot-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .rr-shot-main { grid-template-columns: 1fr; }
@@ -319,7 +321,7 @@
       <button onclick="window.history.back()" class="back-arrow-btn" aria-label="Go back" style="margin:12px 0 0 12px;background:none;border:none;cursor:pointer;font-size:1.6em;color:#2563eb;"><span aria-hidden="true">&#8592;</span> Back</button>
       <section class="rr-shot-shell" aria-label="Modern dashboard shell">
         <header class="rr-shot-header">
-          <div class="rr-shot-badge" id="rrShotBadge" style="display:none;">🇯🇲 Jamaica Workforce Accelerator Mode</div>
+          <div class="rr-shot-badge" id="rrShotBadge" style="display:none;"></div>
           <h2 id="rrShotWelcome">Welcome back 👋</h2>
           <p id="rrShotLead">Here's your career progress today.</p>
         </header>
@@ -327,23 +329,23 @@
         <div class="rr-shot-kpis">
           <article class="rr-shot-kpi">
             <div class="label" id="rrShotMatchLabel">Job Match Score</div>
-            <div class="value" id="rrShotMatchScore">92%</div>
-            <div class="sub" id="rrShotMatchStatus">Loading...</div>
+            <div class="value" id="rrShotMatchScore">0%</div>
+            <div class="sub" id="rrShotMatchStatus">Updated today</div>
           </article>
           <article class="rr-shot-kpi">
             <div class="label">Applications Sent</div>
-            <div class="value" id="rrShotApplied">—</div>
-            <div class="sub" id="rrShotAppliedSub">Loading...</div>
+            <div class="value" id="rrShotApplied">0</div>
+            <div class="sub" id="rrShotAppliedSub">No applications yet</div>
           </article>
           <article class="rr-shot-kpi">
             <div class="label">Interview Requests</div>
-            <div class="value" id="rrShotInterview">—</div>
-            <div class="sub" id="rrShotInterviewSub">Loading...</div>
+            <div class="value" id="rrShotInterview">0</div>
+            <div class="sub" id="rrShotInterviewSub">No interview requests yet</div>
           </article>
           <article class="rr-shot-kpi">
             <div class="label" id="rrShotProfileLabel">Profile Strength</div>
-            <div class="value" id="rrShotProfile">—</div>
-            <div class="sub" id="rrShotProfileSub">Loading...</div>
+            <div class="value" id="rrShotProfile">0%</div>
+            <div class="sub" id="rrShotProfileSub">Set up your profile</div>
           </article>
         </div>
 
@@ -352,26 +354,12 @@
           <article class="rr-shot-card">
             <h3><span id="rrShotPanelTitle">Top Job Matches for You</span> <a href="job-search.html?source=market" class="rr-shot-viewall" id="rrShotPanelLink">View all</a></h3>
             <div class="rr-shot-list" id="rrShotJobMatches">
-              <a class="rr-shot-row rr-shot-row-link" href="https://www.linkedin.com/jobs/search/?keywords=Product+Manager&f_C=1441" target="_blank" rel="noopener noreferrer">
+              <a class="rr-shot-row rr-shot-row-link" href="javascript:void(0)" aria-disabled="true" style="pointer-events:none;opacity:.86;">
                 <div>
-                  <div class="title">Product Manager</div>
-                  <div class="meta">Google</div>
+                  <div class="title">Loading your top matches…</div>
+                  <div class="meta">Using your profile preferences</div>
                 </div>
-                <span class="rr-shot-apply">Open job</span>
-              </a>
-              <a class="rr-shot-row rr-shot-row-link" href="https://www.linkedin.com/jobs/search/?keywords=AI+ML+Engineer&f_C=1035" target="_blank" rel="noopener noreferrer">
-                <div>
-                  <div class="title">AI/ML Engineer</div>
-                  <div class="meta">Microsoft</div>
-                </div>
-                <span class="rr-shot-apply">Open job</span>
-              </a>
-              <a class="rr-shot-row rr-shot-row-link" href="https://www.linkedin.com/jobs/search/?keywords=Software+Engineer&f_C=1586" target="_blank" rel="noopener noreferrer">
-                <div>
-                  <div class="title">Software Engineer</div>
-                  <div class="meta">Amazon</div>
-                </div>
-                <span class="rr-shot-apply">Open job</span>
+                <span class="rr-shot-apply">Loading</span>
               </a>
             </div>
           </article>
@@ -602,7 +590,6 @@
   <script src="js/auth-storage.js"></script>
   <script src="js/experience-country.js"></script>
   <script src="js/nav-plan-sync.js"></script>
-  <script src="js/idle-timeout.js"></script>
   <script>
     (function () {
       const params = new URLSearchParams(window.location.search);
@@ -651,11 +638,114 @@
         if (el) el.textContent = value;
       }
 
-      // Jamaica mode ONLY activates when ?theme=jamaica is explicitly in the URL.
-      // No localStorage persistence — prevents auto-activation from stale state.
-      function readThemePreference(params) {
-        var queryTheme = String(params.get('theme') || '').toLowerCase();
-        if (queryTheme === 'jamaica') return 'jamaica';
+      function getFirstNameFromUser(user) {
+        if (!user || typeof user !== 'object') return '';
+        var raw = String(user.firstName || user.name || user.fullName || '').trim();
+        if (!raw && user.email) {
+          raw = String(user.email).split('@')[0] || '';
+        }
+        raw = raw.replace(/[._-]+/g, ' ').trim();
+        if (!raw) return '';
+        return raw.split(/\s+/)[0] || '';
+      }
+
+      function applyKpiFallback(statusText) {
+        text('rrShotMatchScore', '--');
+        text('rrShotApplied', '0');
+        text('rrShotInterview', '0');
+        text('rrShotProfile', '0%');
+        text('rrShotAtsScore', '--');
+        text('rrShotAtsMsg', 'Sign in to load live score data.');
+        var atsGrade = document.querySelector('.rr-shot-ats-grade');
+        if (atsGrade) atsGrade.textContent = '--';
+        var ringEl = document.getElementById('rrShotAtsRing');
+        if (ringEl) ringEl.style.setProperty('--rr-ats-angle', '0deg');
+        text('rrShotMatchStatus', statusText || 'Updated today');
+        text('rrShotAppliedSub', 'No applications yet');
+        text('rrShotInterviewSub', 'No interview requests yet');
+        text('rrShotProfileSub', 'Set up your profile');
+      }
+
+      function scoreLabel(s) {
+        if (s >= 90) return 'Excellent';
+        if (s >= 80) return 'Strong';
+        if (s >= 70) return 'Good';
+        if (s >= 60) return 'Fair';
+        return 'Building';
+      }
+
+      function matchLabel(s) {
+        if (s >= 90) return 'Excellent Match';
+        if (s >= 80) return 'Strong Match';
+        if (s >= 70) return 'Good Match';
+        if (s >= 60) return 'Fair Match';
+        return 'Building Match';
+      }
+
+      function updateKpisFromCounts(total, applied, interview, forcedJamaicaMode) {
+        var safeTotal = Number(total) || 0;
+        var safeApplied = Number(applied) || 0;
+        var safeInterview = Number(interview) || 0;
+
+        var appliedEl = document.getElementById('rrShotApplied');
+        var interviewEl = document.getElementById('rrShotInterview');
+        var appliedSubEl = document.getElementById('rrShotAppliedSub');
+        var interviewSubEl = document.getElementById('rrShotInterviewSub');
+        var matchStatusEl = document.getElementById('rrShotMatchStatus');
+        var atsGradeEl = document.querySelector('.rr-shot-ats-grade');
+        var matchEl = document.getElementById('rrShotMatchScore');
+        var atsEl = document.getElementById('rrShotAtsScore');
+        var ringEl = document.getElementById('rrShotAtsRing');
+
+        var displayApplied = safeApplied > 0 ? safeApplied : safeTotal;
+        if (appliedEl) appliedEl.textContent = String(displayApplied);
+        if (appliedSubEl) {
+          if (displayApplied === 0) appliedSubEl.textContent = 'No applications yet';
+          else if (safeApplied > 0) appliedSubEl.textContent = safeApplied + ' marked applied';
+          else appliedSubEl.textContent = safeTotal + ' job' + (safeTotal !== 1 ? 's' : '') + ' tracked';
+        }
+
+        if (interviewEl) interviewEl.textContent = String(safeInterview);
+        if (interviewSubEl) {
+          interviewSubEl.textContent = safeInterview > 0
+            ? safeInterview + ' request' + (safeInterview !== 1 ? 's' : '') + ' received'
+            : 'Apply to get interviews';
+        }
+
+        var matchScore = Math.max(55, Math.min(98, 70 + (Math.min(safeTotal, 30) * 0.9) + (safeInterview * 2)));
+        var atsScore = Math.max(55, Math.min(99, 68 + (Math.min(safeTotal, 25) * 1.05) + (safeInterview * 2.2)));
+
+        if (matchStatusEl && !forcedJamaicaMode) matchStatusEl.textContent = matchLabel(matchScore);
+        if (matchEl) matchEl.textContent = Math.round(matchScore) + '%';
+        if (atsEl) atsEl.textContent = String(Math.round(atsScore));
+        if (atsGradeEl) atsGradeEl.textContent = scoreLabel(atsScore);
+        if (ringEl) ringEl.style.setProperty('--rr-ats-angle', Math.round((atsScore / 100) * 360) + 'deg');
+      }
+
+      async function tryTrackerKpiFallback(token, forcedJamaicaMode) {
+        try {
+          var trackerRes = await fetch(apiUrl('/api/jobs/tracker'), { headers: { Authorization: 'Bearer ' + token } });
+          if (!trackerRes.ok) return false;
+          var tracker = await trackerRes.json();
+          var total = Number(tracker.total || 0) || 0;
+          if (!total) {
+            total = ['saved', 'ready', 'applied', 'interview', 'offer', 'rejected'].reduce(function(sum, key) {
+              return sum + (Number(tracker[key] || 0) || 0);
+            }, 0);
+          }
+          var applied = Number(tracker.applied || 0) || 0;
+          var interview = Number(tracker.interview || 0) || 0;
+
+          updateKpisFromCounts(total, applied, interview, forcedJamaicaMode);
+          text('rrShotMatchStatus', 'Updated from tracker data');
+          return true;
+        } catch (_e) {
+          return false;
+        }
+      }
+
+      // Dashboard experience toggles are intentionally disabled.
+      function readThemePreference() {
         return 'default';
       }
 
@@ -671,35 +761,7 @@
         ].join('');
       }
 
-      function applyJamaicaVariant() {
-        var badge = document.getElementById('rrShotBadge');
-        if (badge) badge.style.display = 'inline-flex';
-        text('rrShotLead', 'Track your progress across Jamaican and regional opportunities with the right next step every day.');
-        text('rrShotMatchLabel', 'Jamaica Job Match');
-        text('rrShotMatchStatus', 'Strong fit for Kingston roles');
-        text('rrShotAppliedSub', '+6 this week');
-        text('rrShotInterviewSub', '2 with local employers');
-        text('rrShotProfileLabel', 'Career Readiness');
-        text('rrShotProfileSub', 'ATS-ready and interview-active');
-        text('rrShotPanelTitle', 'Top Job Matches in Jamaica');
-        text('rrShotAtsTitle', 'Jamaica Readiness Score');
-        text('rrShotAtsMsg', 'Strong for Jamaican employers and regional roles.');
-        text('rrShotAtsBtn', 'Open Jamaica Hub');
-        var atsBtn = document.getElementById('rrShotAtsBtn');
-        if (atsBtn) atsBtn.href = 'jamaica-workforce-accelerator.html';
-        var toolsEl = document.getElementById('rrShotTools');
-        if (toolsEl) toolsEl.style.display = 'grid';
-        var jobList = document.getElementById('rrShotJobMatches');
-        if (jobList) {
-          jobList.innerHTML = [
-            ['Customer Service Representative', 'Scotiabank Jamaica', 'Kingston', 93, 'https://www.linkedin.com/jobs/search/?keywords=Customer+Service+Representative&location=Jamaica'],
-            ['Marketing Coordinator', 'GraceKennedy', 'Kingston', 90, 'https://www.linkedin.com/jobs/search/?keywords=Marketing+Coordinator&location=Jamaica'],
-            ['IT Support Analyst', 'Digicel Jamaica', 'New Kingston', 88, 'https://www.linkedin.com/jobs/search/?keywords=IT+Support+Analyst&location=Jamaica']
-          ].map(function(j) {
-            return renderMatchRow(j[0], j[1] + ' · ' + j[2], j[4]);
-          }).join('');
-        }
-      }
+      function applyJamaicaVariant() {}
 
       async function loadSnapshotData() {
         // Wait for personalization context to initialize from shared nav/experience scripts.
@@ -708,10 +770,15 @@
           await new Promise(function(resolve) { setTimeout(resolve, 20); });
         }
         var params = new URLSearchParams(window.location.search);
-        var themePreference = readThemePreference(params);
+        var themePreference = readThemePreference();
         var jamaicaModeRequested = themePreference === 'jamaica';
         var forcedJamaicaMode = false;
         var meUser = null;
+
+        var badge = document.getElementById('rrShotBadge');
+        if (badge) badge.style.display = 'none';
+        var toolsEl = document.getElementById('rrShotTools');
+        if (toolsEl) toolsEl.style.display = 'none';
 
         var token = (typeof getStoredToken === 'function' ? getStoredToken() : '') || localStorage.getItem('token') || sessionStorage.getItem('token') || '';
         if (!token) return;
@@ -720,18 +787,20 @@
           var meRes = await fetch(apiUrl('/api/me'), { headers: { Authorization: 'Bearer ' + token } });
           if (meRes.ok) {
             var me = await meRes.json();
-            var name = (me && me.user && me.user.name) ? me.user.name : '';
-            meUser = (me && me.user) ? me.user : null;
-            if (name) {
-              var welcome = document.getElementById('rrShotWelcome');
-              if (welcome) welcome.textContent = 'Welcome back, ' + name + ' 👋';
-            }
+            meUser = (me && (me.user || me)) ? (me.user || me) : null;
+            var firstName = getFirstNameFromUser(meUser);
+            var welcome = document.getElementById('rrShotWelcome');
+            if (welcome && firstName) welcome.textContent = 'Welcome back, ' + firstName + ' 👋';
           }
         } catch (_e) {}
 
         try {
           var jobsRes = await fetch(apiUrl('/api/jobs'), { headers: { Authorization: 'Bearer ' + token } });
-          if (!jobsRes.ok) return;
+          if (!jobsRes.ok) {
+            var usedTrackerFallback = await tryTrackerKpiFallback(token, forcedJamaicaMode);
+            if (!usedTrackerFallback) applyKpiFallback('Unable to refresh right now');
+            return;
+          }
           var jobsData = await jobsRes.json();
           var jobs = Array.isArray(jobsData.jobs) ? jobsData.jobs : [];
 
@@ -739,49 +808,9 @@
           var interview = jobs.filter(function (j) { return String(j.status || '').toLowerCase() === 'interview'; }).length;
           var total = jobs.length;
 
-          var appliedEl = document.getElementById('rrShotApplied');
-          var interviewEl = document.getElementById('rrShotInterview');
-          var appliedSubEl = document.getElementById('rrShotAppliedSub');
-          var interviewSubEl = document.getElementById('rrShotInterviewSub');
-          var matchStatusEl = document.getElementById('rrShotMatchStatus');
           var profileEl = document.getElementById('rrShotProfile');
           var profileSubEl = document.getElementById('rrShotProfileSub');
-          var atsGradeEl = document.querySelector('.rr-shot-ats-grade');
-
-          var displayApplied = applied > 0 ? applied : total;
-          if (appliedEl) appliedEl.textContent = String(displayApplied);
-          if (appliedSubEl) {
-            if (displayApplied === 0) appliedSubEl.textContent = 'No applications yet';
-            else if (applied > 0) appliedSubEl.textContent = applied + ' marked applied';
-            else appliedSubEl.textContent = total + ' job' + (total !== 1 ? 's' : '') + ' tracked';
-          }
-
-          if (interviewEl) interviewEl.textContent = String(interview);
-          if (interviewSubEl) {
-            interviewSubEl.textContent = interview > 0
-              ? interview + ' request' + (interview !== 1 ? 's' : '') + ' received'
-              : 'Apply to get interviews';
-          }
-
-          var matchScore = Math.max(55, Math.min(98, 70 + (Math.min(total, 30) * 0.9) + (interview * 2)));
-          var atsScore = Math.max(55, Math.min(99, 68 + (Math.min(total, 25) * 1.05) + (interview * 2.2)));
-
-          function scoreLabel(s) {
-            if (s >= 90) return 'Excellent';
-            if (s >= 80) return 'Strong';
-            if (s >= 70) return 'Good';
-            if (s >= 60) return 'Fair';
-            return 'Building';
-          }
-          function matchLabel(s) {
-            if (s >= 90) return 'Excellent Match';
-            if (s >= 80) return 'Strong Match';
-            if (s >= 70) return 'Good Match';
-            if (s >= 60) return 'Fair Match';
-            return 'Building Match';
-          }
-
-          if (matchStatusEl && !forcedJamaicaMode) matchStatusEl.textContent = matchLabel(matchScore);
+          updateKpisFromCounts(total, applied, interview, forcedJamaicaMode);
 
           // Profile strength: hybrid (completeness 60% + activity 30% + outcomes 10%)
           // --- Completeness (0–60) ---
@@ -811,15 +840,6 @@
           }
           if (profileEl) profileEl.textContent = profileScore + '%';
           if (profileSubEl && !forcedJamaicaMode) profileSubEl.textContent = profileLabel(profileScore);
-          if (atsGradeEl) atsGradeEl.textContent = scoreLabel(atsScore);
-
-          var matchEl = document.getElementById('rrShotMatchScore');
-          var atsEl = document.getElementById('rrShotAtsScore');
-          var ringEl = document.getElementById('rrShotAtsRing');
-          if (matchEl) matchEl.textContent = Math.round(matchScore) + '%';
-          if (atsEl) atsEl.textContent = String(Math.round(atsScore));
-          if (ringEl) ringEl.style.setProperty('--rr-ats-angle', Math.round((atsScore / 100) * 360) + 'deg');
-
 
           var esc = function(s){ return String(s).replace(/[&<>\"]/g, function(c){ return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]); }); };
           var personalization = window.__rrPersonalization && typeof window.__rrPersonalization === 'object'
@@ -857,9 +877,25 @@
             if (!isUSExperience) return true;
             var haystack = [job && job.location, job && job.description, job && job.company, job && job.link].join(' ').toLowerCase();
             var remoteOnly = /\bremote\b|\bwork\s*from\s*home\b|\bdistributed\b/.test(haystack);
-            if (ukLocationSignal.test(haystack)) return false;
+            var nonUSCountrySignal = /\bunited\s*kingdom\b|\buk\b|england|scotland|wales|germany|\bde\b|\bde\s|germany\.|berlin|munich|hamburg|cologne|deutsch|\bfrance\b|\bfr\b|paris|lyon|marseille|\bcanada\b|\bca\b|toronto|vancouver|montreal|\baustralia\b|sydney|melbourne|\bjapan\b|tokyo|\bindia\b|bangalore|mumbai|\bchina\b|shanghai|beijing|\bsingapore\b|\bhongkong\b|\bmexico\b|mexico\s*city|\bbrazil\b|sao\s*paulo|rio\s*de\s*janeiro/i;
+            if (ukLocationSignal.test(haystack) || nonUSCountrySignal.test(haystack)) return false;
             if (usLocationSignal.test(haystack)) return true;
-            return remoteOnly;
+            if (remoteOnly && !nonUSCountrySignal.test(haystack)) return true;
+            return false;
+          };
+
+          var isJamaicaCompatibleJob = function(job) {
+            if (!isJamaicaExperience) return true;
+            var haystack = [job && job.location, job && job.description, job && job.company, job && job.link].join(' ').toLowerCase();
+            var jamaicaCountrySignal = /\bjamaica\b|\bjm\b/i;
+            var jamaicaParishSignal = /\bkingston\b|montego\s*bay|portmore|st\.?\s*andrew|st\.?\s*catherine|spanish\s*town|mandeville|negril|ocho\s*rios|falmouth|trelawny|clarendon|st\.?\s*james/i;
+            var conflictCountrySignal = /lennox\s*and\s*addington|\bcanada\b|\bontario\b|\bquebec\b|\balberta\b|\bvancouver\b|\btoronto\b|\bunited\s*states\b|\busa\b|\bu\.s\.\b|\buk\b|\bunited\s*kingdom\b|\bengland\b/i;
+            var remoteSignal = /\bremote\b|\bwork\s*from\s*home\b|\bdistributed\b/i;
+
+            if (jamaicaCountrySignal.test(haystack)) return true;
+            if (conflictCountrySignal.test(haystack)) return false;
+            if (jamaicaParishSignal.test(haystack)) return true;
+            return remoteSignal.test(haystack);
           };
 
           var US_STATE_NAMES = {
@@ -1027,8 +1063,13 @@
 
               var primaryScoutTitle = scoutTitles.length ? scoutTitles[0] : 'Software Engineer';
 
-              var scoutLocation = forcedJamaicaMode || isJamaicaExperience
-                ? 'Jamaica'
+              var scoutLocation = isJamaicaExperience
+                ? (function() {
+                    var rawJmLocation = (jad.location && jad.location !== 'Remote') ? String(jad.location).trim() : 'Jamaica';
+                    if (!rawJmLocation) return 'Jamaica';
+                    if (/jamaica/i.test(rawJmLocation)) return rawJmLocation;
+                    return rawJmLocation + ', Jamaica';
+                  })()
                 : isUSExperience
                   ? ((jad.location && jad.location !== 'Remote') ? jad.location : 'United States')
                   : ((jad.location && jad.location !== 'Remote') ? jad.location : 'Remote');
@@ -1038,7 +1079,14 @@
               var panelTitleEl = document.getElementById('rrShotPanelTitle');
               if (panelTitleEl) {
                 if (isJamaicaExperience) {
-                  panelTitleEl.textContent = 'Top Job Matches for Jamaica';
+                  var normalizedJmLocation = String(scoutLocation || '').trim();
+                  if (!normalizedJmLocation || normalizedJmLocation.toLowerCase() === 'jamaica') {
+                    panelTitleEl.textContent = 'Top Job Matches for Jamaica';
+                  } else if (/jamaica/i.test(normalizedJmLocation)) {
+                    panelTitleEl.textContent = 'Top Job Matches for ' + normalizedJmLocation;
+                  } else {
+                    panelTitleEl.textContent = 'Top Job Matches for ' + normalizedJmLocation + ', Jamaica';
+                  }
                 } else if (isUSExperience) {
                   panelTitleEl.textContent = 'Top Job Matches for ' + scoutLocation;
                 } else {
@@ -1059,7 +1107,14 @@
                   if (!usPrefLocation) return true;
                   var locationHaystack = [job && job.location, job && job.city, job && job.region, job && job.state, job && job.country].join(' ').toLowerCase();
                   var remoteHaystack = [job && job.location, job && job.description, job && job.workMode, job && job.remoteType].join(' ').toLowerCase();
-                  if (/\bremote\b|work\s*from\s*home|distributed/.test(remoteHaystack)) return true;
+                  var companyHaystack = [job && job.company, job && job.link].join(' ').toLowerCase();
+                  var nonUSCountrySignal = /\bunited\s*kingdom\b|\buk\b|england|scotland|wales|germany|\bde\b|\bde\s|germany\.|berlin|munich|hamburg|cologne|deutsch|\bfrance\b|\bfr\b|paris|lyon|marseille|\bcanada\b|\bca\b|toronto|vancouver|montreal|\baustralia\b|sydney|melbourne|\bjapan\b|tokyo|\bindia\b|bangalore|mumbai|\bchina\b|shanghai|beijing|\bsingapore\b|\bhongkong\b|\bmexico\b|mexico\s*city|\bbrazil\b|sao\s*paulo|rio\s*de\s*janeiro/i;
+                  // Reject remote jobs from non-US companies/locations
+                  if (/\bremote\b|work\s*from\s*home|distributed/.test(remoteHaystack)) {
+                    if (nonUSCountrySignal.test(locationHaystack) || nonUSCountrySignal.test(companyHaystack)) return false;
+                    // For truly remote jobs, still require some US signal
+                    return true;
+                  }
 
                   var stateMatch = false;
                   if (usPrefLocation.stateCode && new RegExp('\\b' + usPrefLocation.stateCode + '\\b', 'i').test(locationHaystack)) stateMatch = true;
@@ -1071,8 +1126,8 @@
                       nj: ['new york', 'pennsylvania', 'connecticut'],
                       ct: ['new york', 'new jersey', 'massachusetts'],
                       pa: ['new york', 'new jersey', 'maryland', 'delaware'],
-                      fl: ['georgia', 'alabama'],
-                      ga: ['florida', 'south carolina', 'north carolina', 'tennessee', 'alabama']
+                      fl: scoutRadiusMiles >= 260 ? ['georgia'] : [],
+                      ga: scoutRadiusMiles >= 260 ? ['florida', 'south carolina'] : ['florida']
                     };
                     var nearbyStates = nearbyByState[usPrefLocation.stateCode] || [];
                     stateMatch = nearbyStates.some(function(stateName) {
@@ -1081,6 +1136,60 @@
                   }
 
                   if (!stateMatch) return false;
+
+                  if (usLocationScope === 'nearby-radius') {
+                    var prefCityCoords = {
+                      'jacksonville': [30.3322, -81.6557],
+                      'orlando': [28.5383, -81.3792],
+                      'tampa': [27.9506, -82.4572],
+                      'miami': [25.7617, -80.1918],
+                      'atlanta': [33.7490, -84.3880],
+                      'new york': [40.7128, -74.0060],
+                      'newark': [40.7357, -74.1724],
+                      'philadelphia': [39.9526, -75.1652],
+                      'boston': [42.3601, -71.0589],
+                      'washington': [38.9072, -77.0369],
+                      'chicago': [41.8781, -87.6298],
+                      'houston': [29.7604, -95.3698],
+                      'dallas': [32.7767, -96.7970],
+                      'los angeles': [34.0522, -118.2437],
+                      'san francisco': [37.7749, -122.4194],
+                      'seattle': [47.6062, -122.3321]
+                    };
+
+                    var normalizeCityToken = function(value) {
+                      return String(value || '').toLowerCase().replace(/[^a-z\s]/g, ' ').replace(/\s+/g, ' ').trim();
+                    };
+
+                    var detectKnownCity = function(haystackText) {
+                      var normalizedText = normalizeCityToken(haystackText);
+                      var cityKeys = Object.keys(prefCityCoords);
+                      for (var ck = 0; ck < cityKeys.length; ck += 1) {
+                        var cityName = cityKeys[ck];
+                        if (new RegExp('\\b' + cityName.replace(/\s+/g, '\\s*') + '\\b', 'i').test(normalizedText)) {
+                          return cityName;
+                        }
+                      }
+                      return '';
+                    };
+
+                    var distanceMiles = function(a, b) {
+                      var toRad = function(deg) { return deg * (Math.PI / 180); };
+                      var lat1 = a[0]; var lon1 = a[1];
+                      var lat2 = b[0]; var lon2 = b[1];
+                      var dLat = toRad(lat2 - lat1);
+                      var dLon = toRad(lon2 - lon1);
+                      var q = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+                      return 3958.8 * (2 * Math.atan2(Math.sqrt(q), Math.sqrt(1 - q)));
+                    };
+
+                    var sourceCity = detectKnownCity(usPrefLocation.city || usPrefLocation.raw || '');
+                    var targetCity = detectKnownCity(locationHaystack);
+                    if (sourceCity && targetCity && prefCityCoords[sourceCity] && prefCityCoords[targetCity]) {
+                      var computedMiles = distanceMiles(prefCityCoords[sourceCity], prefCityCoords[targetCity]);
+                      if (computedMiles > scoutRadiusMiles) return false;
+                    }
+                  }
 
                   var citySignal = usPrefLocation.city ? new RegExp('\\b' + usPrefLocation.city.replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, '\\s*') + '\\b', 'i') : null;
 
@@ -1126,21 +1235,17 @@
                 var locations = [seed];
 
                 if (normalized.indexOf('jacksonville') !== -1) {
-                  locations = locations.concat([
-                    'Jacksonville, FL',
-                    'Orlando, FL',
-                    'Tampa, FL',
-                    'Miami, FL',
-                    'Atlanta, GA'
-                  ]);
+                  locations.push('Jacksonville, FL');
+                  if (scoutRadiusMiles >= 120) locations.push('Orlando, FL');
+                  if (scoutRadiusMiles >= 200) locations.push('Tampa, FL');
+                  if (scoutRadiusMiles >= 300) locations.push('Miami, FL');
+                  if (scoutRadiusMiles >= 320) locations.push('Atlanta, GA');
                 } else if (normalized.indexOf(', fl') !== -1 || normalized.indexOf('florida') !== -1) {
-                  locations = locations.concat([
-                    'Jacksonville, FL',
-                    'Orlando, FL',
-                    'Tampa, FL',
-                    'Miami, FL',
-                    'Atlanta, GA'
-                  ]);
+                  locations.push('Jacksonville, FL');
+                  if (scoutRadiusMiles >= 120) locations.push('Orlando, FL');
+                  if (scoutRadiusMiles >= 200) locations.push('Tampa, FL');
+                  if (scoutRadiusMiles >= 300) locations.push('Miami, FL');
+                  if (scoutRadiusMiles >= 320) locations.push('Atlanta, GA');
                 }
 
                 // Add Remote as a secondary source but never bare "United States"
@@ -1214,6 +1319,8 @@
               if (isUSExperience) {
                 scoutJobs = scoutJobs.filter(isUSCompatibleJob);
                 scoutJobs = scoutJobs.filter(isUSLocalityMatch);
+              } else if (isJamaicaExperience) {
+                scoutJobs = scoutJobs.filter(isJamaicaCompatibleJob);
               }
 
               // Remove geographically irrelevant outlier locations unless the user
@@ -1397,7 +1504,15 @@
                 scopedJobs = ranked.slice(0, 6).map(function(item) { return item.job; });
               }
 
-              if (!scopedJobs.length) scopedJobs = jobs.filter(jobMeetsSalaryFloor).filter(isUSCompatibleJob).filter(isUSLocalityMatch).slice(0, 6);
+              if (!scopedJobs.length) {
+                scopedJobs = jobs.filter(jobMeetsSalaryFloor);
+                if (isUSExperience) {
+                  scopedJobs = scopedJobs.filter(isUSCompatibleJob).filter(isUSLocalityMatch);
+                } else if (isJamaicaExperience) {
+                  scopedJobs = scopedJobs.filter(isJamaicaCompatibleJob);
+                }
+                scopedJobs = scopedJobs.slice(0, 6);
+              }
 
               if (scopedJobs.length) {
                 list.innerHTML = scopedJobs.map(function(j) {
@@ -1432,7 +1547,13 @@
                 var min = Number((job.salaryRange && job.salaryRange.min) || job.salaryMin || 0);
                 if (max <= 0 && min <= 0) return true;
                 return Math.max(max, min) >= prefSalaryMin;
-              }).filter(isUSCompatibleJob).filter(isUSLocalityMatch).slice(0, 6);
+              });
+              if (isUSExperience) {
+                fallback = fallback.filter(isUSCompatibleJob).filter(isUSLocalityMatch);
+              } else if (isJamaicaExperience) {
+                fallback = fallback.filter(isJamaicaCompatibleJob);
+              }
+              fallback = fallback.slice(0, 6);
               if (fallback.length) {
                 list.innerHTML = fallback.map(function(j) {
                   var applyLink = (j.link && /^https?:\/\//i.test(String(j.link).trim())) ? String(j.link).trim()
@@ -1446,7 +1567,10 @@
               }
             }
           }
-        } catch (_e2) {}
+        } catch (_e2) {
+          var usedTrackerFallbackOuter = await tryTrackerKpiFallback(token, forcedJamaicaMode);
+          if (!usedTrackerFallbackOuter) applyKpiFallback('Unable to refresh right now');
+        }
 
         // Profile strength improvement hint (hybrid model)
         var hintEl = document.getElementById('rrShotProfileHint');

@@ -43,20 +43,21 @@
       fetch(target, {
         headers: { Authorization: `Bearer ${token}` }
       }).then((res) => {
-        if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
           localStorage.removeItem('token');
           sessionStorage.removeItem('token');
           window.location.replace('login.html');
-        } else {
-          // Auth passed: load dashboard.js only after auth validation succeeds
-          const script = document.createElement('script');
-          script.src = 'js/dashboard.js';
-          document.body.appendChild(script);
+          return;
         }
+
+        // For transient server/network issues, keep the session and continue.
+        const script = document.createElement('script');
+        script.src = 'js/dashboard.js';
+        document.body.appendChild(script);
       }).catch(() => {
-        localStorage.removeItem('token');
-        sessionStorage.removeItem('token');
-        window.location.replace('login.html');
+        const script = document.createElement('script');
+        script.src = 'js/dashboard.js';
+        document.body.appendChild(script);
       });
     })();
   </script>
@@ -145,7 +146,7 @@
   <div class="business-bar">
     <span class="rocket compact-rocket">🚀</span>
     <span class="brand-name compact-brand-name">RoleRocket AI</span>
-    <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open navigation" aria-controls="sidebarNav" aria-expanded="false">
+    <button type="button" class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open navigation" aria-controls="sidebarNav" aria-expanded="false">
       <span class="menu-icon">☰</span>
     </button>
   </div>
@@ -705,8 +706,44 @@
         syncHomepageUpgradeCta();
         renderQuickstartNextSteps(window.RoleRocketQuickstart?.getSummary?.());
       });
+
+      function initHomepageMobileSidebar() {
+        const menuBtn = document.getElementById('mobileMenuBtn');
+        const sidebar = document.getElementById('sidebarNav');
+        const overlay = document.getElementById('sidebarOverlay');
+        if (!menuBtn || !sidebar || !overlay) return;
+
+        const setOpen = (open) => {
+          sidebar.classList.toggle('sidebar-open', open);
+          document.body.classList.toggle('sidebar-open', open);
+          overlay.classList.toggle('visible', open);
+          menuBtn.setAttribute('aria-expanded', String(open));
+          overlay.setAttribute('aria-hidden', String(!open));
+        };
+
+        menuBtn.addEventListener('click', () => {
+          const open = !sidebar.classList.contains('sidebar-open');
+          setOpen(open);
+        });
+
+        overlay.addEventListener('click', () => setOpen(false));
+
+        document.addEventListener('keydown', (event) => {
+          if (event.key === 'Escape' && sidebar.classList.contains('sidebar-open')) {
+            setOpen(false);
+          }
+        });
+
+        window.addEventListener('resize', () => {
+          if (window.innerWidth > 900 && sidebar.classList.contains('sidebar-open')) {
+            setOpen(false);
+          }
+        });
+      }
+
       initQuickstartSprint();
       initQuickstartNudge();
+      initHomepageMobileSidebar();
       </script>
     </main>
   </div>

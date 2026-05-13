@@ -9,7 +9,15 @@
   <link rel="stylesheet" href="styles.css" />
   <style>
     body { background: radial-gradient(circle at 82% 8%, #0f305e 0%, #071123 42%, #050b16 100%) !important; }
-    .hero { display: none !important; }
+    .hero {
+      display: block !important;
+      background: linear-gradient(135deg, var(--rr-exp-dark, #082f49) 0%, #0f172a 48%, var(--rr-exp-primary, #0c4a6e) 100%) !important;
+      border-bottom: 1px solid var(--rr-exp-border, rgba(148, 163, 184, .25));
+      box-shadow: 0 14px 30px var(--rr-exp-bg, rgba(8, 47, 73, .22));
+      text-align: center;
+    }
+    .hero h1 { color: #f8fafc !important; }
+    .hero p { color: #dbeafe !important; }
     #profileMain.main.marketing-main {
       max-width: none !important;
       width: 100% !important;
@@ -335,6 +343,88 @@
       .rr-bar-row { grid-template-columns: 80px 1fr 40px; }
       .rr-quick-links { grid-template-columns: 1fr; }
     }
+
+    /* Experience-aware visual alignment with Home/About tabs */
+    :root[data-exp-country] body {
+      background: radial-gradient(circle at 82% 8%, var(--rr-exp-primary, #0f305e) 0%, #071123 42%, var(--rr-exp-dark, #050b16) 100%) !important;
+    }
+    :root[data-exp-country] .rr-profile-shell,
+    :root[data-exp-country] .rr-profile-card,
+    :root[data-exp-country] .rr-strength-breakdown,
+    :root[data-exp-country] .rr-quick-link {
+      background: linear-gradient(180deg, rgba(15, 23, 42, .9), rgba(2, 6, 23, .96)) !important;
+      border-color: var(--rr-exp-border, rgba(96, 165, 250, .24)) !important;
+      box-shadow: 0 16px 48px var(--rr-exp-bg, rgba(2, 6, 23, .7)), inset 0 1px 0 rgba(148, 163, 184, .12) !important;
+    }
+    :root[data-exp-country] .rr-profile-shell {
+      border-radius: 22px;
+    }
+    :root[data-exp-country] .rr-profile-header p,
+    :root[data-exp-country] .rr-bar-label,
+    :root[data-exp-country] .rr-field label,
+    :root[data-exp-country] .rr-quick-link-sub {
+      color: #cbd5e1 !important;
+    }
+    :root[data-exp-country] .rr-strength-label,
+    :root[data-exp-country] .rr-bar-fill,
+    :root[data-exp-country] .rr-bar-explain span.done,
+    :root[data-exp-country] .rr-save-msg {
+      color: var(--rr-exp-primary, #22c55e) !important;
+    }
+    :root[data-exp-country] .rr-bar-fill {
+      background: var(--rr-exp-primary, #22c55e) !important;
+    }
+    :root[data-exp-country] .rr-save-btn {
+      border-color: var(--rr-exp-primary, #2563eb) !important;
+      background: linear-gradient(180deg, var(--rr-exp-primary, #2563eb) 0%, var(--rr-exp-dark, #1d4ed8) 100%) !important;
+      color: #f8fafc !important;
+    }
+    :root[data-exp-country] .rr-save-btn:hover {
+      filter: brightness(1.08);
+    }
+    :root[data-exp-country] .rr-field input[type="text"],
+    :root[data-exp-country] .rr-field input[type="number"],
+    :root[data-exp-country] .rr-field select,
+    :root[data-exp-country] .rr-field textarea {
+      background: rgba(15, 23, 42, .86) !important;
+      border-color: var(--rr-exp-border, rgba(59, 130, 246, .3)) !important;
+    }
+    :root[data-exp-country] .rr-field input[type="text"]:focus,
+    :root[data-exp-country] .rr-field input[type="number"]:focus,
+    :root[data-exp-country] .rr-field select:focus,
+    :root[data-exp-country] .rr-field textarea:focus {
+      border-color: var(--rr-exp-primary, #3b82f6) !important;
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--rr-exp-primary, #3b82f6) 30%, transparent);
+    }
+    :root[data-exp-country] .rr-tag,
+    :root[data-exp-country] .rr-keywords-wrap button {
+      border-color: var(--rr-exp-border, rgba(59, 130, 246, .3)) !important;
+      color: #dbeafe !important;
+      background: color-mix(in srgb, var(--rr-exp-primary, #1d4ed8) 16%, rgba(15, 23, 42, .75)) !important;
+    }
+    :root[data-exp-country] .rr-tag.active {
+      background: var(--rr-exp-bg, rgba(37, 99, 235, .4)) !important;
+      border-color: var(--rr-exp-primary, #3b82f6) !important;
+      color: #f8fafc !important;
+    }
+    :root[data-exp-country] .rr-chip {
+      border-color: var(--rr-exp-border, rgba(34, 197, 94, .3)) !important;
+      color: #f8fafc !important;
+      background: color-mix(in srgb, var(--rr-exp-primary, #22c55e) 24%, rgba(15, 23, 42, .78)) !important;
+    }
+    :root[data-exp-country] .rr-profile-card h3,
+    :root[data-exp-country] .rr-profile-header h2 {
+      color: #f8fafc !important;
+    }
+    :root[data-exp-country] .rr-profile-card h3::after {
+      content: '';
+      display: inline-block;
+      width: 36px;
+      height: 2px;
+      margin-left: 8px;
+      border-radius: 999px;
+      background: var(--rr-exp-primary, #22c55e);
+    }
   </style>
 </head>
 <body>
@@ -458,8 +548,25 @@
             </div>
 
             <div class="rr-field">
-              <label for="rrFieldLocation">Preferred Job Location</label>
+              <label id="rrLocationLabel" for="rrFieldLocation">Preferred Job Location</label>
               <input type="text" id="rrFieldLocation" placeholder="e.g. New York, NY or Remote" maxlength="120" />
+              <select id="rrFieldLocationParish" style="display:none;">
+                <option value="">Select parish</option>
+                <option value="Kingston">Kingston</option>
+                <option value="St. Andrew">St. Andrew</option>
+                <option value="St. Thomas">St. Thomas</option>
+                <option value="Portland">Portland</option>
+                <option value="St. Mary">St. Mary</option>
+                <option value="St. Ann">St. Ann</option>
+                <option value="Trelawny">Trelawny</option>
+                <option value="St. James">St. James</option>
+                <option value="Hanover">Hanover</option>
+                <option value="Westmoreland">Westmoreland</option>
+                <option value="St. Elizabeth">St. Elizabeth</option>
+                <option value="Manchester">Manchester</option>
+                <option value="Clarendon">Clarendon</option>
+                <option value="St. Catherine">St. Catherine</option>
+              </select>
               <p class="rr-hint">Adds +15 points to your completeness score</p>
             </div>
 
@@ -515,7 +622,7 @@
           <div class="rr-profile-card span2">
             <h3>⚙️ Job Preferences</h3>
 
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;flex-wrap:wrap;">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:20px;flex-wrap:wrap;">
               <div class="rr-field">
                 <label>Work Mode</label>
                 <div class="rr-tag-group" id="rrWorkModeTags">
@@ -535,9 +642,23 @@
                 </div>
               </div>
               <div class="rr-field">
-                <label for="rrSalaryMin">Minimum Salary (USD / yr)</label>
+                <label id="rrSalaryLabel" for="rrSalaryMin">Minimum Salary (USD / yr)</label>
                 <input type="number" id="rrSalaryMin" placeholder="e.g. 60000" min="0" max="9999999" step="1000" />
                 <p class="rr-hint">Used to personalise job recommendations and alerts</p>
+              </div>
+              <div class="rr-field" id="rrLocationScopeWrap">
+                <label id="rrLocationScopeLabel" for="rrLocationScope">US Match Scope</label>
+                <select id="rrLocationScope">
+                  <option value="strict-local">Strict Local Matches</option>
+                  <option value="nearby-radius">Nearby Radius Matches</option>
+                  <option value="nationwide-us">Nationwide US Matches</option>
+                </select>
+                <p class="rr-hint" id="rrLocationScopeHint">Choose how wide to search in the US market</p>
+              </div>
+              <div class="rr-field" id="rrSearchRadiusWrap">
+                <label id="rrSearchRadiusLabel" for="rrSearchRadius">Search Radius (miles)</label>
+                <input type="number" id="rrSearchRadius" placeholder="e.g. 100" min="10" max="500" step="5" />
+                <p class="rr-hint">Used for Nearby Radius Matches</p>
               </div>
             </div>
           </div>
@@ -599,6 +720,12 @@
       var outcomeScore = 0;
       var PROFILE_DRAFT_KEY = 'rr_profile_draft_v1';
       var currentUserId = '';
+      var currentExperienceCountry = 'GLOBAL';
+
+      var JAMAICA_PARISHES = [
+        'Kingston', 'St. Andrew', 'St. Thomas', 'Portland', 'St. Mary', 'St. Ann', 'Trelawny',
+        'St. James', 'Hanover', 'Westmoreland', 'St. Elizabeth', 'Manchester', 'Clarendon', 'St. Catherine'
+      ];
 
       // ── Helpers ─────────────────────────────────────────────────────────────
       function esc(s) {
@@ -615,13 +742,129 @@
         return 'Getting Started';
       }
 
+      function getLocationInputEl() {
+        return document.getElementById('rrFieldLocation');
+      }
+
+      function getLocationParishEl() {
+        return document.getElementById('rrFieldLocationParish');
+      }
+
+      function isJamaicaExperience() {
+        return String(currentExperienceCountry || '').toUpperCase() === 'JM';
+      }
+
+      function isUSExperience() {
+        return String(currentExperienceCountry || '').toUpperCase() === 'US';
+      }
+
+      function readPreferredLocation() {
+        var parishEl = getLocationParishEl();
+        var inputEl = getLocationInputEl();
+        if (isJamaicaExperience() && parishEl) return (parishEl.value || '').trim();
+        return inputEl ? (inputEl.value || '').trim() : '';
+      }
+
+      function setPreferredLocation(value) {
+        var val = String(value || '').trim();
+        var parishEl = getLocationParishEl();
+        var inputEl = getLocationInputEl();
+        if (inputEl) inputEl.value = val;
+
+        if (!parishEl) return;
+        if (!val) {
+          parishEl.value = '';
+          return;
+        }
+
+        var exactMatch = JAMAICA_PARISHES.find(function (p) { return p.toLowerCase() === val.toLowerCase(); });
+        if (exactMatch) {
+          parishEl.value = exactMatch;
+          return;
+        }
+
+        var partialMatch = JAMAICA_PARISHES.find(function (p) {
+          var normVal = val.toLowerCase();
+          var normP = p.toLowerCase();
+          return normVal.indexOf(normP) !== -1 || normP.indexOf(normVal) !== -1;
+        });
+        parishEl.value = partialMatch || '';
+      }
+
+      async function resolveExperienceCountry() {
+        var fromWindow = (window.__rrPersonalization && window.__rrPersonalization.effectiveCountry)
+          || window.__rrExperienceCountry
+          || '';
+        if (fromWindow) return String(fromWindow).toUpperCase();
+
+        var token = getToken();
+        if (!token) return 'GLOBAL';
+
+        try {
+          var res = await fetch(apiUrl('/api/experience/context'), {
+            headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' },
+            credentials: 'include'
+          });
+          if (!res.ok) return 'GLOBAL';
+          var data = await res.json();
+          return String((data && data.effectiveCountry) || 'GLOBAL').toUpperCase();
+        } catch (_) {
+          return 'GLOBAL';
+        }
+      }
+
+      function applyExperienceFormVariant(countryCode) {
+        currentExperienceCountry = String(countryCode || 'GLOBAL').toUpperCase();
+        var isJm = isJamaicaExperience();
+        var isUs = isUSExperience();
+
+        var locationLabel = document.getElementById('rrLocationLabel');
+        var salaryLabel = document.getElementById('rrSalaryLabel');
+        var locationInput = getLocationInputEl();
+        var locationParish = getLocationParishEl();
+        var salaryInput = document.getElementById('rrSalaryMin');
+        var locationScopeWrap = document.getElementById('rrLocationScopeWrap');
+        var locationScopeEl = document.getElementById('rrLocationScope');
+        var radiusWrap = document.getElementById('rrSearchRadiusWrap');
+        var radiusInput = document.getElementById('rrSearchRadius');
+
+        if (locationLabel) locationLabel.textContent = isJm ? 'Preferred Job Parish' : 'Preferred Job Location';
+        if (salaryLabel) salaryLabel.textContent = isJm ? 'Minimum Salary (JMD / yr)' : 'Minimum Salary (USD / yr)';
+
+        if (salaryInput) {
+          salaryInput.placeholder = isJm ? 'e.g. 1800000' : 'e.g. 60000';
+          salaryInput.step = isJm ? '5000' : '1000';
+        }
+
+        if (locationInput && locationParish) {
+          if (isJm) {
+            locationInput.style.display = 'none';
+            locationParish.style.display = '';
+            locationParish.setAttribute('aria-label', 'Preferred Job Parish');
+          } else {
+            locationInput.style.display = '';
+            locationParish.style.display = 'none';
+          }
+        }
+
+        if (locationScopeWrap) locationScopeWrap.style.display = isUs ? '' : 'none';
+        if (isUs && locationScopeEl && !locationScopeEl.value) locationScopeEl.value = 'strict-local';
+        if (isUs && radiusInput && !(Number(radiusInput.value) > 0)) radiusInput.value = '100';
+        if (radiusWrap) {
+          var selectedScope = locationScopeEl ? String(locationScopeEl.value || 'strict-local') : 'strict-local';
+          radiusWrap.style.display = isUs && selectedScope === 'nearby-radius' ? '' : 'none';
+        }
+      }
+
       function snapshotFormState() {
         return {
           userId: currentUserId || '',
           name: (document.getElementById('rrFieldName').value || '').trim(),
-          location: (document.getElementById('rrFieldLocation').value || '').trim(),
+          location: readPreferredLocation(),
           profileSummary: (document.getElementById('rrFieldSummary').value || '').trim(),
           salaryMin: (document.getElementById('rrSalaryMin').value || '').trim(),
+          locationScope: (document.getElementById('rrLocationScope') && document.getElementById('rrLocationScope').value) || 'strict-local',
+          searchRadius: (document.getElementById('rrSearchRadius') && document.getElementById('rrSearchRadius').value) || '100',
           includeKeywords: keywords.slice(0, 12),
           industries: industries.slice(0, 8),
           seniorityLevels: Array.from(document.querySelectorAll('#rrSeniorityTags .rr-tag.active')).map(function (t) { return t.dataset.val; }),
@@ -666,14 +909,17 @@
       function applyDraftToForm(draft) {
         if (!draft) return;
         var nameEl = document.getElementById('rrFieldName');
-        var locEl = document.getElementById('rrFieldLocation');
         var summaryEl = document.getElementById('rrFieldSummary');
         var salEl = document.getElementById('rrSalaryMin');
+        var scopeEl = document.getElementById('rrLocationScope');
+        var radiusEl = document.getElementById('rrSearchRadius');
 
         if (nameEl && typeof draft.name === 'string') nameEl.value = draft.name;
-        if (locEl && typeof draft.location === 'string') locEl.value = draft.location;
+        if (typeof draft.location === 'string') setPreferredLocation(draft.location);
         if (summaryEl && typeof draft.profileSummary === 'string') summaryEl.value = draft.profileSummary;
         if (salEl && typeof draft.salaryMin === 'string') salEl.value = draft.salaryMin;
+        if (scopeEl && typeof draft.locationScope === 'string') scopeEl.value = draft.locationScope;
+        if (radiusEl && typeof draft.searchRadius === 'string') radiusEl.value = draft.searchRadius;
 
         keywords = Array.isArray(draft.includeKeywords) ? draft.includeKeywords.slice(0, 12) : keywords;
         industries = Array.isArray(draft.industries) ? draft.industries.slice(0, 8) : industries;
@@ -687,7 +933,7 @@
 
       function computeCompleteness() {
         var c = 20; // base: account created
-        var loc = (document.getElementById('rrFieldLocation').value || '').trim();
+        var loc = readPreferredLocation();
         if (loc && loc.toLowerCase() !== 'remote') c += 15;
         if (keywords.length > 0) c += 15;
         var sel = document.querySelectorAll('#rrSeniorityTags .rr-tag.active');
@@ -723,7 +969,7 @@
         if (barOv) barOv.textContent = outcomeScore + '/10';
 
         // Update completeness chip states
-        var loc = (document.getElementById('rrFieldLocation').value || '').trim();
+        var loc = readPreferredLocation();
         var hasLoc = loc && loc.toLowerCase() !== 'remote';
         var hasKw = keywords.length > 0;
         var hasSen = document.querySelectorAll('#rrSeniorityTags .rr-tag.active').length > 0;
@@ -764,6 +1010,14 @@
         });
       }
 
+      var parishField = document.getElementById('rrFieldLocationParish');
+      if (parishField) {
+        parishField.addEventListener('change', function () {
+          updateStrengthDisplay();
+          persistDraft();
+        });
+      }
+
       var nameField = document.getElementById('rrFieldName');
       if (nameField) {
         nameField.addEventListener('input', persistDraft);
@@ -777,6 +1031,20 @@
       var salaryField = document.getElementById('rrSalaryMin');
       if (salaryField) {
         salaryField.addEventListener('input', persistDraft);
+      }
+
+      var scopeField = document.getElementById('rrLocationScope');
+      if (scopeField) {
+        scopeField.addEventListener('change', function () {
+          var radiusWrap = document.getElementById('rrSearchRadiusWrap');
+          if (radiusWrap) radiusWrap.style.display = scopeField.value === 'nearby-radius' ? '' : 'none';
+          persistDraft();
+        });
+      }
+
+      var radiusField = document.getElementById('rrSearchRadius');
+      if (radiusField) {
+        radiusField.addEventListener('input', persistDraft);
       }
 
       // ── Keyword chips ───────────────────────────────────────────────────────
@@ -866,6 +1134,9 @@
         }
 
         try {
+          var experienceCountry = await resolveExperienceCountry();
+          applyExperienceFormVariant(experienceCountry);
+
           var [meRes, jadRes, jobsRes] = await Promise.all([
             fetch(apiUrl('/api/me'), { headers: { Authorization: 'Bearer ' + token } }),
             fetch(apiUrl('/api/job-alerts/defaults'), { headers: { Authorization: 'Bearer ' + token } }),
@@ -893,8 +1164,7 @@
             var jad = jadData.defaults || {};
 
             // Location
-            var locEl = document.getElementById('rrFieldLocation');
-            if (locEl && jad.location) locEl.value = jad.location;
+            if (jad.location) setPreferredLocation(jad.location);
 
             // Keywords
             keywords = Array.isArray(jad.includeKeywords) ? jad.includeKeywords.slice(0, 12) : [];
@@ -931,6 +1201,12 @@
             // Salary
             var salEl = document.getElementById('rrSalaryMin');
             if (salEl && jad.salaryMin) salEl.value = jad.salaryMin;
+
+            var scopeEl = document.getElementById('rrLocationScope');
+            if (scopeEl && jad.locationScope) scopeEl.value = jad.locationScope;
+
+            var radiusEl = document.getElementById('rrSearchRadius');
+            if (radiusEl && Number(jad.searchRadius) > 0) radiusEl.value = String(jad.searchRadius);
           }
 
           // Compute activity / outcomes from jobs
@@ -962,9 +1238,13 @@
 
         try {
           var name = (document.getElementById('rrFieldName').value || '').trim();
-          var location = (document.getElementById('rrFieldLocation').value || '').trim() || 'Remote';
+          var location = readPreferredLocation();
+          if (!location) location = isJamaicaExperience() ? 'Jamaica' : 'Remote';
           var profileSummary = (document.getElementById('rrFieldSummary').value || '').trim();
           var salary = Number(document.getElementById('rrSalaryMin').value || 0) || null;
+          var locationScope = (document.getElementById('rrLocationScope') && document.getElementById('rrLocationScope').value) || 'strict-local';
+          var searchRadius = Number((document.getElementById('rrSearchRadius') && document.getElementById('rrSearchRadius').value) || 0);
+          if (!(searchRadius > 0)) searchRadius = 100;
 
           var seniorityLevels = Array.from(document.querySelectorAll('#rrSeniorityTags .rr-tag.active')).map(function (t) { return t.dataset.val; });
           var workModes = Array.from(document.querySelectorAll('#rrWorkModeTags .rr-tag.active')).map(function (t) { return t.dataset.val; });
@@ -992,7 +1272,9 @@
               seniorityLevels: seniorityLevels,
               workModes: workModes,
               employmentTypes: employmentTypes,
-              salaryMin: salary
+              salaryMin: salary,
+              locationScope: locationScope,
+              searchRadius: searchRadius
             })
           }));
 

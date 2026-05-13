@@ -5961,6 +5961,51 @@ app.get('/jamaica-workforce-accelerator.html', async (req, res) => {
   return res.sendFile(path.join(__dirname, '../frontend/jamaica-workforce-accelerator.html'));
 });
 
+const FRONTEND_DIR = path.join(__dirname, '../frontend');
+
+function injectGlobalThemeStylesheet(html = '') {
+  const source = String(html || '');
+  if (!source) return source;
+
+  if (/href=["'][^"']*styles\.css(?:\?[^"']*)?["']/i.test(source)) {
+    return source;
+  }
+
+  const styleLink = '<link rel="stylesheet" href="styles.css?v=global-theme" />';
+  if (/<\/head>/i.test(source)) {
+    return source.replace(/<\/head>/i, `${styleLink}\n</head>`);
+  }
+
+  return `${styleLink}\n${source}`;
+}
+
+app.get(/.*\.html$/, async (req, res, next) => {
+  try {
+    const relativePath = String(req.path || '').replace(/^\/+/, '');
+    if (!relativePath) return next();
+
+    const filePath = path.resolve(FRONTEND_DIR, relativePath);
+    if (!filePath.startsWith(FRONTEND_DIR)) return next();
+
+    let html;
+    try {
+      html = await fs.readFile(filePath, 'utf8');
+    } catch {
+      return next();
+    }
+
+    const themedHtml = injectGlobalThemeStylesheet(html);
+
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+    res.type('html');
+    return res.send(themedHtml);
+  } catch (error) {
+    return next(error);
+  }
+});
+
 app.use(express.static(path.join(__dirname, '../frontend'), {
   etag: false,
   lastModified: false,
@@ -6845,6 +6890,7 @@ function normalizeJob(raw) {
     company,
     location,
     link: raw.link || '#',
+    sourceUrl: raw.sourceUrl || raw.link || '#',
     description: raw.description || '',
     postedAt: normalizeDate(raw.postedAt),
     matchScore: Math.max(0, Math.min(100, Number(raw.matchScore || 0))),
@@ -8153,6 +8199,7 @@ const JOB_ALERT_FREQUENCIES = ['instant', 'daily', 'weekly'];
 const JOB_ALERT_WORK_MODES = ['remote', 'hybrid', 'onsite'];
 const JOB_ALERT_EMPLOYMENT_TYPES = ['full-time', 'contract', 'part-time', 'temporary', 'internship'];
 const JOB_ALERT_SENIORITY_LEVELS = ['internship', 'entry', 'associate', 'mid', 'senior', 'lead', 'manager', 'director', 'executive'];
+const JOB_ALERT_LOCATION_SCOPES = ['strict-local', 'nearby-radius', 'nationwide-us'];
 const JOB_ALERT_MIN_MATCH_SCORE = 90;
 const JOB_ALERT_SCHEDULE_INTERVAL_MS = 1000 * 60 * 5;
 const WHATSAPP_STATUS_NUDGE_INTERVAL_MS = 1000 * 60 * 10;
@@ -8193,13 +8240,21 @@ function normalizeJobAlertDefaults(input = {}) {
   const frequency = cleanAlertString(input.frequency || 'daily', 20).toLowerCase();
   const salaryMinRaw = Number(input.salaryMin);
   const searchRadiusRaw = Number(input.searchRadius);
+  const locationScopeRaw = cleanAlertString(input.locationScope || 'strict-local', 30).toLowerCase();
+  const locationScope = locationScopeRaw === 'nearby' ? 'nearby-radius'
+    : locationScopeRaw === 'nationwide' ? 'nationwide-us'
+    : locationScopeRaw;
+  const workModesRaw = Array.isArray(input.workModes) ? input.workModes : [];
+  const employmentTypesRaw = Array.isArray(input.employmentTypes) ? input.employmentTypes : [];
+  const seniorityLevelsRaw = Array.isArray(input.seniorityLevels) ? input.seniorityLevels : [];
   return {
     location: cleanAlertString(input.location || 'Remote', 120) || 'Remote',
     frequency: JOB_ALERT_FREQUENCIES.includes(frequency) ? frequency : 'daily',
+    locationScope: JOB_ALERT_LOCATION_SCOPES.includes(locationScope) ? locationScope : 'strict-local',
     searchRadius: Number.isFinite(searchRadiusRaw) && searchRadiusRaw > 0 ? Math.min(Math.round(searchRadiusRaw), 500) : 100,
-    workModes: toAllowedList((input.workModes || []).map ? input.workModes.map((item) => String(item).toLowerCase()) : input.workModes, JOB_ALERT_WORK_MODES),
-    employmentTypes: toAllowedList((input.employmentTypes || []).map ? input.employmentTypes.map((item) => String(item).toLowerCase()) : input.employmentTypes, JOB_ALERT_EMPLOYMENT_TYPES),
-    seniorityLevels: toAllowedList((input.seniorityLevels || []).map ? input.seniorityLevels.map((item) => String(item).toLowerCase()) : input.seniorityLevels, JOB_ALERT_SENIORITY_LEVELS),
+    workModes: toAllowedList(workModesRaw.map((item) => String(item).toLowerCase()), JOB_ALERT_WORK_MODES),
+    employmentTypes: toAllowedList(employmentTypesRaw.map((item) => String(item).toLowerCase()), JOB_ALERT_EMPLOYMENT_TYPES),
+    seniorityLevels: toAllowedList(seniorityLevelsRaw.map((item) => String(item).toLowerCase()), JOB_ALERT_SENIORITY_LEVELS),
     industries: toAlertList(input.industries, 8, 50),
     includeKeywords: toAlertList(input.includeKeywords, 12, 40),
     excludeKeywords: toAlertList(input.excludeKeywords, 12, 40),
@@ -8865,12 +8920,76 @@ async function prewarmJobSearches() {
   }
 }
 
-function extractCompanyName(text = '') {
-  const companyLine =
-    text.match(/company[:\s]+([^\n]+)/i)?.[1] ||
-    text.match(/at\s+([A-Z][A-Za-z0-9&.,\-\s]{2,})/)?.[1] ||
-    '';
-  return companyLine.trim() || 'Imported Company';
+function normalizePossibleCompanyName(value = '') {
+  const cleaned = String(value || '')
+    .replace(/\s+/g, ' ')
+    .replace(/[|:;,\-\s]+$/g, '')
+    .trim();
+
+  if (!cleaned) return '';
+
+  const invalid = /^(apply|job|jobs|remote|full[-\s]?time|part[-\s]?time|linkedin|indeed|glassdoor|monster|ziprecruiter|imported\s+company|unknown\s+company)$/i;
+  if (invalid.test(cleaned)) return '';
+
+  return cleaned;
+}
+
+function titleCaseFromSlug(slug = '') {
+  return String(slug || '')
+    .replace(/[-_]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .split(' ')
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
+function extractCompanyFromSourceUrl(sourceUrl = '') {
+  try {
+    const url = new URL(String(sourceUrl || '').trim());
+    const host = String(url.hostname || '').toLowerCase();
+    const pathParts = String(url.pathname || '')
+      .split('/')
+      .map((part) => part.trim())
+      .filter(Boolean);
+
+    if (host.includes('jobs.lever.co') && pathParts[0]) {
+      return normalizePossibleCompanyName(titleCaseFromSlug(pathParts[0]));
+    }
+
+    if (host.includes('boards.greenhouse.io') && pathParts[0]) {
+      return normalizePossibleCompanyName(titleCaseFromSlug(pathParts[0]));
+    }
+
+    const workdayMatch = host.match(/^([a-z0-9-]+)\.(?:wd\d+\.)?myworkdayjobs\.com$/i);
+    if (workdayMatch && workdayMatch[1]) {
+      return normalizePossibleCompanyName(titleCaseFromSlug(workdayMatch[1]));
+    }
+
+    return '';
+  } catch {
+    return '';
+  }
+}
+
+function extractCompanyName(text = '', sourceUrl = '') {
+  const patterns = [
+    /company[:\s]+([^\n]+)/i,
+    /hiring company[:\s]+([^\n]+)/i,
+    /employer[:\s]+([^\n]+)/i,
+    /organization[:\s]+([^\n]+)/i,
+    /about\s+([^\n]{2,80})\s+(?:careers|jobs)/i,
+    /\bat\s+([A-Z][A-Za-z0-9&.,'\-\s]{2,80}?)(?:\s+(?:in|is|seeks|seeking|looking|hiring|for)\b|[\n,.;]|$)/
+  ];
+
+  for (const pattern of patterns) {
+    const match = String(text || '').match(pattern);
+    const normalized = normalizePossibleCompanyName(match?.[1] || '');
+    if (normalized) return normalized;
+  }
+
+  return extractCompanyFromSourceUrl(sourceUrl) || 'Unknown Company';
 }
 
 function extractJobTitle(text = '') {
@@ -8915,10 +9034,11 @@ function extractLocation(text = '') {
 async function parseJobFromAnywhere(rawText, sourceUrl) {
   const fallback = normalizeJob({
     title: extractJobTitle(rawText),
-    company: extractCompanyName(rawText),
+    company: extractCompanyName(rawText, sourceUrl),
     location: extractLocation(rawText),
     description: rawText.trim(),
     link: sourceUrl?.trim() || '#',
+    sourceUrl: sourceUrl?.trim() || '#',
     matchScore: estimateMatchScore(extractJobTitle(rawText), rawText),
     source: sourceUrl ? 'Imported URL' : 'Pasted Job'
   });
@@ -8946,10 +9066,12 @@ async function parseJobFromAnywhere(rawText, sourceUrl) {
 
     const parsed = JSON.parse(completion.choices[0].message.content || '{}');
 
+    const parsedCompany = normalizePossibleCompanyName(parsed.company || '');
+
     return normalizeJob({
       ...fallback,
       title: parsed.title || fallback.title,
-      company: parsed.company || fallback.company,
+      company: parsedCompany || fallback.company,
       location: parsed.location || fallback.location,
       description: parsed.description || fallback.description
     });
