@@ -6727,6 +6727,19 @@ function getUSStateInfo(value = '', { exactOnly = false } = {}) {
     }
   }
 
+  for (const [code, info] of Object.entries(US_STATE_DIRECTORY)) {
+    const matchedCity = info.cities.find((city) => {
+      return new RegExp(`\\b${city.replace(/\s+/g, '\\s*')}\\b`, 'i').test(normalized);
+    });
+    if (matchedCity) {
+      return {
+        code,
+        full: info.name,
+        cities: [matchedCity].concat(info.cities.filter((city) => city !== matchedCity))
+      };
+    }
+  }
+
   return null;
 }
 
@@ -6735,7 +6748,7 @@ function buildLocationHints(queryLocation = '') {
   if (!query) return [];
 
   const normalizedQuery = query.replace(/\s+/g, ' ').trim();
-  const usStateInfo = getUSStateInfo(normalizedQuery, { exactOnly: true });
+  const usStateInfo = getUSStateInfo(normalizedQuery);
 
   if (usStateInfo) {
     return [usStateInfo.full, usStateInfo.code].concat(usStateInfo.cities);

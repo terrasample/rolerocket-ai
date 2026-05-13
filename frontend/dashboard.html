@@ -1065,9 +1065,11 @@
               if (!scoutTitles.length) addScoutTitle('Software Engineer');
               scoutTitles = uniqueLower(scoutTitles);
 
-              var primaryScoutTitle = scoutTitles.length ? scoutTitles[0] : 'Software Engineer';
+              var explicitScoutTitle = String(params.get('title') || '').trim();
+              var explicitScoutLocation = String(params.get('location') || '').trim();
+              var primaryScoutTitle = explicitScoutTitle || (scoutTitles.length ? scoutTitles[0] : 'Software Engineer');
 
-              var scoutLocation = isJamaicaExperience
+              var scoutLocation = explicitScoutLocation || (isJamaicaExperience
                 ? (function() {
                     var rawJmLocation = (jad.location && jad.location !== 'Remote') ? String(jad.location).trim() : 'Jamaica';
                     if (!rawJmLocation) return 'Jamaica';
@@ -1076,7 +1078,7 @@
                   })()
                 : isUSExperience
                   ? ((jad.location && jad.location !== 'Remote') ? jad.location : 'United States')
-                  : ((jad.location && jad.location !== 'Remote') ? jad.location : 'Remote');
+                  : ((jad.location && jad.location !== 'Remote') ? jad.location : 'Remote'));
               var scoutRadiusMiles = Number(jad.searchRadius) > 0 ? Number(jad.searchRadius) : 100;
 
               var panelTitleEl = document.getElementById('rrShotPanelTitle');
@@ -1111,9 +1113,10 @@
               if (isUSExperience) {
                 var scopeFromProfile = String(jad.locationScope || '').toLowerCase().trim();
                 var scopeFromQuery = String(params.get('locationScope') || '').toLowerCase().trim();
-                var normalizedScope = scopeFromProfile || scopeFromQuery;
+                var normalizedScope = explicitScoutLocation ? 'statewide-preview' : (scopeFromProfile || scopeFromQuery);
                 if (normalizedScope === 'nearby' || normalizedScope === 'nearby-radius') usLocationScope = 'nearby-radius';
                 if (normalizedScope === 'nationwide' || normalizedScope === 'nationwide-us') usLocationScope = 'nationwide-us';
+                if (normalizedScope === 'statewide-preview') usLocationScope = 'statewide-preview';
 
                 usPrefLocation = parseUSLocationPreference(scoutLocation);
                 isUSLocalityMatch = function(job) {
@@ -1225,7 +1228,8 @@
                 var scopeLabelMap = {
                   'strict-local': 'Strict Local Matches',
                   'nearby-radius': 'Nearby Radius Matches',
-                  'nationwide-us': 'Nationwide US Matches'
+                  'nationwide-us': 'Nationwide US Matches',
+                  'statewide-preview': 'Statewide Matches'
                 };
                 var matchScopeHint = document.getElementById('rrShotProfileHint');
                 if (matchScopeHint) {
