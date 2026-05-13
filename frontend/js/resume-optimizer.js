@@ -663,6 +663,9 @@ document.addEventListener('DOMContentLoaded', function () {
         }
       });
       return doc;
+    } catch (error) {
+      console.warn('[Resume Optimizer PDF] Template render failed, using fallback renderer:', error?.message || error);
+      return buildResumePdfDoc(model);
     } finally {
       document.body.removeChild(host);
     }
