@@ -3869,6 +3869,29 @@ pre {
   line-height: 1.4;
 }
 
+/* Logo overlay - positioned over the left card */
+.logo-overlay {
+  position: absolute;
+  top: -90px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  margin-bottom: 20px;
+}
+
+.logo-overlay .login-title-logo {
+  width: clamp(160px, 18vw, 220px);
+  height: clamp(160px, 18vw, 220px);
+  border-radius: 18px;
+  box-shadow: 0 12px 32px rgba(2, 6, 23, 0.55);
+  display: block;
+}
+
+.premium-features-card {
+  position: relative;
+  padding-top: 130px;
+}
+
 .login-testimonials {
   margin-top: 24px;
   padding: 26px;
@@ -3952,9 +3975,44 @@ pre {
   }
 }
 
+/* Heading overlay - positioned over the right card */
+.heading-overlay {
+  position: absolute;
+  top: -80px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  width: 90%;
+  text-align: center;
+}
+
+.card-heading-overlay {
+  font-size: 2.2rem;
+  line-height: 1.15;
+  margin: 0;
+  letter-spacing: -0.03em;
+  font-weight: 800;
+  color: #ffffff;
+  text-shadow: 0 4px 12px rgba(15, 23, 42, 0.3);
+}
+
+.card-heading-overlay span {
+  display: block;
+}
+
+.heading-line-break {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 900;
+}
+
 .auth-card {
+  position: relative;
   background: rgba(255, 255, 255, 0.97);
   color: #111827;
+  margin-top: 40px;
   width: 100%;
   border-radius: 24px;
   padding: 28px;
@@ -3980,6 +4038,71 @@ pre {
 .auth-subtext {
   margin: 0 0 18px;
   color: #6b7280;
+}
+
+/* Top badge section with secondary CTA */
+.top-badge-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+/* Secondary CTA button - top of features card */
+.cta-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 18px;
+  background: rgba(59, 130, 246, 0.15);
+  color: #2563eb;
+  border: 1.5px solid #3b82f6;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.cta-btn-secondary:hover {
+  background: rgba(59, 130, 246, 0.25);
+  border-color: #1d4ed8;
+  color: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+/* Primary CTA button - bottom of features card */
+.cta-btn-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 28px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  font-size: 1.05rem;
+  font-weight: 800;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 20px;
+  box-shadow: 0 8px 16px rgba(37, 99, 235, 0.3);
+  letter-spacing: 0.02em;
+}
+
+.cta-btn-primary:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  box-shadow: 0 12px 24px rgba(37, 99, 235, 0.4);
+  transform: translateY(-2px);
+}
+
+.cta-btn-primary:active {
+  transform: translateY(0);
 }
 
 .auth-form {
