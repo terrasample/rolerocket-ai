@@ -53,29 +53,29 @@
       }
     }
 
-    /* Screenshot-style dashboard shell */
-    body { background: radial-gradient(circle at 82% 8%, #0f305e 0%, #071123 42%, #050b16 100%) !important; }
+    /* US dashboard shell aligned with the home experience */
+    body { background: linear-gradient(180deg, #eff6ff 0%, #dbeafe 52%, #fef3c7 100%) !important; }
     .hero { display: none !important; }
     #dashboardMain { padding-top: 20px; }
     .rr-shot-shell {
-      background: linear-gradient(180deg, #0d182c 0%, #0a1426 100%);
-      border: 1px solid rgba(96, 165, 250, .24);
-      box-shadow: 0 16px 48px rgba(2, 6, 23, .7), inset 0 1px 0 rgba(148, 163, 184, .12);
+      background: linear-gradient(180deg, rgba(255, 255, 255, .98) 0%, rgba(239, 246, 255, .98) 100%);
+      border: 1px solid rgba(37, 99, 235, .18);
+      box-shadow: 0 18px 42px rgba(37, 99, 235, .12), inset 0 1px 0 rgba(255, 255, 255, .7);
       border-radius: 18px;
       padding: 30px 24px 24px;
       max-width: 1220px;
       margin: 12px auto 18px;
-      color: #e2e8f0;
+      color: #0f172a;
     }
     .rr-shot-header h2 {
       margin: 0;
       font-size: clamp(1.5rem, 2.8vw, 2.2rem);
       letter-spacing: -.02em;
-      color: #f8fafc;
+      color: #0f172a;
     }
     .rr-shot-header p {
       margin: 6px 0 20px;
-      color: #9fb3cf;
+      color: #334155;
       font-size: 1.04rem;
     }
     .rr-shot-badge {
@@ -84,9 +84,9 @@
       gap: 8px;
       padding: 6px 14px;
       border-radius: 999px;
-      border: 1px solid rgba(34, 197, 94, .35);
-      background: rgba(34, 197, 94, .12);
-      color: #bbf7d0;
+      border: 1px solid rgba(250, 204, 21, .45);
+      background: rgba(250, 204, 21, .16);
+      color: #92400e;
       font-size: .82rem;
       font-weight: 800;
       margin-bottom: 14px;
@@ -98,8 +98,8 @@
       margin-bottom: 18px;
     }
     .rr-shot-kpi {
-      background: linear-gradient(180deg, rgba(15, 23, 42, .92), rgba(8, 19, 36, .96));
-      border: 1px solid rgba(59, 130, 246, .28);
+      background: linear-gradient(180deg, rgba(255, 255, 255, .98), rgba(239, 246, 255, .98));
+      border: 1px solid rgba(37, 99, 235, .18);
       border-radius: 14px;
       padding: 14px;
       min-height: 122px;
@@ -107,39 +107,39 @@
       flex-direction: column;
       justify-content: space-between;
     }
-    .rr-shot-kpi .label { color: #93a7c3; font-size: .86rem; font-weight: 700; }
-    .rr-shot-kpi .value { color: #f8fafc; font-size: 2.05rem; font-weight: 800; line-height: 1.1; }
-    .rr-shot-kpi .sub { color: #22c55e; font-size: .97rem; font-weight: 700; }
+    .rr-shot-kpi .label { color: #475569; font-size: .86rem; font-weight: 700; }
+    .rr-shot-kpi .value { color: #0f172a; font-size: 2.05rem; font-weight: 800; line-height: 1.1; }
+    .rr-shot-kpi .sub { color: #1d4ed8; font-size: .97rem; font-weight: 700; }
     .rr-shot-main {
       display: grid;
       grid-template-columns: 1.45fr 1fr;
       gap: 16px;
     }
     .rr-shot-card {
-      background: linear-gradient(180deg, rgba(10, 20, 36, .95), rgba(8, 18, 32, .98));
-      border: 1px solid rgba(59, 130, 246, .25);
+      background: linear-gradient(180deg, rgba(255, 255, 255, .98), rgba(248, 250, 252, .98));
+      border: 1px solid rgba(37, 99, 235, .18);
       border-radius: 14px;
       padding: 16px;
     }
     .rr-shot-card h3 {
       margin: 0 0 12px;
       font-size: 1.3rem;
-      color: #f1f5f9;
+      color: #0f172a;
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
-    .rr-shot-viewall { color: #3b82f6; font-size: .95rem; text-decoration: none; }
+    .rr-shot-viewall { color: #1d4ed8; font-size: .95rem; text-decoration: none; }
     .rr-shot-list { display: grid; gap: 10px; }
     .rr-shot-row {
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
       gap: 10px;
       align-items: center;
-      border: 1px solid rgba(51, 65, 85, .8);
+      border: 1px solid rgba(148, 163, 184, .38);
       border-radius: 10px;
       padding: 10px 12px;
-      background: rgba(10, 16, 30, .72);
+      background: rgba(255, 255, 255, .94);
     }
     .rr-shot-row-link {
       text-decoration: none;
@@ -149,16 +149,16 @@
     .rr-shot-row-link:hover,
     .rr-shot-row-link:focus-visible {
       transform: translateY(-1px);
-      border-color: rgba(59, 130, 246, .55);
-      background: rgba(16, 24, 42, .88);
-      box-shadow: 0 10px 24px rgba(2, 6, 23, .28);
+      border-color: rgba(37, 99, 235, .45);
+      background: rgba(239, 246, 255, .98);
+      box-shadow: 0 10px 24px rgba(37, 99, 235, .12);
       outline: none;
     }
     .rr-shot-row > div { min-width: 0; }
     .rr-shot-row .title {
       font-size: 1.02rem;
       font-weight: 700;
-      color: #f8fafc;
+      color: #0f172a;
       line-height: 1.25;
       display: -webkit-box;
       -webkit-line-clamp: 2;
@@ -168,7 +168,7 @@
     }
     .rr-shot-row .meta {
       font-size: .88rem;
-      color: #8aa2bf;
+      color: #475569;
       margin-top: 4px;
       line-height: 1.35;
       display: -webkit-box;
@@ -181,9 +181,9 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      border: 1px solid #3b82f6;
-      color: #dbeafe;
-      background: linear-gradient(180deg, rgba(37, 99, 235, .22) 0%, rgba(29, 78, 216, .18) 100%);
+      border: 1px solid #1d4ed8;
+      color: #eff6ff;
+      background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
       padding: 7px 14px;
       border-radius: 9px;
       font-weight: 800;
@@ -199,7 +199,7 @@
       height: 220px;
       margin: 6px auto 12px;
       border-radius: 50%;
-      background: conic-gradient(#22c55e 0 var(--rr-ats-angle, 338deg), #0f1f36 var(--rr-ats-angle, 338deg) 360deg);
+      background: conic-gradient(#2563eb 0 var(--rr-ats-angle, 338deg), #dbeafe var(--rr-ats-angle, 338deg) 360deg);
       display: grid;
       place-items: center;
       position: relative;
@@ -209,13 +209,13 @@
       position: absolute;
       inset: 16px;
       border-radius: 50%;
-      background: linear-gradient(180deg, #071327 0%, #0a162b 100%);
-      border: 1px solid rgba(51, 65, 85, .75);
+      background: linear-gradient(180deg, #ffffff 0%, #eff6ff 100%);
+      border: 1px solid rgba(37, 99, 235, .15);
     }
     .rr-shot-ats-core { position: relative; z-index: 1; }
-    .rr-shot-ats-score { font-size: 3rem; font-weight: 900; line-height: 1; color: #f8fafc; }
-    .rr-shot-ats-grade { font-size: 1.5rem; font-weight: 800; color: #22c55e; margin-top: 6px; }
-    .rr-shot-ats-msg { color: #a8bdd8; font-size: 1.02rem; margin: 4px 0 16px; }
+    .rr-shot-ats-score { font-size: 3rem; font-weight: 900; line-height: 1; color: #0f172a; }
+    .rr-shot-ats-grade { font-size: 1.5rem; font-weight: 800; color: #1d4ed8; margin-top: 6px; }
+    .rr-shot-ats-msg { color: #475569; font-size: 1.02rem; margin: 4px 0 16px; }
     .rr-shot-btn {
       display: inline-flex;
       align-items: center;
@@ -1717,6 +1717,62 @@
       });
 
       loadHistory();
+    })();
+  </script>
+  <script>
+    // Demo mode: Load live scout jobs without authentication
+    (function loadMockJobsInDemo() {
+      const params = new URLSearchParams(window.location.search);
+      const demoMode = params.get('demo') === 'true';
+      if (!demoMode) return;
+      const demoTitle = params.get('title') || 'Project Manager';
+      const demoLocation = params.get('location') || 'Pennsylvania';
+
+      function renderJobRow(job) {
+        return `
+          <a class="rr-shot-row rr-shot-row-link" href="${job.link}" target="_blank" rel="noopener noreferrer">
+            <div>
+              <div class="title">${job.title} (${job.matchScore}% match)</div>
+              <div class="meta">${job.company} • ${job.location}</div>
+            </div>
+            <span class="rr-shot-apply">View job</span>
+          </a>
+        `;
+      }
+
+      async function populateDemoJobs() {
+        const listEl = document.getElementById('rrShotJobMatches');
+        if (!listEl) return;
+
+        const panelTitleEl = document.getElementById('rrShotPanelTitle');
+        const panelLinkEl = document.getElementById('rrShotPanelLink');
+        if (panelTitleEl) panelTitleEl.textContent = 'Top Job Matches for ' + demoLocation;
+        if (panelLinkEl) panelLinkEl.href = 'job-search.html?query=' + encodeURIComponent(demoTitle) + '&location=' + encodeURIComponent(demoLocation) + '&source=market';
+
+        listEl.innerHTML = '<div class="rr-shot-row"><div><div class="title">Loading live matches…</div><div class="meta">Pulling top jobs for ' + demoLocation + '</div></div></div>';
+
+        try {
+          const response = await fetch((typeof apiUrl === 'function' ? apiUrl('') : '') + '/api/jobs/scout?title=' + encodeURIComponent(demoTitle) + '&location=' + encodeURIComponent(demoLocation));
+          const payload = await response.json();
+          const jobs = Array.isArray(payload.jobs) ? payload.jobs.slice(0, 6) : [];
+
+          if (!jobs.length) {
+            listEl.innerHTML = '<div class="rr-shot-row"><div><div class="title">No current matches found</div><div class="meta">Try another title or location.</div></div></div>';
+            return;
+          }
+
+          listEl.innerHTML = jobs.map(renderJobRow).join('');
+        } catch (_error) {
+          listEl.innerHTML = '<div class="rr-shot-row"><div><div class="title">Unable to load live matches</div><div class="meta">Refresh the page to try again.</div></div></div>';
+        }
+      }
+
+      // Wait for DOM to be ready
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', populateDemoJobs);
+      } else {
+        setTimeout(populateDemoJobs, 100);
+      }
     })();
   </script>
 </body>

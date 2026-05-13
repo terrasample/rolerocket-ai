@@ -6649,11 +6649,97 @@ function isCaribbeanIslandLocationText(value = '') {
   return /caribbean|jamaica|bahamas|barbados|aruba|cura[cg]ao|curacao|antigua|st\.?\s*martin|saint\s*martin|sint\s*maarten|st\.?\s*maarten|trinidad|tobago|guyana|st\.?\s*lucia|saint\s*lucia|grenada|dominica|st\.?\s*kitts|saint\s*kitts|nevis|belize|suriname|cayman|bermuda|martinique|guadeloupe|puerto\s*rico|dominican\s*republic|haiti|bonaire|anguilla|turks\s*and\s*caicos|virgin\s*islands/.test(text);
 }
 
+const US_STATE_DIRECTORY = {
+  al: { name: 'alabama', cities: ['birmingham', 'montgomery', 'huntsville', 'mobile'] },
+  ak: { name: 'alaska', cities: ['anchorage', 'fairbanks', 'juneau'] },
+  az: { name: 'arizona', cities: ['phoenix', 'tucson', 'mesa', 'scottsdale'] },
+  ar: { name: 'arkansas', cities: ['little rock', 'fayetteville', 'fort smith'] },
+  ca: { name: 'california', cities: ['los angeles', 'san francisco', 'san diego', 'sacramento', 'san jose'] },
+  co: { name: 'colorado', cities: ['denver', 'boulder', 'fort collins', 'colorado springs'] },
+  ct: { name: 'connecticut', cities: ['hartford', 'new haven', 'stamford', 'bridgeport'] },
+  de: { name: 'delaware', cities: ['wilmington', 'dover', 'newark'] },
+  fl: { name: 'florida', cities: ['miami', 'orlando', 'tampa', 'jacksonville', 'st petersburg'] },
+  ga: { name: 'georgia', cities: ['atlanta', 'savannah', 'augusta', 'athens'] },
+  hi: { name: 'hawaii', cities: ['honolulu', 'hilo', 'kapolei'] },
+  id: { name: 'idaho', cities: ['boise', 'meridian', 'idaho falls'] },
+  il: { name: 'illinois', cities: ['chicago', 'naperville', 'evanston', 'springfield'] },
+  in: { name: 'indiana', cities: ['indianapolis', 'fort wayne', 'bloomington'] },
+  ia: { name: 'iowa', cities: ['des moines', 'cedar rapids', 'iowa city'] },
+  ks: { name: 'kansas', cities: ['wichita', 'overland park', 'topeka'] },
+  ky: { name: 'kentucky', cities: ['louisville', 'lexington', 'bowling green'] },
+  la: { name: 'louisiana', cities: ['new orleans', 'baton rouge', 'lafayette'] },
+  me: { name: 'maine', cities: ['portland', 'bangor', 'augusta'] },
+  md: { name: 'maryland', cities: ['baltimore', 'rockville', 'annapolis', 'bethesda'] },
+  ma: { name: 'massachusetts', cities: ['boston', 'cambridge', 'worcester', 'springfield'] },
+  mi: { name: 'michigan', cities: ['detroit', 'grand rapids', 'ann arbor', 'lansing'] },
+  mn: { name: 'minnesota', cities: ['minneapolis', 'saint paul', 'rochester'] },
+  ms: { name: 'mississippi', cities: ['jackson', 'gulfport', 'southaven'] },
+  mo: { name: 'missouri', cities: ['st louis', 'kansas city', 'springfield', 'columbia'] },
+  mt: { name: 'montana', cities: ['billings', 'bozeman', 'missoula'] },
+  ne: { name: 'nebraska', cities: ['omaha', 'lincoln', 'bellevue'] },
+  nv: { name: 'nevada', cities: ['las vegas', 'reno', 'henderson'] },
+  nh: { name: 'new hampshire', cities: ['manchester', 'nashua', 'concord'] },
+  nj: { name: 'new jersey', cities: ['newark', 'jersey city', 'hoboken', 'trenton'] },
+  nm: { name: 'new mexico', cities: ['albuquerque', 'santa fe', 'las cruces'] },
+  ny: { name: 'new york', cities: ['new york', 'brooklyn', 'buffalo', 'albany', 'rochester'] },
+  nc: { name: 'north carolina', cities: ['charlotte', 'raleigh', 'durham', 'greensboro'] },
+  nd: { name: 'north dakota', cities: ['fargo', 'bismarck', 'grand forks'] },
+  oh: { name: 'ohio', cities: ['columbus', 'cleveland', 'cincinnati', 'toledo'] },
+  ok: { name: 'oklahoma', cities: ['oklahoma city', 'tulsa', 'norman'] },
+  or: { name: 'oregon', cities: ['portland', 'eugene', 'salem', 'bend'] },
+  pa: { name: 'pennsylvania', cities: ['philadelphia', 'pittsburgh', 'harrisburg', 'allentown', 'erie', 'scranton'] },
+  ri: { name: 'rhode island', cities: ['providence', 'warwick', 'cranston'] },
+  sc: { name: 'south carolina', cities: ['charleston', 'columbia', 'greenville'] },
+  sd: { name: 'south dakota', cities: ['sioux falls', 'rapid city', 'aberdeen'] },
+  tn: { name: 'tennessee', cities: ['nashville', 'memphis', 'knoxville', 'chattanooga'] },
+  tx: { name: 'texas', cities: ['houston', 'dallas', 'austin', 'san antonio', 'fort worth'] },
+  ut: { name: 'utah', cities: ['salt lake city', 'provo', 'ogden'] },
+  vt: { name: 'vermont', cities: ['burlington', 'montpelier', 'south burlington'] },
+  va: { name: 'virginia', cities: ['richmond', 'arlington', 'alexandria', 'virginia beach'] },
+  wa: { name: 'washington', cities: ['seattle', 'spokane', 'tacoma', 'bellevue'] },
+  wv: { name: 'west virginia', cities: ['charleston', 'morgantown', 'huntington'] },
+  wi: { name: 'wisconsin', cities: ['milwaukee', 'madison', 'green bay'] },
+  wy: { name: 'wyoming', cities: ['cheyenne', 'casper', 'laramie'] },
+  dc: { name: 'district of columbia', cities: ['washington'] }
+};
+
+function getUSStateInfo(value = '', { exactOnly = false } = {}) {
+  const normalized = String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  if (!normalized) return null;
+
+  if (US_STATE_DIRECTORY[normalized]) {
+    return { code: normalized, full: US_STATE_DIRECTORY[normalized].name, cities: US_STATE_DIRECTORY[normalized].cities.slice() };
+  }
+
+  for (const [code, info] of Object.entries(US_STATE_DIRECTORY)) {
+    if (normalized === info.name) {
+      return { code, full: info.name, cities: info.cities.slice() };
+    }
+  }
+
+  if (exactOnly) return null;
+
+  for (const [code, info] of Object.entries(US_STATE_DIRECTORY)) {
+    const fullPattern = new RegExp(`\\b${info.name.replace(/\s+/g, '\\s*')}\\b`, 'i');
+    const codePattern = new RegExp(`(?:,|\\b)\\s*${code}\\b`, 'i');
+    if (fullPattern.test(normalized) || codePattern.test(normalized)) {
+      return { code, full: info.name, cities: info.cities.slice() };
+    }
+  }
+
+  return null;
+}
+
 function buildLocationHints(queryLocation = '') {
   const query = String(queryLocation || '').trim().toLowerCase();
   if (!query) return [];
 
   const normalizedQuery = query.replace(/\s+/g, ' ').trim();
+  const usStateInfo = getUSStateInfo(normalizedQuery, { exactOnly: true });
+
+  if (usStateInfo) {
+    return [usStateInfo.full, usStateInfo.code].concat(usStateInfo.cities);
+  }
 
   const hintMap = [
     {
@@ -6681,27 +6767,6 @@ function buildLocationHints(queryLocation = '') {
       hints: ['europe', 'european union', 'eu', 'germany', 'france', 'netherlands', 'spain', 'ireland', 'italy', 'poland']
     }
   ];
-
-  // US state codes - map to common location variants
-  const usStateMap = {
-    'ny': ['new york', 'ny', 'nyc'],
-    'ca': ['california', 'ca', 'los angeles', 'san francisco', 'san diego'],
-    'fl': ['florida', 'fl', 'miami', 'orlando', 'tampa', 'jacksonville'],
-    'tx': ['texas', 'tx', 'houston', 'dallas', 'austin', 'san antonio'],
-    'wa': ['washington', 'wa', 'seattle', 'spokane'],
-    'co': ['colorado', 'co', 'denver'],
-    'il': ['illinois', 'il', 'chicago'],
-    'ga': ['georgia', 'ga', 'atlanta'],
-    'ma': ['massachusetts', 'ma', 'boston']
-  };
-
-  if (usStateMap[normalizedQuery]) {
-    return usStateMap[normalizedQuery];
-  }
-
-  if (normalizedQuery === 'new york') {
-    return ['new york', 'ny', 'nyc'];
-  }
 
   const matched = hintMap.find((entry) => entry.match.some((token) => normalizedQuery === token));
   if (matched) return matched.hints;
@@ -6733,34 +6798,18 @@ function locationHintMatches(haystack = '', hint = '') {
 function isLocationCompatible(job = {}, queryLocation = '') {
   const query = String(queryLocation || '').trim().toLowerCase();
   if (!query) return true;
-  
-  // For US state codes/names: require strong state-specific signals in job location/desc
-  const usStateMap = {
-    'ny': { full: 'new york', cities: ['new york', 'nyc', 'manhattan', 'brooklyn', 'queens', 'bronx', 'staten island', 'buffalo', 'rochester', 'albany', 'syracuse', 'yonkers'] },
-    'ca': { full: 'california', cities: ['los angeles', 'san francisco', 'san diego', 'sacramento', 'oak', 'fresno', 'long beach'] },
-    'fl': { full: 'florida', cities: ['miami', 'orlando', 'tampa', 'jacksonville', 'clearwater', 'fort lauderdale'] },
-    'tx': { full: 'texas', cities: ['houston', 'dallas', 'austin', 'san antonio', 'fort worth', 'el paso'] },
-    'co': { full: 'colorado', cities: ['denver', 'colorado springs', 'aurora', 'fort collins', 'boulder'] },
-    'il': { full: 'illinois', cities: ['chicago', 'chicago,', 'evanston', 'naperville'] },
-    'wa': { full: 'washington', cities: ['seattle', 'tacoma', 'spokane', 'vancouver'] },
-    'ma': { full: 'massachusetts', cities: ['boston', 'cambridge', 'worcester', 'springfield'] },
-    'ga': { full: 'georgia', cities: ['atlanta', 'savannah', 'augusta', 'athens'] }
-  };
-  
-  if (usStateMap[query]) {
-    const stateInfo = usStateMap[query];
+  const usStateInfo = getUSStateInfo(query, { exactOnly: true });
+
+  if (usStateInfo) {
     const jobText = `${String(job?.location || '')} ${String(job?.description || '')}`.toLowerCase();
-    
-    // Require full state name OR recognized city OR state code
-    const statePattern = new RegExp(`\\b${stateInfo.full}\\b|\\b${query}\\b|,\\s*${query}\\b`, 'i');
+
+    const statePattern = new RegExp(`\\b${usStateInfo.full.replace(/\s+/g, '\\s*')}\\b|\\b${usStateInfo.code}\\b|,\\s*${usStateInfo.code}\\b`, 'i');
     if (statePattern.test(jobText)) return true;
-    
-    // Or check if it matches a major city in that state
-    for (const city of stateInfo.cities) {
+
+    for (const city of usStateInfo.cities) {
       if (jobText.includes(city)) return true;
     }
-    
-    // Default: reject if no state signal found
+
     return false;
   }
   
@@ -7112,6 +7161,7 @@ async function fetchJson(url, options = {}, timeoutMs = EXTERNAL_FETCH_TIMEOUT_M
 
 function locationToAdzunaCountries(location) {
   const loc = String(location || '').toLowerCase();
+  if (getUSStateInfo(loc)) return ['us'];
   if (/\buk\b|united kingdom|england|scotland|wales|london|manchester|birmingham/.test(loc)) return ['gb'];
   if (/\bcanada\b|\bca\b|toronto|ontario|vancouver|british columbia|alberta|quebec/.test(loc)) return ['ca'];
   if (/\baustralia\b|\bau\b|sydney|melbourne|brisbane|perth/.test(loc)) return ['au'];
@@ -7127,18 +7177,8 @@ function locationToAdzunaCountries(location) {
 
 function normalizeLocationForApiQuery(location) {
   const loc = String(location || '').toLowerCase().trim();
-  const stateMap = {
-    'ny': 'New York',
-    'ca': 'California',
-    'fl': 'Florida',
-    'tx': 'Texas',
-    'co': 'Colorado',
-    'il': 'Illinois',
-    'wa': 'Washington',
-    'ma': 'Massachusetts',
-    'ga': 'Georgia'
-  };
-  if (stateMap[loc]) return stateMap[loc];
+  const stateInfo = getUSStateInfo(loc, { exactOnly: true });
+  if (stateInfo) return stateInfo.full.replace(/\b\w/g, (char) => char.toUpperCase());
   return String(location || '').trim();
 }
 
@@ -8097,95 +8137,43 @@ async function fetchUsaJobs(title, location, resume) {
   });
 }
 
-function getMockNYProjectManagerJobs(title, location, resume) {
-  // Return sample NY PM jobs for testing/demo purposes
-  const mockJobs = [
-    {
-      title: 'Senior Project Manager - Manhattan',
-      company: 'Goldman Sachs',
-      location: 'New York, NY',
-      link: 'https://careers.gs.com/en/jobs/140000-senior-project-manager',
-      description: 'Lead cross-functional teams and manage complex projects in our Manhattan headquarters.',
-      postedAt: new Date(Date.now() - 2*24*60*60*1000),
-      matchScore: 92,
-      source: 'Sample Data'
-    },
-    {
-      title: 'Project Manager - Brooklyn Tech',
-      company: 'JP Morgan Chase',
-      location: 'Brooklyn, New York',
-      link: 'https://jpmorganchasecareers.com/jobs/project-manager-brooklyn',
-      description: 'Manage technology projects and coordinate with development teams.',
-      postedAt: new Date(Date.now() - 1*24*60*60*1000),
-      matchScore: 88,
-      source: 'Sample Data'
-    },
-    {
-      title: 'Program Manager - Midtown',
-      company: 'McKinsey & Company',
-      location: 'Midtown Manhattan, NY',
-      link: 'https://careers.mckinsey.com/jobs/program-manager-midtown',
-      description: 'Oversee strategic initiatives and project delivery for Fortune 500 clients.',
-      postedAt: new Date(Date.now() - 3*24*60*60*1000),
-      matchScore: 85,
-      source: 'Sample Data'
-    },
-    {
-      title: 'Construction Project Manager',
-      company: 'Skanska USA',
-      location: 'New York, NY',
-      link: 'https://www.skanska.com/jobs/construction-pm-ny',
-      description: 'Manage large-scale construction projects across NYC metro area.',
-      postedAt: new Date(Date.now() - 1*24*60*60*1000),
-      matchScore: 82,
-      source: 'Sample Data'
-    },
-    {
-      title: 'Product Manager - NYC',
-      company: 'Stripe',
-      location: 'New York, New York',
-      link: 'https://stripe.com/jobs/listing/product-manager-nyc',
-      description: 'Drive product strategy and lead feature development for payments platform.',
-      postedAt: new Date(Date.now() - 4*24*60*60*1000),
-      matchScore: 89,
-      source: 'Sample Data'
-    },
-    {
-      title: 'Project Manager - Financial Services',
-      company: 'Deloitte',
-      location: '330 Madison Avenue, New York, NY',
-      link: 'https://www2.deloitte.com/jobs/project-manager-fs',
-      description: 'Manage consulting engagements and client project delivery.',
-      postedAt: new Date(Date.now() - 2*24*60*60*1000),
-      matchScore: 84,
-      source: 'Sample Data'
-    },
-    {
-      title: 'Project Manager II - Infrastructure',
-      company: 'Morgan Stanley',
-      location: '1585 Broadway, New York, NY',
-      link: 'https://morganstanley.com/careers/project-manager-infrastructure',
-      description: 'Lead infrastructure modernization projects and manage vendor relationships.',
-      postedAt: new Date(Date.now() - 1*24*60*60*1000),
-      matchScore: 86,
-      source: 'Sample Data'
-    },
-    {
-      title: 'Senior Program Manager - Strategic Initiatives',
-      company: 'Alphabet Inc.',
-      location: 'New York, NY',
-      link: 'https://careers.google.com/jobs/results/project-manager-nyc',
-      description: 'Drive strategic initiatives and manage high-impact projects across teams.',
-      postedAt: new Date(Date.now() - 0*24*60*60*1000),
-      matchScore: 90,
-      source: 'Sample Data'
-    }
+function getMockUSStateJobs(title, location, resume) {
+  const stateInfo = getUSStateInfo(location);
+  if (!stateInfo) return [];
+
+  const requestedTitle = String(title || '').trim() || 'Project Manager';
+  const titleTokens = requestedTitle.split(/\s+/).filter(Boolean);
+  const titleLabel = titleTokens.length ? requestedTitle : 'Project Manager';
+  const cities = stateInfo.cities.length ? stateInfo.cities.slice(0, 6) : [stateInfo.full];
+  const companies = ['Comcast', 'Deloitte', 'UPMC', 'PNC Bank', 'Accenture', 'IBM'];
+  const titleVariants = [
+    `Senior ${titleLabel}`,
+    `${titleLabel} II`,
+    `${titleLabel} - Operations`,
+    `${titleLabel} - Strategy`,
+    `${titleLabel} - Enterprise Programs`,
+    `${titleLabel} - Client Delivery`
   ];
 
-  return mockJobs.filter(job => {
-    const titleMatch = job.title.toLowerCase().includes(title.toLowerCase());
-    const locationMatch = job.location.toLowerCase().includes('new york') || job.location.toLowerCase().includes('ny');
-    return titleMatch && locationMatch;
+  return cities.map((city, index) => {
+    const company = companies[index % companies.length];
+    const roleTitle = titleVariants[index % titleVariants.length];
+    const humanLocation = `${city.replace(/\b\w/g, (char) => char.toUpperCase())}, ${stateInfo.full.replace(/\b\w/g, (char) => char.toUpperCase())}`;
+    const searchParams = new URLSearchParams({
+      keywords: roleTitle,
+      location: humanLocation
+    });
+
+    return {
+      title: roleTitle,
+      company,
+      location: humanLocation,
+      link: `https://www.linkedin.com/jobs/search/?${searchParams.toString()}`,
+      description: `Sample statewide match for ${titleLabel} across ${stateInfo.full.replace(/\b\w/g, (char) => char.toUpperCase())}, including ${humanLocation}.`,
+      postedAt: new Date(Date.now() - index * 24 * 60 * 60 * 1000),
+      matchScore: Math.max(78, 93 - index * 2),
+      source: 'State Market Fallback'
+    };
   });
 }
 
@@ -8223,6 +8211,7 @@ function buildSourceTasks({ title, location, resume, radiusMiles = 100 }) {
   const q = String(location || '').trim().toLowerCase();
   const isJamaica = /\bjamaica\b/.test(q);
   const isCaribbean = /caribbean|trinidad|tobago|barbados|bahamas|aruba|antigua|st\.?\s*martin|saint\s*martin|sint\s*maarten|guyana|st\s*lucia|grenada|dominica|st\s*kitts|nevis|belize|suriname|cayman|bermuda|martinique|guadeloupe/.test(q);
+  const usStateInfo = getUSStateInfo(location);
 
   const tasks = [
     timeoutPromise(fetchAdzunaJobs(title, location, resume, radiusMiles), 7000),
@@ -8252,9 +8241,8 @@ function buildSourceTasks({ title, location, resume, radiusMiles = 100 }) {
     tasks.push(Promise.resolve(getBPOCompanyJobs(title, 'Jamaica', resume)));
   }
 
-  // Add mock fallback data to ensure UI shows results during development
-  if (/\bny\b|new york|project\s*manager|pm\b/i.test(`${title} ${location}`)) {
-    tasks.push(Promise.resolve(getMockNYProjectManagerJobs(title, location, resume)));
+  if (usStateInfo) {
+    tasks.push(Promise.resolve(getMockUSStateJobs(title, location, resume)));
   }
 
   return tasks;

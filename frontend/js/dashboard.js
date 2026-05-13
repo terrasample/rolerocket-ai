@@ -2,9 +2,13 @@
 if (typeof apiUrl !== 'function') {
   throw new Error('apiUrl is not defined. Make sure api-base.js is loaded before dashboard.js');
 }
+
+// Allow demo mode to bypass auth
+const params = new URLSearchParams(window.location.search);
+const demoMode = params.get('demo') === 'true';
 const token = typeof getStoredToken === 'function' ? getStoredToken() : localStorage.getItem('token');
 
-if (!token) {
+if (!token && !demoMode) {
   window.location.href = 'login.html';
 }
 
