@@ -153,7 +153,7 @@
       '.sidebar-link-btn:hover{border-color:var(--rr-exp-primary) !important;box-shadow:0 0 0 1px var(--rr-exp-border) inset;}',
       '.sidebar-section-label{color:var(--rr-exp-accent) !important;}',
       '.quickstart-link,.auth-submit-btn,.checkout-btn,.secondary-btn.plan-info-active{border-color:var(--rr-exp-primary) !important;}',
-      '.quickstart-link{background:var(--rr-exp-bg) !important;color:var(--rr-exp-primary) !important;}',
+      '.quickstart-link{background:var(--rr-exp-bg) !important;color:#ffffff !important;}',
       '.secondary-btn.plan-info-active{background:var(--rr-exp-primary) !important;color:#fff !important;}',
       ':root[data-exp-country] .hero.contact-hero{background:linear-gradient(135deg,var(--rr-exp-dark) 0%, var(--rr-exp-primary) 100%) !important;}',
       ':root[data-exp-country] .marketing-hero-card{border-color:var(--rr-exp-border) !important;background:linear-gradient(180deg,var(--rr-exp-bg) 0%, rgba(15,23,42,.9) 100%) !important;}',
