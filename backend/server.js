@@ -3704,13 +3704,17 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     return reply;
   }
 
-  const detectedIntent = detectWhatsAppIntent(text);
+    const detectedIntent = detectWhatsAppIntent(text);
   const isFollowupSaveExportCommand = /^(save|export)\b/.test(text);
   const strictHumanIntent = ['0', 'human', 'agent', 'support', 'human support', 'live agent', 'live support'].includes(text);
   // jobs_menu is a navigation step — not a data-capture step — so resume/cover/explore intents can break out of it freely.
   // Only true data-capture steps (where a typed response is expected) should be locked.
   const lockMenuIntentRouting = ['resume_capture', 'cover_letter_capture', 'job_tailor_choice', 'interview_target', 'jobs_import', 'jobs_role_input', 'jobs_parish_select', 'demo_features'].includes(String(convo.currentStep || ''));
-  const isDemoIntent = !lockMenuIntentRouting && (text === '1' || detectedIntent.intent === 'demo');
+    const forceDemoIntent = /\bwatch\s+demo\s+features\b/.test(textCanonical)
+      || /^demo\s+features$/.test(textCanonical)
+      || /^watch_demo_features$/.test(textCanonical)
+      || /^demo_features$/.test(textCanonical);
+    const isDemoIntent = forceDemoIntent || (!lockMenuIntentRouting && (text === '1' || detectedIntent.intent === 'demo'));
   const isJobsIntent = !lockMenuIntentRouting && (text === '2' || (detectedIntent.intent === 'jobs' && !text.startsWith('apply')));
   const isResumeIntent = !lockMenuIntentRouting && !isFollowupSaveExportCommand && (text === '3' || detectedIntent.intent === 'resume');
   const isCoverLetterIntent = !lockMenuIntentRouting && !isFollowupSaveExportCommand && (text === '4' || detectedIntent.intent === 'coverLetter');

@@ -208,46 +208,24 @@
     document.head.appendChild(style);
   }
 
-  function ensureHomepageExperienceSwitcherStyle() {
-    if (document.getElementById('rrHomepageExpSwitcherStyle')) return;
-    const style = document.createElement('style');
-    style.id = 'rrHomepageExpSwitcherStyle';
-    style.textContent = [
-      '.rr-exp-switcher{margin:0 0 16px;padding:12px 14px;border:1px solid var(--rr-exp-border);background:linear-gradient(180deg,#ffffff,#f8fbff);border-radius:12px;box-shadow:0 8px 22px var(--rr-exp-bg);}',
-      '.rr-exp-switcher-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}',
-      '.rr-exp-switcher-label{font-weight:700;color:#0f172a;}',
-      '.rr-exp-switcher select{min-width:190px;border:1px solid #cbd5e1;border-radius:8px;padding:8px 10px;background:#fff;color:#0f172a;}',
-      '.rr-exp-switcher button{border:1px solid var(--rr-exp-primary);background:linear-gradient(180deg,var(--rr-exp-primary),var(--rr-exp-dark));color:#fff;border-radius:8px;padding:8px 12px;font-weight:700;cursor:pointer;}',
-      '.rr-exp-switcher button:disabled{opacity:.7;cursor:not-allowed;}',
-      '.rr-exp-switcher-note{margin-top:8px;font-size:.88rem;color:#334155;min-height:18px;}'
-    ].join('');
-    document.head.appendChild(style);
-  }
-
   function upsertHomepageExperienceSwitcher(context, token) {
     const currentPage = normalizePath(window.location.href) || 'index.html';
+    const host = document.getElementById('rrExperienceSwitcherHost');
     const existing = document.getElementById('rrHomepageExperienceSwitcher');
     if (currentPage !== 'index.html' || !token) {
+      if (host) host.style.display = 'none';
       if (existing) existing.remove();
       return;
     }
 
-    ensureHomepageExperienceSwitcherStyle();
-    const main = document.querySelector('main');
-    if (!main) return;
+    if (!host) return;
+    host.style.display = '';
 
     let root = existing;
     if (!root) {
-      root = document.createElement('section');
+      root = document.createElement('div');
       root.id = 'rrHomepageExperienceSwitcher';
-      root.className = 'rr-exp-switcher';
-
-      const row = document.createElement('div');
-      row.className = 'rr-exp-switcher-row';
-
-      const label = document.createElement('span');
-      label.className = 'rr-exp-switcher-label';
-      label.textContent = 'Experience:';
+      root.className = 'rr-exp-switcher-control';
 
       const select = document.createElement('select');
       select.id = 'rrHomepageExpSelect';
@@ -255,20 +233,17 @@
       const button = document.createElement('button');
       button.type = 'button';
       button.id = 'rrHomepageExpSaveBtn';
-      button.textContent = 'Update Experience';
+      button.textContent = 'Apply Experience';
 
       const note = document.createElement('div');
       note.id = 'rrHomepageExpStatus';
-      note.className = 'rr-exp-switcher-note';
+      note.className = 'rr-exp-switcher-status';
       note.textContent = 'Change this anytime from your homepage.';
 
-      row.appendChild(label);
-      row.appendChild(select);
-      row.appendChild(button);
-      root.appendChild(row);
-      root.appendChild(note);
-
-      main.insertBefore(root, main.firstChild);
+      root.appendChild(select);
+      root.appendChild(button);
+      host.appendChild(root);
+      host.appendChild(note);
 
       button.addEventListener('click', async function () {
         const selected = normalizeCountryCode(select.value || 'GLOBAL');
@@ -857,6 +832,19 @@
       || localStorage.getItem('token')
       || sessionStorage.getItem('token')
       || '';
+    const cachedExperienceContext = {
+      effectiveCountry: readCachedExperienceCountry(),
+      showJamaicaHub: false,
+      requiresChoice: false,
+      supportedCountries: [
+        { code: 'GLOBAL', label: 'Global' },
+        { code: 'JM', label: 'Jamaica' },
+        { code: 'US', label: 'United States' }
+      ],
+      source: 'cache'
+    };
+
+    upsertHomepageExperienceSwitcher(cachedExperienceContext, token);
 
     // ── Phase 1: apply cached state immediately so the link never flickers ──
     const cachedAdmin = readCachedAdminState();
@@ -888,8 +876,8 @@
         if (badge) badge.textContent = formatPlanLabel('free');
         // Fall back to anonymous context so stale local cache does not keep
         // Jamaica-only links visible for non-JM users.
-        syncJamaicaHubVisibility('');
-        syncExperienceThemeAndGate('');
+        syncJamaicaHubVisibility(token);
+        syncExperienceThemeAndGate(token);
         return;
       }
 
@@ -935,6 +923,7 @@
       if (badge) badge.textContent = formatPlanLabel('free');
       applyExperienceTheme(readCachedExperienceCountry());
       applyJamaicaHubVisibility(false);
+      upsertHomepageExperienceSwitcher(cachedExperienceContext, token);
     }
   }
 
