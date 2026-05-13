@@ -795,8 +795,12 @@
         } catch (_e) {}
 
         try {
+          var listElEarly = document.getElementById('rrShotJobMatches');
           var jobsRes = await fetch(apiUrl('/api/jobs'), { headers: { Authorization: 'Bearer ' + token } });
           if (!jobsRes.ok) {
+            if (listElEarly) {
+              listElEarly.innerHTML = '<div class="rr-shot-row"><div><div class="title">Unable to load top matches right now</div><div class="meta">Please refresh or try again in a moment.</div></div></div>';
+            }
             var usedTrackerFallback = await tryTrackerKpiFallback(token, forcedJamaicaMode);
             if (!usedTrackerFallback) applyKpiFallback('Unable to refresh right now');
             return;
@@ -1539,6 +1543,8 @@
                 }).join('');
               } else if (prefSalaryMin > 0) {
                 list.innerHTML = '<div class="rr-shot-row"><div><div class="title">No current matches meet your minimum salary</div><div class="meta">We checked your preferred market plus nearby metros. Try lowering your salary floor or widening role keywords to surface more matches.</div></div></div>';
+              } else {
+                list.innerHTML = '<div class="rr-shot-row"><div><div class="title">No top matches yet</div><div class="meta">Update your profile preferences to improve match quality, then refresh this page.</div></div></div>';
               }
             } catch (_scoutErr) {
               var fallback = jobs.filter(function(job) {
@@ -1564,6 +1570,8 @@
                 }).join('');
               } else if (prefSalaryMin > 0) {
                 list.innerHTML = '<div class="rr-shot-row"><div><div class="title">No current matches meet your minimum salary</div><div class="meta">We checked your preferred market plus nearby metros. Try lowering your salary floor or widening role keywords to surface more matches.</div></div></div>';
+              } else {
+                list.innerHTML = '<div class="rr-shot-row"><div><div class="title">No top matches yet</div><div class="meta">Update your profile preferences to improve match quality, then refresh this page.</div></div></div>';
               }
             }
           }
