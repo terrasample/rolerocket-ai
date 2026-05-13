@@ -208,6 +208,121 @@
     document.head.appendChild(style);
   }
 
+  function ensureHomepageExperienceSwitcherStyle() {
+    if (document.getElementById('rrHomepageExpSwitcherStyle')) return;
+    const style = document.createElement('style');
+    style.id = 'rrHomepageExpSwitcherStyle';
+    style.textContent = [
+      '.rr-exp-switcher{margin:0 0 16px;padding:12px 14px;border:1px solid var(--rr-exp-border);background:linear-gradient(180deg,#ffffff,#f8fbff);border-radius:12px;box-shadow:0 8px 22px var(--rr-exp-bg);}',
+      '.rr-exp-switcher-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}',
+      '.rr-exp-switcher-label{font-weight:700;color:#0f172a;}',
+      '.rr-exp-switcher select{min-width:190px;border:1px solid #cbd5e1;border-radius:8px;padding:8px 10px;background:#fff;color:#0f172a;}',
+      '.rr-exp-switcher button{border:1px solid var(--rr-exp-primary);background:linear-gradient(180deg,var(--rr-exp-primary),var(--rr-exp-dark));color:#fff;border-radius:8px;padding:8px 12px;font-weight:700;cursor:pointer;}',
+      '.rr-exp-switcher button:disabled{opacity:.7;cursor:not-allowed;}',
+      '.rr-exp-switcher-note{margin-top:8px;font-size:.88rem;color:#334155;min-height:18px;}'
+    ].join('');
+    document.head.appendChild(style);
+  }
+
+  function upsertHomepageExperienceSwitcher(context, token) {
+    const currentPage = normalizePath(window.location.href) || 'index.html';
+    const existing = document.getElementById('rrHomepageExperienceSwitcher');
+    if (currentPage !== 'index.html' || !token) {
+      if (existing) existing.remove();
+      return;
+    }
+
+    ensureHomepageExperienceSwitcherStyle();
+    const main = document.querySelector('main');
+    if (!main) return;
+
+    let root = existing;
+    if (!root) {
+      root = document.createElement('section');
+      root.id = 'rrHomepageExperienceSwitcher';
+      root.className = 'rr-exp-switcher';
+
+      const row = document.createElement('div');
+      row.className = 'rr-exp-switcher-row';
+
+      const label = document.createElement('span');
+      label.className = 'rr-exp-switcher-label';
+      label.textContent = 'Experience:';
+
+      const select = document.createElement('select');
+      select.id = 'rrHomepageExpSelect';
+
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.id = 'rrHomepageExpSaveBtn';
+      button.textContent = 'Update Experience';
+
+      const note = document.createElement('div');
+      note.id = 'rrHomepageExpStatus';
+      note.className = 'rr-exp-switcher-note';
+      note.textContent = 'Change this anytime from your homepage.';
+
+      row.appendChild(label);
+      row.appendChild(select);
+      row.appendChild(button);
+      root.appendChild(row);
+      root.appendChild(note);
+
+      main.insertBefore(root, main.firstChild);
+
+      button.addEventListener('click', async function () {
+        const selected = normalizeCountryCode(select.value || 'GLOBAL');
+        const activeToken = String(root.dataset.token || '');
+        if (!activeToken) return;
+
+        button.disabled = true;
+        note.textContent = 'Saving experience...';
+        try {
+          const saved = await saveExperiencePreference(selected, activeToken);
+          const effective = normalizeCountryCode((saved && saved.effectiveCountry) || selected);
+          writeCachedExperienceCountry(effective);
+          applyExperienceTheme(effective);
+          const personalization = publishPersonalizationContext(Object.assign({}, saved || {}, {
+            effectiveCountry: effective,
+            showJamaicaHub: saved && saved.showJamaicaHub === true
+          }));
+          applyJamaicaHubVisibility(personalization.showJamaicaHub);
+          upsertHomepageExperienceSwitcher(saved || {}, activeToken);
+          note.textContent = 'Experience updated.';
+        } catch (error) {
+          note.textContent = (error && error.message) ? error.message : 'Could not update experience.';
+        } finally {
+          button.disabled = false;
+        }
+      });
+    }
+
+    root.dataset.token = token;
+    const select = root.querySelector('#rrHomepageExpSelect');
+    const note = root.querySelector('#rrHomepageExpStatus');
+
+    const countries = Array.isArray(context && context.supportedCountries) ? context.supportedCountries : [
+      { code: 'GLOBAL', label: 'Global' },
+      { code: 'JM', label: 'Jamaica' },
+      { code: 'US', label: 'United States' }
+    ];
+
+    if (select) {
+      select.innerHTML = '';
+      countries.forEach((country) => {
+        const option = document.createElement('option');
+        option.value = normalizeCountryCode(country.code);
+        option.textContent = country.label;
+        select.appendChild(option);
+      });
+      select.value = normalizeCountryCode((context && context.effectiveCountry) || readCachedExperienceCountry());
+    }
+
+    if (note && !(context && context.requiresChoice === true)) {
+      note.textContent = 'Change this anytime from your homepage.';
+    }
+  }
+
   async function saveExperiencePreference(countryCode, token) {
     const apiBase = (typeof getApiBase === 'function') ? getApiBase() : '';
     const headers = {
@@ -313,6 +428,7 @@
           showJamaicaHub: saved && saved.showJamaicaHub === true
         }));
         applyJamaicaHubVisibility(personalization.showJamaicaHub);
+          upsertHomepageExperienceSwitcher(saved || {}, token);
         overlay.remove();
         document.removeEventListener('keydown', stopEscape, true);
         window.removeEventListener('popstate', stopPopState);
@@ -602,6 +718,7 @@
       }));
       applyExperienceTheme(country);
       applyJamaicaHubVisibility(personalization.showJamaicaHub);
+      upsertHomepageExperienceSwitcher(context || {}, token);
 
       const currentPage = normalizePath(window.location.href) || 'index.html';
       const noAuthPages = new Set([
