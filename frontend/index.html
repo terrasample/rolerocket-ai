@@ -47,6 +47,11 @@
           localStorage.removeItem('token');
           sessionStorage.removeItem('token');
           window.location.replace('login.html');
+        } else {
+          // Auth passed: load dashboard.js only after auth validation succeeds
+          const script = document.createElement('script');
+          script.src = 'js/dashboard.js';
+          document.body.appendChild(script);
         }
       }).catch(() => {
         localStorage.removeItem('token');
@@ -55,7 +60,6 @@
       });
     })();
   </script>
-  <script src="js/dashboard.js"></script>
   <!-- JSON-LD Structured Data -->
   <script type="application/ld+json">
   {

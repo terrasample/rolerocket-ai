@@ -483,9 +483,8 @@
       // Insert near account/logout so adding this link does not reshuffle primary nav order.
       const logoutLink = Array.from(nav.querySelectorAll('a.sidebar-link-btn'))
         .find((l) => normalizePath(l.getAttribute('href') || '') === 'login.html');
-      const anchor = logoutLink;
-      if (anchor) {
-        nav.insertBefore(existing, anchor);
+        if (logoutLink && logoutLink.parentNode) {
+          logoutLink.parentNode.insertBefore(existing, logoutLink);
       } else {
         nav.appendChild(existing);
       }
@@ -513,8 +512,8 @@
 
       const logoutLink = Array.from(nav.querySelectorAll('a.sidebar-link-btn'))
         .find((l) => normalizePath(l.getAttribute('href') || '') === 'login.html');
-      if (logoutLink) {
-        nav.insertBefore(existing, logoutLink);
+        if (logoutLink && logoutLink.parentNode) {
+          logoutLink.parentNode.insertBefore(existing, logoutLink);
       } else {
         nav.appendChild(existing);
       }
@@ -584,7 +583,7 @@
     }
   }
 
-  async function syncExperienceThemeAndGate(token) {
+            (coreAnchor.parentNode || nav).insertBefore(link, coreAnchor);
     const apiBase = (typeof getApiBase === 'function') ? getApiBase() : '';
     const headers = { Accept: 'application/json' };
     if (token) headers.Authorization = 'Bearer ' + token;
@@ -602,7 +601,7 @@
       applyExperienceTheme(country);
       applyJamaicaHubVisibility(personalization.showJamaicaHub);
 
-      const currentPage = normalizePath(window.location.href) || 'index.html';
+            (logoutLink.parentNode || nav).insertBefore(link, logoutLink);
       const noAuthPages = new Set([
         'login.html',
         'signup.html',

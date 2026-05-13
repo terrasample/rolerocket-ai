@@ -322,26 +322,38 @@ document.addEventListener('DOMContentLoaded', function () {
       return false;
     }
 
-    faceMesh = new FaceMesh({
-      locateFile: function (file) { return 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/' + file; }
-    });
-    faceMesh.setOptions({
-      maxNumFaces: 1,
-      refineLandmarks: true,
-      minDetectionConfidence: 0.5,
-      minTrackingConfidence: 0.5
-    });
+    try {
+      faceMesh = new FaceMesh({
+        locateFile: function (file) { return 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/' + file; }
+      });
+      faceMesh.setOptions({
+        maxNumFaces: 1,
+        refineLandmarks: true,
+        minDetectionConfidence: 0.5,
+        minTrackingConfidence: 0.5
+      });
+    } catch (err) {
+      console.error('FaceMesh initialization error:', err);
+      setCameraStatus('Face detection failed to initialize.', true);
+      return false;
+    }
 
-    pose = new Pose({
-      locateFile: function (file) { return 'https://cdn.jsdelivr.net/npm/@mediapipe/pose/' + file; }
-    });
-    pose.setOptions({
-      modelComplexity: 1,
-      selfieMode: true,
-      smoothLandmarks: true,
-      minDetectionConfidence: 0.5,
-      minTrackingConfidence: 0.5
-    });
+    try {
+      pose = new Pose({
+        locateFile: function (file) { return 'https://cdn.jsdelivr.net/npm/@mediapipe/pose/' + file; }
+      });
+      pose.setOptions({
+        modelComplexity: 1,
+        selfieMode: true,
+        smoothLandmarks: true,
+        minDetectionConfidence: 0.5,
+        minTrackingConfidence: 0.5
+      });
+    } catch (err) {
+      console.error('Pose initialization error:', err);
+      setCameraStatus('Body pose detection failed to initialize.', true);
+      return false;
+    }
 
     var pendingPoseLandmarks = null;
     pose.onResults(function (results) {
