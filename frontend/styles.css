@@ -4016,6 +4016,7 @@ pre {
 
 /* Auth right sections */
 .auth-right-top {
+  display: none;
   position: absolute;
   top: 116px;
   left: 0;
@@ -4433,6 +4434,7 @@ pre {
   }
 
   .auth-right-top {
+    display: block;
     position: static;
     top: auto;
     left: auto;
