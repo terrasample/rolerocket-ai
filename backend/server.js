@@ -6653,6 +6653,8 @@ function buildLocationHints(queryLocation = '') {
   const query = String(queryLocation || '').trim().toLowerCase();
   if (!query) return [];
 
+  const normalizedQuery = query.replace(/\s+/g, ' ').trim();
+
   const hintMap = [
     {
       match: ['jamaica'],
@@ -6680,10 +6682,37 @@ function buildLocationHints(queryLocation = '') {
     }
   ];
 
-  const matched = hintMap.find((entry) => entry.match.some((token) => query.includes(token)));
+  if (normalizedQuery === 'ny' || normalizedQuery === 'new york' || normalizedQuery === 'new york, ny') {
+    return ['new york', 'ny', 'nyc', 'manhattan', 'brooklyn', 'queens', 'bronx', 'staten island'];
+  }
+
+  const matched = hintMap.find((entry) => entry.match.some((token) => normalizedQuery === token));
   if (matched) return matched.hints;
 
-  return query.split(/\s+/).filter(Boolean);
+  return [normalizedQuery];
+}
+
+function escapeRegex(value = '') {
+  return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function locationHintMatches(haystack = '', hint = '') {
+  const value = String(hint || '').trim().toLowerCase();
+  if (!value) return false;
+
+  const compact = value.replace(/\s+/g, ' ');
+  const pattern = escapeRegex(compact).replace(/\s+/g, '\\s+');
+
+  // Short location tokens (for example NY, UK, US) must match full words.
+  if (/^[a-z]{2,3}$/.test(compact)) {
+    return new RegExp('\\b' + pattern + '\\b', 'i').test(haystack);
+  }
+
+  if (compact.includes(' ')) {
+    return new RegExp('\\b' + pattern + '\\b', 'i').test(haystack);
+  }
+
+  return haystack.includes(compact);
 }
 
 function isLocationCompatible(job = {}, queryLocation = '') {
@@ -6719,7 +6748,7 @@ function isLocationCompatible(job = {}, queryLocation = '') {
     if (hasNonJamaicaCountrySignal && !hasJamaicaIslandSignal) return false;
   }
 
-  return hints.some((hint) => haystack.includes(hint));
+  return hints.some((hint) => locationHintMatches(haystack, hint));
 }
 
 function scoreFreshness(postedAt) {
