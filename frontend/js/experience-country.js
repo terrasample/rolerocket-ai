@@ -34,7 +34,8 @@
       effectiveCountry: getSavedLocalCountry() || 'GLOBAL',
       source: 'system',
       requiresChoice: false,
-      showJamaicaHub: getSavedLocalCountry() === 'JM',
+      // Server response should be the only source of truth for Jamaica hub.
+      showJamaicaHub: false,
       experienceVariant: getSavedLocalCountry() === 'JM' ? 'jamaica' : 'global',
       supportedCountries: [
         { code: 'GLOBAL', label: 'Global' },
@@ -161,17 +162,17 @@
       US: [
         {
           title: 'Product Manager',
-          meta: 'Austin, Texas, United States · Product',
+          meta: 'United States · Product',
           href: 'job-search.html?query=Product%20Manager&source=market&region=us'
         },
         {
           title: 'AI/ML Engineer',
-          meta: 'Seattle, Washington, United States · Engineering',
+          meta: 'United States · Engineering',
           href: 'job-search.html?query=AI%20ML%20Engineer&source=market&region=us'
         },
         {
           title: 'Software Engineer',
-          meta: 'New York, New York, United States · Engineering',
+          meta: 'United States · Engineering',
           href: 'job-search.html?query=Software%20Engineer&source=market&region=us'
         }
       ],

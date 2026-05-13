@@ -482,6 +482,26 @@
       const country = normalizeCountryCode((context && context.effectiveCountry) || readCachedExperienceCountry());
       writeCachedExperienceCountry(country);
       applyExperienceTheme(country);
+
+      const currentPage = normalizePath(window.location.href) || 'index.html';
+      const noAuthPages = new Set([
+        'login.html',
+        'signup.html',
+        'forgot-password.html',
+        'reset-password.html',
+        'verify-email.html'
+      ]);
+      var shouldRouteToHomeForChoice = !!token
+        && !!(context && context.requiresChoice === true)
+        && currentPage !== 'index.html'
+        && !noAuthPages.has(currentPage);
+
+      if (shouldRouteToHomeForChoice) {
+        const target = 'index.html?experienceRequired=1&returnTo=' + encodeURIComponent(window.location.pathname + window.location.search + window.location.hash);
+        window.location.replace(target);
+        return;
+      }
+
       showHomepageExperienceGate(context, token);
     } catch (_) {
       applyExperienceTheme(readCachedExperienceCountry());
@@ -606,6 +626,9 @@
         upsertAdminInvitesLink(false);
       }
       if (badge) badge.textContent = formatPlanLabel('free');
+      // Keep experience state aligned to server/cookie context even without a token.
+      syncJamaicaHubVisibility('');
+      syncExperienceThemeAndGate('');
       return;
     }
 
@@ -619,6 +642,10 @@
       if (!res.ok) {
         // API error — keep cached state (already applied in Phase 1).
         if (badge) badge.textContent = formatPlanLabel('free');
+        // Fall back to anonymous context so stale local cache does not keep
+        // Jamaica-only links visible for non-JM users.
+        syncJamaicaHubVisibility('');
+        syncExperienceThemeAndGate('');
         return;
       }
 
@@ -663,13 +690,15 @@
       // Network/parse error — cached state already applied in Phase 1, do nothing.
       if (badge) badge.textContent = formatPlanLabel('free');
       applyExperienceTheme(readCachedExperienceCountry());
+      applyJamaicaHubVisibility(false);
     }
   }
 
   function bootstrapNav() {
     decorateSidebarNav();
     applyExperienceTheme(readCachedExperienceCountry());
-    applyJamaicaHubVisibility(readCachedExperienceCountry() === 'JM');
+    // Hide by default; only server-confirmed context should re-enable Jamaica hub.
+    applyJamaicaHubVisibility(false);
     syncNavPlan();
   }
 
