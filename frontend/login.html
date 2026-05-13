@@ -527,7 +527,7 @@
         document.cookie = 'rr_exp_country=; Max-Age=0; path=/; SameSite=Lax';
 
         // Enforce country-experience choice on first authenticated login before general app navigation.
-        // The dashboard has the blocking picker gate when requiresChoice=true.
+        // The homepage now shows the blocking picker gate when requiresChoice=true.
         const expRes = await fetch(apiUrl('/api/experience/context'), {
           method: 'GET',
           headers: {
@@ -540,7 +540,7 @@
         const requiresChoice = !!(expData && expData.requiresChoice === true);
 
         if (requiresChoice) {
-          window.location.replace('dashboard.html');
+          window.location.replace('index.html');
           return;
         }
 

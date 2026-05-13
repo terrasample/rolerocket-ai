@@ -2,6 +2,9 @@
 // Include this script on all public/marketing pages to keep the plan display accurate.
 (function () {
   const ADMIN_CACHE_KEY = 'rr_nav_is_admin_v1';
+  const LOCAL_EXP_KEY = 'rr_exp_country_local_v1';
+  const EXP_CONTEXT_ENDPOINT = '/api/experience/context';
+  const EXP_PREFERENCE_ENDPOINT = '/api/experience/preference';
 
   const NAV_LABELS = {
     'index.html': '🏠 Home',
@@ -27,6 +30,215 @@
     } catch (_) {
       return String(href || '').toLowerCase();
     }
+  }
+
+  function normalizeCountryCode(value) {
+    const code = String(value || '').trim().toUpperCase();
+    if (code === 'GLOBAL' || code === 'JM' || code === 'US') return code;
+    return 'GLOBAL';
+  }
+
+  function readCachedExperienceCountry() {
+    try {
+      return normalizeCountryCode(localStorage.getItem(LOCAL_EXP_KEY) || '');
+    } catch (_) {
+      return 'GLOBAL';
+    }
+  }
+
+  function writeCachedExperienceCountry(countryCode) {
+    try {
+      localStorage.setItem(LOCAL_EXP_KEY, normalizeCountryCode(countryCode));
+    } catch (_) {
+      // ignore storage write failures
+    }
+  }
+
+  function ensureExperienceThemeStyle() {
+    if (document.getElementById('rrNavExpThemeStyle')) return;
+    const style = document.createElement('style');
+    style.id = 'rrNavExpThemeStyle';
+    style.textContent = [
+      ':root{--rr-exp-primary:#3b82f6;--rr-exp-accent:#06b6d4;--rr-exp-dark:#1e40af;--rr-exp-border:rgba(59,130,246,.35);--rr-exp-bg:rgba(59,130,246,.08);}',
+      '.business-bar{border-bottom:1px solid var(--rr-exp-border) !important;box-shadow:0 8px 24px var(--rr-exp-bg) !important;}',
+      '.sidebar-link-btn.active{background:linear-gradient(180deg,var(--rr-exp-primary),var(--rr-exp-dark)) !important;border-color:var(--rr-exp-primary) !important;color:#fff !important;}',
+      '.sidebar-link-btn:hover{border-color:var(--rr-exp-primary) !important;box-shadow:0 0 0 1px var(--rr-exp-border) inset;}',
+      '.sidebar-section-label{color:var(--rr-exp-accent) !important;}',
+      '.quickstart-link,.auth-submit-btn,.checkout-btn,.secondary-btn.plan-info-active{border-color:var(--rr-exp-primary) !important;}',
+      '.quickstart-link{background:var(--rr-exp-bg) !important;color:var(--rr-exp-primary) !important;}',
+      '.secondary-btn.plan-info-active{background:var(--rr-exp-primary) !important;color:#fff !important;}'
+    ].join('');
+    document.head.appendChild(style);
+  }
+
+  function applyExperienceTheme(countryCode) {
+    const code = normalizeCountryCode(countryCode);
+    const themes = {
+      JM: {
+        primary: '#007A5E',
+        accent: '#FFD700',
+        dark: '#000000',
+        border: 'rgba(0,122,94,.42)',
+        bg: 'rgba(0,122,94,.10)'
+      },
+      US: {
+        primary: '#1D4ED8',
+        accent: '#DC2626',
+        dark: '#1E3A8A',
+        border: 'rgba(29,78,216,.40)',
+        bg: 'rgba(29,78,216,.10)'
+      },
+      GLOBAL: {
+        primary: '#3B82F6',
+        accent: '#06B6D4',
+        dark: '#1E40AF',
+        border: 'rgba(59,130,246,.35)',
+        bg: 'rgba(59,130,246,.08)'
+      }
+    };
+    const theme = themes[code] || themes.GLOBAL;
+    ensureExperienceThemeStyle();
+    document.documentElement.style.setProperty('--rr-exp-primary', theme.primary);
+    document.documentElement.style.setProperty('--rr-exp-accent', theme.accent);
+    document.documentElement.style.setProperty('--rr-exp-dark', theme.dark);
+    document.documentElement.style.setProperty('--rr-exp-border', theme.border);
+    document.documentElement.style.setProperty('--rr-exp-bg', theme.bg);
+    document.documentElement.setAttribute('data-exp-country', code);
+  }
+
+  function ensureExperiencePromptStyle() {
+    if (document.getElementById('rrNavExpPromptStyle')) return;
+    const style = document.createElement('style');
+    style.id = 'rrNavExpPromptStyle';
+    style.textContent = [
+      '.rr-exp-gate-overlay{position:fixed;inset:0;z-index:99999;background:rgba(2,6,23,.82);display:grid;place-items:center;padding:16px;backdrop-filter:blur(4px);}',
+      '.rr-exp-gate-card{width:min(460px,100%);background:linear-gradient(180deg,#0f172a,#111827);border:2px solid var(--rr-exp-primary);border-radius:14px;padding:20px;color:#e2e8f0;box-shadow:0 24px 60px rgba(2,6,23,.85);}',
+      '.rr-exp-gate-card h3{margin:0 0 8px;color:#f8fafc;font-size:1.2rem;}',
+      '.rr-exp-gate-card p{margin:0 0 14px;color:#cbd5e1;line-height:1.5;}',
+      '.rr-exp-gate-card select{width:100%;margin-bottom:12px;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:8px;padding:10px;}',
+      '.rr-exp-gate-card button{width:100%;border:1px solid var(--rr-exp-primary);background:linear-gradient(180deg,var(--rr-exp-primary),var(--rr-exp-dark));color:#fff;border-radius:8px;padding:10px 12px;font-weight:800;cursor:pointer;}'
+    ].join('');
+    document.head.appendChild(style);
+  }
+
+  async function saveExperiencePreference(countryCode, token) {
+    const apiBase = (typeof getApiBase === 'function') ? getApiBase() : '';
+    const headers = {
+      'Content-Type': 'application/json',
+      Accept: 'application/json'
+    };
+    if (token) headers.Authorization = 'Bearer ' + token;
+
+    const res = await fetch(apiBase + EXP_PREFERENCE_ENDPOINT, {
+      method: 'POST',
+      headers,
+      credentials: 'include',
+      body: JSON.stringify({ countryCode: normalizeCountryCode(countryCode) })
+    });
+    if (!res.ok) {
+      let msg = 'Could not save experience.';
+      try {
+        const data = await res.json();
+        msg = data && data.error ? data.error : msg;
+      } catch (_) {}
+      throw new Error(msg);
+    }
+    return res.json();
+  }
+
+  function showHomepageExperienceGate(context, token) {
+    const currentPage = normalizePath(window.location.href) || 'index.html';
+    if (currentPage !== 'index.html') return;
+    if (!context || context.requiresChoice !== true) return;
+    if (!token) return;
+    if (document.getElementById('rrExpGateOverlay')) return;
+
+    ensureExperiencePromptStyle();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'rrExpGateOverlay';
+    overlay.className = 'rr-exp-gate-overlay';
+
+    const card = document.createElement('div');
+    card.className = 'rr-exp-gate-card';
+
+    const title = document.createElement('h3');
+    title.textContent = 'Choose your country experience';
+
+    const copy = document.createElement('p');
+    copy.textContent = 'Select your market so all tabs, search, and recommendations match your experience.';
+
+    const select = document.createElement('select');
+    const countries = Array.isArray(context.supportedCountries) ? context.supportedCountries : [
+      { code: 'GLOBAL', label: 'Global' },
+      { code: 'JM', label: 'Jamaica' },
+      { code: 'US', label: 'United States' }
+    ];
+    countries.forEach((country) => {
+      const option = document.createElement('option');
+      option.value = normalizeCountryCode(country.code);
+      option.textContent = country.label;
+      select.appendChild(option);
+    });
+    select.value = normalizeCountryCode(context.effectiveCountry || context.detectedCountry || 'GLOBAL');
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = 'Continue';
+
+    let submitting = false;
+    const stopEscape = function (event) {
+      if (event.key === 'Escape' && document.getElementById('rrExpGateOverlay')) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    };
+    const stopPopState = function (event) {
+      if (!document.getElementById('rrExpGateOverlay')) return;
+      event.preventDefault();
+      window.history.pushState(null, '', window.location.href);
+    };
+    const stopUnload = function (event) {
+      if (!document.getElementById('rrExpGateOverlay') || submitting) return;
+      event.preventDefault();
+      event.returnValue = '';
+      return '';
+    };
+
+    document.addEventListener('keydown', stopEscape, true);
+    window.addEventListener('popstate', stopPopState);
+    window.addEventListener('beforeunload', stopUnload);
+    window.history.pushState(null, '', window.location.href);
+
+    button.addEventListener('click', async function () {
+      if (submitting) return;
+      const selected = normalizeCountryCode(select.value || 'GLOBAL');
+      submitting = true;
+      button.disabled = true;
+      button.textContent = 'Saving...';
+      try {
+        const saved = await saveExperiencePreference(selected, token);
+        const effective = normalizeCountryCode((saved && saved.effectiveCountry) || selected);
+        writeCachedExperienceCountry(effective);
+        applyExperienceTheme(effective);
+        applyJamaicaHubVisibility(saved && saved.showJamaicaHub === true);
+        overlay.remove();
+        document.removeEventListener('keydown', stopEscape, true);
+        window.removeEventListener('popstate', stopPopState);
+        window.removeEventListener('beforeunload', stopUnload);
+      } catch (error) {
+        submitting = false;
+        button.disabled = false;
+        button.textContent = error && error.message ? error.message : 'Try again';
+      }
+    });
+
+    card.appendChild(title);
+    card.appendChild(copy);
+    card.appendChild(select);
+    card.appendChild(button);
+    overlay.appendChild(card);
+    document.body.appendChild(overlay);
   }
 
   function insertAfter(node, target) {
@@ -222,6 +434,24 @@
     }
   }
 
+  async function syncExperienceThemeAndGate(token) {
+    const apiBase = (typeof getApiBase === 'function') ? getApiBase() : '';
+    const headers = { Accept: 'application/json' };
+    if (token) headers.Authorization = 'Bearer ' + token;
+
+    try {
+      const res = await fetch(apiBase + EXP_CONTEXT_ENDPOINT, { headers, credentials: 'include' });
+      if (!res.ok) return;
+      const context = await res.json();
+      const country = normalizeCountryCode((context && context.effectiveCountry) || readCachedExperienceCountry());
+      writeCachedExperienceCountry(country);
+      applyExperienceTheme(country);
+      showHomepageExperienceGate(context, token);
+    } catch (_) {
+      applyExperienceTheme(readCachedExperienceCountry());
+    }
+  }
+
   function upsertAdminInvitesLink(isAdmin) {
     const nav = document.querySelector('#sidebarNav nav, .sidebar nav');
     if (!nav) return;
@@ -361,8 +591,9 @@
       const isAdmin = resolveIsAdmin(data && data.user);
       if (badge) badge.textContent = formatPlanLabel(plan);
 
-      // Sync Jamaica Hub visibility based on experience context
+      // Sync Jamaica Hub visibility and experience theme/prompt based on context
       syncJamaicaHubVisibility(token);
+      syncExperienceThemeAndGate(token);
 
       if (isAdmin) {
         // Confirmed admin — show link, clear any accumulated strikes.
@@ -395,31 +626,13 @@
     } catch (_) {
       // Network/parse error — cached state already applied in Phase 1, do nothing.
       if (badge) badge.textContent = formatPlanLabel('free');
-    }
-  }
-
-  function hideJamaicaSectionOnMarketingPages() {
-    // Hide Jamaica hub section on public/marketing pages where it shouldn't appear
-    const currentPage = normalizePath(window.location.href) || 'index.html';
-    const marketingPages = [
-      'index.html',
-      'about-us.html',
-      'features.html',
-      'pricing.html',
-      'contact-us.html',
-      'ai-recruiter-assist.html',
-      'job-tracking.html',
-      'faq.html'
-    ];
-    
-    if (marketingPages.includes(currentPage)) {
-      applyJamaicaHubVisibility(false);
+      applyExperienceTheme(readCachedExperienceCountry());
     }
   }
 
   function bootstrapNav() {
     decorateSidebarNav();
-    hideJamaicaSectionOnMarketingPages();
+    applyExperienceTheme(readCachedExperienceCountry());
     syncNavPlan();
   }
 

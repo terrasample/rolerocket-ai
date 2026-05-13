@@ -829,6 +829,7 @@
             } catch (_expErr) {}
           }
           var isUSExperience = activeExperienceCountry === 'US';
+          var isJamaicaExperience = activeExperienceCountry === 'JM';
           var usLocationSignal = /\bunited\s*states\b|\busa\b|\bu\.s\.\b|new\s*york|florida|texas|california|washington|illinois|massachusetts|georgia|north\s*carolina|south\s*carolina|virginia|pennsylvania|ohio|michigan|new\s*jersey|maryland|arizona|colorado|oregon|utah|nevada|tennessee|miami|orlando|tampa|jacksonville|atlanta|chicago|seattle|boston|dallas|houston|austin|san\s*francisco|los\s*angeles/i;
           var ukLocationSignal = /\bunited\s*kingdom\b|\buk\b|england|scotland|wales|northern\s*ireland|london|manchester|birmingham|glasgow|bedford|swansea/i;
           var isUSCompatibleJob = function(job) {
@@ -1005,8 +1006,11 @@
 
               var primaryScoutTitle = scoutTitles.length ? scoutTitles[0] : 'Software Engineer';
 
-              var scoutLocation = forcedJamaicaMode ? 'Jamaica'
-                : (jad.location && jad.location !== 'Remote') ? jad.location : (isUSExperience ? 'United States' : 'Remote');
+              var scoutLocation = forcedJamaicaMode || isJamaicaExperience
+                ? 'Jamaica'
+                : isUSExperience
+                  ? ((jad.location && jad.location !== 'Remote') ? jad.location : 'United States')
+                  : ((jad.location && jad.location !== 'Remote') ? jad.location : 'Remote');
               var scoutRadiusMiles = Number(jad.searchRadius) > 0 ? Number(jad.searchRadius) : 100;
 
               if (isUSExperience) {
