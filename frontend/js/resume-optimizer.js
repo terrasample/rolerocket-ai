@@ -616,8 +616,48 @@ document.addEventListener('DOMContentLoaded', function () {
     return doc;
   }
 
-  function createResumePdfBlob(model) {
-    return buildResumePdfDoc(model).output('blob');
+  async function buildTemplatePdfDoc(model) {
+    if (!window.jspdf) throw new Error('PDF library not loaded.');
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+
+    // jsPDF.html gives closest parity with the rendered template card.
+    if (typeof doc.html !== 'function') {
+      return buildResumePdfDoc(model);
+    }
+
+    const host = document.createElement('div');
+    host.style.position = 'fixed';
+    host.style.left = '-10000px';
+    host.style.top = '0';
+    host.style.width = '860px';
+    host.style.padding = '0';
+    host.style.margin = '0';
+    host.style.background = '#ffffff';
+    host.innerHTML = renderResumeTemplate(model);
+    document.body.appendChild(host);
+
+    try {
+      await doc.html(host, {
+        margin: [20, 20, 20, 20],
+        autoPaging: 'text',
+        width: 555,
+        windowWidth: 860,
+        html2canvas: {
+          backgroundColor: '#ffffff',
+          scale: 0.72,
+          useCORS: true
+        }
+      });
+      return doc;
+    } finally {
+      document.body.removeChild(host);
+    }
+  }
+
+  async function createResumePdfBlob(model) {
+    const doc = await buildTemplatePdfDoc(model);
+    return doc.output('blob');
   }
 
   function createResumeWordBlob(model) {
@@ -738,13 +778,14 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
-  savePdfBtn?.addEventListener('click', function () {
+  savePdfBtn?.addEventListener('click', async function () {
     try {
       if (!lastStructuredResume || !lastRawResume) {
         statusBanner('No resume to save. Please rewrite first.', false);
         return;
       }
-      buildResumePdfDoc(lastStructuredResume).save('tailored-resume.pdf');
+      const doc = await buildTemplatePdfDoc(lastStructuredResume);
+      doc.save('tailored-resume.pdf');
       output.innerHTML = renderResumeTemplate(lastStructuredResume);
       statusBanner('PDF downloaded.', true);
     } catch (error) {
@@ -783,7 +824,7 @@ document.addEventListener('DOMContentLoaded', function () {
       sendEmailBtn.textContent = 'Sending...';
 
       const htmlContent = `<!DOCTYPE html><html><body style="font-family:${lastStructuredResume.theme.font};margin:0;color:#111827;">${renderResumeTemplate(lastStructuredResume)}</body></html>`;
-      const pdfBlob = createResumePdfBlob(lastStructuredResume);
+      const pdfBlob = await createResumePdfBlob(lastStructuredResume);
       const wordBlob = createResumeWordBlob(lastStructuredResume);
       const result = await window.sendDocumentToAccountEmail({
         feature: 'Resume',
