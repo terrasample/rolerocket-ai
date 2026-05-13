@@ -14,6 +14,56 @@ if (!token && !demoMode) {
 
 // ─── RoleRocket Dashboard (Personalized) ─────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
+    function applyExperienceThemeClass(countryCode) {
+      const normalized = String(countryCode || 'GLOBAL').toUpperCase();
+      const root = document.documentElement;
+      const body = document.body;
+      const classes = ['rr-theme-us', 'rr-theme-jm', 'rr-theme-global'];
+
+      classes.forEach((name) => {
+        if (root) root.classList.remove(name);
+        if (body) body.classList.remove(name);
+      });
+
+      const nextClass = normalized === 'US'
+        ? 'rr-theme-us'
+        : (normalized === 'JM' ? 'rr-theme-jm' : 'rr-theme-global');
+      if (root) root.classList.add(nextClass);
+      if (body) body.classList.add(nextClass);
+    }
+
+    async function ensureGlobalThemeClass() {
+      const seeded =
+        (window.__rrPersonalization && window.__rrPersonalization.effectiveCountry) ||
+        window.__rrExperienceCountry ||
+        '';
+      if (seeded) {
+        applyExperienceThemeClass(seeded);
+        return;
+      }
+
+      if (!token) {
+        applyExperienceThemeClass('GLOBAL');
+        return;
+      }
+
+      try {
+        const response = await fetch(apiPath('/api/experience/context'), {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!response.ok) {
+          applyExperienceThemeClass('GLOBAL');
+          return;
+        }
+        const data = await response.json();
+        applyExperienceThemeClass((data && data.effectiveCountry) || 'GLOBAL');
+      } catch {
+        applyExperienceThemeClass('GLOBAL');
+      }
+    }
+
+    await ensureGlobalThemeClass();
+
     function apiPath(path) {
       return typeof apiUrl === 'function' ? apiUrl(path) : path;
     }

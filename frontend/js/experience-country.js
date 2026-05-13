@@ -62,6 +62,22 @@
     }).catch(function () {});
   }
 
+  function applyExperienceThemeClass(countryCode) {
+    var normalized = normalizeCountryCode(countryCode);
+    var root = document.documentElement;
+    var body = document.body;
+    var classes = ['rr-theme-us', 'rr-theme-jm', 'rr-theme-global'];
+
+    classes.forEach(function (name) {
+      if (root) root.classList.remove(name);
+      if (body) body.classList.remove(name);
+    });
+
+    var nextClass = normalized === 'US' ? 'rr-theme-us' : (normalized === 'JM' ? 'rr-theme-jm' : 'rr-theme-global');
+    if (root) root.classList.add(nextClass);
+    if (body) body.classList.add(nextClass);
+  }
+
   function readPublishedPersonalization() {
     var ctx = window.__rrPersonalization;
     if (!ctx || typeof ctx !== 'object') return null;
@@ -92,6 +108,7 @@
     };
     window.__rrPersonalization = normalized;
     window.__rrExperienceCountry = normalized.effectiveCountry;
+    applyExperienceThemeClass(normalized.effectiveCountry);
     try {
       document.dispatchEvent(new CustomEvent('rr:personalization-updated', { detail: normalized }));
     } catch (_) {}

@@ -5842,3 +5842,122 @@ body.sidebar-open .sidebar-overlay {
     font-size: 1.35rem;
   }
 }
+
+/* Shared US experience theme across all tabs/pages. */
+body.rr-theme-us {
+  background: linear-gradient(180deg, #0b1d3f 0%, #102a58 56%, #173a73 100%) !important;
+  color: #e2e8f0;
+}
+
+body.rr-theme-us .business-bar {
+  background: linear-gradient(90deg, #0b1730 0%, #153e75 54%, #1d4ed8 100%) !important;
+  border-bottom: 2px solid rgba(191, 10, 48, 0.75) !important;
+  box-shadow: 0 10px 28px rgba(2, 6, 23, 0.35) !important;
+}
+
+body.rr-theme-us .layout,
+body.rr-theme-us .sidebar {
+  background: linear-gradient(180deg, #0a1731 0%, #12284e 60%, #173766 100%) !important;
+}
+
+body.rr-theme-us .sidebar-link-btn {
+  background: linear-gradient(180deg, rgba(30, 64, 175, 0.38), rgba(15, 23, 42, 0.34)) !important;
+  border: 1px solid rgba(191, 10, 48, 0.28) !important;
+  color: #e2e8f0 !important;
+}
+
+body.rr-theme-us .sidebar-link-btn:hover,
+body.rr-theme-us .sidebar-link-btn:focus-visible {
+  background: linear-gradient(180deg, rgba(191, 10, 48, 0.22), rgba(30, 64, 175, 0.44)) !important;
+  border-color: rgba(248, 113, 113, 0.58) !important;
+}
+
+body.rr-theme-us .sidebar-link-btn.active {
+  background: linear-gradient(180deg, #bf0a30 0%, #1d4ed8 100%) !important;
+  border-color: rgba(254, 202, 202, 0.72) !important;
+  box-shadow: 0 0 0 1px rgba(191, 10, 48, 0.22), 0 12px 24px rgba(2, 6, 23, 0.28) !important;
+}
+
+body.rr-theme-us .hero,
+body.rr-theme-us .experience-home-strip {
+  background: linear-gradient(135deg, #0a1a3a 0%, #173a73 58%, #bf0a30 100%) !important;
+}
+
+body.rr-theme-us .hero p,
+body.rr-theme-us .home-brand-subtitle,
+body.rr-theme-us .experience-home-strip__sub {
+  color: #c7d2fe !important;
+}
+
+body.rr-theme-us .main,
+body.rr-theme-us .marketing-main {
+  background: linear-gradient(180deg, rgba(8, 21, 46, 0.85) 0%, rgba(10, 24, 50, 0.88) 100%);
+}
+
+body.rr-theme-us .marketing-card,
+body.rr-theme-us .marketing-hero-card,
+body.rr-theme-us .card,
+body.rr-theme-us .today-card,
+body.rr-theme-us .trust-metric,
+body.rr-theme-us .trust-security,
+body.rr-theme-us .plan-guide,
+body.rr-theme-us .plan-guide-panel,
+body.rr-theme-us .queue-job-card,
+body.rr-theme-us .queue-match-card,
+body.rr-theme-us .ia-prompt,
+body.rr-theme-us .coach-insight {
+  background: linear-gradient(180deg, rgba(30, 64, 175, 0.42), rgba(15, 23, 42, 0.34)) !important;
+  border: 1px solid rgba(191, 10, 48, 0.28) !important;
+  color: #e2e8f0 !important;
+  box-shadow: 0 12px 28px rgba(2, 6, 23, 0.24) !important;
+}
+
+body.rr-theme-us .marketing-card h1,
+body.rr-theme-us .marketing-card h2,
+body.rr-theme-us .marketing-card h3,
+body.rr-theme-us .card h1,
+body.rr-theme-us .card h2,
+body.rr-theme-us .card h3,
+body.rr-theme-us .today-card h3,
+body.rr-theme-us .queue-job-title,
+body.rr-theme-us .queue-match-title {
+  color: #ffffff !important;
+}
+
+body.rr-theme-us .marketing-card p,
+body.rr-theme-us .marketing-card li,
+body.rr-theme-us .card p,
+body.rr-theme-us .card li,
+body.rr-theme-us .today-card p,
+body.rr-theme-us .queue-job-meta,
+body.rr-theme-us .queue-match-meta,
+body.rr-theme-us .tool-helper-text,
+body.rr-theme-us .mode-summary,
+body.rr-theme-us .veteran-tier-note {
+  color: #bfdbfe !important;
+}
+
+body.rr-theme-us .auth-submit-btn,
+body.rr-theme-us .checkout-btn,
+body.rr-theme-us .feature-launch-btn,
+body.rr-theme-us .secondary-btn,
+body.rr-theme-us button {
+  border-color: rgba(254, 202, 202, 0.72);
+}
+
+body.rr-theme-us .auth-submit-btn,
+body.rr-theme-us .checkout-btn,
+body.rr-theme-us .feature-launch-btn {
+  background: linear-gradient(180deg, #bf0a30 0%, #1d4ed8 100%) !important;
+  color: #ffffff !important;
+}
+
+body.rr-theme-us .site-footer {
+  background: #0a1731;
+  border-top: 1px solid rgba(191, 10, 48, 0.32);
+}
+
+body.rr-theme-us .site-footer,
+body.rr-theme-us .site-footer a {
+  color: #bfdbfe;
+}
