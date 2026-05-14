@@ -34,6 +34,16 @@
     }
   }
 
+  function isJamaicaExperiencePage() {
+    const page = normalizePath(window.location.href);
+    return page === 'jamaica-workforce-accelerator.html' || page === 'nav-flow-mock-jamaica.html';
+  }
+
+  function resolveThemeCountry(countryCode) {
+    if (isJamaicaExperiencePage()) return 'JM';
+    return normalizeCountryCode(countryCode);
+  }
+
   function normalizeCountryCode(value) {
     const code = String(value || '').trim().toUpperCase();
     if (code === 'GLOBAL' || code === 'JM' || code === 'US') return code;
@@ -92,7 +102,7 @@
 
   function buildPersonalizationContext(context, fallbackCountry) {
     const source = context && typeof context === 'object' ? context : {};
-    const country = normalizeCountryCode(source.effectiveCountry || fallbackCountry || readCachedExperienceCountry());
+    const country = resolveThemeCountry(source.effectiveCountry || fallbackCountry || readCachedExperienceCountry());
     if (source.showJamaicaHub === true && country !== 'JM') {
       reportExperienceMismatch('show_jamaica_outside_jm', {
         country,
@@ -167,7 +177,7 @@
   }
 
   function applyExperienceTheme(countryCode) {
-    const code = normalizeCountryCode(countryCode);
+    const code = resolveThemeCountry(countryCode);
     const themes = {
       JM: {
         primary: '#009B3A',
@@ -694,13 +704,14 @@
       if (!res.ok) return;
       const context = await res.json();
       const country = normalizeCountryCode((context && context.effectiveCountry) || readCachedExperienceCountry());
-      writeCachedExperienceCountry(country);
+      const resolvedCountry = resolveThemeCountry(country);
+      writeCachedExperienceCountry(resolvedCountry);
       const personalization = publishPersonalizationContext(Object.assign({}, context || {}, {
-        effectiveCountry: country,
-        showJamaicaHub: country === 'JM' || (context && context.showJamaicaHub === true)
+        effectiveCountry: resolvedCountry,
+        showJamaicaHub: resolvedCountry === 'JM' || (context && context.showJamaicaHub === true)
       }));
-      applyExperienceTheme(country);
-      applyJamaicaHubVisibility(personalization.showJamaicaHub);
+      applyExperienceTheme(resolvedCountry);
+      applyJamaicaHubVisibility(personalization.showJamaicaHub || isJamaicaExperiencePage());
       upsertHomepageExperienceSwitcher(context || {}, token);
 
       const currentPage = normalizePath(window.location.href) || 'index.html';
@@ -726,13 +737,13 @@
     } catch (_) {
       const fallbackCountry = readCachedExperienceCountry();
       const fallback = publishPersonalizationContext({
-        effectiveCountry: fallbackCountry,
-        showJamaicaHub: fallbackCountry === 'JM',
+        effectiveCountry: resolveThemeCountry(fallbackCountry),
+        showJamaicaHub: resolveThemeCountry(fallbackCountry) === 'JM',
         requiresChoice: false,
         source: 'fallback'
       });
       applyExperienceTheme(fallback.effectiveCountry);
-      applyJamaicaHubVisibility(fallback.showJamaicaHub);
+      applyJamaicaHubVisibility(fallback.showJamaicaHub || isJamaicaExperiencePage());
     }
   }
 
@@ -931,8 +942,9 @@
       // Network/parse error — cached state already applied in Phase 1, do nothing.
       if (badge) badge.textContent = formatPlanLabel('free');
       const fallbackCountry = readCachedExperienceCountry();
-      applyExperienceTheme(fallbackCountry);
-      applyJamaicaHubVisibility(fallbackCountry === 'JM');
+      const resolvedFallback = resolveThemeCountry(fallbackCountry);
+      applyExperienceTheme(resolvedFallback);
+      applyJamaicaHubVisibility(resolvedFallback === 'JM' || isJamaicaExperiencePage());
       upsertHomepageExperienceSwitcher(cachedExperienceContext, token);
     }
   }
@@ -941,13 +953,13 @@
     decorateSidebarNav();
     const fallbackCountry = readCachedExperienceCountry();
     const fallback = publishPersonalizationContext({
-      effectiveCountry: fallbackCountry,
-      showJamaicaHub: fallbackCountry === 'JM',
+      effectiveCountry: resolveThemeCountry(fallbackCountry),
+      showJamaicaHub: resolveThemeCountry(fallbackCountry) === 'JM',
       requiresChoice: false,
       source: 'bootstrap'
     });
     applyExperienceTheme(fallback.effectiveCountry);
-    applyJamaicaHubVisibility(fallback.showJamaicaHub);
+    applyJamaicaHubVisibility(fallback.showJamaicaHub || isJamaicaExperiencePage());
     syncNavPlan();
   }
 
