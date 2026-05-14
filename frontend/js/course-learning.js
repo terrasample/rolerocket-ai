@@ -2527,7 +2527,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     const correct = results.filter((r) => r.isCorrect).length;
-    const passed = correct >= Math.ceil(total * 0.67);
+    const requiredCorrect = Math.ceil(total * 0.75);
+    const passed = correct >= requiredCorrect;
     const mastery = getModuleMasteryState(idx);
     mastery.quizPassed = passed;
     mastery.quizScore = `${correct}/${total}`;
@@ -2554,7 +2555,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const scoreColor = passed ? '#86efac' : '#fda4af';
     const scoreIcon = passed ? '✓' : '✗';
-    const scoreLabel = passed ? 'Passed' : 'Not yet \u2014 review the highlighted answers';
+    const scoreLabel = passed ? 'Passed' : `Not yet \u2014 need ${requiredCorrect}/${total} to pass`;
 
     let resultHtml = `<div style="margin-top:4px;"><span style="font-weight:700;color:${scoreColor};">${scoreIcon} Quiz Score: ${correct}/${total} \u2014 ${scoreLabel}.</span>`;
 
@@ -3344,9 +3345,9 @@ document.addEventListener('DOMContentLoaded', function () {
     if (headingEl) headingEl.textContent = `There are ${list.length} modules in this course`;
     if (statEl) statEl.textContent = `${list.length} modules`;
 
-    // Update assessmentCountDetail to reflect real module count
+    // Display a realistic checkpoint cadence: two graded checkpoints per module plus final certification.
     const assessmentDetail = document.getElementById('assessmentCountDetail');
-    if (assessmentDetail) assessmentDetail.textContent = `${list.length} graded assignments + coding labs`;
+    if (assessmentDetail) assessmentDetail.textContent = `${list.length * 2} module checkpoints + final certification assessment`;
 
     accordionEl.innerHTML = list.map((mod, idx) => {
       const title = escapeHtml(String(mod?.title || `Module ${idx + 1}`));
@@ -3529,8 +3530,8 @@ document.addEventListener('DOMContentLoaded', function () {
       const multiQuizHtml = hasMultiQuiz ? `
         <div data-module-follow-idx="${index}" data-module-follow-part="progressCheck" style="margin-top:12px;padding:12px;border-radius:10px;background:#0b1220;border:1px solid #273449;">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;">
-            <span style="font-size:0.78rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#c4b5fd;background:#1e1040;border:1px solid #7c3aed;border-radius:6px;padding:3px 8px;">Module Quiz</span>
-            <span style="font-size:0.82rem;color:#94a3b8;">Pass 2 of ${quizQuestionsData.length} to advance</span>
+            <span style="font-size:0.78rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#c4b5fd;background:#1e1040;border:1px solid #7c3aed;border-radius:6px;padding:3px 8px;">Checkpoint Quiz (1 of 2)</span>
+            <span style="font-size:0.82rem;color:#94a3b8;">Pass at least 75% (${Math.ceil(quizQuestionsData.length * 0.75)} of ${quizQuestionsData.length}) to unlock Checkpoint 2.</span>
           </div>
           <div data-quiz-panel="${index}" style="display:grid;gap:10px;margin-top:10px;">
             ${quizQuestionsData.map((q, qIdx) => `
@@ -3620,7 +3621,7 @@ document.addEventListener('DOMContentLoaded', function () {
           </div>
           <div data-module-audio-follow-status="${index}" style="margin:-2px 0 10px;color:#7dd3fc;font-size:0.8rem;font-weight:700;">Lesson player ready: choose a section to begin.</div>
           <div style="margin:0 0 10px;padding:10px;border-radius:8px;background:#0b1220;border:1px solid #273449;">
-            <div style="font-size:0.82rem;color:#c4b5fd;font-weight:700;margin-bottom:6px;">Transfer Task (Mastery Proof)</div>
+            <div style="font-size:0.82rem;color:#c4b5fd;font-weight:700;margin-bottom:6px;">Transfer Task (Checkpoint 2 of 2)</div>
             <div style="color:#d0d9e7;font-size:0.85rem;line-height:1.55;margin-bottom:8px;">Apply this module in a new scenario. Explain your approach, decisions, and why they align with the objective.</div>
             <textarea data-transfer-response="${index}" placeholder="Write your transfer response (minimum 120 characters)..." style="width:100%;min-height:86px;padding:10px;background:#111c31;border:1px solid #2a3954;border-radius:8px;color:#d0d9e7;font-family:inherit;font-size:0.88rem;resize:vertical;">${escapeHtml(String(mastery.transferText || ''))}</textarea>
             <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px;">
