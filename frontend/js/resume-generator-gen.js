@@ -1226,10 +1226,7 @@ document.addEventListener('DOMContentLoaded', function () {
       let key = line.replace(/[:\-]/g, '').trim().toUpperCase();
       // Strip common prefixes from section headers (e.g., "CORE SKILLS" → "SKILLS")
       key = key.replace(/^(CORE|PROFESSIONAL|MY|PRIMARY|ADDITIONAL|KEY)\s+/, '');
-      if (Object.prototype.hasOwnProperty.call(sectionIndex, key)) {
-        sectionIndex[key] = idx;
-        console.log('[Resume Parser] Detected section:', key, 'at line', idx);
-      }
+      if (Object.prototype.hasOwnProperty.call(sectionIndex, key)) sectionIndex[key] = idx;
     });
 
     function between(startIdx, endIdx) {
@@ -1281,13 +1278,6 @@ document.addEventListener('DOMContentLoaded', function () {
       ? between(certSectionStart, nextSectionStart(certSectionStart === sectionIndex.CERTIFICATIONS ? 'CERTIFICATIONS' : 'CERTIFICATION'))
       : [];
 
-    console.log('[Resume Parser] Certifications debug:', {
-      certSectionStart,
-      certificationLinesCount: certificationLines.length,
-      certificationLines: certificationLines.slice(0, 5),
-      sectionIndex: { CERTIFICATION: sectionIndex.CERTIFICATION, CERTIFICATIONS: sectionIndex.CERTIFICATIONS }
-    });
-
     // Split certification section into actual degrees (for education) and certifications
     const degreeLines = [];
     const actualCertifications = [];
@@ -1295,17 +1285,13 @@ document.addEventListener('DOMContentLoaded', function () {
     certificationLines.forEach((line) => {
       const normalized = normalizeBulletText(line);
       if (normalized) {
-        const isDegree = isDegreeLine(line);
-        console.log('[Resume Parser] Cert line check:', { line: line.substring(0, 60), isDegree, normalized });
-        if (isDegree) {
+        if (isDegreeLine(line)) {
           degreeLines.push(normalized);
         } else {
           actualCertifications.push(normalized);
         }
       }
     });
-
-    console.log('[Resume Parser] Parsed certifications:', { degreeLines, actualCertifications });
 
     // Add degree lines to education
     structured.education = [...structured.education, ...degreeLines];
@@ -1348,6 +1334,93 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!structured.skills.length) structured.skills = [];
 
     return structured;
+  }
+
+  function mergeUniqueLines(primary, secondary) {
+    const seen = new Set();
+    const merged = [];
+    const blocked = new Set(['education details available upon request', 'n/a']);
+
+    [...(primary || []), ...(secondary || [])].forEach((line) => {
+      const clean = normalizeBulletText(line);
+      if (!clean) return;
+      const key = clean.toLowerCase();
+      if (blocked.has(key) || seen.has(key)) return;
+      seen.add(key);
+      merged.push(clean);
+    });
+
+    return merged;
+  }
+
+  function isEducationInstitutionLine(line) {
+    const value = normalizeBulletText(line);
+    if (!value) return false;
+    const institutionSignals = /(university|college|institute|school|academy|polytechnic|abet|campus)/i;
+    const degreeSignals = /(bachelor|master|doctor|associate|ph\.?d|mba|degree|certificate|diploma|expected|\d{2}\/\d{4})/i;
+    return institutionSignals.test(value) && !degreeSignals.test(value);
+  }
+
+  function isEducationProgramLine(line) {
+    const value = normalizeBulletText(line);
+    if (!value) return false;
+    return /(bachelor|master|doctor|associate|ph\.?d|mba|degree|certificate|diploma|expected|\d{2}\/\d{4}|\d{4}|present)/i.test(value);
+  }
+
+  function formatEducationEntries(lines) {
+    const entries = (lines || []).map((line) => normalizeBulletText(line)).filter(Boolean);
+    const formatted = [];
+
+    for (let i = 0; i < entries.length; i += 1) {
+      const current = entries[i];
+
+      if (!isEducationInstitutionLine(current)) {
+        formatted.push(current);
+        continue;
+      }
+
+      let j = i + 1;
+      const programs = [];
+      while (j < entries.length && !isEducationInstitutionLine(entries[j])) {
+        if (isEducationProgramLine(entries[j])) programs.push(entries[j]);
+        j += 1;
+      }
+
+      if (!programs.length) {
+        formatted.push(current);
+        continue;
+      }
+
+      programs.forEach((program) => {
+        const combined = program.toLowerCase().includes(current.toLowerCase())
+          ? program
+          : `${current} - ${program}`;
+        formatted.push(combined);
+      });
+
+      i = j - 1;
+    }
+
+    return mergeUniqueLines(formatted, []);
+  }
+
+  function sanitizeProfileText(profile) {
+    const text = String(profile || '').replace(/\r/g, ' ').replace(/\s+/g, ' ').trim();
+    return text.replace(/\s+(EXPERIENCE|EDUCATION|SKILLS|AWARDS|CERTIFICATION|CERTIFICATIONS)\s*$/i, '').trim();
+  }
+
+  function buildResumePdfFilename(model) {
+    const namePart = String(model?.displayName || model?.fullName || 'resume')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 40) || 'resume';
+    const layoutPart = String(model?.theme?.id || 'template')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 24) || 'template';
+    return `resume-${namePart}-${layoutPart}.pdf`;
   }
 
   function buildPhotoMarkup(model, theme, square) {
@@ -1857,11 +1930,88 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function exportResumePdf(model) {
     const doc = buildResumePdfDoc(model);
-    doc.save('tailored-resume.pdf');
+    doc.save(buildResumePdfFilename(model));
   }
 
   function createResumePdfBlob(model) {
     return buildResumePdfDoc(model).output('blob');
+  }
+
+  async function buildTemplatePdfDoc(model) {
+    if (!window.jspdf) throw new Error('PDF library not loaded.');
+    const { jsPDF } = window.jspdf;
+
+    const host = document.createElement('div');
+    host.style.position = 'fixed';
+    host.style.left = '-10000px';
+    host.style.top = '0';
+    host.style.width = '860px';
+    host.style.padding = '0';
+    host.style.margin = '0';
+    host.style.background = '#ffffff';
+    host.innerHTML = renderResumeTemplate(model);
+    document.body.appendChild(host);
+
+    try {
+      if (window.html2canvas && typeof window.html2canvas === 'function') {
+        const canvas = await window.html2canvas(host, {
+          backgroundColor: '#ffffff',
+          scale: 2,
+          useCORS: true,
+          logging: false
+        });
+
+        const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const margin = 8;
+        const usableWidth = pageWidth - (margin * 2);
+        const usableHeight = pageHeight - (margin * 2);
+
+        const pixelPerMm = canvas.width / usableWidth;
+        const pagePixelHeight = Math.floor(usableHeight * pixelPerMm);
+        let offsetY = 0;
+        let isFirstPage = true;
+
+        while (offsetY < canvas.height) {
+          const sliceHeight = Math.min(pagePixelHeight, canvas.height - offsetY);
+          const pageCanvas = document.createElement('canvas');
+          pageCanvas.width = canvas.width;
+          pageCanvas.height = sliceHeight;
+
+          const ctx = pageCanvas.getContext('2d');
+          if (!ctx) break;
+
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+          ctx.drawImage(canvas, 0, offsetY, canvas.width, sliceHeight, 0, 0, canvas.width, sliceHeight);
+
+          const imgData = pageCanvas.toDataURL('image/png');
+          const renderedHeight = sliceHeight / pixelPerMm;
+          if (!isFirstPage) doc.addPage();
+          doc.addImage(imgData, 'PNG', margin, margin, usableWidth, renderedHeight, undefined, 'FAST');
+
+          isFirstPage = false;
+          offsetY += sliceHeight;
+        }
+
+        return doc;
+      }
+
+      return buildResumePdfDoc(model);
+    } finally {
+      document.body.removeChild(host);
+    }
+  }
+
+  async function exportResumePdfTemplate(model) {
+    const doc = await buildTemplatePdfDoc(model);
+    doc.save(buildResumePdfFilename(model));
+  }
+
+  async function createResumePdfBlobTemplate(model) {
+    const doc = await buildTemplatePdfDoc(model);
+    return doc.output('blob');
   }
 
   function createResumeWordBlob(model) {
@@ -2003,10 +2153,20 @@ document.addEventListener('DOMContentLoaded', function () {
       const raw = String(data.result || '').trim();
       lastRawResume = raw;
       const alignmentContext = withLearningContext(jobDescription);
-        const parsed = parseResume(raw, extractContactInfo(baseResume), baseResume);
-        const structured = baseResume
-          ? alignResumeToJobDescription(parsed, alignmentContext, baseResume)
-          : parsed;
+      const parsed = parseResume(raw, extractContactInfo(baseResume), baseResume);
+      const structured = baseResume
+        ? alignResumeToJobDescription(parsed, alignmentContext, baseResume)
+        : parsed;
+
+      if (baseResume) {
+        const parsedBaseline = parseResume(baseResume, extractContactInfo(baseResume), baseResume);
+        structured.education = mergeUniqueLines(structured.education, parsedBaseline.education);
+        structured.awards = mergeUniqueLines(structured.awards, parsedBaseline.awards);
+      }
+
+      structured.education = formatEducationEntries(structured.education);
+      structured.profile = sanitizeProfileText(structured.profile);
+
       lastStructuredResume = buildResumeModel(structured, jobTitle);
       output.innerHTML = renderResumeTemplate(lastStructuredResume);
       renderLinkedinAdoptionInsights();
@@ -2058,6 +2218,9 @@ document.addEventListener('DOMContentLoaded', function () {
       location: '',
       linkedin: ''
     }, resumeText), alignmentContext, resumeText);
+
+    parsed.education = formatEducationEntries(parsed.education);
+    parsed.profile = sanitizeProfileText(parsed.profile);
     
     const model = buildResumeModel(
       {
@@ -2099,13 +2262,13 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
-  savePdfBtn?.addEventListener('click', function () {
+  savePdfBtn?.addEventListener('click', async function () {
     try {
       if (!lastStructuredResume || !lastRawResume) {
         renderError('No resume to save. Please generate first.');
         return;
       }
-      exportResumePdf(lastStructuredResume);
+      await exportResumePdfTemplate(lastStructuredResume);
       output.innerHTML = renderResumeTemplate(lastStructuredResume);
       statusBanner('PDF downloaded.', true);
     } catch (err) {
@@ -2137,7 +2300,7 @@ document.addEventListener('DOMContentLoaded', function () {
       sendEmailBtn.disabled = true;
       sendEmailBtn.textContent = 'Sending...';
       const htmlContent = `<!DOCTYPE html><html><body style="font-family:${lastStructuredResume.theme.font};margin:0;color:#111827;">${renderResumeTemplate(lastStructuredResume)}</body></html>`;
-      const pdfBlob = createResumePdfBlob(lastStructuredResume);
+      const pdfBlob = await createResumePdfBlobTemplate(lastStructuredResume);
       const wordBlob = createResumeWordBlob(lastStructuredResume);
       const result = await window.sendDocumentToAccountEmail({
         feature: 'Resume',
