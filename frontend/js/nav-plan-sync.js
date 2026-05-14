@@ -365,6 +365,7 @@
       method: 'POST',
       headers,
       credentials: 'include',
+      keepalive: true,
       body: JSON.stringify({ countryCode: normalizeCountryCode(countryCode) })
     });
     if (!res.ok) {
@@ -740,19 +741,14 @@
       const res = await fetch(apiBase + EXP_CONTEXT_ENDPOINT, { headers, credentials: 'include' });
       if (!res.ok) return;
       const context = await res.json();
-      
-      // IMPORTANT: Respect user's explicit preference from localStorage
-      // User preference is immutable once set - don't override with API context
-      const userPreference = readCachedExperienceCountry();
-      let effectiveCountry;
-      
-      if (userPreference) {
-        // User has explicit preference - use it regardless of API response
-        effectiveCountry = userPreference;
-      } else {
-        // No explicit preference - use API response or fallback
-        effectiveCountry = normalizeCountryCode((context && context.effectiveCountry) || 'GLOBAL');
-      }
+      const cachedPreference = readCachedExperienceCountry();
+      // Prefer server-resolved context when available so users are not stuck
+      // on stale local cache values after changing experience elsewhere.
+      const effectiveCountry = normalizeCountryCode(
+        (context && context.effectiveCountry)
+          || cachedPreference
+          || 'GLOBAL'
+      );
       
       const resolvedCountry = resolveThemeCountry(effectiveCountry);
       writeCachedExperienceCountry(resolvedCountry);
