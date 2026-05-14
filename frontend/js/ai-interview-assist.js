@@ -137,53 +137,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderFeedbackMarkup(data) {
-    const bullets = Array.isArray(data?.bullets) ? data.bullets : [];
-    const coachPointers = Array.isArray(data?.coachPointers) ? data.coachPointers : [];
-    const bulletMarkup = bullets.length
-      ? bullets.map((item, index) => `<li style="margin-bottom:6px;"><strong>Prompt ${index + 1}:</strong> ${escapeHtml(item)}</li>`).join('')
-      : '<li>No quick prompts returned.</li>';
-    const pointerMarkup = coachPointers.length
-      ? coachPointers.map((item) => `<li style="margin-bottom:6px;">${escapeHtml(item)}</li>`).join('')
-      : '<li>Slow down, pause one beat, then lead with your strongest point.</li>';
-
-    const structureLabel = String(data?.type || 'general').trim() || 'general';
-    const structureText = structureLabel === 'behavioral'
-      ? 'Use STAR: situation, task, action, result.'
-      : structureLabel === 'situational'
-        ? 'Answer with a direct approach, key action, and expected outcome.'
-        : 'Lead with your point, support it briefly, then close confidently.';
-
     return `
-      <div style="margin-top:14px;padding:16px;border:1px solid #dbeafe;border-radius:12px;background:#f8fbff;">
-        <div style="font-size:0.8rem;font-weight:700;color:#1d4ed8;letter-spacing:0.04em;text-transform:uppercase;margin-bottom:10px;">What it does</div>
-        <div style="margin-bottom:12px;">
-          <strong>Prompts</strong>
-          <ul style="margin:8px 0 0 18px;padding:0;">${bulletMarkup}</ul>
-        </div>
-        <div style="margin-bottom:12px;">
-          <strong>Structure</strong>
-          <div style="margin-top:6px;color:#334155;">${escapeHtml(structureText)}</div>
-        </div>
-        <div>
-          <strong>Reminder</strong>
-          <div style="margin-top:6px;color:#334155;">${escapeHtml(data?.tip || 'Pause, breathe, and land the main point first.')}</div>
-        </div>
-      </div>
-      <div style="margin-top:14px;padding:16px;border:1px solid #fde68a;border-radius:12px;background:#fffbeb;">
-        <div style="font-size:0.8rem;font-weight:700;color:#92400e;letter-spacing:0.04em;text-transform:uppercase;margin-bottom:10px;">Live delivery coach</div>
-        <ul style="margin:8px 0 0 18px;padding:0;">${pointerMarkup}</ul>
-      </div>
-      <div style="margin-top:14px;padding:16px;border:1px solid #dcfce7;border-radius:12px;background:#f7fff9;">
-        <div style="font-size:0.8rem;font-weight:700;color:#15803d;letter-spacing:0.04em;text-transform:uppercase;margin-bottom:10px;">What it does for you</div>
-        <div style="color:#334155;line-height:1.8;">👉 Prevents freezing</div>
-        <div style="color:#334155;line-height:1.8;">👉 Keeps answers sharp</div>
-      </div>
-      <div style="margin-top:14px;padding:12px 14px;border:1px solid #fbcfe8;border-radius:12px;background:#fdf2f8;">
-        <strong>If you blank out:</strong>
-        <div style="margin-top:6px;color:#4b5563;">${escapeHtml(data?.freezeRescue || 'Give me one second to think. The key point is: [state your main point first].')}</div>
-      </div>
-      <div style="margin-top:14px;">
-        <strong>Live Answer Draft</strong>
+      <div style="margin-top:14px;padding:16px;border:1px solid #bfdbfe;border-radius:12px;background:#eff6ff;">
+        <strong>Answer</strong>
         <div style="margin-top:8px;line-height:1.8;color:#0f172a;">${escapeHtml(data?.answer || '')}</div>
       </div>
     `;
@@ -623,6 +579,12 @@ document.addEventListener('DOMContentLoaded', () => {
             setLiveStatus('Waiting for you to share the interview audio...', '#1d4ed8');
           } else if (state === 'reusing-stream') {
             setLiveStatus('Resuming live listening with your existing audio permissions...', '#0f766e');
+          } else if (state === 'missing-shared-audio') {
+            setLiveStatus('No shared audio detected. Re-open the picker and enable Share audio for the recruiter tab.', '#b45309');
+          } else if (state === 'shared-audio-muted') {
+            setLiveStatus('Shared audio is currently muted. Ensure the recruiter tab/source is actively playing sound.', '#b45309');
+          } else if (state === 'shared-audio-active') {
+            setLiveStatus('Shared recruiter audio detected. Listening now...', '#0f766e');
           } else if (state === 'fallback-mic') {
             setLiveStatus('Shared audio was unavailable. Switched to microphone listening.', '#b45309');
           } else if (state === 'listening') {

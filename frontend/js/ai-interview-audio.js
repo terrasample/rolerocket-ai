@@ -17,6 +17,69 @@ let sharedAudioDestination = null;
 let sharedAudioRecordSourceStream = null;
 let sharedAudioKeepAliveOnStop = false;
 
+function isPermissionDeniedError(err) {
+  const name = String(err?.name || '').toLowerCase();
+  return name === 'notallowederror' || name === 'securityerror' || name === 'permissiondeniederror';
+}
+
+function buildDisplayAudioRequest(videoConstraint, audioConstraint) {
+  const request = {
+    video: videoConstraint,
+    audio: audioConstraint
+  };
+
+  // Browser-specific hints. Unsupported keys are ignored.
+  request.preferCurrentTab = true;
+  request.selfBrowserSurface = 'include';
+  request.surfaceSwitching = 'include';
+  request.systemAudio = 'include';
+  request.monitorTypeSurfaces = 'include';
+
+  return request;
+}
+
+async function requestDisplayAudioStream(audioConstraints) {
+  const attempts = [
+    buildDisplayAudioRequest(
+      {
+        displaySurface: 'browser'
+      },
+      {
+        ...audioConstraints,
+        suppressLocalAudioPlayback: false
+      }
+    ),
+    buildDisplayAudioRequest(
+      {
+        displaySurface: 'window'
+      },
+      {
+        ...audioConstraints,
+        suppressLocalAudioPlayback: false
+      }
+    ),
+    buildDisplayAudioRequest(true, {
+      ...audioConstraints,
+      suppressLocalAudioPlayback: false
+    }),
+    buildDisplayAudioRequest(false, audioConstraints)
+  ];
+
+  let lastError = null;
+  for (const constraints of attempts) {
+    try {
+      return await navigator.mediaDevices.getDisplayMedia(constraints);
+    } catch (err) {
+      lastError = err;
+      if (isPermissionDeniedError(err)) {
+        throw err;
+      }
+    }
+  }
+
+  throw lastError || new Error('Unable to start shared audio capture.');
+}
+
 function stopTracks(stream) {
   if (!stream) return;
   stream.getTracks().forEach((track) => {
@@ -58,6 +121,12 @@ function buildSharedAudioRecorder(sourceStream, handlers = {}) {
 
   const captureAudioTracks = sharedAudioCaptureStream ? sharedAudioCaptureStream.getAudioTracks() : [];
   captureAudioTracks.forEach((track) => {
+    track.onmute = () => {
+      if (typeof handlers.onState === 'function') handlers.onState('shared-audio-muted');
+    };
+    track.onunmute = () => {
+      if (typeof handlers.onState === 'function') handlers.onState('shared-audio-active');
+    };
     track.onended = () => {
       if (typeof handlers.onState === 'function') handlers.onState('stopped');
       stopSharedAudioCapture({ preserveStream: false });
@@ -99,7 +168,7 @@ function buildSharedAudioRecorder(sourceStream, handlers = {}) {
   };
 
   // Shorter chunks improve question-detection latency.
-  sharedAudioRecorder.start(3000);
+  sharedAudioRecorder.start(1500);
 }
 
 function getSupportedAudioMimeType() {
@@ -259,30 +328,22 @@ async function startSharedAudioCapture(handlers = {}) {
     autoGainControl: false
   };
 
-  try {
-    // Try audio-only first — Chrome 109+ shows a focused tab-audio picker
-    // without requiring the user to share their screen, making it much clearer
-    // that they should pick the interview tab and enable audio sharing.
-    captureStream = await navigator.mediaDevices.getDisplayMedia({
-      video: false,
-      audio: audioConstraints
-    });
-  } catch {
-    try {
-      // Fall back to video+audio picker for browsers that require video for audio capture.
-      captureStream = await navigator.mediaDevices.getDisplayMedia({
-        video: true,
-        audio: audioConstraints
-      });
-    } catch (err) {
-      throw err;
-    }
-  }
+  captureStream = await requestDisplayAudioStream(audioConstraints);
 
   let activeStream = captureStream;
   let recordSourceStream = null;
   let audioTracks = captureStream.getAudioTracks();
   sharedAudioMode = 'shared';
+
+  if (!audioTracks.length) {
+    if (typeof handlers.onState === 'function') handlers.onState('missing-shared-audio');
+    stopTracks(captureStream);
+
+    // One additional prompt in case the user picked a source without audio share enabled.
+    captureStream = await requestDisplayAudioStream(audioConstraints);
+    activeStream = captureStream;
+    audioTracks = captureStream.getAudioTracks();
+  }
 
   // Some browser/window combinations do not expose shared-system audio tracks.
   // Fallback to microphone capture so live listening still works instead of failing.
