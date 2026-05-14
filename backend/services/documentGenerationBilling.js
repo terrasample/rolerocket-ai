@@ -5,6 +5,11 @@ const FEATURE_KEYS = {
   'cover-letter': 'coverLetterFirstFreeUsed'
 };
 
+const FEATURE_DAILY_KEYS = {
+  resume: 'resumeFreeLastUsedDay',
+  'cover-letter': 'coverLetterFreeLastUsedDay'
+};
+
 const CREDIT_BUNDLES = {
   single: {
     id: 'single',
@@ -37,6 +42,14 @@ function normalizeFeature(feature) {
   return FEATURE_KEYS[normalized] ? normalized : 'resume';
 }
 
+function getUtcDayStamp(date = new Date()) {
+  const d = new Date(date);
+  const year = d.getUTCFullYear();
+  const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 function ensureWallet(user) {
   if (!user.documentGeneration || typeof user.documentGeneration !== 'object') {
     user.documentGeneration = {
@@ -57,6 +70,12 @@ function ensureWallet(user) {
   if (typeof user.documentGeneration.coverLetterFirstFreeUsed !== 'boolean') {
     user.documentGeneration.coverLetterFirstFreeUsed = false;
   }
+  if (typeof user.documentGeneration.resumeFreeLastUsedDay !== 'string') {
+    user.documentGeneration.resumeFreeLastUsedDay = '';
+  }
+  if (typeof user.documentGeneration.coverLetterFreeLastUsedDay !== 'string') {
+    user.documentGeneration.coverLetterFreeLastUsedDay = '';
+  }
   if (!Number.isFinite(Number(user.documentGeneration.totalCreditsPurchased))) {
     user.documentGeneration.totalCreditsPurchased = 0;
   }
@@ -67,7 +86,7 @@ function ensureWallet(user) {
 
 function getDocumentGenerationStatus(user, feature) {
   const normalizedFeature = normalizeFeature(feature);
-  const featureFlag = FEATURE_KEYS[normalizedFeature];
+  const dailyKey = FEATURE_DAILY_KEYS[normalizedFeature];
   const unlimited = isPaidOrAdmin(user);
 
   if (unlimited) {
@@ -83,9 +102,10 @@ function getDocumentGenerationStatus(user, feature) {
   }
 
   ensureWallet(user);
-  const freeUsed = Boolean(user.documentGeneration[featureFlag]);
+  const today = getUtcDayStamp();
+  const freeUsedToday = String(user.documentGeneration[dailyKey] || '') === today;
   const paidCredits = Math.max(0, Number(user.documentGeneration.paidCredits || 0));
-  const freeRemaining = freeUsed ? 0 : 1;
+  const freeRemaining = freeUsedToday ? 0 : 1;
   const canGenerate = freeRemaining > 0 || paidCredits > 0;
 
   return {
@@ -102,6 +122,7 @@ function getDocumentGenerationStatus(user, feature) {
 async function consumeDocumentGeneration(user, feature) {
   const normalizedFeature = normalizeFeature(feature);
   const featureFlag = FEATURE_KEYS[normalizedFeature];
+  const dailyKey = FEATURE_DAILY_KEYS[normalizedFeature];
 
   if (isPaidOrAdmin(user)) {
     return {
@@ -112,10 +133,13 @@ async function consumeDocumentGeneration(user, feature) {
   }
 
   ensureWallet(user);
-  const freeUsed = Boolean(user.documentGeneration[featureFlag]);
+  const today = getUtcDayStamp();
+  const freeUsedToday = String(user.documentGeneration[dailyKey] || '') === today;
   const paidCredits = Math.max(0, Number(user.documentGeneration.paidCredits || 0));
 
-  if (!freeUsed) {
+  if (!freeUsedToday) {
+    user.documentGeneration[dailyKey] = today;
+    // Keep legacy flags true once feature has ever been used for compatibility.
     user.documentGeneration[featureFlag] = true;
     user.markModified('documentGeneration');
     await user.save();
