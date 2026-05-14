@@ -30,6 +30,15 @@ document.addEventListener('DOMContentLoaded', function () {
   const refreshCourseBtn = document.getElementById('refreshCourseBtn');
   const certificateBtn = document.getElementById('downloadCourseCertificateBtn');
   const audioVoiceSelect = document.getElementById('courseAudioVoiceSelect');
+  const tabLinks = Array.from(document.querySelectorAll('.crs-tab-link[href^="#"]'));
+
+  const TAB_SECTION_IDS = {
+    about: ['about'],
+    outcomes: ['outcomes'],
+    modules: ['modules', 'courseCapstoneSection', 'courseMockExamsSection', 'courseAssessmentSection', 'courseInterviewPrepSection'],
+    practice: ['coursePracticeSection'],
+    faq: ['faq']
+  };
 
   const progressState = {
     totalModules: 0,
@@ -120,6 +129,51 @@ document.addEventListener('DOMContentLoaded', function () {
   function getCourseStorageKey() {
     const normalizedTopic = normalizeTopic(topic || 'course');
     return normalizedTopic || 'course';
+  }
+
+  function getTabKeyFromHash(hashValue) {
+    const key = String(hashValue || '').replace(/^#/, '').trim().toLowerCase();
+    return TAB_SECTION_IDS[key] ? key : 'about';
+  }
+
+  function applySectionTab(key) {
+    const activeKey = TAB_SECTION_IDS[key] ? key : 'about';
+    const activeSectionIds = new Set(TAB_SECTION_IDS[activeKey]);
+
+    Object.keys(TAB_SECTION_IDS).forEach((tabKey) => {
+      TAB_SECTION_IDS[tabKey].forEach((sectionId) => {
+        const section = document.getElementById(sectionId);
+        if (!section) return;
+        const shouldShow = activeSectionIds.has(sectionId);
+        section.classList.toggle('is-tab-hidden', !shouldShow);
+      });
+    });
+
+    tabLinks.forEach((link) => {
+      const linkKey = getTabKeyFromHash(link.getAttribute('href'));
+      const isActive = linkKey === activeKey;
+      link.classList.toggle('active', isActive);
+      link.setAttribute('aria-current', isActive ? 'page' : 'false');
+    });
+  }
+
+  function setupSectionTabs() {
+    if (!tabLinks.length) return;
+
+    tabLinks.forEach((link) => {
+      link.addEventListener('click', function (event) {
+        event.preventDefault();
+        const key = getTabKeyFromHash(link.getAttribute('href'));
+        applySectionTab(key);
+        window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}#${key}`);
+      });
+    });
+
+    window.addEventListener('hashchange', function () {
+      applySectionTab(getTabKeyFromHash(window.location.hash));
+    });
+
+    applySectionTab(getTabKeyFromHash(window.location.hash));
   }
 
   function getDiagnosticStorageKey() {
@@ -4203,6 +4257,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!proceed) return;
     loadCourse(true);
   });
+  setupSectionTabs();
   loadLearnerIdentity();
   loadCourse();
 });
