@@ -128,7 +128,13 @@
 
     /* Modules two-column inside section */
     .crs-modules-cols {
-      display: grid; grid-template-columns: 1fr 300px; gap: 20px; align-items: flex-start;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+      gap: 20px;
+      align-items: flex-start;
+    }
+    .crs-modules-main {
+      min-width: 0;
     }
 
     /* Week accordion list items (Coursera-style flow) */
@@ -154,7 +160,7 @@
       list-style: none;
       display: flex;
       justify-content: space-between;
-      align-items: center;
+      align-items: flex-start;
       gap: 10px;
       padding: 14px 18px;
       cursor: pointer;
@@ -167,6 +173,11 @@
       align-items: flex-start;
       gap: 12px;
       min-width: 0;
+      flex: 1 1 auto;
+    }
+    .crs-week-left > div {
+      min-width: 0;
+      flex: 1 1 auto;
     }
     .crs-week-status-icon {
       font-size: 1rem;
@@ -182,7 +193,8 @@
       font-weight: 700;
       color: #f1f5f9;
       line-height: 1.3;
-      word-break: break-word;
+      word-break: normal;
+      overflow-wrap: anywhere;
     }
     .crs-week-meta {
       font-size: 0.78rem;
@@ -269,6 +281,8 @@
       .crs-outcome-list { grid-template-columns: 1fr; }
       .crs-two-col { grid-template-columns: 1fr; }
       .crs-modules-cols { grid-template-columns: 1fr; }
+      .crs-week-detail-label { display: none; }
+      .crs-week-summary { padding: 12px 14px; }
     }
   </style>
 </head>
@@ -377,14 +391,17 @@
           <!-- Main column -->
           <div class="crs-main-col">
 
-            <!-- About: What you'll learn -->
+            <!-- About: Course overview only -->
             <section id="about" class="crs-section">
-              <h2 class="crs-section-h2">What you'll learn</h2>
-              <ul id="courseOutcomeList" class="crs-outcome-list"></ul>
+              <h2 class="crs-section-h2">About this course</h2>
+              <div id="courseOverview" class="crs-overview-text"></div>
+              <div id="courseCurriculumMeta" style="display:none;font-size:0.88rem;color:#d0d9e7;line-height:1.6;margin-bottom:16px;"></div>
             </section>
 
-            <!-- Outcomes: Skills + Details -->
+            <!-- Outcomes: What you'll learn + skills + details -->
             <section id="outcomes" class="crs-section">
+              <h2 class="crs-section-h2">What you'll learn</h2>
+              <ul id="courseOutcomeList" class="crs-outcome-list" style="margin-bottom:18px;"></ul>
               <div class="crs-two-col">
                 <div>
                   <h2 class="crs-section-h2">Skills you'll gain</h2>
@@ -421,13 +438,11 @@
 
             <!-- Modules section -->
             <section id="modules" class="crs-section">
-              <div id="courseOverview" class="crs-overview-text"></div>
-              <div id="courseCurriculumMeta" style="display:none;font-size:0.88rem;color:#d0d9e7;line-height:1.6;margin-bottom:16px;"></div>
               <h2 class="crs-section-h2" id="moduleCountHeading">There are 5 modules in this course</h2>
 
               <div class="crs-modules-cols">
                 <!-- Left: accordion + current module content -->
-                <div>
+                <div class="crs-modules-main">
                   <!-- Coursera-style module accordion (all modules listed) -->
                   <div id="courseModuleAccordion" style="margin-bottom:16px;"></div>
                   <!-- Active module detailed content (rendered by JS) -->
@@ -549,7 +564,7 @@
   <script src="js/nav-plan-sync.js?v=20260514-sync4"></script>
   <script src="js/idle-timeout.js"></script>
   <script src="js/jspdf-loader.js"></script>
-  <script src="js/course-learning.js?v=20260514-remove-stanford-badge"></script>
+  <script src="js/course-learning.js?v=20260514-layout-modules-fix"></script>
   <script src="js/page-assistant.js"></script>
   <script src="js/return-navigation.js"></script>
 </body>

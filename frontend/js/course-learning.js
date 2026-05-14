@@ -2867,6 +2867,32 @@ document.addEventListener('DOMContentLoaded', function () {
       updateAudioRate(rateSelect.value);
     });
 
+    const accordionEl = document.getElementById('courseModuleAccordion');
+    if (accordionEl) {
+      accordionEl.addEventListener('click', function (event) {
+        const summary = event.target.closest('summary[data-week-summary]');
+        if (!summary) return;
+        const idx = Number(summary.getAttribute('data-week-summary'));
+        if (!Number.isInteger(idx) || idx < 0) return;
+
+        const maxIndex = Math.max(0, Number(progressState.currentModuleIndex || 0));
+        if (!progressState.diagnosticCompleted && idx > 0) {
+          return;
+        }
+        if (progressState.diagnosticCompleted && idx > maxIndex && !progressState.completedModules.has(idx)) {
+          return;
+        }
+
+        // Delay to allow native <details> toggle state to settle first.
+        setTimeout(() => {
+          progressState.currentModuleIndex = idx;
+          renderModuleAccordion();
+          renderProgressiveContent();
+          updateProgressiveSections();
+        }, 0);
+      });
+    }
+
     if (audioVoiceSelect) {
       audioVoiceSelect.addEventListener('change', function () {
         audioState.selectedVoice = audioVoiceSelect.value;
@@ -3253,8 +3279,8 @@ document.addEventListener('DOMContentLoaded', function () {
       const title = escapeHtml(String(mod?.title || `Module ${idx + 1}`));
       const objective = escapeHtml(String(mod?.objective || 'Module objective will appear here.'));
       const isCompleted = progressState.completedModules.has(idx);
-      const isCurrent = diagnosticDone && idx === currentIdx && !isCompleted;
-      const isLocked = !isCompleted && (!diagnosticDone || idx > currentIdx);
+      const isCurrent = idx === currentIdx && !isCompleted;
+      const isLocked = !isCompleted && (diagnosticDone ? idx > currentIdx : idx > 0);
 
       let statusIcon, statusColor;
       if (isCompleted) {
@@ -3279,11 +3305,11 @@ document.addEventListener('DOMContentLoaded', function () {
       const defaultOpen = (isCurrent || (!diagnosticDone && idx === 0)) ? 'open' : '';
       const statusText = isCompleted
         ? 'Completed'
-        : (isCurrent ? 'Current active week' : (isLocked ? 'Locked until previous week passes' : 'Available'));
+        : (isCurrent ? 'Current active week' : (isLocked ? 'Locked until previous week passes' : 'Available now'));
 
       return `
-        <details class="${itemClass}" ${defaultOpen}>
-          <summary class="crs-week-summary">
+        <details class="${itemClass}" data-week-item="${idx}" ${defaultOpen}>
+          <summary class="crs-week-summary" data-week-summary="${idx}">
             <div class="crs-week-left">
               <span class="crs-week-status-icon" style="color:${statusColor};">${statusIcon}</span>
               <div>
