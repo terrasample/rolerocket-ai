@@ -271,9 +271,26 @@
         const selected = normalizeCountryCode(select.value || 'GLOBAL');
         const activeToken = String(root.dataset.token || '');
         if (!activeToken) return;
+        const previous = readCachedExperienceCountry() || 'GLOBAL';
+
+        // Apply immediately so the experience feels instant even on slow networks.
+        writeCachedExperienceCountry(selected);
+        applyExperienceTheme(selected);
+        const optimistic = publishPersonalizationContext({
+          effectiveCountry: selected,
+          showJamaicaHub: selected === 'JM',
+          requiresChoice: false,
+          source: 'user-optimistic'
+        });
+        applyJamaicaHubVisibility(optimistic.showJamaicaHub);
+        upsertHomepageExperienceSwitcher({
+          effectiveCountry: selected,
+          supportedCountries: countries,
+          requiresChoice: false
+        }, activeToken);
 
         button.disabled = true;
-        note.textContent = 'Saving experience...';
+        note.textContent = 'Applying experience...';
         try {
           const saved = await saveExperiencePreference(selected, activeToken);
           const effective = selected;
@@ -287,6 +304,21 @@
           upsertHomepageExperienceSwitcher(Object.assign({}, saved || {}, { effectiveCountry: effective }), activeToken);
           note.textContent = 'Experience updated.';
         } catch (error) {
+          // Revert if the save fails.
+          writeCachedExperienceCountry(previous);
+          applyExperienceTheme(previous);
+          const rollback = publishPersonalizationContext({
+            effectiveCountry: previous,
+            showJamaicaHub: previous === 'JM',
+            requiresChoice: false,
+            source: 'user-rollback'
+          });
+          applyJamaicaHubVisibility(rollback.showJamaicaHub);
+          upsertHomepageExperienceSwitcher({
+            effectiveCountry: previous,
+            supportedCountries: countries,
+            requiresChoice: false
+          }, activeToken);
           note.textContent = (error && error.message) ? error.message : 'Could not update experience.';
         } finally {
           button.disabled = false;
