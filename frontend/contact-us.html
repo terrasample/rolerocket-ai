@@ -8,22 +8,22 @@
   <style>
     .contact-hero {
       position: relative;
-      background: linear-gradient(90deg, #0f172a 0%, #1e293b 100%);
-      color: #facc15;
+      background: linear-gradient(90deg, var(--rr-exp-dark, #0f172a) 0%, var(--rr-exp-primary, #1e293b) 100%);
+      color: var(--rr-exp-accent, #facc15);
       padding: 48px 0 24px 0;
       text-align: center;
-      border-bottom: 3px solid #facc15;
-      box-shadow: 0 4px 32px #0ea5e930;
+      border-bottom: 3px solid var(--rr-exp-accent, #facc15);
+      box-shadow: 0 4px 32px var(--rr-exp-bg, rgba(14,165,233,.2));
     }
     .contact-form {
-      background: linear-gradient(180deg, rgba(30, 64, 175, 0.42), rgba(15, 23, 42, 0.34));
+      background: linear-gradient(180deg, color-mix(in srgb, var(--rr-exp-primary, #1e40af) 42%, transparent), rgba(15, 23, 42, 0.34));
       max-width: none;
       width: min(1120px, calc(100vw - 64px));
       margin: 32px auto;
       padding: 32px 28px 28px 28px;
       border-radius: 18px;
       box-shadow: 0 12px 30px rgba(2, 6, 23, 0.28);
-      border: 1px solid rgba(191, 10, 48, 0.28);
+      border: 1px solid var(--rr-exp-border, rgba(191, 10, 48, 0.28));
       display: flex;
       flex-direction: column;
       gap: 18px;
@@ -44,8 +44,8 @@
       transition: border 0.2s, background 0.2s;
     }
     .contact-form input:focus, .contact-form textarea:focus {
-      border: 1.5px solid #f87171;
-      background: rgba(30, 64, 175, 0.3);
+      border: 1.5px solid var(--rr-exp-accent, #f87171);
+      background: color-mix(in srgb, var(--rr-exp-primary, #1e40af) 30%, transparent);
       outline: none;
     }
     .contact-form input::placeholder,
@@ -53,10 +53,10 @@
       color: #bfdbfe;
     }
     .contact-form button {
-      background: linear-gradient(180deg, #bf0a30 0%, #1d4ed8 100%);
+      background: linear-gradient(180deg, var(--rr-exp-primary, #bf0a30) 0%, var(--rr-exp-dark, #1d4ed8) 100%);
       color: #ffffff;
       font-weight: 700;
-      border: 1px solid rgba(254, 202, 202, 0.72);
+      border: 1px solid color-mix(in srgb, var(--rr-exp-accent, #fecaCA) 72%, white 28%);
       border-radius: 8px;
       padding: 14px 0;
       font-size: 1.15em;
@@ -65,7 +65,7 @@
       transition: background 0.2s;
     }
     .contact-form button:hover {
-      background: linear-gradient(180deg, #dc2626 0%, #1e40af 100%);
+      background: linear-gradient(180deg, color-mix(in srgb, var(--rr-exp-primary, #dc2626) 88%, white 12%) 0%, var(--rr-exp-dark, #1e40af) 100%);
     }
     .contact-success {
       color: #16a34a;
@@ -81,12 +81,12 @@
       margin-top: 32px;
     }
     .contact-social a {
-      color: #bfdbfe;
+      color: color-mix(in srgb, var(--rr-exp-accent, #bfdbfe) 72%, #bfdbfe 28%);
       font-size: 2.2em;
       transition: color 0.2s;
     }
     .contact-social a:hover {
-      color: #fda4af;
+      color: var(--rr-exp-accent, #fda4af);
     }
     .contact-rocket {
       font-size: 2.5em;
@@ -105,10 +105,10 @@
 </head>
 <body>
   <div class="contact-hero">
-    <button id="contactBackButton" class="back-arrow-btn contact-back-btn" aria-label="Go back" style="position:absolute;top:12px;left:12px;background:none;border:none;cursor:pointer;font-size:1.6em;color:#facc15;"><span aria-hidden="true">&#8592;</span> Back</button>
+    <button id="contactBackButton" class="back-arrow-btn contact-back-btn" aria-label="Go back" style="position:absolute;top:12px;left:12px;background:none;border:none;cursor:pointer;font-size:1.6em;color:var(--rr-exp-accent,#facc15);"><span aria-hidden="true">&#8592;</span> Back</button>
     <span class="contact-rocket">🚀</span>
     <h1>Contact Us</h1>
-    <p style="font-size:1.25em;max-width:600px;margin:0 auto;color:#fef9c3;">We'd love to hear from you! Whether you have a question, feedback, partnership idea, or just want to say hello, our team is ready to help you launch your career journey.</p>
+    <p style="font-size:1.25em;max-width:600px;margin:0 auto;color:color-mix(in srgb, var(--rr-exp-accent,#fef9c3) 62%, white 38%);">We'd love to hear from you! Whether you have a question, feedback, partnership idea, or just want to say hello, our team is ready to help you launch your career journey.</p>
   </div>
   <div class="layout">
     <aside class="sidebar" aria-label="Primary navigation">
@@ -137,7 +137,7 @@
       </nav>
     </aside>
     <main class="main marketing-main" id="mainContent" tabindex="-1">
-      <button class="back-arrow-btn" aria-label="Go back" data-back-button="true" style="margin:12px 0 12px 0;background:none;border:none;cursor:pointer;font-size:1.6em;color:#2563eb;"><span aria-hidden="true">&#8592;</span> Back</button>
+      <button class="back-arrow-btn" aria-label="Go back" data-back-button="true" style="margin:12px 0 12px 0;background:none;border:none;cursor:pointer;font-size:1.6em;color:var(--rr-exp-primary,#2563eb);"><span aria-hidden="true">&#8592;</span> Back</button>
       <form class="contact-form" id="contactForm">
         <label for="name">Your Name</label>
         <input type="text" id="name" name="name" required placeholder="Enter your name" />
@@ -150,10 +150,10 @@
         <button type="submit">Send Message</button>
         <div class="contact-success" id="contactSuccess" style="display:none;"></div>
       </form>
-      <div class="marketing-card" style="max-width:none;width:min(1120px, calc(100vw - 64px));margin:0 auto 24px auto;background:#0f172a;color:#e2e8f0;border:1px solid #334155;">
-        <h3 style="margin-top:0;color:#facc15;">Billing and Refund Help</h3>
+      <div class="marketing-card" style="max-width:none;width:min(1120px, calc(100vw - 64px));margin:0 auto 24px auto;background:#0f172a;color:#e2e8f0;border:1px solid var(--rr-exp-border,#334155);">
+        <h3 style="margin-top:0;color:var(--rr-exp-accent,#facc15);">Billing and Refund Help</h3>
         <p style="margin-bottom:10px;line-height:1.7;">Refunds are reviewed manually. For the fastest review, include your account email, the charge date, and your Stripe receipt or invoice details.</p>
-        <p style="margin:0;"><a href="refund-policy.html" style="color:#93c5fd;font-weight:700;">Read the refund policy</a></p>
+        <p style="margin:0;"><a href="refund-policy.html" style="color:color-mix(in srgb, var(--rr-exp-accent,#93c5fd) 45%, #93c5fd 55%);font-weight:700;">Read the refund policy</a></p>
       </div>
       <div class="contact-social">
         <a href="contact-us.html" title="Contact Form"><i class="fa-solid fa-envelope"></i></a>

@@ -856,6 +856,39 @@
         ].join('');
       }
 
+      function isDirectPostingUrl(url) {
+        if (!url || !/^https?:\/\//i.test(String(url).trim())) return false;
+        var normalized = String(url).trim();
+        var lower = normalized.toLowerCase();
+
+        // Avoid aggregator/search portals for "Open job" links.
+        if (/(^|\.)indeed\./i.test(lower)) return false;
+        if (/google\.com\/search\?/i.test(lower)) return false;
+        if (/linkedin\.com\/jobs\/search\?/i.test(lower)) return false;
+
+        // LinkedIn is allowed only when it is a direct job posting page.
+        if (/linkedin\.com\//i.test(lower) && !/linkedin\.com\/jobs\/view\//i.test(lower)) return false;
+
+        return true;
+      }
+
+      function pickDirectJobLink(job) {
+        var candidates = [
+          job && job.applyLink,
+          job && job.applyUrl,
+          job && job.url,
+          job && job.jobUrl,
+          job && job.link,
+          job && job.redirectUrl
+        ];
+
+        for (var i = 0; i < candidates.length; i += 1) {
+          var candidate = String(candidates[i] || '').trim();
+          if (isDirectPostingUrl(candidate)) return candidate;
+        }
+        return '';
+      }
+
       function applyJamaicaVariant() {}
 
       async function loadSnapshotData() {
@@ -989,12 +1022,12 @@
             var jamaicaCountrySignal = /\bjamaica\b|\bjm\b/i;
             var jamaicaParishSignal = /\bkingston\b|montego\s*bay|portmore|st\.?\s*andrew|st\.?\s*catherine|spanish\s*town|mandeville|negril|ocho\s*rios|falmouth|trelawny|clarendon|st\.?\s*james/i;
             var conflictCountrySignal = /lennox\s*and\s*addington|\bcanada\b|\bontario\b|\bquebec\b|\balberta\b|\bvancouver\b|\btoronto\b|\bunited\s*states\b|\busa\b|\bu\.s\.\b|\buk\b|\bunited\s*kingdom\b|\bengland\b/i;
-            var remoteSignal = /\bremote\b|\bwork\s*from\s*home\b|\bdistributed\b/i;
+            var jamaicaPortalSignal = /\.jm\b|caribbeanjobs|jm\.indeed/i;
 
             if (jamaicaCountrySignal.test(haystack)) return true;
             if (conflictCountrySignal.test(haystack)) return false;
             if (jamaicaParishSignal.test(haystack)) return true;
-            return remoteSignal.test(haystack);
+            return jamaicaPortalSignal.test(haystack);
           };
 
           var US_STATE_NAMES = {
@@ -1619,9 +1652,19 @@
               }
 
               if (scopedJobs.length) {
-                list.innerHTML = scopedJobs.map(function(j) {
-                  var applyLink = (j.link && /^https?:\/\//i.test(String(j.link).trim())) ? String(j.link).trim()
-                    : 'https://www.linkedin.com/jobs/search/?keywords=' + encodeURIComponent(j.title || '');
+                var directScopedJobs = scopedJobs.map(function(j) {
+                  return {
+                    job: j,
+                    applyLink: pickDirectJobLink(j)
+                  };
+                }).filter(function(entry) { return !!entry.applyLink; });
+
+                if (!directScopedJobs.length) {
+                  list.innerHTML = '<div class="rr-shot-row"><div><div class="title">No direct job links available right now</div><div class="meta">We found matches for this location, but direct apply links were unavailable. Please check again shortly.</div></div></div>';
+                } else {
+                  list.innerHTML = directScopedJobs.map(function(entry) {
+                    var j = entry.job;
+                    var applyLink = entry.applyLink;
                   var metaBits = [j.company || 'Company'];
                   if (j.location) metaBits.push(j.location);
                   var reasons = Array.isArray(j.__rrReasons) ? j.__rrReasons.slice(0, 3) : [];
@@ -1640,7 +1683,8 @@
                     '  <span class="rr-shot-apply">Open job</span>',
                     '</a>'
                   ].join('');
-                }).join('');
+                  }).join('');
+                }
               } else if (prefSalaryMin > 0) {
                 list.innerHTML = '<div class="rr-shot-row"><div><div class="title">No current matches meet your minimum salary</div><div class="meta">We checked your preferred market plus nearby metros. Try lowering your salary floor or widening role keywords to surface more matches.</div></div></div>';
               } else {
@@ -1661,13 +1705,24 @@
               }
               fallback = fallback.slice(0, 6);
               if (fallback.length) {
-                list.innerHTML = fallback.map(function(j) {
-                  var applyLink = (j.link && /^https?:\/\//i.test(String(j.link).trim())) ? String(j.link).trim()
-                    : 'https://www.linkedin.com/jobs/search/?keywords=' + encodeURIComponent(j.title || '');
+                var directFallback = fallback.map(function(j) {
+                  return {
+                    job: j,
+                    applyLink: pickDirectJobLink(j)
+                  };
+                }).filter(function(entry) { return !!entry.applyLink; });
+
+                if (!directFallback.length) {
+                  list.innerHTML = '<div class="rr-shot-row"><div><div class="title">No direct job links available right now</div><div class="meta">We found location matches, but direct apply links were unavailable. Please check again shortly.</div></div></div>';
+                } else {
+                  list.innerHTML = directFallback.map(function(entry) {
+                    var j = entry.job;
+                    var applyLink = entry.applyLink;
                   var metaBits = [j.company || 'Company'];
                   if (j.location) metaBits.push(j.location);
                   return renderMatchRow(j.title || 'Role', metaBits.join(' \u00b7 '), applyLink);
-                }).join('');
+                  }).join('');
+                }
               } else if (prefSalaryMin > 0) {
                 list.innerHTML = '<div class="rr-shot-row"><div><div class="title">No current matches meet your minimum salary</div><div class="meta">We checked your preferred market plus nearby metros. Try lowering your salary floor or widening role keywords to surface more matches.</div></div></div>';
               } else {
