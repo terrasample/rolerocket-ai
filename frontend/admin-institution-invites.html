@@ -575,6 +575,13 @@
     init();
   })();
 
+  /* ── Shared helpers (outside IIFE so grant/lookup functions can use them) ── */
+  function escHtml(str) {
+    return String(str || '').replace(/[&<>"']/g, function(c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
   /* ── Grant / Lookup credits ── */
   function showGcMsg(id, text, type) {
     const el = document.getElementById(id);

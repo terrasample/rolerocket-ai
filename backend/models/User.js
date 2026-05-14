@@ -128,6 +128,7 @@ const UserSchema = new mongoose.Schema(
             amountCents: { type: Number, default: null },
             currency: { type: String, default: 'usd' },
             stripeSessionId: { type: String, default: '' },
+            note: { type: String, default: '' },
             purchasedAt: { type: Date, default: Date.now }
           }
         ],
