@@ -5846,9 +5846,9 @@ app.post('/api/document-credits/sync-from-stripe', authenticateToken, async (req
 
     console.log(`[CREDIT SYNC] Checking Stripe for pending payments for ${user.email}`);
 
-    // List all checkout sessions for this customer to find unpaid ones
+    // Stripe checkout.sessions.list does not support customer_email filtering.
+    // Pull recent sessions and filter by metadata/email in app logic.
     const sessions = await stripe.checkout.sessions.list({
-      customer_email: user.email,
       limit: 100
     });
 
@@ -5865,6 +5865,20 @@ app.post('/api/document-credits/sync-from-stripe', authenticateToken, async (req
       return res.json({
         synced: false,
         reason: 'No pending payments found',
+        currentCredits: user.documentGeneration?.paidCredits || 0
+      });
+    }
+
+    const stripeReportedTotal = pendingSessions.reduce(
+      (sum, s) => sum + Math.max(0, Number(s.metadata?.docCredits || 0)),
+      0
+    );
+    const alreadyAccountedTotal = Math.max(0, Number(user.documentGeneration?.totalCreditsPurchased || 0));
+    if (alreadyAccountedTotal >= stripeReportedTotal) {
+      console.log(`[CREDIT SYNC] Credits already accounted for ${user.email}. local_total=${alreadyAccountedTotal} stripe_total=${stripeReportedTotal}`);
+      return res.json({
+        synced: false,
+        reason: 'Credits already accounted locally',
         currentCredits: user.documentGeneration?.paidCredits || 0
       });
     }
