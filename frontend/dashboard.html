@@ -1128,12 +1128,7 @@
               var primaryScoutTitle = explicitScoutTitle || (scoutTitles.length ? scoutTitles[0] : 'Software Engineer');
 
               var scoutLocation = explicitScoutLocation || (isJamaicaExperience
-                ? (function() {
-                    var rawJmLocation = (jad.location && jad.location !== 'Remote') ? String(jad.location).trim() : 'Jamaica';
-                    if (!rawJmLocation) return 'Jamaica';
-                    if (/jamaica/i.test(rawJmLocation)) return rawJmLocation;
-                    return rawJmLocation + ', Jamaica';
-                  })()
+                ? 'Jamaica'
                 : isUSExperience
                   ? ((jad.location && jad.location !== 'Remote') ? jad.location : 'United States')
                   : ((jad.location && jad.location !== 'Remote') ? jad.location : 'Remote'));
