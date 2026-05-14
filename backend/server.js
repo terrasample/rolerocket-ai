@@ -2435,8 +2435,18 @@ function getWhatsAppLanguagePrompt() {
 
 function getWhatsAppLanguageValue(input = '') {
   const normalized = String(input || '').toLowerCase().trim();
-  if (['1', 'english', 'en'].includes(normalized)) return 'english';
-  if (['2', 'spanish', 'es', 'espanol', 'español'].includes(normalized)) return 'spanish';
+  if (!normalized) return '';
+
+  // Interactive template replies can include extra copy/symbols; detect intent
+  // from tokens instead of requiring exact full-string equality.
+  const compact = normalized
+    .replace(/[\u2190-\u21ff\u2300-\u23ff\u2600-\u27bf]/g, ' ')
+    .replace(/[^a-z0-9\sñáéíóúü]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (/^(1|en|english)$/.test(compact) || /\benglish\b/.test(compact)) return 'english';
+  if (/^(2|es|spanish|espanol)$/.test(compact) || /\b(spanish|espanol)\b/.test(compact) || /\bespañol\b/.test(normalized)) return 'spanish';
   return '';
 }
 
