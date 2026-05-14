@@ -10009,23 +10009,9 @@ app.post('/api/auth/signup', authLimiter, async (req, res) => {
       throw new Error('Failed to create user');
     }
 
-    // Grant initial tokens/credits to new users: 1 resume generation + 1 cover letter generation = 2 total credits
-    user.documentGeneration = {
-      paidCredits: 2,
-      resumeFirstFreeUsed: false,
-      coverLetterFirstFreeUsed: false,
-      totalCreditsPurchased: 0,
-      purchases: [{
-        bundleId: 'initial-grant',
-        credits: 2,
-        amountCents: 0,
-        currency: 'usd',
-        stripeSessionId: 'onboarding-grant',
-        purchasedAt: new Date()
-      }]
-    };
-    user.markModified('documentGeneration');
-    await user.save();
+    // Free users start with exactly one free resume generation and one free
+    // cover-letter generation via feature flags. No paid credits are granted
+    // on signup; paid credits only come from successful purchases.
 
     if (normalizedAccountType === 'institution' && inviteRecord) {
       const consumedAt = new Date();
@@ -16572,7 +16558,19 @@ app.get('/api/me', authenticateToken, async (req, res) => {
   try {
     const user = await User.findById(req.user.userId).select('-password');
     if (!user) return res.status(404).json({ error: 'User not found' });
-    res.json({ user });
+    const paidCredits = Math.max(0, Number(user?.documentGeneration?.paidCredits || 0));
+    res.json({
+      user,
+      // Backward-compatible top-level fields used by some clients.
+      credits: paidCredits,
+      tokens: paidCredits,
+      documentGeneration: {
+        paidCredits,
+        totalCreditsPurchased: Math.max(0, Number(user?.documentGeneration?.totalCreditsPurchased || 0)),
+        resumeFirstFreeUsed: Boolean(user?.documentGeneration?.resumeFirstFreeUsed),
+        coverLetterFirstFreeUsed: Boolean(user?.documentGeneration?.coverLetterFirstFreeUsed)
+      }
+    });
   } catch (err) {
     res.status(500).json({ error: 'Failed to load user' });
   }

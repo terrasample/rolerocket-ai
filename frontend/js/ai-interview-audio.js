@@ -39,47 +39,14 @@ function buildDisplayAudioRequest(videoConstraint, audioConstraint) {
 }
 
 async function requestDisplayAudioStream(audioConstraints) {
-  const attempts = [
-    buildDisplayAudioRequest(
-      {
-        displaySurface: 'browser'
-      },
-      {
-        ...audioConstraints,
-        suppressLocalAudioPlayback: false
-      }
-    ),
-    buildDisplayAudioRequest(
-      {
-        displaySurface: 'window'
-      },
-      {
-        ...audioConstraints,
-        suppressLocalAudioPlayback: false
-      }
-    ),
-    buildDisplayAudioRequest(true, {
-      ...audioConstraints,
-      suppressLocalAudioPlayback: false
-    }),
-    buildDisplayAudioRequest(false, audioConstraints)
-  ];
+  const constraints = buildDisplayAudioRequest(true, {
+    ...audioConstraints,
+    suppressLocalAudioPlayback: false
+  });
 
-  let lastError = null;
-  for (const constraints of attempts) {
-    try {
-      // Call getDisplayMedia directly - do not wrap in async/await
-      const promise = navigator.mediaDevices.getDisplayMedia(constraints);
-      return await promise;
-    } catch (err) {
-      lastError = err;
-      if (isPermissionDeniedError(err)) {
-        throw err;
-      }
-    }
-  }
-
-  throw lastError || new Error('Unable to start shared audio capture.');
+  // Important: only one getDisplayMedia prompt should run per user click.
+  // Follow-up prompts from async fallback logic can lose gesture context.
+  return navigator.mediaDevices.getDisplayMedia(constraints);
 }
 
 function stopTracks(stream) {
@@ -347,11 +314,7 @@ async function startSharedAudioCapture(handlers = {}) {
   if (!audioTracks.length) {
     if (typeof handlers.onState === 'function') handlers.onState('missing-shared-audio');
     stopTracks(captureStream);
-
-    // One additional prompt in case the user picked a source without audio share enabled.
-    captureStream = await requestDisplayAudioStream(audioConstraints);
-    activeStream = captureStream;
-    audioTracks = captureStream.getAudioTracks();
+    captureStream = null;
   }
 
   // Some browser/window combinations do not expose shared-system audio tracks.
