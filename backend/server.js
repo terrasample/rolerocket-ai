@@ -9999,6 +9999,24 @@ app.post('/api/auth/signup', authLimiter, async (req, res) => {
       throw new Error('Failed to create user');
     }
 
+    // Grant initial tokens/credits to new users: 3 resume credits + 3 cover letter credits
+    user.documentGeneration = {
+      paidCredits: 6,
+      resumeFirstFreeUsed: false,
+      coverLetterFirstFreeUsed: false,
+      totalCreditsPurchased: 0,
+      purchases: [{
+        bundleId: 'initial-grant',
+        credits: 6,
+        amountCents: 0,
+        currency: 'usd',
+        stripeSessionId: 'onboarding-grant',
+        purchasedAt: new Date()
+      }]
+    };
+    user.markModified('documentGeneration');
+    await user.save();
+
     if (normalizedAccountType === 'institution' && inviteRecord) {
       const consumedAt = new Date();
       const consumedInvite = await InstitutionInvite.findOneAndUpdate(
