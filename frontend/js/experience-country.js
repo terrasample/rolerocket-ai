@@ -611,7 +611,9 @@
       opt.textContent = country.label;
       select.appendChild(opt);
     });
-    select.value = context.effectiveCountry || 'GLOBAL';
+    var published = readPublishedPersonalization();
+    var selectedCountry = normalizeCountryCode((published && published.effectiveCountry) || context.effectiveCountry || 'GLOBAL');
+    select.value = selectedCountry;
 
     var button = document.createElement('button');
     button.type = 'button';
@@ -778,23 +780,42 @@
   async function init() {
     ensureStyle();
     var context = await fetchExperienceContext();
+    var published = readPublishedPersonalization();
 
-    var effectiveCountry = context.effectiveCountry || 'GLOBAL';
-    if (context.showJamaicaHub === true && effectiveCountry !== 'JM') {
+    // Resolve cross-script races by preferring the already-published global
+    // personalization context when available.
+    var mergedContext = Object.assign({}, context || {});
+    if (published && published.effectiveCountry) {
+      mergedContext.effectiveCountry = published.effectiveCountry;
+      mergedContext.showJamaicaHub = published.showJamaicaHub === true;
+      if (published.requiresChoice === true) {
+        mergedContext.requiresChoice = true;
+      }
+    }
+
+    var effectiveCountry = normalizeCountryCode(mergedContext.effectiveCountry || 'GLOBAL');
+    if (mergedContext.showJamaicaHub === true && effectiveCountry !== 'JM') {
       reportExperienceMismatch('server_context_hub_country_conflict', {
         country: effectiveCountry,
-        source: String(context.source || 'server'),
+        source: String(mergedContext.source || 'server'),
         rawShowJamaicaHub: true
       });
     }
-    var normalizedShowJamaicaHub = effectiveCountry === 'JM' || context.showJamaicaHub === true;
-    publishPersonalizationContext(Object.assign({}, context, { showJamaicaHub: normalizedShowJamaicaHub }));
+    var normalizedShowJamaicaHub = effectiveCountry === 'JM' || mergedContext.showJamaicaHub === true;
+    publishPersonalizationContext(Object.assign({}, mergedContext, {
+      effectiveCountry: effectiveCountry,
+      showJamaicaHub: normalizedShowJamaicaHub
+    }));
     hideJamaicaElements(normalizedShowJamaicaHub);
     applyDashboardVariant(effectiveCountry);
     applyCountryTheme(effectiveCountry);
-    insertSidebarSwitcher(context);
-    createHeaderExperienceSelector(context);
-    showFirstVisitPickerIfNeeded(context);
+    var hydratedContext = Object.assign({}, mergedContext, {
+      effectiveCountry: effectiveCountry,
+      showJamaicaHub: normalizedShowJamaicaHub
+    });
+    insertSidebarSwitcher(hydratedContext);
+    createHeaderExperienceSelector(hydratedContext);
+    showFirstVisitPickerIfNeeded(hydratedContext);
 
     var onJamaicaPage = window.location.pathname.indexOf('jamaica-workforce-accelerator.html') !== -1;
     if (onJamaicaPage && !normalizedShowJamaicaHub) {
