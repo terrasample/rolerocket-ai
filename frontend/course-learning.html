@@ -6,67 +6,199 @@
   <title>Course Learning | RoleRocket AI</title>
   <link rel="stylesheet" href="styles.css" />
   <style>
-    .course-shell {
-      max-width: 1320px;
-      width: 100%;
-      margin: 0 auto 42px auto;
-      padding: 0 20px;
-      display: grid;
-      grid-template-columns: 320px 1fr;
-      gap: 16px;
+    /* ===== COURSERA-STYLE COURSE PAGE ===== */
+
+    .crs-page { width: 100%; }
+
+    /* Hero Banner */
+    .crs-hero {
+      background: linear-gradient(135deg, #0f172a 0%, #1a2e52 100%);
+      color: #fff;
+      padding: 30px 24px 38px;
+    }
+    .crs-hero-content { max-width: 1200px; margin: 0 auto; }
+    .crs-provider-row {
+      display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px;
+    }
+    .crs-provider-badge {
+      background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.22);
+      border-radius: 20px; padding: 4px 12px; font-size: 0.76rem; color: #e2e8f0; font-weight: 600;
+    }
+    .crs-hero-title {
+      font-size: 2rem; font-weight: 800; line-height: 1.2; margin: 0 0 10px; color: #fff;
+    }
+    .crs-hero-subtitle {
+      color: #94a3b8; font-size: 0.9rem; line-height: 1.55; margin: 0 0 14px; max-width: 680px;
+    }
+    .crs-instructor-row {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 18px; font-size: 0.86rem; color: #cbd5e1;
+    }
+    .crs-instructor-avatar {
+      width: 34px; height: 34px; background: rgba(255,255,255,0.14); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0;
+    }
+    .crs-top-badge {
+      background: #1d4ed8; color: #bfdbfe; border-radius: 4px;
+      padding: 2px 6px; font-size: 0.7rem; font-weight: 700; vertical-align: middle;
+    }
+    .crs-hero-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .crs-enroll-btn {
+      background: #2563eb; color: #fff; border: none; border-radius: 8px;
+      padding: 13px 22px; font-size: 0.96rem; font-weight: 700; cursor: pointer; transition: background 0.15s;
+    }
+    .crs-enroll-btn:hover { background: #1d4ed8; }
+
+    /* Stats Bar */
+    .crs-stats-bar {
+      background: #0f172a; border-bottom: 1px solid #1e3a5f; padding: 14px 24px;
+    }
+    .crs-stats-inner {
+      max-width: 1200px; margin: 0 auto;
+      display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start;
+    }
+    .crs-stat { display: flex; flex-direction: column; gap: 2px; min-width: 90px; }
+    .crs-stat-link {
+      font-size: 0.92rem; font-weight: 700; color: #f1f5f9; text-decoration: none;
+    }
+    a.crs-stat-link:hover { color: #60a5fa; text-decoration: underline; }
+    .crs-stat-sub { font-size: 0.75rem; color: #64748b; line-height: 1.35; }
+
+    /* Tab Navigation */
+    .crs-tab-nav {
+      background: #0f172a; border-bottom: 1px solid #1e3a5f;
+      position: sticky; top: 0; z-index: 99;
+    }
+    .crs-tab-inner {
+      max-width: 1200px; margin: 0 auto; display: flex; padding: 0 24px;
+    }
+    .crs-tab-link {
+      padding: 13px 18px; font-size: 0.86rem; font-weight: 600;
+      color: #94a3b8; text-decoration: none;
+      border-bottom: 3px solid transparent; transition: color 0.15s, border-color 0.15s;
+      white-space: nowrap;
+    }
+    .crs-tab-link:hover, .crs-tab-link.active {
+      color: #60a5fa; border-bottom-color: #2563eb;
     }
 
-    .course-side,
-    .course-main {
-      background: #0f172a;
-      border: 1px solid #25324a;
-      border-radius: 14px;
-      padding: 20px;
+    /* Content layout */
+    .crs-content-wrap {
+      display: grid; grid-template-columns: 1fr 320px;
+      gap: 24px; max-width: 1200px; padding: 28px 24px; margin: 0 auto;
+    }
+    .crs-section {
+      padding-bottom: 28px; border-bottom: 1px solid #1e3a5f; margin-bottom: 28px;
+    }
+    .crs-section:last-child { border-bottom: none; }
+    .crs-section-h2 {
+      font-size: 1.3rem; font-weight: 700; color: #f1f5f9; margin: 0 0 16px;
     }
 
-    .course-kpi {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 10px;
-      margin: 12px 0 18px 0;
+    /* What you'll learn */
+    .crs-outcome-list {
+      display: grid; grid-template-columns: repeat(2, 1fr);
+      gap: 10px; margin: 0; padding: 0; list-style: none;
+    }
+    .crs-outcome-list li {
+      display: flex; align-items: flex-start; gap: 8px;
+      color: #d0d9e7; font-size: 0.9rem; line-height: 1.5;
+    }
+    .crs-outcome-list li::before {
+      content: "✓"; color: #22c55e; font-weight: 700; flex-shrink: 0; margin-top: 1px;
     }
 
-    .course-kpi-item {
-      background: #132039;
-      border: 1px solid #2b3a56;
+    /* Skills + Details */
+    .crs-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .crs-skill-chips { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; margin: 0; padding: 0; }
+    .crs-skill-chips li {
+      background: #132039; color: #93c5fd;
+      border: 1px solid #2b3a56; border-radius: 20px;
+      padding: 5px 12px; font-size: 0.8rem; font-weight: 600;
+    }
+    .crs-details-grid { display: flex; flex-direction: column; gap: 14px; }
+    .crs-detail-item { display: flex; align-items: flex-start; gap: 12px; }
+    .crs-detail-icon { font-size: 1.4rem; flex-shrink: 0; }
+    .crs-detail-label { font-size: 0.88rem; font-weight: 700; color: #f1f5f9; }
+    .crs-detail-sub { font-size: 0.78rem; color: #64748b; }
+
+    /* Overview text */
+    .crs-overview-text {
+      font-size: 0.9rem; color: #d0d9e7; line-height: 1.68; margin-bottom: 16px;
+    }
+
+    /* Modules two-column inside section */
+    .crs-modules-cols {
+      display: grid; grid-template-columns: 1fr 300px; gap: 20px; align-items: flex-start;
+    }
+
+    /* Module accordion list items */
+    .crs-mod-item {
+      border: 1px solid #1e3a5f; border-radius: 8px;
+      margin-bottom: 8px; background: #0f172a; overflow: hidden;
+    }
+    .crs-mod-item.is-current { border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37,99,235,0.15); }
+    .crs-mod-item.is-complete { background: #052e25; border-color: #166534; }
+    .crs-mod-item.is-locked { opacity: 0.6; }
+    .crs-mod-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 14px 18px; gap: 10px;
+    }
+    .crs-mod-left { display: flex; align-items: flex-start; gap: 12px; }
+    .crs-mod-status-icon {
+      font-size: 1rem; font-weight: 700; flex-shrink: 0; margin-top: 2px; width: 20px; text-align: center;
+    }
+    .crs-mod-title { margin: 0 0 3px; font-size: 0.95rem; font-weight: 700; color: #f1f5f9; line-height: 1.3; }
+    .crs-mod-meta { font-size: 0.78rem; color: #64748b; }
+    .crs-mod-right { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
+    .crs-mod-detail-label { font-size: 0.78rem; color: #64748b; white-space: nowrap; }
+    .crs-mod-active-indicator {
+      padding: 6px 18px 10px; font-size: 0.78rem; color: #60a5fa; font-weight: 600;
+      border-top: 1px dashed #1e3a5f; background: rgba(37,99,235,0.07);
+    }
+
+    /* Certificate card */
+    .crs-cert-card {
+      display: flex; align-items: flex-start; gap: 14px;
+      padding: 18px; background: #0c1f3a; border: 1px solid #1e4d7a;
       border-radius: 10px;
-      padding: 10px;
+    }
+    .crs-cert-icon { font-size: 2.4rem; flex-shrink: 0; }
+    .crs-cert-h3 { margin: 0 0 6px; font-size: 0.95rem; font-weight: 700; color: #7dd3fc; }
+    .crs-cert-p { margin: 0; font-size: 0.82rem; color: #94a3b8; line-height: 1.55; }
+
+    /* FAQ */
+    .crs-faq-list { border: 1px solid #1e3a5f; border-radius: 8px; overflow: hidden; }
+    .crs-faq-item { border-bottom: 1px solid #1e3a5f; }
+    .crs-faq-item:last-child { border-bottom: none; }
+    .crs-faq-q {
+      padding: 15px 18px; font-size: 0.9rem; font-weight: 600; color: #f1f5f9;
+      cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center;
+    }
+    .crs-faq-q::marker, .crs-faq-q::-webkit-details-marker { display: none; }
+    .crs-faq-q::after { content: "▼"; font-size: 0.7rem; color: #64748b; transition: transform 0.2s; }
+    .crs-faq-item[open] .crs-faq-q::after { transform: rotate(180deg); }
+    .crs-faq-a { padding: 0 18px 14px; font-size: 0.86rem; color: #d0d9e7; line-height: 1.65; margin: 0; }
+
+    /* Sidebar cards */
+    .crs-sidebar-col { display: flex; flex-direction: column; gap: 16px; }
+    .crs-sidebar-card {
+      background: #0f172a; border: 1px solid #1e3a5f; border-radius: 10px;
+      padding: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.2);
     }
 
+    /* Module-item dark theme kept as-is */
     .module-item {
-      border: 1px solid #2a3954;
-      border-radius: 10px;
-      background: #111c31;
-      padding: 16px;
-      margin-bottom: 12px;
+      border: 1px solid #2a3954; border-radius: 10px;
+      background: #111c31; padding: 16px; margin-bottom: 12px;
     }
-
-    .module-item h4 {
-      margin: 0 0 8px 0;
-      color: #f1f5f9;
-      font-size: 1rem;
-    }
-
-    .module-item p {
-      margin: 0 0 10px 0;
-      color: #d0d9e7;
-      line-height: 1.68;
-      font-size: 0.93rem;
-    }
+    .module-item h4 { margin: 0 0 8px 0; color: #f1f5f9; font-size: 1rem; }
+    .module-item p { margin: 0 0 10px 0; color: #d0d9e7; line-height: 1.68; font-size: 0.93rem; }
 
     @media (max-width: 1080px) {
-      .course-shell {
-        grid-template-columns: 1fr;
-      }
-
-      .course-kpi {
-        grid-template-columns: 1fr;
-      }
+      .crs-content-wrap { grid-template-columns: 1fr; }
+      .crs-outcome-list { grid-template-columns: 1fr; }
+      .crs-two-col { grid-template-columns: 1fr; }
+      .crs-modules-cols { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -103,102 +235,242 @@
     </aside>
 
     <main class="main marketing-main" id="mainContent" tabindex="-1">
-      <button onclick="window.history.back()" class="back-arrow-btn" aria-label="Go back" style="margin:12px 0 0 12px;background:none;border:none;cursor:pointer;font-size:1.6em;color:#2563eb;"><span aria-hidden="true">&#8592;</span> Back</button>
+      <!-- Coursera-Style Course Page Layout -->
+      <div class="crs-page">
 
-      <section class="course-shell">
-        <aside class="course-side">
-          <div id="courseTitleSide" style="font-size:1.2rem;font-weight:700;color:#f1f5f9;line-height:1.3;margin-bottom:12px;">Loading course...</div>
-          <div id="courseSubtitleSide" style="color:#9fb0c7;font-size:0.92rem;line-height:1.55;margin-bottom:16px;"></div>
-
-          <div style="font-size:0.85rem;color:#93c5fd;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;">What you will learn</div>
-          <ul id="courseOutcomeList" style="margin:0;padding-left:18px;color:#d0d9e7;line-height:1.6;"></ul>
-
-          <div style="margin-top:20px;font-size:0.85rem;color:#93c5fd;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;">Resume signals</div>
-          <ul id="courseResumeSignals" style="margin:0;padding-left:18px;color:#d0d9e7;line-height:1.6;"></ul>
-        </aside>
-
-        <article class="course-main">
-          <h2 id="courseTitleMain" style="margin:0;color:#f1f5f9;font-size:1.6rem;line-height:1.25;">Loading course...</h2>
-          <div class="course-kpi">
-            <div class="course-kpi-item">
-              <div style="font-size:0.76rem;color:#93c5fd;text-transform:uppercase;letter-spacing:0.05em;">Level</div>
-              <div id="courseLevel" style="font-size:1rem;color:#e2e8f0;font-weight:700;margin-top:2px;"></div>
+        <!-- ① Hero Banner -->
+        <div class="crs-hero">
+          <div class="crs-hero-content">
+            <button onclick="window.history.back()" aria-label="Go back" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#e2e8f0;border-radius:8px;padding:6px 14px;cursor:pointer;font-size:0.82rem;margin-bottom:16px;display:inline-flex;align-items:center;gap:6px;">&#8592; Back</button>
+            <div class="crs-provider-row">
+              <span class="crs-provider-badge">🚀 RoleRocket AI Academy</span>
+              <span class="crs-provider-badge">🎓 Stanford / DeepLearning.AI Curriculum</span>
             </div>
-            <div class="course-kpi-item">
-              <div style="font-size:0.76rem;color:#93c5fd;text-transform:uppercase;letter-spacing:0.05em;">Duration</div>
-              <div id="courseDuration" style="font-size:1rem;color:#e2e8f0;font-weight:700;margin-top:2px;"></div>
+            <h1 id="courseTitleMain" class="crs-hero-title">Loading course...</h1>
+            <p id="courseSubtitleSide" class="crs-hero-subtitle"></p>
+            <!-- hidden alias kept for JS compat -->
+            <div id="courseTitleSide" style="display:none;"></div>
+            <div class="crs-instructor-row">
+              <div class="crs-instructor-avatar">🤖</div>
+              <div>
+                <span style="color:#cbd5e1;">Instructor: <strong style="color:#93c5fd;">AI Tutor</strong></span>
+                &nbsp;<span class="crs-top-badge">Top Instructor</span>
+              </div>
             </div>
-            <div class="course-kpi-item">
-              <div style="font-size:0.76rem;color:#93c5fd;text-transform:uppercase;letter-spacing:0.05em;">Market Demand</div>
-              <div id="courseDemand" style="font-size:0.88rem;color:#d0d9e7;margin-top:2px;line-height:1.45;"></div>
+            <div class="crs-hero-actions">
+              <button id="refreshCourseBtn" type="button" class="crs-enroll-btn">Start / Refresh Course</button>
+              <button id="downloadCourseCertificateBtn" type="button" style="display:none;background:#16a34a;border:none;color:#fff;font-weight:700;border-radius:8px;padding:13px 22px;cursor:pointer;font-size:0.96rem;">Download Certificate</button>
             </div>
           </div>
+        </div>
 
-          <div style="display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin:0 0 12px 0;">
-            <label style="display:inline-flex;align-items:center;gap:8px;background:#132039;border:1px solid #2b3a56;color:#d0d9e7;border-radius:8px;padding:10px 12px;font-size:0.88rem;">
-              Voice
-              <select id="courseAudioVoiceSelect" style="background:#0b1220;border:1px solid #2a3954;color:#f1f5f9;border-radius:8px;padding:7px 10px;min-width:180px;">
-                <option value="">System Default</option>
-              </select>
-            </label>
-            <button id="refreshCourseBtn" type="button" style="background:#2563eb;border:none;color:#ffffff;font-weight:700;border-radius:8px;padding:10px 14px;cursor:pointer;font-size:0.9rem;">Refresh Course</button>
-            <button id="downloadCourseCertificateBtn" type="button" style="display:none;background:#16a34a;border:none;color:#ffffff;font-weight:700;border-radius:8px;padding:10px 14px;cursor:pointer;font-size:0.9rem;">Download Completion Certificate</button>
+        <!-- ② Stats Bar -->
+        <div class="crs-stats-bar">
+          <div class="crs-stats-inner">
+            <div class="crs-stat">
+              <a href="#modules" class="crs-stat-link" id="moduleCountStat">5 modules</a>
+              <span class="crs-stat-sub">Gain insight and build job-ready skills</span>
+            </div>
+            <div class="crs-stat">
+              <span class="crs-stat-link">⭐ Mastery-based</span>
+              <span class="crs-stat-sub">Adaptive learning sequence</span>
+            </div>
+            <div class="crs-stat">
+              <span class="crs-stat-link" id="courseLevel">Advanced level</span>
+              <span class="crs-stat-sub">Recommended experience</span>
+            </div>
+            <div class="crs-stat">
+              <span class="crs-stat-link">Flexible schedule</span>
+              <span class="crs-stat-sub" id="courseDuration">10 weeks at 10 hours a week</span>
+              <span class="crs-stat-sub">Learn at your own pace</span>
+            </div>
+            <div class="crs-stat">
+              <span class="crs-stat-link" id="courseProgressPercent">0%</span>
+              <span class="crs-stat-sub" id="courseProgressSummary">0 of 5 modules completed</span>
+            </div>
           </div>
+        </div>
 
-          <div style="margin:0 0 16px 0;padding:12px;border-radius:10px;background:#132039;border:1px solid #2b3a56;">
-            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
-              <div id="courseProgressSummary" style="color:#e2e8f0;font-size:0.92rem;">Progress: 0 of 0 modules completed</div>
-              <div id="courseProgressPercent" style="color:#93c5fd;font-size:0.86rem;font-weight:700;">0%</div>
-            </div>
-            <div style="margin-top:8px;height:8px;background:#0b1220;border-radius:999px;overflow:hidden;">
-              <div id="courseProgressBar" style="height:100%;width:0%;background:linear-gradient(90deg,#22c55e,#38bdf8);transition:width .2s ease;"></div>
-            </div>
+        <!-- ③ Tab Navigation -->
+        <nav class="crs-tab-nav" aria-label="Course sections">
+          <div class="crs-tab-inner">
+            <a href="#about" class="crs-tab-link active">About</a>
+            <a href="#outcomes" class="crs-tab-link">Outcomes</a>
+            <a href="#modules" class="crs-tab-link">Modules</a>
+            <a href="#practice" class="crs-tab-link">Practice</a>
+            <a href="#faq" class="crs-tab-link">FAQ</a>
           </div>
+        </nav>
 
-          <div style="margin:0 0 20px 0;padding:14px;border-radius:10px;background:#132039;border:1px solid #2b3a56;color:#d0d9e7;line-height:1.65;" id="courseOverview"></div>
-          <div id="courseCurriculumMeta" style="display:none;margin:0 0 20px 0;padding:14px;border-radius:10px;background:#0f1f2f;border:1px solid #1d4f7a;color:#d0d9e7;line-height:1.6;"></div>
-          <div id="courseTeachingFramework" style="margin:0 0 20px 0;padding:14px;border-radius:10px;background:#0b1b2b;border:1px solid #155e75;color:#d0d9e7;line-height:1.6;"></div>
+        <!-- ④ Content Area -->
+        <div class="crs-content-wrap">
 
-          <h3 style="margin:0 0 12px 0;color:#f1f5f9;font-size:1.18rem;">Course Modules</h3>
-          <div id="courseModules"></div>
+          <!-- Main column -->
+          <div class="crs-main-col">
 
-          <section id="coursePracticeSection">
-            <h3 style="margin:20px 0 10px 0;color:#f1f5f9;font-size:1.12rem;">Practice Questions & Answers</h3>
-            <div id="coursePracticeBank" style="display:grid;gap:10px;"></div>
-          </section>
+            <!-- About: What you'll learn -->
+            <section id="about" class="crs-section">
+              <h2 class="crs-section-h2">What you'll learn</h2>
+              <ul id="courseOutcomeList" class="crs-outcome-list"></ul>
+            </section>
 
-          <section id="courseCapstoneSection" hidden>
-            <h3 style="margin:20px 0 10px 0;color:#f1f5f9;font-size:1.12rem;">Capstone Project</h3>
-            <div id="courseCapstone" style="padding:14px;border-radius:10px;background:#132039;border:1px solid #2b3a56;color:#d0d9e7;line-height:1.65;"></div>
-          </section>
+            <!-- Outcomes: Skills + Details -->
+            <section id="outcomes" class="crs-section">
+              <div class="crs-two-col">
+                <div>
+                  <h2 class="crs-section-h2">Skills you'll gain</h2>
+                  <ul id="courseResumeSignals" class="crs-skill-chips"></ul>
+                </div>
+                <div>
+                  <h2 class="crs-section-h2">Details to know</h2>
+                  <div class="crs-details-grid">
+                    <div class="crs-detail-item">
+                      <div class="crs-detail-icon">📜</div>
+                      <div>
+                        <div class="crs-detail-label">Shareable certificate</div>
+                        <div class="crs-detail-sub">Add to your LinkedIn profile</div>
+                      </div>
+                    </div>
+                    <div class="crs-detail-item">
+                      <div class="crs-detail-icon">📝</div>
+                      <div>
+                        <div class="crs-detail-label">Assessments</div>
+                        <div class="crs-detail-sub" id="assessmentCountDetail">5 graded assignments + coding labs</div>
+                      </div>
+                    </div>
+                    <div class="crs-detail-item">
+                      <div class="crs-detail-icon">🔊</div>
+                      <div>
+                        <div class="crs-detail-label">Audio narration</div>
+                        <div class="crs-detail-sub">AI-guided lesson audio in English</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
 
-          <section id="courseMockExamsSection" hidden>
-            <h3 style="margin:20px 0 10px 0;color:#f1f5f9;font-size:1.12rem;">Timed Mock Exams</h3>
-            <div id="courseMockExams" style="display:grid;gap:10px;"></div>
-          </section>
+            <!-- Modules section -->
+            <section id="modules" class="crs-section">
+              <div id="courseOverview" class="crs-overview-text"></div>
+              <div id="courseCurriculumMeta" style="display:none;font-size:0.88rem;color:#d0d9e7;line-height:1.6;margin-bottom:16px;"></div>
+              <h2 class="crs-section-h2" id="moduleCountHeading">There are 5 modules in this course</h2>
 
-          <section id="courseAssessmentSection" hidden>
-            <h3 style="margin:20px 0 10px 0;color:#f1f5f9;font-size:1.12rem;">Final Assessment</h3>
-            <div id="courseAssessment" style="display:grid;gap:10px;"></div>
-          </section>
+              <div class="crs-modules-cols">
+                <!-- Left: accordion + current module content -->
+                <div>
+                  <!-- Coursera-style module accordion (all modules listed) -->
+                  <div id="courseModuleAccordion" style="margin-bottom:16px;"></div>
+                  <!-- Active module detailed content (rendered by JS) -->
+                  <div id="courseModules"></div>
+                </div>
+                <!-- Right: certificate card -->
+                <div>
+                  <div class="crs-cert-card">
+                    <div class="crs-cert-icon">🎓</div>
+                    <div>
+                      <h3 class="crs-cert-h3">Earn a career certificate</h3>
+                      <p class="crs-cert-p">Add this credential to your LinkedIn profile, resume, or CV. Share it on social media and in your performance review.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
-          <section id="courseInterviewPrepSection" hidden>
-            <h3 style="margin:20px 0 10px 0;color:#f1f5f9;font-size:1.12rem;">Interview Prep</h3>
-            <ul id="courseInterviewPrep" style="margin:0;padding-left:18px;color:#d0d9e7;line-height:1.65;"></ul>
-          </section>
+              <div id="courseTeachingFramework" style="display:none;padding:14px;border-radius:10px;background:#0b1b2b;border:1px solid #155e75;color:#d0d9e7;line-height:1.6;margin-top:16px;"></div>
+            </section>
 
-          <section id="courseFaqSection" style="margin-top:20px;">
-            <h3 style="margin:20px 0 10px 0;color:#f1f5f9;font-size:1.12rem;">Course FAQs</h3>
-            <div class="module-item" style="margin-bottom:10px;">
-              <h4 style="margin:0 0 6px 0;color:#93c5fd;">Do I get academic credit for completing this course?</h4>
-              <p style="margin:0;color:#d0d9e7;line-height:1.65;">
-                No. This course is for personal learning and exam preparation only. It does not grant academic credit,
-                CEUs/CPD hours, or institutional certification unless your school, employer, or exam body explicitly confirms otherwise.
-              </p>
+            <!-- Practice section -->
+            <section id="practice" class="crs-section" id="coursePracticeSection">
+              <h2 class="crs-section-h2">Practice Questions &amp; Answers</h2>
+              <div id="coursePracticeBank" style="display:grid;gap:10px;"></div>
+            </section>
+
+            <!-- Capstone -->
+            <section id="courseCapstoneSection" hidden class="crs-section">
+              <h2 class="crs-section-h2">Capstone Project</h2>
+              <div id="courseCapstone" style="padding:14px;border-radius:10px;background:#132039;border:1px solid #2b3a56;color:#d0d9e7;line-height:1.65;"></div>
+            </section>
+
+            <!-- Mock Exams -->
+            <section id="courseMockExamsSection" hidden class="crs-section">
+              <h2 class="crs-section-h2">Timed Mock Exams</h2>
+              <div id="courseMockExams" style="display:grid;gap:10px;"></div>
+            </section>
+
+            <!-- Final Assessment -->
+            <section id="courseAssessmentSection" hidden class="crs-section">
+              <h2 class="crs-section-h2">Final Assessment</h2>
+              <div id="courseAssessment" style="display:grid;gap:10px;"></div>
+            </section>
+
+            <!-- Interview Prep -->
+            <section id="courseInterviewPrepSection" hidden class="crs-section">
+              <h2 class="crs-section-h2">Interview Prep</h2>
+              <ul id="courseInterviewPrep" style="margin:0;padding-left:18px;color:#d0d9e7;line-height:1.65;"></ul>
+            </section>
+
+            <!-- FAQ -->
+            <section id="faq" class="crs-section">
+              <h2 class="crs-section-h2">Frequently asked questions</h2>
+              <div class="crs-faq-list">
+                <details class="crs-faq-item">
+                  <summary class="crs-faq-q">When will I have access to the modules and assignments?</summary>
+                  <p class="crs-faq-a">Access begins immediately. Modules unlock sequentially as you demonstrate mastery. Complete the placement diagnostic to start your adaptive learning path.</p>
+                </details>
+                <details class="crs-faq-item">
+                  <summary class="crs-faq-q">What is the Mastery Gate system?</summary>
+                  <p class="crs-faq-a">Each module requires (1) passing a 3-question quiz with 2/3 correct, and (2) completing a written Transfer Task demonstrating real-world application. Both must pass before the next module unlocks — mirroring Coursera's graded assignment model.</p>
+                </details>
+                <details class="crs-faq-item">
+                  <summary class="crs-faq-q">Do I get academic credit for completing this course?</summary>
+                  <p class="crs-faq-a">No. This course is for personal learning and exam preparation only. It does not grant academic credit, CEUs/CPD hours, or institutional certification unless your school, employer, or exam body explicitly confirms otherwise.</p>
+                </details>
+                <details class="crs-faq-item">
+                  <summary class="crs-faq-q">How do the Coding Labs work?</summary>
+                  <p class="crs-faq-a">Each module includes a Coding Lab panel linking to a Google Colab notebook. Click "Open Notebook in Colab" to complete the hands-on Python assignment, then return here to submit the module quiz and transfer task.</p>
+                </details>
+              </div>
+            </section>
+
+          </div><!-- end .crs-main-col -->
+
+          <!-- Right sidebar -->
+          <aside class="crs-sidebar-col">
+
+            <!-- Progress card -->
+            <div class="crs-sidebar-card">
+              <h4 style="margin:0 0 10px;color:#f1f5f9;font-size:0.9rem;font-weight:700;">Your Progress</h4>
+              <div style="height:8px;background:#132039;border-radius:999px;overflow:hidden;margin-bottom:8px;">
+                <div id="courseProgressBar" style="height:100%;width:0%;background:linear-gradient(90deg,#22c55e,#38bdf8);transition:width .2s ease;"></div>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:0.82rem;color:#94a3b8;">
+                <span>Modules completed</span>
+                <span style="color:#93c5fd;font-weight:700;" id="courseProgressBarLabel">0%</span>
+              </div>
             </div>
-          </section>
-        </article>
-      </section>
+
+            <!-- Voice settings card -->
+            <div class="crs-sidebar-card">
+              <h4 style="margin:0 0 10px;color:#f1f5f9;font-size:0.9rem;font-weight:700;">Audio Narration</h4>
+              <label style="display:flex;flex-direction:column;gap:5px;font-size:0.8rem;color:#94a3b8;">
+                Voice
+                <select id="courseAudioVoiceSelect" style="background:#132039;border:1px solid #2b3a56;color:#f1f5f9;border-radius:8px;padding:8px 10px;font-size:0.84rem;">
+                  <option value="">System Default</option>
+                </select>
+              </label>
+            </div>
+
+            <!-- Market demand card -->
+            <div class="crs-sidebar-card">
+              <h4 style="margin:0 0 8px;color:#f1f5f9;font-size:0.9rem;font-weight:700;">Market Demand</h4>
+              <div id="courseDemand" style="font-size:0.83rem;color:#94a3b8;line-height:1.55;"></div>
+            </div>
+
+          </aside>
+
+        </div><!-- end .crs-content-wrap -->
+
+      </div><!-- end .crs-page -->
     </main>
   </div>
 
@@ -208,7 +480,7 @@
   <script src="js/nav-plan-sync.js?v=20260514-sync4"></script>
   <script src="js/idle-timeout.js"></script>
   <script src="js/jspdf-loader.js"></script>
-  <script src="js/course-learning.js?v=20260513-colab-quiz"></script>
+  <script src="js/course-learning.js?v=20260514-coursera-layout"></script>
   <script src="js/page-assistant.js"></script>
   <script src="js/return-navigation.js"></script>
 </body>

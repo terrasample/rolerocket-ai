@@ -1886,7 +1886,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const certificateUnlocked = total > 0 && completed === total && progressState.assessmentCompleted === true;
 
     if (progressSummary) {
-      progressSummary.textContent = `Progress: ${completed} of ${total} modules completed`;
+      progressSummary.textContent = `${completed} of ${total} modules completed`;
     }
     if (progressPercent) {
       progressPercent.textContent = `${percent}%`;
@@ -1894,6 +1894,8 @@ document.addEventListener('DOMContentLoaded', function () {
     if (progressBar) {
       progressBar.style.width = `${percent}%`;
     }
+    const barLabel = document.getElementById('courseProgressBarLabel');
+    if (barLabel) barLabel.textContent = `${percent}%`;
 
     if (certificateBtn) {
       certificateBtn.style.display = certificateUnlocked ? 'inline-block' : 'none';
@@ -2112,6 +2114,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (Number.isInteger(pending.nextIndex) && pending.nextIndex >= 0) {
       progressState.currentModuleIndex = pending.nextIndex;
+      renderModuleAccordion();
       renderProgressiveContent();
       updateProgressiveSections();
     }
@@ -2365,6 +2368,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     contiguous.forEach((completedIdx) => setPassedModuleUi(completedIdx, completedIdx === freshIdx ? 'fresh' : 'restored'));
     updateProgressUi();
+    renderModuleAccordion();
     renderProgressiveContent();
     updateProgressiveSections();
     
@@ -2564,6 +2568,7 @@ document.addEventListener('DOMContentLoaded', function () {
       ? `You scored ${score}/${total}. Start at Module ${recommendedStartIndex + 1} and use refresher review on demand.`
       : `You scored ${score}/${total}. Start at Module 1 for foundation-first sequencing.`;
     resultWrap.innerHTML = `<span style="font-weight:700;color:#86efac;">Diagnostic complete.</span> <span style="color:#d0d9e7;">${escapeHtml(recommendation)}</span>`;
+    renderModuleAccordion();
     renderProgressiveContent();
   }
 
@@ -2775,6 +2780,7 @@ document.addEventListener('DOMContentLoaded', function () {
       contiguous.forEach((idx) => setPassedModuleUi(idx, 'restored'));
 
       updateProgressUi();
+      renderModuleAccordion();
       renderProgressiveContent();
       updateProgressiveSections();
       if (progressState.completedModules.size >= progressState.totalModules) {
@@ -3179,6 +3185,7 @@ document.addEventListener('DOMContentLoaded', function () {
     progressState.moduleNarration = narrationData.map((entry) => entry.narration);
     progressState.moduleNarrationSegments = narrationData.map((entry) => entry.segments);
     updateProgressUi();
+    renderModuleAccordion();
     renderProgressiveContent();
     updateProgressiveSections();
   }
@@ -3223,6 +3230,71 @@ document.addEventListener('DOMContentLoaded', function () {
         narration: `Checkpoint question. ${String(moduleItem?.progressCheckQuestion || 'Checkpoint question is not available.')}`
       }
     ];
+  }
+
+  function renderModuleAccordion() {
+    const accordionEl = document.getElementById('courseModuleAccordion');
+    const headingEl = document.getElementById('moduleCountHeading');
+    const statEl = document.getElementById('moduleCountStat');
+    if (!accordionEl || !progressState.allModules) return;
+
+    const list = progressState.allModules;
+    const currentIdx = Math.max(0, Math.min(Number(progressState.currentModuleIndex || 0), list.length - 1));
+    const diagnosticDone = Boolean(progressState.diagnosticCompleted);
+
+    if (headingEl) headingEl.textContent = `There are ${list.length} modules in this course`;
+    if (statEl) statEl.textContent = `${list.length} modules`;
+
+    // Update assessmentCountDetail to reflect real module count
+    const assessmentDetail = document.getElementById('assessmentCountDetail');
+    if (assessmentDetail) assessmentDetail.textContent = `${list.length} graded assignments + coding labs`;
+
+    accordionEl.innerHTML = list.map((mod, idx) => {
+      const title = escapeHtml(String(mod?.title || `Module ${idx + 1}`));
+      const isCompleted = progressState.completedModules.has(idx);
+      const isCurrent = diagnosticDone && idx === currentIdx && !isCompleted;
+      const isLocked = !isCompleted && (!diagnosticDone || idx > currentIdx);
+
+      let statusIcon, statusColor;
+      if (isCompleted) {
+        statusIcon = '✓';
+        statusColor = '#22c55e';
+      } else if (isCurrent) {
+        statusIcon = '▶';
+        statusColor = '#60a5fa';
+      } else {
+        statusIcon = '○';
+        statusColor = '#475569';
+      }
+
+      const itemClass = [
+        'crs-mod-item',
+        isCompleted ? 'is-complete' : '',
+        isCurrent ? 'is-current' : '',
+        isLocked ? 'is-locked' : ''
+      ].filter(Boolean).join(' ');
+
+      const hoursPerModule = Math.round(10 / Math.max(1, list.length) * 10) / 10;
+
+      return `
+        <div class="${itemClass}">
+          <div class="crs-mod-header">
+            <div class="crs-mod-left">
+              <span class="crs-mod-status-icon" style="color:${statusColor};">${statusIcon}</span>
+              <div>
+                <h3 class="crs-mod-title">Module ${idx + 1}: ${title}</h3>
+                <div class="crs-mod-meta">Module ${idx + 1} &bull; ~${hoursPerModule} hours to complete</div>
+              </div>
+            </div>
+            <div class="crs-mod-right">
+              <span class="crs-mod-detail-label">Module details</span>
+              <span style="font-size:0.7rem;color:#475569;">${isCurrent ? '▲' : '▼'}</span>
+            </div>
+          </div>
+          ${isCurrent ? '<div class="crs-mod-active-indicator">&#8595; Active module — full content below</div>' : ''}
+        </div>
+      `;
+    }).join('');
   }
 
   function renderProgressiveContent() {
