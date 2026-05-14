@@ -385,104 +385,10 @@ document.addEventListener('DOMContentLoaded', function () {
   function renderLinkedinAdoptionInsights() {
     if (!linkedinAdoptPanel) return;
 
-    if (isWhatsAppSourceFlow) {
-      linkedinAdoptPanel.style.display = 'none';
-      linkedinAdoptPanel.innerHTML = '';
-      return;
-    }
-
-    linkedinAdoptPanel.style.display = '';
-
-    const jobTitle = String(document.getElementById('resumeJobTitleGen')?.value || '').trim();
-    const company = String(document.getElementById('resumeCompanyGen')?.value || '').trim();
-    const baseResume = String(document.getElementById('resumeBaseGen')?.value || '').trim();
-    const fullJobDescription = String(document.getElementById('resumeJobDescriptionGen')?.value || '').trim();
-
-    const fallbackContact = extractContactInfo(baseResume);
-    const parsed = baseResume
-      ? parseResume(baseResume, fallbackContact, baseResume)
-      : {
-          fullName: '',
-          contactLines: [],
-          profile: '',
-          experiences: [],
-          education: [],
-          skills: []
-        };
-
-    const savedLocation = String(currentUserPreferredLocation || '').trim();
-    const parsedProfile = normalizeBulletText(parsed.profile);
-    const savedProfileSummary = normalizeBulletText(currentUserProfileSummary);
-
-    const hasRealName = Boolean(cleanCandidateName(parsed.fullName));
-    const hasEmail = Boolean(fallbackContact.email);
-    const hasPhone = Boolean(fallbackContact.phone);
-    const hasLocation = Boolean(fallbackContact.location)
-      || (Boolean(savedLocation) && savedLocation.toLowerCase() !== 'remote');
-    const hasProfile = (Boolean(parsedProfile)
-      && parsedProfile.toLowerCase() !== 'results-driven professional with relevant experience and a strong record of delivering measurable outcomes.')
-      || Boolean(savedProfileSummary);
-    const hasExperience = Array.isArray(parsed.experiences)
-      && parsed.experiences.some((entry) => normalizeBulletText(entry?.title) && normalizeBulletText(entry.title).toLowerCase() !== 'professional experience');
-    const hasEducation = Array.isArray(parsed.education)
-      && parsed.education.some((entry) => !/available upon request/i.test(String(entry || '')));
-    const hasSkills = Array.isArray(parsed.skills) && parsed.skills.length >= 5;
-
-    const checks = [
-      { ok: hasRealName, label: 'Add your full name' },
-      { ok: hasEmail, label: 'Add a professional email' },
-      { ok: hasPhone, label: 'Add a phone number' },
-      { ok: hasLocation, label: 'Add city and state' },
-      { ok: hasProfile, label: 'Write a strong profile summary' },
-      { ok: hasExperience, label: 'Include at least one role in experience' },
-      { ok: hasEducation, label: 'Add education details' },
-      { ok: hasSkills, label: 'Add at least 5 role-relevant skills' }
-    ];
-
-    const completed = checks.filter((item) => item.ok).length;
-    const score = Math.round((completed / checks.length) * 100);
-    const missing = checks.filter((item) => !item.ok).slice(0, 3);
-
-    const targetSkills = extractSkillsFromJobDescription(fullJobDescription);
-    const matchedSkills = extractMatchedSkillsFromSource(fullJobDescription, baseResume);
-    const fitPercent = targetSkills.length
-      ? Math.min(100, Math.round((matchedSkills.length / targetSkills.length) * 100))
-      : 0;
-    const fitLabel = targetSkills.length === 0
-      ? 'Add a full job description for fit scoring'
-      : fitPercent >= 70
-        ? 'Strong fit'
-        : fitPercent >= 45
-          ? 'Medium fit'
-          : 'Low fit';
-
-    const nextActionMarkup = missing.length
-      ? `<ul style="margin:8px 0 0 18px;padding:0;color:#334155;line-height:1.55;">${missing.map((item) => `<li>${escapeHtml(item.label)}</li>`).join('')}</ul>`
-      : '<div style="margin-top:8px;color:#166534;font-weight:700;">Profile looks complete. Next: tailor achievements to this role and apply.</div>';
-
-    const matchedList = matchedSkills.slice(0, 4).map((item) => escapeHtml(item)).join(', ') || 'No matched skills yet';
-
-    linkedinAdoptPanel.innerHTML = `
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;">
-        <div style="padding:10px;border-radius:8px;background:#eff6ff;border:1px solid #bfdbfe;">
-          <div style="font-size:0.78rem;color:#1d4ed8;font-weight:800;letter-spacing:0.05em;text-transform:uppercase;">Profile Completeness</div>
-          <div style="margin-top:4px;font-size:1.35rem;font-weight:800;color:#0f172a;">${score}%</div>
-          <div style="margin-top:8px;height:8px;border-radius:999px;background:#dbeafe;overflow:hidden;"><div style="height:100%;width:${score}%;background:#2563eb;"></div></div>
-          ${nextActionMarkup}
-        </div>
-        <div style="padding:10px;border-radius:8px;background:#f0fdf4;border:1px solid #bbf7d0;">
-          <div style="font-size:0.78rem;color:#15803d;font-weight:800;letter-spacing:0.05em;text-transform:uppercase;">Job Fit Snapshot</div>
-          <div style="margin-top:4px;font-size:1.35rem;font-weight:800;color:#0f172a;">${targetSkills.length ? `${fitPercent}%` : 'N/A'}</div>
-          <div style="margin-top:4px;color:#166534;font-weight:700;">${escapeHtml(fitLabel)}</div>
-          <div style="margin-top:8px;color:#334155;line-height:1.55;">${targetSkills.length ? `Matched ${matchedSkills.length} of ${targetSkills.length} target skills.` : 'Paste a full job description to compare your resume against role signals.'}</div>
-          <div style="margin-top:6px;color:#334155;line-height:1.55;"><strong>Top matched:</strong> ${matchedList}</div>
-        </div>
-        <div style="padding:10px;border-radius:8px;background:#fff7ed;border:1px solid #fed7aa;">
-          <div style="font-size:0.78rem;color:#c2410c;font-weight:800;letter-spacing:0.05em;text-transform:uppercase;">Next Best Action</div>
-          <div style="margin-top:8px;color:#7c2d12;line-height:1.55;">${escapeHtml(jobTitle ? `Tailor your resume bullets for ${jobTitle}${company ? ` at ${company}` : ''}, then generate and save a role-specific version.` : 'Add a target job title, then generate a role-specific resume draft.')}</div>
-        </div>
-      </div>
-    `;
+    // This panel was surfacing noisy guidance unrelated to final resume output.
+    // Keep it hidden so the generator focuses only on resume content.
+    linkedinAdoptPanel.style.display = 'none';
+    linkedinAdoptPanel.innerHTML = '';
   }
 
   function escapeHtml(value) {
@@ -924,6 +830,57 @@ document.addEventListener('DOMContentLoaded', function () {
     return result;
   }
 
+  // Parses experience entries from resume body where there is NO explicit "EXPERIENCE"
+  // section heading — handles "Company Name   2015-2022" style lines.
+  function parseExperienceEntriesFromBody(lines) {
+    const companyDateRx = /^(.+?)\s{2,}(\d{1,2}\/\d{2,4}|\d{4})\s*(?:[-–]\s*(?:\d{1,2}\/\d{2,4}|\d{4}|Present|Current|Now))?$/i;
+    const sectionBoundaryRx = /^(education|skills|core skills|certification|certifications|profile|summary|awards|projects)\b/i;
+
+    const entries = [];
+    let current = null;
+
+    for (const rawLine of (lines || [])) {
+      const line = rawLine.trim();
+      if (!line) continue;
+
+      if (sectionBoundaryRx.test(line)) break;
+
+      const dateMatch = line.match(companyDateRx);
+      if (dateMatch && line.length > 15) {
+        // This is a company + date header line
+        if (current) entries.push(current);
+        const companyRaw = normalizeBulletText(dateMatch[1]);
+        const dateSuffix = line.slice(dateMatch[1].length).trim();
+        current = {
+          title: '',       // next non-blank line becomes the role title
+          company: dateSuffix ? `${companyRaw}  ${dateSuffix}` : companyRaw,
+          bullets: []
+        };
+        continue;
+      }
+
+      if (current) {
+        if (!current.title) {
+          // First line after company header = role title
+          current.title = normalizeBulletText(line);
+        } else {
+          current.bullets.push(normalizeBulletText(line));
+        }
+      }
+    }
+
+    if (current) entries.push(current);
+
+    return entries
+      .map((e) => ({
+        ...e,
+        title: normalizeBulletText(e.title),
+        company: normalizeBulletText(e.company),
+        bullets: (e.bullets || []).map((b) => normalizeBulletText(b)).filter(Boolean)
+      }))
+      .filter((e) => e.title);
+  }
+
   function parseExperienceEntries(lines) {
     // First, join multi-line bullets back together
     const joinedLines = joinMultilineBullets(lines);
@@ -1226,6 +1183,11 @@ document.addEventListener('DOMContentLoaded', function () {
       let key = line.replace(/[:\-]/g, '').trim().toUpperCase();
       // Strip common prefixes from section headers (e.g., "CORE SKILLS" → "SKILLS")
       key = key.replace(/^(CORE|PROFESSIONAL|MY|PRIMARY|ADDITIONAL|KEY)\s+/, '');
+      // Strip trailing inline content like dates on same line as heading
+      // e.g. "SUMMARY  11/2023-Present" → "SUMMARY"
+      key = key.replace(/\s{2,}[\d\s/\\,()@#!?]+.*$/, '').trim();
+      // Alias SUMMARY → PROFILE (some resumes use "Summary" instead of "Profile")
+      if (key === 'SUMMARY') key = 'PROFILE';
       if (Object.prototype.hasOwnProperty.call(sectionIndex, key)) sectionIndex[key] = idx;
     });
 
@@ -1257,10 +1219,28 @@ document.addEventListener('DOMContentLoaded', function () {
       structured.fullName = cleanCandidateName(parsedName);
     }
 
-    structured.profile = between(sectionIndex.PROFILE, nextSectionStart('PROFILE')).join(' ');
+    // Regex that matches "Company Name   1/2021-11/2023" or "Company Name   2015-2022" style lines
+    const companyDateLineRx = /^(.+?)\s{2,}(\d{1,2}\/\d{2,4}|\d{4})\s*(?:[-–]\s*(?:\d{1,2}\/\d{2,4}|\d{4}|Present|Current|Now))?$/i;
+
+    const rawProfileLines = between(sectionIndex.PROFILE, nextSectionStart('PROFILE'));
+
+    // Split at the first line that looks like a company+date header so profile text
+    // doesn't absorb experience entries (common when there is no EXPERIENCE heading).
+    const firstJobIdx = rawProfileLines.findIndex((l) => companyDateLineRx.test(l) && l.trim().length > 15 && !/^(professional summary|summary|profile|experience|education|skills)/i.test(l.trim()));
+    if (firstJobIdx > 0) {
+      structured.profile = rawProfileLines.slice(0, firstJobIdx).join(' ');
+      const bodyExperienceLines = rawProfileLines.slice(firstJobIdx);
+      structured.experiences = parseExperienceEntriesFromBody(bodyExperienceLines);
+    } else if (firstJobIdx === 0) {
+      structured.profile = '';
+      structured.experiences = parseExperienceEntriesFromBody(rawProfileLines);
+    } else {
+      structured.profile = rawProfileLines.join(' ');
+    }
 
     const experienceLines = between(sectionIndex.EXPERIENCE, nextSectionStart('EXPERIENCE'));
-    structured.experiences = parseExperienceEntries(experienceLines);
+    const parsedExperiences = parseExperienceEntries(experienceLines);
+    structured.experiences = mergeExperienceEntries(parsedExperiences, structured.experiences);
 
     const fallbackExperienceMatch = String(sourceResumeText || '').replace(/\r/g, '').match(/\bEXPERIENCE\b([\s\S]*?)(?:\n\s*(?:CORE\s+SKILLS|SKILLS|EDUCATION|CERTIFICATION|CERTIFICATIONS|AWARDS|PROJECTS)\b|$)/i);
     if (fallbackExperienceMatch && fallbackExperienceMatch[1]) {
