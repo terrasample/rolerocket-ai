@@ -1246,6 +1246,68 @@ document.addEventListener('DOMContentLoaded', function () {
     return skills.slice(0, 20);
   }
 
+  function shouldRelocateSkillSentence(sentence) {
+    const normalized = normalizeBulletText(sentence);
+    if (!normalized) return false;
+
+    // Relocate only explicit skill-declaration sentences.
+    if (!/\b(skill(?:ed)?|proficient|experience|familiar|knowledge(?:able)?|expertise)\b/i.test(normalized)) {
+      return false;
+    }
+
+    const extracted = filterAndCleanSkills([normalized]);
+    if (!extracted.length) return false;
+
+    // Keep accomplishment-oriented bullets in experience unless they are clearly skill declarations.
+    const hasActionContent = /\b(managed|manage|coordinated|coordinate|created|create|established|establish|interview|onboard|approve|approved|collaborate|collaborated|teach|teaching|mentor|mentoring|performed|perform|execute|executed)\b/i.test(normalized);
+    const startsAsSkillDeclaration = /^\s*(skill(?:ed)?|proficient|experience|familiar|knowledge(?:able)?|expertise)\b/i.test(normalized);
+
+    if (hasActionContent && !startsAsSkillDeclaration) return false;
+    return true;
+  }
+
+  function relocateSkillStatementsFromExperience(structured) {
+    const model = structured || {};
+    const relocatedSkills = [];
+
+    const nextExperiences = (model.experiences || []).map((experience) => {
+      const nextBullets = [];
+
+      (experience.bullets || []).forEach((bullet) => {
+        const sentences = String(bullet || '')
+          .split(/(?<=[.!?])\s+/)
+          .map((item) => normalizeBulletText(item))
+          .filter(Boolean);
+
+        const keptSentences = [];
+
+        sentences.forEach((sentence) => {
+          if (shouldRelocateSkillSentence(sentence)) {
+            relocatedSkills.push(...filterAndCleanSkills([sentence]));
+            return;
+          }
+          keptSentences.push(sentence);
+        });
+
+        const rebuiltBullet = normalizeBulletText(keptSentences.join(' '));
+        if (rebuiltBullet) nextBullets.push(rebuiltBullet);
+      });
+
+      return {
+        ...experience,
+        bullets: nextBullets
+      };
+    });
+
+    const mergedSkills = filterAndCleanSkills([...(model.skills || []), ...relocatedSkills]);
+
+    return {
+      ...model,
+      experiences: nextExperiences,
+      skills: mergedSkills
+    };
+  }
+
   function getJobSkillSignals() {
     return [
       { pattern: /autocad/i, label: 'AutoCAD', priority: 1 },
@@ -2446,8 +2508,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
       structured.education = formatEducationEntries(structured.education);
       structured.profile = sanitizeProfileText(structured.profile);
+      const normalizedStructured = relocateSkillStatementsFromExperience(structured);
 
-      lastStructuredResume = buildResumeModel(structured, jobTitle);
+      lastStructuredResume = buildResumeModel(normalizedStructured, jobTitle);
       output.innerHTML = renderResumeTemplate(lastStructuredResume);
       renderLinkedinAdoptionInsights();
       await loadResumeCreditStatus();
