@@ -7,12 +7,42 @@
   <meta name="robots" content="noindex" />
   <link rel="icon" type="image/png" href="assets/rolerocket-logo-new.png" />
   <link rel="stylesheet" href="styles.css" />
+  <style>
+    .account-home-brand {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+    }
+
+    .account-home-brand-line {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .account-home-subtitle {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #bfdbfe;
+      line-height: 1.1;
+    }
+  </style>
 </head>
 <body>
   <a class="skip-link" href="#accountMain">Skip to main content</a>
-  <div class="hero">
-    <h1>Account Settings</h1>
-    <p>Manage your profile, subscription, and billing information.</p>
+  <div class="business-bar">
+    <div class="account-home-brand">
+      <div class="account-home-brand-line">
+        <span class="home-brand-rocket" aria-hidden="true">🚀</span>
+        <span class="compact-brand-name">RoleRocket AI</span>
+      </div>
+      <div class="account-home-subtitle">Account Settings</div>
+    </div>
   </div>
 
   <div class="layout">
@@ -112,7 +142,8 @@
   <script src="js/idle-timeout.js"></script>
   <script>
     const TOKEN = getStoredToken();
-    if (!TOKEN) window.location.href = 'login.html';
+    const IS_AUTHENTICATED = Boolean(TOKEN);
+    if (!IS_AUTHENTICATED) window.location.href = 'login.html';
 
     const portalBtn = document.getElementById('portalBtn');
     const portalMessage = document.getElementById('portalMessage');
@@ -121,11 +152,19 @@
     const copyReferralMessage = document.getElementById('copyReferralMessage');
 
     async function api(url, opts = {}) {
+      if (!IS_AUTHENTICATED) {
+        throw new Error('Authentication required. Please log in again.');
+      }
       const res = await fetch(apiUrl(url), {
         ...opts,
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${TOKEN}`, ...(opts.headers || {}) }
       });
-      const data = await res.json();
+      let data = {};
+      try {
+        data = await res.json();
+      } catch (_) {
+        data = {};
+      }
       if (!res.ok) throw new Error(data.error || 'Request failed');
       return data;
     }
@@ -171,6 +210,7 @@
     // Load profile
 
     async function loadProfile() {
+      if (!IS_AUTHENTICATED) return;
       try {
         const data = await api('/api/me');
         let user = data.user || data;
@@ -313,7 +353,9 @@
     }
 
     setBillingButtonState(false);
-    loadProfile();
+    if (IS_AUTHENTICATED) {
+      loadProfile();
+    }
 
     // Resume upload/save logic
     const resumeText = document.getElementById('resumeText');
@@ -327,6 +369,7 @@
       if (!latestResumeContent) return; // Guard: element doesn't exist on this page
       try {
         const token = getStoredToken();
+        if (!token) return;
         const res = await fetch('/api/resume', { headers: { Authorization: `Bearer ${token}` } });
         const data = await res.json();
         if (data.resumes && data.resumes.length > 0) {
