@@ -991,20 +991,243 @@ document.addEventListener('DOMContentLoaded', function () {
   function isGenericSkill(skill) {
     const normalized = normalizeBulletText(skill).toLowerCase();
     if (!normalized) return true;
-
+    if (normalized.length > 100) return true; // Too long to be a skill
+    if (normalized.length < 3) return true; // Too short
+    
+    // Filter out company names - very aggressive
+    if (/\b(corporation|corp|company|inc\.?|llc|ltd|services|service|center|center|medical|hospital|group|consulting|consulting|solutions|solution|systems|system|technologies|technology|networks|network|digital|global|international|american|national|universal|regional|corporate|business|enterprise|management|management|consulting|agency|firm|firm|institute|university|college|school|schools|health|healthcare|inc|corp|co|co\.|gmbh)\b/i.test(normalized)) {
+      return true;
+    }
+    
+    // Filter out very common companies specifically
+    if (/microsoft|ibm|accenture|deloitte|mckinsey|goldman|jpmorgan|chase|good samaritan|google|apple|amazon|facebook|meta|netflix|tesla|walmart|target|costco|kroger/.test(normalized)) {
+      return true;
+    }
+    
+    // Filter out job titles and roles
+    if (/\b(manager|engineer|director|analyst|consultant|specialist|coordinator|supervisor|lead|chief|officer|president|vice|administrator|operator|technician|developer|programmer|architect|designer|author|writer|editor|producer|representative|associate|assistant|intern|trainee|apprentice|student|teacher|instructor|lecturer|professor|doctor|nurse|specialist|technologist|executive|leader|supervisor|manager|analyst|designer|architect)\b/i.test(normalized)) {
+      return true;
+    }
+    
+    // Filter out dates and date-related text
+    if (/\b(\d{1,2}\/\d{3,4}|january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec|present|current|now|ongoing|today|\d{4}[-–]\d{4}|\d{4}[-–])\b/i.test(normalized)) {
+      return true;
+    }
+    
+    // Filter out locations and address-related text
+    if (/^[\w\s]*,\s*[A-Z]{2}\b|street|road|avenue|boulevard|drive|court|lane|place|suite|floor|apartment|apt|bldg|building/.test(normalized)) {
+      return true;
+    }
+    
+    // Filter out very short generic words
+    if (/^(a|an|the|is|are|be|good|bad|ok|yes|no|team|member|person|guy|gal|staff|people|human|work|job|role)$/i.test(normalized)) {
+      return true;
+    }
+    
+    // Filter out common generic skills
     return [
-      /^team player$/,
-      /^collaborator$/,
-      /^communication$/,
-      /^oral and written communication$/,
-      /^excellent oral and written communication$/,
-      /^creative thinking$/,
-      /^leadership$/,
-      /^strong work ethic$/,
-      /^problem solving$/,
-      /^interpersonal$/,
-      /^organizational development$/
+      /^team player$/i,
+      /^collaborator$/i,
+      /^communication$/i,
+      /^oral and written communication$/i,
+      /^excellent oral and written communication$/i,
+      /^creative thinking$/i,
+      /^leadership$/i,
+      /^strong work ethic$/i,
+      /^problem solving$/i,
+      /^interpersonal$/i,
+      /^organizational development$/i,
+      /^good at/i,
+      /^works well with/i,
+      /^fast$/i,
+      /^experienced in$/i,
+      /^some$/i,
+      /^working on$/i,
+      /^learning$/i,
+      /^familiar with$/i,
+      /^knowledge of$/i,
+      /^proficient in\s*$/i,
+      /^manages$/i,
+      /^manages and coordinates$/i,
+      /^creates and maintains$/i,
+      /^establish$/i,
+      /^manage and coordinate$/i,
+      /^create and maintain$/i,
+      /^good samaritan$/i,
+      /^medical center$/i,
+      /^diagnostic supervisor$/i,
+      /^can$/i,
+      /^ability$/i,
+      /^skills$/i,
+      /^experience$/i,
+      /^contact$/i,
+      /^profile$/i,
+      /^manage|coordinate|maintain|create|lead|develop|implement/i
     ].some((pattern) => pattern.test(normalized));
+  }
+
+  function isLikelySkill(text) {
+    const normalized = String(text || '').toLowerCase().trim();
+    if (!normalized || normalized.length < 3 || normalized.length > 100) return false;
+    
+    // Known skill keywords and patterns
+    const skillPatterns = [
+      // Programming Languages
+      /\b(javascript|typescript|python|java|c\#|c\+\+|ruby|php|swift|kotlin|go|rust|scala|r programming|vb\.net|perl|lua|groovy)\b/i,
+      // Web Technologies
+      /\b(react|angular|vue|node\.?js|express|django|rails|flask|asp\.net|spring|hibernate|jdbc|jpa)\b/i,
+      // Databases
+      /\b(sql|mysql|postgresql|oracle|mongodb|cassandra|redis|elasticsearch|dynamodb|firebase|firestore)\b/i,
+      // Cloud Platforms
+      /\b(aws|azure|gcp|google cloud|heroku|digital ocean|ibm cloud|linode|docker|kubernetes)\b/i,
+      // Tools & Frameworks
+      /\b(git|jenkins|circleci|travis ci|gitlab ci|github actions|terraform|ansible|chef|puppet|maven|gradle|webpack)\b/i,
+      // Microsoft Suite
+      /\b(excel|word|powerpoint|outlook|access|project|visio|teams|sharepoint|dynamics|office)\b/i,
+      // Adobe Suite
+      /\b(photoshop|illustrator|indesign|premiere|after effects|xd|lightroom|dreamweaver|acrobat)\b/i,
+      // Data & Analytics
+      /\b(tableau|power bi|looker|google analytics|data warehouse|etl|analytics|statistics|ml|machine learning|deep learning|nlp|computer vision)\b/i,
+      // Certifications & Credentials
+      /\b(pmp|cissp|ccna|aws certified|gcp certified|azure certified|six sigma|scrum|agile|lean|prince2|itil|cia|cpa|cfa|six sigma|black belt|comptia)\b/i,
+      // Soft Skills (legitimate ones)
+      /\b(project management|team leadership|stakeholder management|strategic planning|business analysis|consulting|negotiation|public speaking|presentation|writing|editing|translation)\b/i,
+      // Domain Skills
+      /\b(autocad|revit|solidworks|catia|matlab|mathematica|sas|spss|minitab|sap|oracle|salesforce|workday|servicenow|jira|confluence|slack|zoom|salesforce|hubspot)\b/i,
+      // Finance & Accounting
+      /\b(gaap|ifrs|tax accounting|audit|financial analysis|budget planning|treasury|corporate finance|investment banking|trading|valuation)\b/i,
+      // Healthcare
+      /\b(ehr|emr|pacs|hitech|hipaa|clinical documentation|icd|cpt|medical coding|ris|his)\b/i,
+      // Other Technical
+      /\b(seo|sem|digital marketing|content marketing|email marketing|crm|marketing automation|social media management|brand management|seo optimization)\b/i,
+      // Languages
+      /\b(english|spanish|french|german|mandarin|japanese|arabic|portuguese|hindi|russian|korean|italian|dutch|polish|turkish|swedish)\b/i,
+      // Operations
+      /\b(supply chain|procurement|vendor management|inventory management|logistics|operations management|process improvement|quality assurance|six sigma)\b/i
+    ];
+    
+    return skillPatterns.some(pattern => pattern.test(normalized));
+  }
+
+  function capitalizeJobTitle(title) {
+    const normalized = String(title || '').trim();
+    if (!normalized) return normalized;
+    
+    // Words that should not be capitalized (unless they're the first word)
+    const smallWords = /^(and|or|of|the|a|an|in|on|at|by|for|with|from|to|as|is|are|be|been|being)$/i;
+    
+    return normalized
+      .split(/[\s-]+/)
+      .map((word, idx) => {
+        if (idx === 0) return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+        if (smallWords.test(word)) return word.toLowerCase();
+        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+      })
+      .join(' ');
+  }
+
+  function convertTenseToPast(text, jobDateRange) {
+    const dateStr = String(jobDateRange || '').toLowerCase();
+    const isCurrentJob = /present|current|now|today|ongoing/i.test(dateStr);
+    
+    if (isCurrentJob) return text; // Keep present tense for current jobs
+    
+    const normalized = String(text || '');
+    const tenseMap = [
+      { present: /\bmanage\b/gi, past: 'managed' },
+      { present: /\bmanages\b/gi, past: 'managed' },
+      { present: /\bcoordinate\b/gi, past: 'coordinated' },
+      { present: /\bcoordinates\b/gi, past: 'coordinated' },
+      { present: /\bcreate\b/gi, past: 'created' },
+      { present: /\bcreates\b/gi, past: 'created' },
+      { present: /\bmaintain\b/gi, past: 'maintained' },
+      { present: /\bmaintains\b/gi, past: 'maintained' },
+      { present: /\bestablish\b/gi, past: 'established' },
+      { present: /\bestablishes\b/gi, past: 'established' },
+      { present: /\blead\b/gi, past: 'led' },
+      { present: /\bleads\b/gi, past: 'led' },
+      { present: /\bimplement\b/gi, past: 'implemented' },
+      { present: /\bimplements\b/gi, past: 'implemented' },
+      { present: /\bdesign\b/gi, past: 'designed' },
+      { present: /\bdesigns\b/gi, past: 'designed' },
+      { present: /\bdevelop\b/gi, past: 'developed' },
+      { present: /\bdevelops\b/gi, past: 'developed' },
+      { present: /\banalyze\b/gi, past: 'analyzed' },
+      { present: /\banalyzes\b/gi, past: 'analyzed' },
+      { present: /\bidentify\b/gi, past: 'identified' },
+      { present: /\bidentifies\b/gi, past: 'identified' },
+      { present: /\bsolve\b/gi, past: 'solved' },
+      { present: /\bsolves\b/gi, past: 'solved' },
+      { present: /\bimprove\b/gi, past: 'improved' },
+      { present: /\bimproves\b/gi, past: 'improved' },
+      { present: /\boptimize\b/gi, past: 'optimized' },
+      { present: /\boptimizes\b/gi, past: 'optimized' },
+      { present: /\btraining\b/gi, past: 'trained' },
+      { present: /\btrain\b/gi, past: 'trained' },
+      { present: /\bcoordinating\b/gi, past: 'coordinated' },
+      { present: /\bmanaging\b/gi, past: 'managed' },
+      { present: /\boverseeing\b/gi, past: 'oversaw' },
+      { present: /\boversee\b/gi, past: 'oversaw' }
+    ];
+    
+    let result = normalized;
+    for (const { present, past } of tenseMap) {
+      result = result.replace(present, past);
+    }
+    
+    return result;
+  }
+
+  function processExperienceForRender(experience) {
+    return {
+      ...experience,
+      title: capitalizeJobTitle(experience.title || ''),
+      bullets: (experience.bullets || []).map(bullet => convertTenseToPast(bullet, experience.company || ''))
+    };
+  }
+
+  function filterAndCleanSkills(skillLines) {
+    const skills = [];
+    
+    for (const line of (skillLines || [])) {
+      const skill = normalizeBulletText(line);
+      if (!skill) continue;
+      
+      // Skip if it's a generic/invalid skill
+      if (isGenericSkill(skill)) {
+        continue;
+      }
+      
+      // Only keep if it's a likely skill OR a common technical term
+      if (!isLikelySkill(skill)) {
+        // Check for common technical keywords as fallback
+        if (!/\b(excel|sql|data|analysis|management|leadership|planning|strategy|communication|software|system|network|security|automation|integration)\b/i.test(skill)) {
+          continue;
+        }
+      }
+      
+      // Clean up common prefixes
+      let cleanedSkill = skill
+        .replace(/^proficient in\s+/i, '')
+        .replace(/^skilled in\s+/i, '')
+        .replace(/^experience with\s+/i, '')
+        .replace(/^knowledgeable in\s+/i, '')
+        .replace(/^familiar with\s+/i, '')
+        .replace(/^expertise in\s+/i, '')
+        .trim();
+      
+      // Remove trailing dates or qualifiers
+      cleanedSkill = cleanedSkill.replace(/\s*\d{1,2}\/\d{3,4}.*$/i, '').trim();
+      cleanedSkill = cleanedSkill.replace(/\s*\(\d{4}[-–]\d{4}\).*$/i, '').trim();
+      
+      if (cleanedSkill && cleanedSkill.length > 2 && cleanedSkill.length < 80) {
+        if (!skills.includes(cleanedSkill)) {
+          skills.push(cleanedSkill);
+        }
+      }
+    }
+    
+    return skills.slice(0, 20);
   }
 
   function getJobSkillSignals() {
@@ -1288,12 +1511,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
     structured.certifications = actualCertifications;
 
-    structured.skills = between(sectionIndex.SKILLS, nextSectionStart('SKILLS'))
-      .join(', ')
+    const rawSkillsLines = between(sectionIndex.SKILLS, nextSectionStart('SKILLS'));
+    const skillsText = rawSkillsLines.join(', ');
+    const parsedSkills = skillsText
       .split(/[,|]/)
       .map((s) => normalizeBulletText(s))
-      .filter(Boolean)
-      .slice(0, 20);
+      .filter(Boolean);
+    
+    structured.skills = filterAndCleanSkills(parsedSkills);
 
     const awardsLines = between(sectionIndex.AWARDS, nextSectionStart('AWARDS'))
       .map((line) => normalizeBulletText(line))
@@ -1489,13 +1714,16 @@ document.addEventListener('DOMContentLoaded', function () {
             ${renderBulletListHtml(profileBullets.length ? profileBullets : [model.profile], '12pt', '#374151', '8px')}
             <hr style="border:none;border-top:1px solid #d1d5db;margin:18px 0;" />
             ${renderSectionHeading('EXPERIENCE', theme, '16px')}
-            ${model.experiences.map((exp) => `
+            ${model.experiences.map((exp) => {
+              const processed = processExperienceForRender(exp);
+              return `
               <div style="margin-bottom:16px;">
-                <div style="font-size:15px;font-weight:700;color:#111827;margin-bottom:2px;">${escapeHtml(exp.title || exp.heading || '')}</div>
-                ${exp.company ? `<div style="font-size:13px;font-weight:400;color:#6b7280;margin-bottom:4px;">${escapeHtml(exp.company)}</div>` : ''}
-                ${renderBulletListHtml(exp.bullets || [], '12pt', '#374151', '6px')}
+                <div style="font-size:15px;font-weight:700;color:#111827;margin-bottom:2px;">${escapeHtml(processed.title || processed.heading || '')}</div>
+                ${processed.company ? `<div style="font-size:13px;font-weight:400;color:#6b7280;margin-bottom:4px;">${escapeHtml(processed.company)}</div>` : ''}
+                ${renderBulletListHtml(processed.bullets || [], '12pt', '#374151', '6px')}
               </div>
-            `).join('')}
+            `;
+            }).join('')}
             ${renderSectionHeading('EDUCATION', theme, '16px', 'margin-top:14px;')}
             ${renderBulletListHtml(model.education || [], '12pt', '#374151', '6px')}
           </section>
@@ -1528,13 +1756,16 @@ document.addEventListener('DOMContentLoaded', function () {
             ${renderBulletListHtml(profileBullets.length ? profileBullets : [model.profile], '12pt', '#4b5563', '8px')}
 
             ${renderSectionHeading('EXPERIENCE', theme, '16px', 'margin-top:18px;')}
-            ${model.experiences.map((exp) => `
+            ${model.experiences.map((exp) => {
+              const processed = processExperienceForRender(exp);
+              return `
               <div style="margin-bottom:16px;">
-                <div style="font-size:15px;font-weight:700;color:#111827;margin-bottom:2px;">${escapeHtml(exp.title || exp.heading || '')}</div>
-                ${exp.company ? `<div style="font-size:13px;font-weight:400;color:#6b7280;margin-bottom:4px;">${escapeHtml(exp.company)}</div>` : ''}
-                ${renderBulletListHtml(exp.bullets || [], '12pt', '#374151', '6px')}
+                <div style="font-size:15px;font-weight:700;color:#111827;margin-bottom:2px;">${escapeHtml(processed.title || processed.heading || '')}</div>
+                ${processed.company ? `<div style="font-size:13px;font-weight:400;color:#6b7280;margin-bottom:4px;">${escapeHtml(processed.company)}</div>` : ''}
+                ${renderBulletListHtml(processed.bullets || [], '12pt', '#374151', '6px')}
               </div>
-            `).join('')}
+            `;
+            }).join('')}
 
             ${renderSectionHeading('CERTIFICATIONS', theme, '16px', 'margin-top:14px;')}
             ${renderBulletListHtml(model.awards.length ? model.awards : ['N/A'], '12pt', '#374151', '6px')}
@@ -1568,13 +1799,16 @@ document.addEventListener('DOMContentLoaded', function () {
             ${renderSectionHeading('PROFILE', theme, '16px', 'margin-bottom:8px;')}
             ${renderBulletListHtml(profileBullets.length ? profileBullets : [model.profile], '12pt', '#374151', '8px')}
             ${renderSectionHeading('EXPERIENCE', theme, '16px', 'margin:18px 0 8px 0;')}
-            ${model.experiences.map((exp) => `
+            ${model.experiences.map((exp) => {
+              const processed = processExperienceForRender(exp);
+              return `
               <div style="margin-bottom:16px;">
-                <div style="font-size:15px;font-weight:700;color:#111827;margin-bottom:2px;">${escapeHtml(exp.title || exp.heading || '')}</div>
-                ${exp.company ? `<div style="font-size:13px;font-weight:400;color:#6b7280;margin-bottom:4px;">${escapeHtml(exp.company)}</div>` : ''}
-                ${renderBulletListHtml(exp.bullets || [], '12pt', '#374151', '6px')}
+                <div style="font-size:15px;font-weight:700;color:#111827;margin-bottom:2px;">${escapeHtml(processed.title || processed.heading || '')}</div>
+                ${processed.company ? `<div style="font-size:13px;font-weight:400;color:#6b7280;margin-bottom:4px;">${escapeHtml(processed.company)}</div>` : ''}
+                ${renderBulletListHtml(processed.bullets || [], '12pt', '#374151', '6px')}
               </div>
-            `).join('')}
+            `;
+            }).join('')}
             ${renderSectionHeading('EDUCATION', theme, '16px', 'margin:18px 0 8px 0;')}
             ${renderBulletListHtml(model.education || [], '12pt', '#374151', '6px')}
             ${renderSectionHeading('AWARDS', theme, '16px', 'margin:18px 0 8px 0;')}
@@ -1601,13 +1835,16 @@ document.addEventListener('DOMContentLoaded', function () {
         
         ${model.experiences && model.experiences.length ? `<div style="margin-bottom:20px;">
           <div style="font-weight:bold; margin-bottom:8px; border-bottom:1px solid #ccc; padding-bottom:4px;">EXPERIENCE</div>
-          ${model.experiences.map((exp) => `
+          ${model.experiences.map((exp) => {
+            const processed = processExperienceForRender(exp);
+            return `
             <div style="margin-bottom:12px;">
-              <div style="font-weight:600;">${escapeHtml(exp.title || '')}</div>
-              ${exp.company ? `<div style="font-size:13px; color:#555;">${escapeHtml(exp.company)}</div>` : ''}
-              ${renderBulletList((exp.bullets || []).slice(0, 3))}
+              <div style="font-weight:600;">${escapeHtml(processed.title || '')}</div>
+              ${processed.company ? `<div style="font-size:13px; color:#555;">${escapeHtml(processed.company)}</div>` : ''}
+              ${renderBulletList((processed.bullets || []).slice(0, 3))}
             </div>
-          `).join('')}
+          `;
+          }).join('')}
         </div>` : ''}
         
         ${model.education && model.education.length ? `<div style="margin-bottom:20px;">
