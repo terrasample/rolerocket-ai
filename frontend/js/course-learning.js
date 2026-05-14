@@ -3399,9 +3399,9 @@ document.addEventListener('DOMContentLoaded', function () {
       const workedExample = escapeHtml(String(moduleItem?.workedExample || ''));
       const workedExampleSteps = asArray(moduleItem?.workedExampleSteps);
       const workedExampleStepsHtml = workedExampleSteps.length
-        ? `<div style="margin-top:8px;padding:10px;border-radius:8px;background:#0b1220;border:1px solid #273449;">
+        ? `<div class="crs-example-walkthrough" style="display:block;width:100%;max-width:100%;min-width:0;margin-top:8px;padding:10px;border-radius:8px;background:#0b1220;border:1px solid #273449;">
             <div style="color:#93c5fd;font-weight:700;font-size:0.86rem;margin-bottom:6px;">Step-by-Step Example Walkthrough</div>
-            <ol style="margin:0;padding-left:18px;color:#d0d9e7;line-height:1.55;display:grid;gap:4px;">
+            <ol style="margin:0;padding-left:18px;color:#d0d9e7;line-height:1.55;display:grid;gap:4px;width:100%;max-width:100%;min-width:0;overflow-wrap:anywhere;word-break:break-word;">
               ${workedExampleSteps.map((step) => `<li>${escapeHtml(String(step))}</li>`).join('')}
             </ol>
           </div>`

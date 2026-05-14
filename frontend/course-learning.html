@@ -327,9 +327,25 @@
     .module-item {
       border: 1px solid #2a3954; border-radius: 10px;
       background: #111c31; padding: 24px; margin-bottom: 18px;
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+      overflow: hidden;
     }
     .module-item h4 { margin: 0 0 8px 0; color: #f1f5f9; font-size: 1rem; }
     .module-item p { margin: 0 0 10px 0; color: #d0d9e7; line-height: 1.68; font-size: 0.93rem; }
+    .module-item * {
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+    .crs-example-walkthrough {
+      display: block;
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
 
     @media (max-width: 1080px) {
       .crs-content-wrap { grid-template-columns: 1fr; }
@@ -639,7 +655,7 @@
   <script src="js/nav-plan-sync.js?v=20260514-sync4"></script>
   <script src="js/idle-timeout.js"></script>
   <script src="js/jspdf-loader.js"></script>
-  <script src="js/course-learning.js?v=20260514-modules-fullwidth-v1"></script>
+  <script src="js/course-learning.js?v=20260514-crunch-fix-v2"></script>
   <script src="js/page-assistant.js"></script>
   <script src="js/return-navigation.js"></script>
 </body>
