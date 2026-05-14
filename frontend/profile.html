@@ -488,6 +488,29 @@
       border-radius: 999px;
       background: var(--rr-exp-primary, #22c55e);
     }
+
+    /* Final US-specific pass: keep card outlines visibly red like other US tabs */
+    :root.rr-theme-us .rr-profile-shell,
+    :root.rr-theme-us .rr-profile-card,
+    :root.rr-theme-us .rr-strength-breakdown,
+    :root.rr-theme-us .rr-quick-link,
+    body.rr-theme-us .rr-profile-shell,
+    body.rr-theme-us .rr-profile-card,
+    body.rr-theme-us .rr-strength-breakdown,
+    body.rr-theme-us .rr-quick-link {
+      border-color: rgba(248, 113, 113, 0.52) !important;
+      box-shadow:
+        0 24px 52px rgba(2, 6, 23, 0.42),
+        0 2px 0 rgba(255, 255, 255, 0.04) inset,
+        0 0 0 1px rgba(248, 113, 113, 0.35) inset,
+        0 0 0 1px rgba(127, 29, 29, 0.26),
+        0 14px 28px rgba(127, 29, 29, 0.24) !important;
+    }
+
+    :root.rr-theme-us .rr-profile-card h3::after,
+    body.rr-theme-us .rr-profile-card h3::after {
+      background: #f87171 !important;
+    }
   </style>
 </head>
 <body>
