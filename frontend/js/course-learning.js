@@ -907,7 +907,7 @@ document.addEventListener('DOMContentLoaded', function () {
         mockQuestionCount: COVERAGE_AI_ML_MOCK_QUESTION_COUNT,
         overallPassMark: COVERAGE_AI_ML_OVERALL_PASS_MARK,
         domainPassMark: COVERAGE_AI_ML_DOMAIN_PASS_MARK,
-        estimatedDuration: '18-24 weeks'
+        estimatedDuration: 'Self-paced'
       };
     }
 
@@ -1283,7 +1283,7 @@ document.addEventListener('DOMContentLoaded', function () {
         courseTitle: 'AI + Machine Learning',
         subtitle: 'Foundations, ML core, deep learning/specialized AI, and practical delivery skills taught in a strict teach-first sequence.',
         difficulty: 'Advanced',
-        estimatedDuration: '18-24 weeks',
+        estimatedDuration: 'Self-paced',
         marketDemand: 'AI and machine learning skills are in demand across software, analytics, automation, product, and data teams.',
         overview: 'This course follows the required AI + Machine Learning pathway in order: Foundations (Programming, then Mathematics), Machine Learning Core, Deep Learning and Specialized AI, then Practical Skills. Every module teaches concepts first, then walks through examples, then gives guided practice, and only then asks checkpoint questions.',
         learningOutcomes: [
