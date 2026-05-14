@@ -46,6 +46,30 @@
   }
   </script>
   <style>
+    .faq-home-brand {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+    }
+
+    .faq-home-brand-line {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .faq-home-subtitle {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #bfdbfe;
+      line-height: 1.1;
+    }
+
     .faq-hero {
       background: linear-gradient(90deg, #0f172a 0%, #1e293b 100%);
       color: #facc15;
@@ -228,14 +252,15 @@
   </style>
 </head>
 <body>
-  <div class="faq-hero">
-    <button class="back-arrow-btn" aria-label="Go back" data-back-button="true"
-      style="position:absolute;top:12px;left:12px;background:none;border:none;cursor:pointer;font-size:1.6em;color:#facc15;">
-      &#8592; Back
-    </button>
-    <span style="font-size:2.4em;display:block;margin-bottom:6px;">❓</span>
-    <h1>Frequently Asked Questions</h1>
-    <p>Everything you need to know about RoleRocket AI — features, billing, legal, and more.</p>
+  <a class="skip-link" href="#mainContent">Skip to main content</a>
+  <div class="business-bar">
+    <div class="faq-home-brand">
+      <div class="faq-home-brand-line">
+        <span class="home-brand-rocket" aria-hidden="true">🚀</span>
+        <span class="compact-brand-name">RoleRocket AI</span>
+      </div>
+      <div class="faq-home-subtitle">Frequently Asked Questions</div>
+    </div>
   </div>
 
   <div class="layout">
@@ -266,7 +291,7 @@
     </aside>
 
     <main class="main marketing-main" id="mainContent" tabindex="-1">
-      <button class="back-arrow-btn" aria-label="Go back" data-back-button="true"
+      <button class="back-arrow-btn" aria-label="Go back" onclick="window.history.back()"
         style="margin:12px 0 12px 0;background:none;border:none;cursor:pointer;font-size:1.6em;color:#2563eb;">
         &#8592; Back
       </button>
