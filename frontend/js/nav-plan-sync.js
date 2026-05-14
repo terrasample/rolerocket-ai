@@ -492,7 +492,9 @@
     label.className = 'sidebar-section-label';
     label.setAttribute('data-section', key);
     label.textContent = text;
-    nav.insertBefore(label, beforeNode);
+    const parent = beforeNode.parentNode;
+    if (!parent) return;
+    parent.insertBefore(label, beforeNode);
   }
 
   function decorateSidebarNav() {
