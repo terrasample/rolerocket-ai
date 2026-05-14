@@ -3251,6 +3251,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     accordionEl.innerHTML = list.map((mod, idx) => {
       const title = escapeHtml(String(mod?.title || `Module ${idx + 1}`));
+      const objective = escapeHtml(String(mod?.objective || 'Module objective will appear here.'));
       const isCompleted = progressState.completedModules.has(idx);
       const isCurrent = diagnosticDone && idx === currentIdx && !isCompleted;
       const isLocked = !isCompleted && (!diagnosticDone || idx > currentIdx);
@@ -3268,31 +3269,39 @@ document.addEventListener('DOMContentLoaded', function () {
       }
 
       const itemClass = [
-        'crs-mod-item',
+        'crs-week-item',
         isCompleted ? 'is-complete' : '',
         isCurrent ? 'is-current' : '',
         isLocked ? 'is-locked' : ''
       ].filter(Boolean).join(' ');
 
       const hoursPerModule = Math.round(10 / Math.max(1, list.length) * 10) / 10;
+      const defaultOpen = (isCurrent || (!diagnosticDone && idx === 0)) ? 'open' : '';
+      const statusText = isCompleted
+        ? 'Completed'
+        : (isCurrent ? 'Current active week' : (isLocked ? 'Locked until previous week passes' : 'Available'));
 
       return `
-        <div class="${itemClass}">
-          <div class="crs-mod-header">
-            <div class="crs-mod-left">
-              <span class="crs-mod-status-icon" style="color:${statusColor};">${statusIcon}</span>
+        <details class="${itemClass}" ${defaultOpen}>
+          <summary class="crs-week-summary">
+            <div class="crs-week-left">
+              <span class="crs-week-status-icon" style="color:${statusColor};">${statusIcon}</span>
               <div>
-                <h3 class="crs-mod-title">Module ${idx + 1}: ${title}</h3>
-                <div class="crs-mod-meta">Module ${idx + 1} &bull; ~${hoursPerModule} hours to complete</div>
+                <h3 class="crs-week-title">Week ${idx + 1}: ${title}</h3>
+                <div class="crs-week-meta">Week ${idx + 1} &bull; ~${hoursPerModule} hours to complete</div>
               </div>
             </div>
-            <div class="crs-mod-right">
-              <span class="crs-mod-detail-label">Module details</span>
-              <span style="font-size:0.7rem;color:#475569;">${isCurrent ? '▲' : '▼'}</span>
+            <div class="crs-week-right">
+              <span class="crs-week-detail-label">Module details</span>
+              <span class="crs-week-chevron">▼</span>
             </div>
+          </summary>
+          <div class="crs-week-body">
+            ${isCurrent ? '<div class="crs-week-active-indicator">&#8595; Active week — full lesson content is shown below.</div>' : ''}
+            <div class="crs-week-meta">Status: ${statusText}</div>
+            <p class="crs-week-objective"><strong>Objective:</strong> ${objective}</p>
           </div>
-          ${isCurrent ? '<div class="crs-mod-active-indicator">&#8595; Active module — full content below</div>' : ''}
-        </div>
+        </details>
       `;
     }).join('');
   }

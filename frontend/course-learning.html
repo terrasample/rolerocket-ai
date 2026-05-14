@@ -131,29 +131,99 @@
       display: grid; grid-template-columns: 1fr 300px; gap: 20px; align-items: flex-start;
     }
 
-    /* Module accordion list items */
-    .crs-mod-item {
-      border: 1px solid #1e3a5f; border-radius: 8px;
-      margin-bottom: 8px; background: #0f172a; overflow: hidden;
+    /* Week accordion list items (Coursera-style flow) */
+    .crs-week-item {
+      border: 1px solid #1e3a5f;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      background: #0f172a;
+      overflow: hidden;
     }
-    .crs-mod-item.is-current { border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37,99,235,0.15); }
-    .crs-mod-item.is-complete { background: #052e25; border-color: #166534; }
-    .crs-mod-item.is-locked { opacity: 0.6; }
-    .crs-mod-header {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 14px 18px; gap: 10px;
+    .crs-week-item.is-current {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 2px rgba(37,99,235,0.15);
     }
-    .crs-mod-left { display: flex; align-items: flex-start; gap: 12px; }
-    .crs-mod-status-icon {
-      font-size: 1rem; font-weight: 700; flex-shrink: 0; margin-top: 2px; width: 20px; text-align: center;
+    .crs-week-item.is-complete {
+      background: #052e25;
+      border-color: #166534;
     }
-    .crs-mod-title { margin: 0 0 3px; font-size: 0.95rem; font-weight: 700; color: #f1f5f9; line-height: 1.3; }
-    .crs-mod-meta { font-size: 0.78rem; color: #64748b; }
-    .crs-mod-right { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
-    .crs-mod-detail-label { font-size: 0.78rem; color: #64748b; white-space: nowrap; }
-    .crs-mod-active-indicator {
-      padding: 6px 18px 10px; font-size: 0.78rem; color: #60a5fa; font-weight: 600;
-      border-top: 1px dashed #1e3a5f; background: rgba(37,99,235,0.07);
+    .crs-week-item.is-locked {
+      opacity: 0.68;
+    }
+    .crs-week-summary {
+      list-style: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 18px;
+      cursor: pointer;
+    }
+    .crs-week-summary::-webkit-details-marker {
+      display: none;
+    }
+    .crs-week-left {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      min-width: 0;
+    }
+    .crs-week-status-icon {
+      font-size: 1rem;
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 2px;
+      width: 20px;
+      text-align: center;
+    }
+    .crs-week-title {
+      margin: 0 0 3px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #f1f5f9;
+      line-height: 1.3;
+      word-break: break-word;
+    }
+    .crs-week-meta {
+      font-size: 0.78rem;
+      color: #64748b;
+    }
+    .crs-week-right {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .crs-week-detail-label {
+      font-size: 0.78rem;
+      color: #64748b;
+      white-space: nowrap;
+    }
+    .crs-week-chevron {
+      font-size: 0.72rem;
+      color: #64748b;
+      transition: transform 0.18s ease;
+    }
+    .crs-week-item[open] .crs-week-chevron {
+      transform: rotate(180deg);
+    }
+    .crs-week-body {
+      border-top: 1px solid #1e3a5f;
+      background: rgba(10, 26, 45, 0.65);
+      padding: 10px 18px 12px;
+      display: grid;
+      gap: 6px;
+    }
+    .crs-week-active-indicator {
+      font-size: 0.78rem;
+      color: #60a5fa;
+      font-weight: 600;
+    }
+    .crs-week-objective {
+      margin: 0;
+      font-size: 0.82rem;
+      line-height: 1.5;
+      color: #cbd5e1;
     }
 
     /* Certificate card */
@@ -480,7 +550,7 @@
   <script src="js/nav-plan-sync.js?v=20260514-sync4"></script>
   <script src="js/idle-timeout.js"></script>
   <script src="js/jspdf-loader.js"></script>
-  <script src="js/course-learning.js?v=20260514-coursera-layout"></script>
+  <script src="js/course-learning.js?v=20260514-week-accordion"></script>
   <script src="js/page-assistant.js"></script>
   <script src="js/return-navigation.js"></script>
 </body>
