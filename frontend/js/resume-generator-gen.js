@@ -617,7 +617,7 @@ document.addEventListener('DOMContentLoaded', function () {
       if (selectedRole) {
         const roleInput = document.getElementById('resumeJobTitleGen');
         if (roleInput && !roleInput.value.trim()) {
-          roleInput.value = selectedRole;
+          roleInput.value = capitalizeJobTitle(selectedRole);
           applied = true;
         }
       }
@@ -1998,11 +1998,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function buildResumeModel(structured, targetRole) {
     const displayName = toTitleCaseName(structured?.fullName) || 'Professional Candidate';
+    const normalizedTargetRole = capitalizeJobTitle(targetRole || '');
     return {
       ...structured,
       fullName: displayName,
       displayName,
-      targetRole,
+      targetRole: normalizedTargetRole,
       photoDataUrl: lastPhotoDataUrl,
       photoPosition: { ...lastPhotoPosition },
       theme: resolveSelectedTheme()
