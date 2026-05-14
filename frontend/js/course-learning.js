@@ -1339,19 +1339,16 @@ document.addEventListener('DOMContentLoaded', function () {
         marketDemand: 'AI and machine learning skills are in demand across software, analytics, automation, product, and data teams. Median entry-level ML engineer salary: $169,700 USD.',
         overview: 'This independent RoleRocket AI pathway is closely aligned to the Stanford and DeepLearning.AI Machine Learning Specialization sequence taught by Andrew Ng.\n\nWeek 1 mirrors Supervised ML (regression and classification with scikit-learn).\nWeek 2 mirrors Advanced Learning Algorithms (neural networks, decision trees, and ensembles).\nWeek 3 mirrors Unsupervised Learning, Recommenders, and Reinforcement Learning.\n\nEach week teaches concepts first, then worked examples, then mastery validation through transfer tasks and quizzes.',
         learningOutcomes: [
-          'Build and train supervised ML models for regression and classification using scikit-learn and best practices.',
-          'Master neural networks, decision trees, and ensemble methods using TensorFlow and scikit-learn.',
-          'Apply unsupervised learning (clustering, dimensionality reduction), recommender systems, and reinforcement learning.',
-          'Engineer features, preprocess data rigorously, and avoid common pitfalls like data leakage.',
-          'Evaluate models comprehensively: cross-validation, confusion matrices, fairness audits, and interpretability.'
+          'Build supervised ML models for regression and classification using scikit-learn; evaluate with precision, recall, F1.',
+          'Master neural networks, decision trees, and ensemble methods using TensorFlow/Keras and scikit-learn.',
+          'Apply unsupervised learning: K-means clustering, anomaly detection, collaborative filtering, and RL basics.',
+          'Engineer features, preprocess data rigorously, and prevent data leakage; implement cross-validation correctly.'
         ],
         resumeSignals: [
-          'Supervised ML: regression & classification with scikit-learn, evaluation metrics (precision, recall, F1)',
-          'Advanced algorithms: neural networks (TensorFlow), decision trees, random forests, ensemble methods',
-          'Unsupervised learning: K-means clustering, PCA, anomaly detection, recommender systems',
-          'Data preprocessing: handling missing data, scaling, feature engineering, avoiding data leakage',
-          'MLOps: Docker containerization, REST APIs (FastAPI), model deployment, drift monitoring, fairness audits',
-          'End-to-end project portfolio with reproducible code, documentation, and ethical considerations'
+          'Supervised ML: linear regression, logistic regression, evaluation metrics (precision, recall, F1, cross-validation)',
+          'Advanced algorithms: neural networks (TensorFlow/Keras), decision trees, random forests',
+          'Unsupervised learning: K-means clustering, PCA, anomaly detection, collaborative filtering recommenders',
+          'Data fundamentals: feature engineering, handling missing data, scaling, avoiding data leakage'
         ],
         modules: [
           {
@@ -1439,19 +1436,15 @@ document.addEventListener('DOMContentLoaded', function () {
           { question: 'Compared to a single decision tree, why do random forests reduce overfitting?', options: ['Trees are smaller', 'Averaging multiple trees reduces variance', 'Faster computation', 'Only fewer parameters'], correctOptionIndex: 1, explanation: 'Ensemble averaging reduces overfitting compared to single models.' },
           { question: 'What is the main advantage of K-means clustering over hierarchical clustering?', options: ['Better accuracy', 'Faster for large datasets', 'No distance metric needed', 'Only works on images'], correctOptionIndex: 1, explanation: 'K-means is computationally efficient for large data.' },
           { question: 'Which technique most directly addresses data leakage in preprocessing?', options: ['Increasing batch size', 'Fitting scaler on train set only before splitting', 'Using more features', 'Removing outliers manually'], correctOptionIndex: 1, explanation: 'Fit preprocessing on train data only to prevent test info leaking into training.' },
-          { question: 'In production, model drift occurs when:', options: ['Training is too fast', 'Incoming data distribution changes and model performance degrades', 'Model size increases', 'Learning rate is wrong'], correctOptionIndex: 1, explanation: 'Drift happens when production data differs from training data patterns.' },
-          { question: 'What is the primary purpose of cross-validation?', options: ['To make training faster', 'To estimate model performance on unseen data using different train/val splits', 'To avoid using a test set', 'Only for neural networks'], correctOptionIndex: 1, explanation: 'Cross-validation provides robust generalization estimates.' },
-          { question: 'Which approach is most responsible when deploying a model to production?', options: ['Skip monitoring', 'Monitor performance metrics and fairness by demographic groups', 'Only check accuracy weekly', 'Ignore user feedback'], correctOptionIndex: 1, explanation: 'Production deployment requires continuous monitoring and fairness audits.' }
+          { question: 'What is the primary purpose of cross-validation?', options: ['To make training faster', 'To estimate model performance on unseen data using different train/val splits', 'To avoid using a test set', 'Only for neural networks'], correctOptionIndex: 1, explanation: 'Cross-validation provides robust generalization estimates.' }
         ],
         interviewPrep: [
-          'Walk through a real end-to-end ML project: problem definition, data preprocessing, model selection, evaluation, and deployment.',
+          'Walk through a real end-to-end ML project: problem definition, data preprocessing, model selection, and evaluation.',
           'Explain when to use supervised vs unsupervised learning and justify the choice for a given business problem.',
           'Describe the bias-variance tradeoff and how you would adjust model complexity.',
-          'Discuss how you would detect and address data leakage in a preprocessing pipeline.',
-          'Explain model drift and the monitoring strategy you would implement in production.',
           'Compare three different algorithms (e.g., logistic regression, random forest, neural network) on the same dataset and justify model choice.',
-          'Describe a fairness audit: what metrics would you check and why?',
-          'Walk through containerizing a model with Docker and creating a prediction API.'
+          'Discuss how you would detect and address data leakage in a preprocessing pipeline.',
+          'Walk through a recommender system project: data, collaborative filtering method, and evaluation on rating predictions.'
         ]
       });
     }
