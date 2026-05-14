@@ -198,6 +198,11 @@
       // If user HAS set a preference (US, JM, GLOBAL, etc.), DO NOT override it with server response
       
       var merged = Object.assign(defaultContext(), data || {});
+      // CRITICAL FIX: Don't allow API effectiveCountry to override user preference
+      // If user has an explicit localStorage preference, preserve it in the merged object
+      if (userPreference) {
+        merged.effectiveCountry = userPreference;
+      }
       publishPersonalizationContext(merged);
       return merged;
     } catch (_) {
