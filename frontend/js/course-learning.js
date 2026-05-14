@@ -907,7 +907,7 @@ document.addEventListener('DOMContentLoaded', function () {
         mockQuestionCount: COVERAGE_AI_ML_MOCK_QUESTION_COUNT,
         overallPassMark: COVERAGE_AI_ML_OVERALL_PASS_MARK,
         domainPassMark: COVERAGE_AI_ML_DOMAIN_PASS_MARK,
-        estimatedDuration: 'Self-paced'
+        estimatedDuration: '10 weeks (10 hrs/week) | 100-120 hours total'
       };
     }
 
@@ -1281,11 +1281,11 @@ document.addEventListener('DOMContentLoaded', function () {
     if (/ai|machine learning|ml|deep learning|data science|artificial intelligence/i.test(name)) {
       return buildCourse({
         courseTitle: 'AI + Machine Learning',
-        subtitle: 'Foundations, ML core, deep learning/specialized AI, and practical delivery skills taught in a strict teach-first sequence.',
+        subtitle: 'Industry-standard curriculum aligned with Stanford University and DeepLearning.AI.',
         difficulty: 'Advanced',
-        estimatedDuration: 'Self-paced',
-        marketDemand: 'AI and machine learning skills are in demand across software, analytics, automation, product, and data teams.',
-        overview: 'This course follows the required AI + Machine Learning pathway in order: Foundations (Programming, then Mathematics), Machine Learning Core, Deep Learning and Specialized AI, then Practical Skills. Every module teaches concepts first, then walks through examples, then gives guided practice, and only then asks checkpoint questions.',
+        estimatedDuration: '10 weeks (10 hrs/week) | 100-120 hours total',
+        marketDemand: 'AI and machine learning skills are in demand across software, analytics, automation, product, and data teams. Median entry-level ML engineer salary: $169,700 USD.',
+        overview: 'This certification course matches Stanford and DeepLearning.AI Machine Learning Specialization. Covers: Supervised ML (linear & logistic regression, neural networks, decision trees), Unsupervised Learning (clustering, dimensionality reduction, recommender systems), and MLOps best practices. Mastery gates (diagnostic placement, transfer task validation) ensure competency before progression.',"
         learningOutcomes: [
           'Build Python proficiency for AI work using NumPy, Pandas, and Matplotlib.',
           'Apply mathematics for ML: basic statistics, linear algebra, and calculus gradients.',
