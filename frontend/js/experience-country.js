@@ -825,10 +825,16 @@
 
   function applyLiveExperienceRefresh(countryCode) {
     var effective = normalizeCountryCode(countryCode || 'GLOBAL');
+    applyExperienceThemeClass(effective);
     applyDashboardVariant(effective);
     applyCountryTheme(effective);
     hideJamaicaElements(effective === 'JM');
     updateHeaderButtonStates(effective);
+
+    var studioSelect = document.getElementById('rrHomepageExpSelect');
+    if (studioSelect) {
+      studioSelect.value = effective;
+    }
 
     var sidebarSelect = document.getElementById('rrExpCountrySelect');
     if (sidebarSelect) {
