@@ -1285,127 +1285,135 @@ document.addEventListener('DOMContentLoaded', function () {
         difficulty: 'Advanced',
         estimatedDuration: '10 weeks (10 hrs/week) | 100-120 hours total',
         marketDemand: 'AI and machine learning skills are in demand across software, analytics, automation, product, and data teams. Median entry-level ML engineer salary: $169,700 USD.',
-        overview: 'This certification course matches Stanford and DeepLearning.AI Machine Learning Specialization. Covers: Supervised ML (linear & logistic regression, neural networks, decision trees), Unsupervised Learning (clustering, dimensionality reduction, recommender systems), and MLOps best practices. Mastery gates (diagnostic placement, transfer task validation) ensure competency before progression.',"
+        overview: 'This certification follows Stanford University and DeepLearning.AI Machine Learning Specialization (taught by Andrew Ng). Course 1: Supervised ML (regression & classification with scikit-learn). Course 2: Advanced Algorithms (neural networks with TensorFlow, decision trees, ensembles). Course 3: Unsupervised Learning (clustering, PCA, recommender systems, reinforcement learning). Modules 4-5: Production-ready MLOps, Docker deployment, monitoring, fairness, and end-to-end project delivery. Every step teaches concepts first, shows worked examples, then validates mastery through transfer tasks.',
         learningOutcomes: [
-          'Build Python proficiency for AI work using NumPy, Pandas, and Matplotlib.',
-          'Apply mathematics for ML: basic statistics, linear algebra, and calculus gradients.',
-          'Use supervised and unsupervised learning methods with strong model evaluation discipline.',
-          'Understand deep learning, computer vision, NLP, and generative AI workflows.',
-          'Execute practical delivery skills: preprocessing, MLOps deployment, and responsible AI ethics.'
+          'Build and train supervised ML models for regression and classification using scikit-learn and best practices.',
+          'Master neural networks, decision trees, and ensemble methods using TensorFlow and scikit-learn.',
+          'Apply unsupervised learning (clustering, dimensionality reduction), recommender systems, and reinforcement learning.',
+          'Engineer features, preprocess data rigorously, and avoid common pitfalls like data leakage.',
+          'Deploy models to production with Docker, FastAPI, and monitoring for model drift.',
+          'Evaluate models comprehensively: cross-validation, confusion matrices, fairness audits, and interpretability.'
         ],
         resumeSignals: [
-          'Python for AI: NumPy, Pandas, Matplotlib',
-          'Supervised + unsupervised ML workflow competence',
-          'Evaluation literacy: bias-variance, cross-validation, accuracy/precision/recall/F1',
-          'Deep learning, CV, NLP, and LLM prompt-engineering exposure',
-          'MLOps and responsible AI (bias, fairness, privacy) implementation readiness'
+          'Supervised ML: regression & classification with scikit-learn, evaluation metrics (precision, recall, F1)',
+          'Advanced algorithms: neural networks (TensorFlow), decision trees, random forests, ensemble methods',
+          'Unsupervised learning: K-means clustering, PCA, anomaly detection, recommender systems',
+          'Data preprocessing: handling missing data, scaling, feature engineering, avoiding data leakage',
+          'MLOps: Docker containerization, REST APIs (FastAPI), model deployment, drift monitoring, fairness audits',
+          'End-to-end project portfolio with reproducible code, documentation, and ethical considerations'
         ],
         modules: [
           {
-            title: '1. Foundations: Programming (Python + Core Libraries)',
-            objective: 'Develop programming fluency in Python for AI/ML work before entering model-heavy modules.',
-            lesson: 'Section 1 - Python Proficiency: variables, loops, functions, and reusable scripts for data workflows. Section 2 - NumPy: array operations, vectorized math, and matrix manipulation for performance. Section 3 - Pandas: data loading, cleaning, filtering, and transformation. Section 4 - Matplotlib: exploratory plots to inspect trends, outliers, and distributions. Section 5 - Teach-First Flow: concept lesson -> guided code walkthrough -> practice task -> checkpoint.',
-            workedExample: 'Load a CSV with Pandas, clean missing values, compute summary statistics with NumPy, then visualize two key features with Matplotlib before any model is trained.',
+            title: '1. Supervised Machine Learning: Regression and Classification',
+            objective: 'Learn how to build supervised ML models for regression (continuous predictions) and classification (discrete categories) using linear models, logistic regression, and practical evaluation.',
+            lesson: 'Week 1 - Introduction to Machine Learning: cost functions, intuition behind supervised learning, and the train/val/test split. Week 2 - Regression: linear regression with one and multiple variables, using scikit-learn and computing gradients. Week 3 - Classification: logistic regression, decision boundaries, classification metrics (precision, recall, F1), cross-validation, and the bias-variance tradeoff.',
+            workedExample: 'Predict housing prices (regression) using scikit-learn, then classify customer churn (classification) with logistic regression and evaluate using confusion matrix and F1-score.',
             workedExampleSteps: [
-              'Section 1 (Python): build helper functions to keep preprocessing code reusable and readable.',
-              'Section 2 (NumPy): compute standardized values and vectorized transforms.',
-              'Section 3 (Pandas): clean null values and create model-ready columns.',
-              'Section 4 (Matplotlib): chart feature distributions and compare class balance.',
-              'Section 5 (Flow): summarize what was taught before moving to checkpoint.'
+              'Week 1: Split data into train/val/test; understand why overfitting happens.',
+              'Week 2: Implement linear regression; compute cost function; test with multiple features.',
+              'Week 3: Build logistic regression; interpret decision boundary; select best model using cross-validation metrics.'
             ],
-            commonMistake: 'Jumping into model training before building clean data and basic exploratory plots.',
-            practiceTask: 'Create one notebook that demonstrates data loading, cleaning, summary stats, and two explanatory plots.',
-            progressCheckQuestion: 'Which library is best suited for tabular data cleaning and transformation?',
-            progressCheckOptions: ['Pandas', 'Matplotlib', 'Docker', 'Flask'],
-            correctOptionIndex: 0,
-            progressCheckExplanation: 'Pandas is the core tool for tabular cleaning and transformation workflows.'
+            commonMistake: 'Using raw accuracy for imbalanced data; ignoring the bias-variance tradeoff when choosing model complexity.',
+            practiceTask: 'Build one regression model (house price prediction) and one classification model (customer churn); report train/val metrics for each.',
+            progressCheckQuestion: 'What is the primary purpose of a validation set in machine learning?',
+            progressCheckOptions: ['To make training faster', 'To evaluate model performance on unseen data and detect overfitting', 'To store the final results', 'To replace the training set'],
+            correctOptionIndex: 1,
+            progressCheckExplanation: 'Validation sets help catch overfitting before the test set is used for final evaluation.'
           },
           {
-            title: '2. Foundations: Mathematics for Machine Learning',
-            objective: 'Build the math base required to understand model behavior and evaluation decisions.',
-            lesson: 'Section 1 - Basic Statistics: mean, variance, distributions, and why they matter for noisy data. Section 2 - Linear Algebra: vectors and matrices for representing features and model parameters. Section 3 - Calculus: gradients and slope intuition for optimization. Section 4 - Teach-First Flow: explain each concept in plain language, then apply it in one guided example before any question.',
-            workedExample: 'For a simple linear model, compute mean/variance of a feature, represent the batch as a matrix, and describe how gradients update parameters to reduce loss.',
+            title: '2. Advanced Learning Algorithms',
+            objective: 'Master neural networks, decision trees, and ensemble methods for building more powerful and interpretable models.',
+            lesson: 'Part 1 - Neural Networks: forward propagation, backpropagation, activation functions (ReLU, sigmoid), and how to train with TensorFlow/Keras. Part 2 - Tree-Based Methods: decision trees, why they work for non-linear patterns, and how to prevent overfitting. Part 3 - Ensemble Methods: random forests, boosting, and when to use each. Part 4 - Model Selection: comparing complexity, interpretability, and performance across all three algorithm families.',
+            workedExample: 'Build a neural network to classify handwritten digits; train a random forest for customer segmentation; compare with logistic regression on the same dataset.',
             workedExampleSteps: [
-              'Section 1 (Statistics): compute mean and variance and interpret spread/outlier behavior.',
-              'Section 2 (Linear Algebra): map data rows to vectors and stack vectors into a matrix.',
-              'Section 3 (Calculus): interpret gradient sign and magnitude for parameter updates.',
-              'Section 4 (Flow): restate what was taught and verify readiness before checkpoint.'
+              'Part 1: Create a simple neural network with Keras; observe training curves; tune learning rate.',
+              'Part 2: Train a decision tree; visualize splits; measure depth impact on accuracy.',
+              'Part 3: Ensemble multiple trees into a random forest; observe improvement over single tree.',
+              'Part 4: Compare all models on test set; select based on speed vs. accuracy tradeoff.'
             ],
-            commonMistake: 'Treating gradients as a formula to memorize instead of a direction signal for minimizing error.',
-            practiceTask: 'Write a short math note that links statistics, vectors/matrices, and gradients to one model-training cycle.',
-            progressCheckQuestion: 'In ML optimization, what do gradients primarily indicate?',
-            progressCheckOptions: ['The direction and rate of change used for parameter updates', 'The number of rows in a dataset', 'Only chart colors', 'Deployment region settings'],
-            correctOptionIndex: 0,
-            progressCheckExplanation: 'Gradients guide how parameters should move to reduce model loss.'
+            commonMistake: 'Using a neural network for every problem (overkill for simple data); not tuning max_depth in trees (causes overfitting).',
+            practiceTask: 'On the same dataset, train: (1) logistic regression, (2) decision tree, (3) random forest, (4) small neural network. Report test accuracy and training time for each.',
+            progressCheckQuestion: 'What is a key advantage of random forests over a single decision tree?',
+            progressCheckOptions: ['Faster training time', 'Reduced variance through ensemble averaging; better generalization', 'Smaller model size', 'Easier to visualize'],
+            correctOptionIndex: 1,
+            progressCheckExplanation: 'Ensemble methods reduce overfitting by averaging predictions from multiple models.'
           },
           {
-            title: '3. Machine Learning Techniques (Core Modules)',
-            objective: 'Apply supervised and unsupervised methods, then evaluate model quality using the right metrics.',
-            lesson: 'Section 1 - Supervised Learning: Linear Regression, Logistic Regression, Decision Trees, Random Forests, and SVM for labeled data tasks. Section 2 - Unsupervised Learning: K-Means, Hierarchical clustering, anomaly detection, and PCA for unlabeled pattern discovery. Section 3 - Model Evaluation: bias-variance tradeoff, cross-validation, and metrics including Accuracy, Precision, Recall, and F1-Score. Section 4 - Teach-First Flow: concept explanation and guided example before checkpoint prompts.',
-            workedExample: 'Compare a supervised churn-classification pipeline with an unsupervised customer-segmentation pipeline, then evaluate each with context-appropriate metrics.',
+            title: '3. Unsupervised Learning, Recommender Systems, and Reinforcement Learning',
+            objective: 'Learn unsupervised techniques for pattern discovery, build personalized recommender systems, and understand the basics of reinforcement learning.',
+            lesson: 'Part 1 - Unsupervised Learning: K-means clustering, hierarchical clustering, anomaly detection, and dimensionality reduction (PCA). Part 2 - Recommender Systems: collaborative filtering (user-based and item-based), content-based filtering, and deep learning for recommendations. Part 3 - Reinforcement Learning: Markov decision processes, Q-learning, and policy gradients; when RL is needed vs. supervised/unsupervised approaches. Part 4 - Ethical Considerations: fairness in clustering, privacy in recommenders, exploration-exploitation tradeoffs.',
+            workedExample: 'Cluster customer segments without labels using K-means; build a movie recommender using collaborative filtering; train a simple RL agent to play a game.',
             workedExampleSteps: [
-              'Section 1 (Supervised): train Logistic Regression and Random Forest on labeled outcomes.',
-              'Section 2 (Unsupervised): cluster unlabeled records using K-Means and inspect cluster quality.',
-              'Section 3 (Evaluation): analyze confusion matrix and precision/recall/F1 to select best model.'
+              'Part 1: Use K-means on customer data; evaluate cluster quality with silhouette score; detect outliers.',
+              'Part 2: Implement user-based collaborative filtering; compare with content-based filtering on a rating matrix.',
+              'Part 3: Simulate an RL environment; train a Q-learning agent; visualize learning curve.',
+              'Part 4: Check recommender for bias; discuss fairness-accuracy tradeoff.'
             ],
-            commonMistake: 'Choosing a model by accuracy alone without considering imbalance and business cost of errors.',
-            practiceTask: 'Train one supervised and one unsupervised model on the same dataset and justify metric choices.',
-            progressCheckQuestion: 'Which metric best balances precision and recall during classification evaluation?',
-            progressCheckOptions: ['F1-score', 'Row count', 'Epoch number', 'File size'],
-            correctOptionIndex: 0,
-            progressCheckExplanation: 'F1-score is the harmonic balance of precision and recall.'
+            commonMistake: 'Using K-means on high-dimensional data without PCA first; overfitting collaborative filtering to user noise.',
+            practiceTask: 'Cluster a dataset; build a simple recommender (collaborative or content-based); train a basic RL agent. Report clustering silhouette score, recommender RMSE, and RL reward trend.',
+            progressCheckQuestion: 'Which technique is best for finding hidden patterns in unlabeled data?',
+            progressCheckOptions: ['Logistic regression', 'Decision trees', 'K-means clustering or PCA', 'Only neural networks'],
+            correctOptionIndex: 2,
+            progressCheckExplanation: 'Unsupervised learning discovers structure when labels are not available.'
           },
           {
-            title: '4. Deep Learning and Specialized AI',
-            objective: 'Understand neural architectures and specialized AI domains for vision, language, and generative systems.',
-            lesson: 'Section 1 - Neural Networks: multilayer perceptrons and backpropagation foundations. Section 2 - Computer Vision: Convolutional Neural Networks (CNNs) for image understanding. Section 3 - Natural Language Processing: RNNs, LSTMs, and Transformers (including BERT and GPT). Section 4 - Generative AI: Large Language Models and prompt engineering workflows. Section 5 - Teach-First Flow: explain architecture purpose and tradeoffs before quiz prompts.',
-            workedExample: 'Map one business problem per domain: CNN for image classification, transformer for text tasks, and LLM prompting for controlled content generation.',
+            title: '4. Data Preprocessing, Feature Engineering, and MLOps',
+            objective: 'Prepare production-grade ML systems with rigorous preprocessing, thoughtful feature engineering, and deployment discipline.',
+            lesson: 'Part 1 - Data Preprocessing: handling missing values, outliers, and imbalanced classes; encoding categorical variables; feature scaling. Part 2 - Feature Engineering: selecting relevant features, creating new features from raw data, avoiding data leakage, and interpreting feature importance. Part 3 - MLOps Fundamentals: containerizing models with Docker, serving with FastAPI or Flask, monitoring model drift, versioning data and models, and automating retraining. Part 4 - Production Checklist: documentation, logging, error handling, and CI/CD pipelines.',
+            workedExample: 'Clean a messy dataset (missing values, outliers, categories); engineer features; package model in Docker; deploy to a simple API; monitor predictions over time.',
             workedExampleSteps: [
-              'Section 1 (Neural Nets): explain forward pass and backprop update cycle.',
-              'Section 2 (CV): design a simple CNN pipeline for labeled images.',
-              'Section 3 (NLP): compare RNN/LSTM limits with transformer advantages.',
-              'Section 4 (GenAI): draft prompts with role, constraints, and evaluation criteria.',
-              'Section 5 (Flow): confirm understanding before checkpoint response.'
+              'Part 1: Impute missing values; scale numerical features; one-hot encode categories.',
+              'Part 2: Compute feature importance; create polynomial features; validate no data leakage.',
+              'Part 3: Write Dockerfile; create FastAPI endpoint; add drift monitoring.',
+              'Part 4: Write model documentation; add logging; test endpoint with sample requests.'
             ],
-            commonMistake: 'Using one architecture for every problem without checking data type, scale, or latency constraints.',
-            practiceTask: 'Select one CV use case and one NLP use case, then justify architecture and prompt strategy choices.',
-            progressCheckQuestion: 'Which architecture family is most directly associated with modern LLM systems such as BERT and GPT?',
-            progressCheckOptions: ['Transformers', 'K-Means', 'Decision Trees', 'PCA'],
-            correctOptionIndex: 0,
-            progressCheckExplanation: 'Transformer architectures are the core of modern LLM models such as BERT and GPT.'
+            commonMistake: 'Leaking target info into features; not scaling before training; deploying without monitoring.',
+            practiceTask: 'Take a raw dataset: preprocess it, engineer 3-5 features, train a model, containerize with Docker, and create a prediction API. Document preprocessing steps.',
+            progressCheckQuestion: 'What is data leakage in machine learning?',
+            progressCheckOptions: ['Losing data files', 'Using information from the test set during training', 'Having too many features', 'Only a database concern'],
+            correctOptionIndex: 1,
+            progressCheckExplanation: 'Data leakage inflates training accuracy but fails on production data.'
           },
           {
-            title: '5. Practical Skills: Data Preprocessing, MLOps, and AI Ethics',
-            objective: 'Deliver production-ready AI workflows with reliable preprocessing, deployment discipline, and ethical safeguards.',
-            lesson: 'Section 1 - Data Preprocessing: cleaning, feature engineering, and feature selection for stable model behavior. Section 2 - MLOps: deploy with Flask or FastAPI, containerize with Docker, monitor performance, and manage updates. Section 3 - AI Ethics: identify data bias, support fairness checks, and protect user privacy across the lifecycle. Section 4 - Teach-First Flow: explain operational and ethics rationale before assessment prompts.',
-            workedExample: 'Deploy a churn model behind a FastAPI endpoint in Docker, then add a fairness check by subgroup and a privacy-conscious logging policy.',
+            title: '5. Capstone: End-to-End ML Project with Ethics and Best Practices',
+            objective: 'Design, build, deploy, and evaluate a complete ML system demonstrating mastery of supervised, unsupervised, feature engineering, and MLOps concepts.',
+            lesson: 'Part 1 - Problem Framing: define business objective, success metrics, and ethical considerations. Part 2 - EDA and Preprocessing: exploratory analysis, feature engineering, and preparing train/val/test splits. Part 3 - Model Development: experiment with multiple algorithms, compare cross-validation scores, and select the best. Part 4 - Evaluation and Interpretation: hold-out test performance, confusion matrices, fairness audits, and feature importance. Part 5 - Deployment and Monitoring: package model, write API, deploy, and set up monitoring for performance drift. Part 6 - Documentation and Communication: model card, ethical statement, and clear communication of limitations.',
+            workedExample: 'Build an end-to-end credit default prediction system: preprocess financial data, engineer risk features, compare logistic regression vs. random forest, audit for fairness across income groups, deploy as Docker API, and document limitations.',
             workedExampleSteps: [
-              'Section 1 (Preprocessing): prepare robust features and prevent data leakage.',
-              'Section 2 (MLOps): package model with Flask or FastAPI, run in Docker, and monitor drift/performance.',
-              'Section 3 (Ethics): test subgroup outcomes for bias and apply privacy-safe data handling.',
-              'Section 4 (Flow): communicate deployment and ethics decisions to stakeholders.'
+              'Part 1: Define success metrics (precision, recall) based on cost of false positives/negatives.',
+              'Part 2: Perform EDA; create financial ratios as features; split data.',
+              'Part 3: Experiment with 3-4 algorithms; use cross-validation to select best.',
+              'Part 4: Test on hold-out set; analyze confusion matrix; check fairness by demographics.',
+              'Part 5: Containerize; deploy as REST API; add monitoring.',
+              'Part 6: Write model card with limitations and use cases.'
             ],
-            commonMistake: 'Shipping a model without drift monitoring, fairness checks, or privacy controls.',
-            practiceTask: 'Create a mini delivery report that includes preprocessing steps, Flask/FastAPI deployment notes, Docker setup, and one fairness/privacy safeguard.',
-            progressCheckQuestion: 'Which option best reflects responsible AI delivery in production?',
-            progressCheckOptions: ['Include deployment monitoring plus fairness and privacy safeguards', 'Only tune model hyperparameters', 'Only improve chart aesthetics', 'Skip post-deployment checks'],
-            correctOptionIndex: 0,
-            progressCheckExplanation: 'Production AI quality requires technical performance and responsible governance together.'
+            commonMistake: 'Optimizing for accuracy without considering fairness; deploying without monitoring; not documenting assumptions.',
+            practiceTask: 'Complete one end-to-end project: problem statement, EDA, multiple models, fairness audit, deployed API, and documentation. Demonstrate each step.',
+            progressCheckQuestion: 'What is the primary purpose of a model card in ML?',
+            progressCheckOptions: ['To store API keys', 'To document model details, use cases, limitations, and ethical considerations', 'Only for internal use', 'To replace model training'],
+            correctOptionIndex: 1,
+            progressCheckExplanation: 'Model cards promote transparency, reproducibility, and responsible AI deployment.'
           }
         ],
         finalAssessment: [
-          { question: 'Which area most directly supports gradient-based optimization?', options: ['Calculus', 'Only geometry drawing', 'Typography', 'Browser caching'], correctOptionIndex: 0, explanation: 'Derivatives from calculus drive gradient updates.' },
-          { question: 'Which library is most associated with traditional ML pipelines?', options: ['Scikit-learn', 'After Effects', 'Canva', 'Notion'], correctOptionIndex: 0, explanation: 'Scikit-learn is a primary traditional ML toolkit.' },
-          { question: 'Which method is unsupervised?', options: ['K-means clustering', 'Logistic regression', 'Linear regression', 'XGBoost classification only'], correctOptionIndex: 0, explanation: 'K-means identifies patterns without labels.' },
-          { question: 'Which metric balances precision and recall?', options: ['F1-score', 'Epoch duration', 'Row count', 'RAM usage'], correctOptionIndex: 0, explanation: 'F1 balances precision and recall.' },
-          { question: 'Transformer architecture is most associated with:', options: ['Modern LLMs', 'Linear regression', 'PCA only', 'KNN only'], correctOptionIndex: 0, explanation: 'Transformers are central to modern LLM systems.' },
-          { question: 'What is a core MLOps concern?', options: ['Monitoring drift and maintaining model quality', 'Changing fonts', 'Renaming files only', 'Avoiding all logging'], correctOptionIndex: 0, explanation: 'MLOps ensures production reliability over time.' }
+          { question: 'What is the primary risk of using accuracy as the only metric for an imbalanced classification dataset?', options: ['Accuracy is always perfect', 'It hides poor performance on minority class', 'It requires more data', 'It slows down training'], correctOptionIndex: 1, explanation: 'On imbalanced data, high accuracy can mask poor minority class recall.' },
+          { question: 'When building a regression model, which split ratio is most commonly used?', options: ['50/50 train/test', '80/10/10 train/val/test', '90/5/5 train/val/test', 'No split needed'], correctOptionIndex: 1, explanation: 'Standard practice is 80% train, 10% validation, 10% test.' },
+          { question: 'Compared to a single decision tree, why do random forests reduce overfitting?', options: ['Trees are smaller', 'Averaging multiple trees reduces variance', 'Faster computation', 'Only fewer parameters'], correctOptionIndex: 1, explanation: 'Ensemble averaging reduces overfitting compared to single models.' },
+          { question: 'What is the main advantage of K-means clustering over hierarchical clustering?', options: ['Better accuracy', 'Faster for large datasets', 'No distance metric needed', 'Only works on images'], correctOptionIndex: 1, explanation: 'K-means is computationally efficient for large data.' },
+          { question: 'Which technique most directly addresses data leakage in preprocessing?', options: ['Increasing batch size', 'Fitting scaler on train set only before splitting', 'Using more features', 'Removing outliers manually'], correctOptionIndex: 1, explanation: 'Fit preprocessing on train data only to prevent test info leaking into training.' },
+          { question: 'In production, model drift occurs when:', options: ['Training is too fast', 'Incoming data distribution changes and model performance degrades', 'Model size increases', 'Learning rate is wrong'], correctOptionIndex: 1, explanation: 'Drift happens when production data differs from training data patterns.' },
+          { question: 'What is the primary purpose of cross-validation?', options: ['To make training faster', 'To estimate model performance on unseen data using different train/val splits', 'To avoid using a test set', 'Only for neural networks'], correctOptionIndex: 1, explanation: 'Cross-validation provides robust generalization estimates.' },
+          { question: 'Which approach is most responsible when deploying a model to production?', options: ['Skip monitoring', 'Monitor performance metrics and fairness by demographic groups', 'Only check accuracy weekly', 'Ignore user feedback'], correctOptionIndex: 1, explanation: 'Production deployment requires continuous monitoring and fairness audits.' }
         ],
         interviewPrep: [
-          'Explain when to choose supervised vs unsupervised learning and why.',
-          'Walk through one project from data preprocessing to evaluation and deployment.',
-          'Discuss tradeoffs between deep learning performance and operational complexity.',
-          'Show how you monitor model drift and trigger retraining decisions.'
+          'Walk through a real end-to-end ML project: problem definition, data preprocessing, model selection, evaluation, and deployment.',
+          'Explain when to use supervised vs unsupervised learning and justify the choice for a given business problem.',
+          'Describe the bias-variance tradeoff and how you would adjust model complexity.',
+          'Discuss how you would detect and address data leakage in a preprocessing pipeline.',
+          'Explain model drift and the monitoring strategy you would implement in production.',
+          'Compare three different algorithms (e.g., logistic regression, random forest, neural network) on the same dataset and justify model choice.',
+          'Describe a fairness audit: what metrics would you check and why?',
+          'Walk through containerizing a model with Docker and creating a prediction API.'
         ]
       });
     }
