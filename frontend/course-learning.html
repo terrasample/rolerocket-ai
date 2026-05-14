@@ -179,15 +179,16 @@
       font-size: 0.9rem; color: #d0d9e7; line-height: 1.68; margin-bottom: 16px;
     }
 
-    /* Modules two-column inside section */
+    /* Modules full-width flow inside section */
     .crs-modules-cols {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
-      gap: 20px;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 18px;
       align-items: flex-start;
     }
     .crs-modules-main {
       min-width: 0;
+      width: 100%;
     }
 
     /* Week accordion list items (Coursera-style flow) */
@@ -296,6 +297,7 @@
       display: flex; align-items: flex-start; gap: 14px;
       padding: 18px; background: #0c1f3a; border: 1px solid #1e4d7a;
       border-radius: 10px;
+      width: 100%;
     }
     .crs-cert-icon { font-size: 2.4rem; flex-shrink: 0; }
     .crs-cert-h3 { margin: 0 0 6px; font-size: 0.95rem; font-weight: 700; color: #7dd3fc; }
@@ -623,7 +625,7 @@
   <script src="js/nav-plan-sync.js?v=20260514-sync4"></script>
   <script src="js/idle-timeout.js"></script>
   <script src="js/jspdf-loader.js"></script>
-  <script src="js/course-learning.js?v=20260514-sections-cards-v2"></script>
+  <script src="js/course-learning.js?v=20260514-modules-fullwidth-v1"></script>
   <script src="js/page-assistant.js"></script>
   <script src="js/return-navigation.js"></script>
 </body>
