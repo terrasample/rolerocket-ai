@@ -721,16 +721,7 @@ document.addEventListener('DOMContentLoaded', function () {
     cleaned = cleaned.replace(/^name\s*[:\-]?\s*/i, '').trim();
     cleaned = cleaned.split('|')[0].trim();
 
-    const commaParts = cleaned.split(',').map((part) => part.trim()).filter(Boolean);
-    if (commaParts.length >= 2) {
-      const rightSide = commaParts.slice(1).join(' ');
-      if (/\b(pmp|pgmp|msem|mba|msc|ms|bs|ba|phd|pe|clssbb|smc|cissp|cpa|cfa)\b/i.test(rightSide) || /^[A-Z0-9\s.,®()-]+$/.test(rightSide)) {
-        cleaned = commaParts[0];
-      }
-    }
-
     cleaned = cleaned
-      .replace(/\b(pmp|pgmp|msem|mba|msc|ms|bs|ba|phd|pe|clssbb|smc|cissp|cpa|cfa)\b\.?\s*®?/gi, ' ')
       .replace(/[,|]+\s*$/g, '')
       .replace(/\s+/g, ' ')
       .trim();
