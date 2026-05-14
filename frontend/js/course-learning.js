@@ -3948,8 +3948,14 @@ document.addEventListener('DOMContentLoaded', function () {
     level.textContent = String(normalizedCourse?.difficulty || 'Intermediate');
     duration.textContent = String(normalizedCourse?.estimatedDuration || '10-14 weeks');
     demand.textContent = String(normalizedCourse?.marketDemand || 'High demand in current job market.');
-    overview.textContent = '';
-    overview.style.display = 'none';
+    const aboutText = String(
+      normalizedCourse?.overview ||
+      normalizedCourse?.description ||
+      normalizedCourse?.subtitle ||
+      'Build job-ready skills through guided lessons, hands-on practice, and mastery checks.'
+    ).trim();
+    overview.textContent = aboutText;
+    overview.style.display = 'block';
     renderCurriculumMetaPanel(getJamaicaCurriculumMeta(courseTitle, topic));
     renderTeachingFrameworkPanel(courseTitle, topic);
 
@@ -4062,6 +4068,7 @@ document.addEventListener('DOMContentLoaded', function () {
     titleSide.textContent = topic || 'Course';
     subtitleSide.textContent = subtitle || 'Course access required';
     overview.textContent = message;
+    overview.style.display = 'block';
     renderCurriculumMetaPanel(null);
     renderTeachingFrameworkPanel(topic || 'Course', topic || 'Course');
     if (modules) {
@@ -4089,6 +4096,7 @@ document.addEventListener('DOMContentLoaded', function () {
       titleMain.textContent = 'No course selected';
       titleSide.textContent = 'No course selected';
       overview.textContent = 'Return to the course catalog and choose a course card.';
+      overview.style.display = 'block';
       renderTeachingFrameworkPanel('Course', 'Course');
       return;
     }
@@ -4110,6 +4118,7 @@ document.addEventListener('DOMContentLoaded', function () {
     titleSide.textContent = `Loading ${topic}...`;
     subtitleSide.textContent = forceRefresh ? 'Refreshing course version...' : 'Generating complete curriculum...';
     overview.textContent = forceRefresh ? 'Please wait while we create a fresh version of this course.' : 'Please wait while we build your full course.';
+    overview.style.display = 'block';
     if (modules) modules.innerHTML = '';
     if (assessment) assessment.innerHTML = '';
     if (capstone) capstone.innerHTML = '';
@@ -4175,6 +4184,7 @@ document.addEventListener('DOMContentLoaded', function () {
         titleSide.textContent = topic;
         subtitleSide.textContent = 'Course generation failed';
         overview.textContent = message;
+        overview.style.display = 'block';
         renderTeachingFrameworkPanel(topic, topic);
       }
     } finally {
