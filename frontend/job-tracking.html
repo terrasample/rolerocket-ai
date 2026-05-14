@@ -5,15 +5,60 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Find, Search & Track | RoleRocket AI</title>
   <link rel="stylesheet" href="styles.css" />
+  <style>
+    .tracking-home-brand {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+    }
+
+    .tracking-home-brand-line {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .tracking-home-subtitle {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #bfdbfe;
+      line-height: 1.1;
+    }
+
+    body main.tracking-red-hint .tracker-panel,
+    body.rr-theme-us main.tracking-red-hint .tracker-panel,
+    body.rr-theme-jm main.tracking-red-hint .tracker-panel,
+    body main.tracking-red-hint .tracker-column,
+    body.rr-theme-us main.tracking-red-hint .tracker-column,
+    body.rr-theme-jm main.tracking-red-hint .tracker-column {
+      border-color: rgba(248, 113, 113, 0.34) !important;
+      box-shadow:
+        0 24px 52px var(--rr-exp-bg, rgba(8, 47, 73, 0.34)),
+        0 2px 0 rgba(255, 255, 255, 0.04) inset,
+        0 0 0 1px rgba(248, 113, 113, 0.22) inset,
+        0 0 0 1px rgba(127, 29, 29, 0.16),
+        0 14px 28px rgba(127, 29, 29, 0.15) !important;
+    }
+  </style>
   <script src="js/api-base.js"></script>
   <script src="js/import-resume.js"></script>
 </head>
 <body>
   <a class="skip-link" href="#mainContent">Skip to main content</a>
 
-  <div class="hero contact-hero">
-    <h1 class="home-brand-title"><span class="home-brand-rocket" aria-hidden="true">🚀</span><span>RoleRocket AI</span></h1>
-    <p class="home-brand-subtitle">Find, Search & Track</p>
+  <div class="business-bar">
+    <div class="tracking-home-brand">
+      <div class="tracking-home-brand-line">
+        <span class="home-brand-rocket" aria-hidden="true">🚀</span>
+        <span class="compact-brand-name">RoleRocket AI</span>
+      </div>
+      <div class="tracking-home-subtitle">Find, Search &amp; Track</div>
+    </div>
   </div>
 
   <div class="layout">
@@ -42,7 +87,7 @@
       </nav>
     </aside>
 
-    <main class="main marketing-main" id="mainContent" tabindex="-1">
+    <main class="main marketing-main tracking-red-hint" id="mainContent" tabindex="-1">
       <button onclick="window.history.back()" class="back-arrow-btn" aria-label="Go back" style="margin:12px 0 0 12px;background:none;border:none;cursor:pointer;font-size:1.6em;color:#2563eb;"><span aria-hidden="true">&#8592;</span> Back</button>
       <section class="marketing-hero-card">
         <h2>Find your next opportunity and track every step</h2>
