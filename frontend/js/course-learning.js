@@ -1352,99 +1352,121 @@ document.addEventListener('DOMContentLoaded', function () {
         ],
         modules: [
           {
-            title: '1. Supervised Machine Learning: Regression and Classification',
-            objective: 'Learn how to build supervised ML models for regression (continuous predictions) and classification (discrete categories) using linear models, logistic regression, and practical evaluation.',
-            lesson: 'Week 1 - Introduction to Machine Learning: cost functions, intuition behind supervised learning, and the train/val/test split. Week 2 - Regression: linear regression with one and multiple variables, using scikit-learn and computing gradients. Week 3 - Classification: logistic regression, decision boundaries, classification metrics (precision, recall, F1), cross-validation, and the bias-variance tradeoff.',
-            workedExample: 'Predict housing prices (regression) using scikit-learn, then classify customer churn (classification) with logistic regression and evaluate using confusion matrix and F1-score.',
+            title: '1. Linear Regression: Foundations and Single Variables',
+            objective: 'Build intuition for supervised learning and implement linear regression with one variable.',
+            lesson: 'Part 1 - Supervised Learning Foundations: What is machine learning, cost functions, gradient descent, and why we need train/val/test splits. Part 2 - Linear Regression: Fit a line to data, compute mean squared error (MSE), and understand overfitting vs underfitting. Part 3 - Model Evaluation: Calculate train and validation loss, visualize learning curves, and interpret what they mean.',
+            workedExample: 'Predict house prices from square footage using scikit-learn linear regression; plot the line; report MSE on train and validation sets.',
             workedExampleSteps: [
-              'Week 1: Split data into train/val/test; understand why overfitting happens.',
-              'Week 2: Implement linear regression; compute cost function; test with multiple features.',
-              'Week 3: Build logistic regression; interpret decision boundary; select best model using cross-validation metrics.'
+              'Part 1: Create train/val/test split (80/10/10); compute cost function for a simple linear model.',
+              'Part 2: Fit linear regression on training data; plot predictions vs actual values.',
+              'Part 3: Compute MSE on both train and validation; observe if validation loss increases (overfitting).'
             ],
-            commonMistake: 'Using raw accuracy for imbalanced data; ignoring the bias-variance tradeoff when choosing model complexity.',
-            practiceTask: 'Build one regression model (house price prediction) and one classification model (customer churn); report train/val metrics for each.',
-            progressCheckQuestion: 'What is the primary purpose of a validation set in machine learning?',
-            progressCheckOptions: ['To make training faster', 'To evaluate model performance on unseen data and detect overfitting', 'To store the final results', 'To replace the training set'],
+            commonMistake: 'Using test set during development (data leakage); fitting scaler on validation data instead of train.',
+            practiceTask: 'Build linear regression on house prices; split data 80/10/10; report train/val MSE; plot learning curve.',
+            progressCheckQuestion: 'Why do we need a validation set separate from training?',
+            progressCheckOptions: ['To make training faster', 'To detect overfitting and tune hyperparameters without touching the test set', 'To replace the training set', 'To increase model accuracy'],
             correctOptionIndex: 1,
-            progressCheckExplanation: 'Validation sets help catch overfitting before the test set is used for final evaluation.',
+            progressCheckExplanation: 'The validation set allows us to evaluate generalization during training and tune hyperparameters, keeping the test set truly held-out.',
             colabLink: 'https://colab.research.google.com/github/greyhatguy007/Machine-Learning-Specialization-Coursera/blob/main/C1%20-%20Supervised%20Machine%20Learning%20-%20Regression%20and%20Classification/Week%202/C1W2A1/C1_W2_Linear_Regression.ipynb',
-            labTitle: 'Lab: Linear Regression with scikit-learn (Week 2)',
-            labInstructions: 'Open the notebook. Implement linear regression on the housing dataset, split into train/val/test sets, compute the cost function, and report mean squared error on the validation set. Then extend to logistic regression on the churn dataset and evaluate with a confusion matrix.',
+            labTitle: 'Lab: Linear Regression with One Variable (Week 1)',
+            labInstructions: 'Open the notebook. Load a housing dataset with one feature (e.g., square footage). Implement linear regression from scratch using gradient descent. Split data 80/10/10. Compute cost function. Plot the fitted line and the learning curve (training vs validation loss over iterations). Report final MSE on test set.',
             quizQuestions: [
-              { question: 'What is the primary purpose of a validation set?', options: ['To train the model', 'To detect overfitting and tune hyperparameters', 'To replace the test set', 'To speed up training'], correctOptionIndex: 1, explanation: 'The validation set is used during training to tune hyperparameters and catch overfitting before the held-out test set is ever touched.' },
-              { question: 'Which metric is most appropriate for evaluating a classifier on a heavily imbalanced dataset?', options: ['Accuracy', 'Mean Squared Error', 'F1-score', 'R-squared'], correctOptionIndex: 2, explanation: 'F1-score balances precision and recall, making it reliable when class sizes are unequal and accuracy alone is misleading.' },
-              { question: 'In logistic regression, what does the decision boundary represent?', options: ['The training loss value', 'The threshold that separates predicted class regions', 'The model accuracy', 'The number of features used'], correctOptionIndex: 1, explanation: 'The decision boundary is where the model predicts a 50% probability — it separates the two class regions in feature space.' }
+              { question: 'What does the cost function measure in linear regression?', options: ['How quickly the model trains', 'The error between predictions and actual values', 'The number of features used', 'Model complexity'], correctOptionIndex: 1, explanation: 'The cost function (typically MSE) quantifies how far predictions are from the true values.' },
+              { question: 'What is gradient descent used for?', options: ['Splitting data', 'Updating model weights to minimize the cost function', 'Evaluating test performance', 'Scaling features'], correctOptionIndex: 1, explanation: 'Gradient descent iteratively updates weights in the direction that reduces the cost.' },
+              { question: 'If validation loss increases while training loss decreases, what is likely happening?', options: ['Training is working perfectly', 'The model is overfitting to the training data', 'The learning rate is too low', 'The data is too small'], correctOptionIndex: 1, explanation: 'Overfitting occurs when the model memorizes training noise and fails to generalize to new data.' }
             ]
           },
           {
-            title: '2. Advanced Learning Algorithms',
-            objective: 'Master neural networks, decision trees, and ensemble methods for building more powerful and interpretable models.',
-            lesson: 'Part 1 - Neural Networks: forward propagation, backpropagation, activation functions (ReLU, sigmoid), and how to train with TensorFlow/Keras. Part 2 - Tree-Based Methods: decision trees, why they work for non-linear patterns, and how to prevent overfitting. Part 3 - Ensemble Methods: random forests, boosting, and when to use each. Part 4 - Model Selection: comparing complexity, interpretability, and performance across all three algorithm families.',
-            workedExample: 'Build a neural network to classify handwritten digits; train a random forest for customer segmentation; compare with logistic regression on the same dataset.',
+            title: '2. Multiple Variable Regression and Classification',
+            objective: 'Extend linear regression to multiple features and introduce classification with logistic regression.',
+            lesson: 'Part 1 - Multiple Variable Regression: Handle multiple input features, feature scaling, and the design matrix. Part 2 - Logistic Regression Foundations: Binary classification, sigmoid function, decision boundary, and log-loss (cross-entropy). Part 3 - Classification Evaluation: Confusion matrix, precision, recall, F1-score, and why accuracy is misleading on imbalanced data.',
+            workedExample: 'Predict housing prices with multiple features (square footage, bedrooms, age); then classify customer churn (yes/no) using logistic regression.',
             workedExampleSteps: [
-              'Part 1: Create a simple neural network with Keras; observe training curves; tune learning rate.',
-              'Part 2: Train a decision tree; visualize splits; measure depth impact on accuracy.',
-              'Part 3: Ensemble multiple trees into a random forest; observe improvement over single tree.',
-              'Part 4: Compare all models on test set; select based on speed vs. accuracy tradeoff.'
+              'Part 1: Build linear regression with 3+ features; normalize features; compare MSE with single-feature model.',
+              'Part 2: Fit logistic regression on churn data; plot sigmoid function; visualize decision boundary.',
+              'Part 3: Compute confusion matrix, precision, recall, F1-score; compare vs accuracy on imbalanced data.'
             ],
-            commonMistake: 'Using a neural network for every problem (overkill for simple data); not tuning max_depth in trees (causes overfitting).',
-            practiceTask: 'On the same dataset, train: (1) logistic regression, (2) decision tree, (3) random forest, (4) small neural network. Report test accuracy and training time for each.',
-            progressCheckQuestion: 'What is a key advantage of random forests over a single decision tree?',
-            progressCheckOptions: ['Faster training time', 'Reduced variance through ensemble averaging; better generalization', 'Smaller model size', 'Easier to visualize'],
+            commonMistake: 'Not scaling features when they have different ranges; using accuracy as the only metric for imbalanced classification.',
+            practiceTask: 'Use multiple features for regression; fit logistic regression for classification; report confusion matrix and F1-score.',
+            progressCheckQuestion: 'In logistic regression, what does the sigmoid function do?',
+            progressCheckOptions: ['Computes the cost function', 'Maps predictions to a probability between 0 and 1', 'Scales the input features', 'Splits data into train/test'],
             correctOptionIndex: 1,
-            progressCheckExplanation: 'Ensemble methods reduce overfitting by averaging predictions from multiple models.',
-            colabLink: 'https://colab.research.google.com/github/greyhatguy007/Machine-Learning-Specialization-Coursera/blob/main/C2%20-%20Advanced%20Learning%20Algorithms/Week%201/C2W1A1/C2_W1_Assignment.ipynb',
-            labTitle: 'Lab: Neural Networks with TensorFlow/Keras (Week 1)',
-            labInstructions: 'Open the notebook. Build a multi-layer neural network in Keras for digit classification. Train the model, plot the training/validation loss curve, and compare performance against a logistic regression baseline. Then build a decision tree and random forest on the same dataset and report test accuracy and training time for each.',
+            progressCheckExplanation: 'The sigmoid function squashes any input into [0,1], making it perfect for probability predictions in classification.',
+            colabLink: 'https://colab.research.google.com/github/greyhatguy007/Machine-Learning-Specialization-Coursera/blob/main/C1%20-%20Supervised%20Machine%20Learning%20-%20Regression%20and%20Classification/Week%203/C1W3A1/C1_W3_Logistic_Regression.ipynb',
+            labTitle: 'Lab: Logistic Regression and Classification Metrics (Week 2)',
+            labInstructions: 'Open the notebook. Load a dataset with multiple features and a binary label. Fit logistic regression on the training set. Compute the sigmoid function for different input ranges. Plot the decision boundary. On the test set, generate predictions, build a confusion matrix, and report precision, recall, and F1-score. Compare F1 vs accuracy on an imbalanced dataset.',
             quizQuestions: [
-              { question: 'What does backpropagation compute in a neural network?', options: ['The number of hidden layers', 'Gradients of the loss with respect to each weight', 'The final output predictions', 'The optimal batch size'], correctOptionIndex: 1, explanation: 'Backpropagation applies the chain rule to compute gradients layer-by-layer so gradient descent can update every weight.' },
-              { question: 'Why do random forests reduce overfitting compared to a single decision tree?', options: ['They use fewer features per tree', 'They average predictions from many trees, reducing variance', 'They train on less data', 'They have shallower trees'], correctOptionIndex: 1, explanation: 'Ensemble averaging smooths out the high variance of individual deep trees, producing a model that generalises better.' },
-              { question: 'Which activation function is most commonly used in hidden layers of modern deep neural networks?', options: ['Sigmoid', 'Tanh', 'ReLU', 'Softmax'], correctOptionIndex: 2, explanation: 'ReLU avoids the vanishing gradient problem and allows faster training in deep networks compared to sigmoid or tanh.' }
+              { question: 'What range of values does logistic regression predict?', options: ['Any real number', '0 to 1', '-1 to 1', 'Integers only'], correctOptionIndex: 1, explanation: 'Logistic regression outputs probabilities via the sigmoid function, always between 0 and 1.' },
+              { question: 'When is F1-score preferred over accuracy?', options: ['Always', 'When classes are balanced', 'When data is imbalanced', 'For regression tasks'], correctOptionIndex: 2, explanation: 'F1-score balances precision and recall; accuracy is misleading on imbalanced data.' },
+              { question: 'What does the decision boundary in logistic regression represent?', options: ['The training loss', 'The line/hyperplane where P(y=1) = 0.5', 'The error rate', 'Feature scaling range'], correctOptionIndex: 1, explanation: 'The decision boundary is where the model predicts 50% probability for each class.' }
             ]
           },
           {
-            title: '3. Unsupervised Learning, Recommender Systems, and Reinforcement Learning',
-            objective: 'Learn unsupervised techniques for pattern discovery, build personalized recommender systems, and understand the basics of reinforcement learning.',
-            lesson: 'Part 1 - Unsupervised Learning: K-means clustering, hierarchical clustering, anomaly detection, and dimensionality reduction (PCA). Part 2 - Recommender Systems: collaborative filtering (user-based and item-based), content-based filtering, and deep learning for recommendations. Part 3 - Reinforcement Learning: Markov decision processes, Q-learning, and policy gradients; when RL is needed vs. supervised/unsupervised approaches. Part 4 - Ethical Considerations: fairness in clustering, privacy in recommenders, exploration-exploitation tradeoffs.',
-            workedExample: 'Cluster customer segments without labels using K-means; build a movie recommender using collaborative filtering; train a simple RL agent to play a game.',
+            title: '3. Advanced Algorithms: Neural Networks, Trees, and Ensembles',
+            objective: 'Learn more powerful and flexible algorithms beyond linear models.',
+            lesson: 'Part 1 - Neural Networks: Neurons, layers, forward propagation, backpropagation, activation functions (ReLU, sigmoid), and training with TensorFlow/Keras. Part 2 - Tree-Based Methods: Decision trees, how they split on features, preventing overfitting with max_depth. Part 3 - Ensemble Methods: Random forests (bootstrap aggregating), why averaging reduces overfitting, and hyperparameter tuning.',
+            workedExample: 'Build a neural network for digit classification; train a decision tree and random forest on the same data; compare test accuracy and training time.',
             workedExampleSteps: [
-              'Part 1: Use K-means on customer data; evaluate cluster quality with silhouette score; detect outliers.',
-              'Part 2: Implement user-based collaborative filtering; compare with content-based filtering on a rating matrix.',
-              'Part 3: Simulate an RL environment; train a Q-learning agent; visualize learning curve.',
-              'Part 4: Check recommender for bias; discuss fairness-accuracy tradeoff.'
+              'Part 1: Create a shallow neural network with Keras; observe training curves; tune learning rate.',
+              'Part 2: Train a decision tree; visualize splits; experiment with max_depth impact on accuracy.',
+              'Part 3: Train random forest (100 trees); measure improvement vs single tree; measure training time.'
             ],
-            commonMistake: 'Using K-means on high-dimensional data without PCA first; overfitting collaborative filtering to user noise.',
-            practiceTask: 'Cluster a dataset; build a simple recommender (collaborative or content-based); train a basic RL agent. Report clustering silhouette score, recommender RMSE, and RL reward trend.',
-            progressCheckQuestion: 'Which technique is best for finding hidden patterns in unlabeled data?',
-            progressCheckOptions: ['Logistic regression', 'Decision trees', 'K-means clustering or PCA', 'Only neural networks'],
-            correctOptionIndex: 2,
-            progressCheckExplanation: 'Unsupervised learning discovers structure when labels are not available.',
-            colabLink: 'https://colab.research.google.com/github/greyhatguy007/Machine-Learning-Specialization-Coursera/blob/main/C3%20-%20Unsupervised%20Learning%2C%20Recommenders%2C%20Reinforcement%20Learning/Week%201/C3W1A1/C3_W1_KMeans_Assignment.ipynb',
-            labTitle: 'Lab: K-Means Clustering and Anomaly Detection (Week 1)',
-            labInstructions: 'Open the notebook. Apply K-means to cluster a customer dataset. Choose the number of clusters with the elbow method, evaluate quality with the silhouette score, then implement a Gaussian anomaly detector and flag outliers. In a second section, build a simple user-based collaborative filter on a ratings matrix.',
+            commonMistake: 'Using default hyperparameters without tuning; not using cross-validation to select tree depth; treating neural networks as black boxes.',
+            practiceTask: 'On one dataset, build: (1) logistic regression baseline, (2) neural network, (3) random forest. Report test accuracy and training time for each.',
+            progressCheckQuestion: 'Why do random forests reduce overfitting compared to a single decision tree?',
+            progressCheckOptions: ['Smaller trees', 'Averaging predictions from many trees reduces variance', 'Faster training', 'Fewer features'], correctOptionIndex: 1,
+            progressCheckExplanation: 'Ensemble averaging smooths individual tree variance, producing better generalization.',
+            colabLink: 'https://colab.research.google.com/github/greyhatguy007/Machine-Learning-Specialization-Coursera/blob/main/C2%20-%20Advanced%20Learning%20Algorithms/Week%201/C2W1A1/C2_W1_Assignment.ipynb',
+            labTitle: 'Lab: Neural Networks and Tree Ensembles (Week 3)',
+            labInstructions: 'Open the notebook. Load a classification dataset. (1) Build a 2-3 layer neural network with Keras; train and plot loss curves. (2) Train a decision tree and visualize splits; test different max_depth values. (3) Train a random forest (100 trees) and compare test accuracy vs decision tree. Report test accuracy, F1-score, and training time for each model.',
             quizQuestions: [
-              { question: 'What does the silhouette score measure in a clustering result?', options: ['Number of clusters chosen', 'How similar each point is to its own cluster versus neighbouring clusters', 'Training accuracy of the model', 'Distance from each point to the global centroid'], correctOptionIndex: 1, explanation: 'Silhouette scores range from -1 to 1; values close to 1 indicate tight, well-separated clusters.' },
-              { question: 'In collaborative filtering, what is the primary input used to generate recommendations?', options: ['Product description text', 'User-item interaction history such as ratings', 'Image features of items', 'Only user demographic data'], correctOptionIndex: 1, explanation: 'Collaborative filtering learns from patterns of who liked what, finding users or items with similar interaction histories.' },
-              { question: 'What is PCA primarily used for in machine learning?', options: ['Classification of labelled data', 'Dimensionality reduction while preserving maximum variance', 'Generating synthetic training samples', 'Detecting anomalies in time-series data'], correctOptionIndex: 1, explanation: 'PCA projects data onto the directions of greatest variance, reducing feature count while retaining the most information.' }
+              { question: 'What does backpropagation compute in a neural network?', options: ['Predictions', 'Gradients for weight updates', 'The number of layers', 'Learning rate'], correctOptionIndex: 1, explanation: 'Backpropagation applies the chain rule to compute gradients layer-by-layer for gradient descent.' },
+              { question: 'What is the main purpose of ReLU activation in hidden layers?', options: ['Squash to [0,1]', 'Avoid vanishing gradients and enable faster training', 'Make predictions', 'Scale features'], correctOptionIndex: 1, explanation: 'ReLU (max(0,x)) has non-zero gradient almost everywhere, avoiding the vanishing gradient problem.' },
+              { question: 'How does max_depth affect decision tree overfitting?', options: ['Deeper trees always generalize better', 'Shallower trees reduce overfitting; too deep trees memorize noise', 'Depth has no effect', 'Only max_depth=5 works'], correctOptionIndex: 1, explanation: 'Limiting tree depth prevents the tree from fitting training noise too closely.' }
             ]
           },
+          {
+            title: '4. Unsupervised Learning, Recommenders, and Reinforcement Learning',
+            objective: 'Discover patterns without labels; build recommendation systems; introduce RL.',
+            lesson: 'Part 1 - Unsupervised Learning: K-means clustering (initialization, iterations, elbow method), anomaly detection using Gaussian modeling. Part 2 - Recommender Systems: Collaborative filtering (user-based and item-based), rating matrices, and how to handle new users. Part 3 - Introduction to Reinforcement Learning: Markov decision processes, Q-learning basics, exploration vs exploitation.',
+            workedExample: 'Cluster customer segments using K-means; build a simple movie recommender using collaborative filtering; implement a basic Q-learning agent in a grid environment.',
+            workedExampleSteps: [
+              'Part 1: Apply K-means to customer data; use elbow method to choose K; evaluate silhouette score.',
+              'Part 2: Build user-based collaborative filter on a movie rating matrix; compute recommendations.',
+              'Part 3: Simulate a simple environment; train Q-learning agent; plot learning curve (reward over episodes).'
+            ],
+            commonMistake: 'Not scaling data before K-means; treating all users equally in recommendations (ignoring cold start); not distinguishing exploration from exploitation in RL.',
+            practiceTask: 'Cluster a dataset; build a recommender; train a basic RL agent. Report silhouette score, recommender RMSE, and RL reward trend.',
+            progressCheckQuestion: 'What does the silhouette score measure?',
+            progressCheckOptions: ['Number of clusters', 'How well-separated and dense clusters are', 'Training time', 'Model accuracy'], correctOptionIndex: 1,
+            progressCheckExplanation: 'Silhouette score ranges from -1 to 1; values close to 1 indicate tight, well-separated clusters.',
+            colabLink: 'https://colab.research.google.com/github/greyhatguy007/Machine-Learning-Specialization-Coursera/blob/main/C3%20-%20Unsupervised%20Learning%2C%20Recommenders%2C%20Reinforcement%20Learning/Week%201/C3W1A1/C3_W1_KMeans_Assignment.ipynb',
+            labTitle: 'Lab: K-Means and Collaborative Filtering (Week 4)',
+            labInstructions: 'Open the notebook. (1) Apply K-means to a dataset; use the elbow method to select optimal K; compute silhouette score and plot clusters. (2) Implement user-based collaborative filtering on a rating matrix; generate predictions for a held-out user. (3) Implement a simple anomaly detector using Gaussian model; identify outliers.',
+            quizQuestions: [
+              { question: 'What is the main challenge in collaborative filtering?', options: ['Too many features', 'Cold start: new users/items have no history', 'Always overfits', 'Requires labels'], correctOptionIndex: 1, explanation: 'New users/items lack rating history, making recommendations difficult without hybrid approaches.' },
+              { question: 'In Q-learning, what does the exploration-exploitation tradeoff mean?', options: ['Train vs test split', 'Balancing new actions (explore) vs known good actions (exploit)', 'Choosing hyperparameters', 'Feature selection'], correctOptionIndex: 1, explanation: 'Agents must balance trying new strategies (exploration) with repeating successful ones (exploitation).' },
+              { question: 'Which metric is most useful for evaluating K-means clustering quality?', options: ['Accuracy', 'Silhouette score or elbow method', 'Precision/recall', 'R-squared'], correctOptionIndex: 1, explanation: 'Silhouette score and elbow method are standard for assessing unsupervised clustering.' }
+            ]
           }
         ],
         finalAssessment: [
-          { question: 'What is the primary risk of using accuracy as the only metric for an imbalanced classification dataset?', options: ['Accuracy is always perfect', 'It hides poor performance on minority class', 'It requires more data', 'It slows down training'], correctOptionIndex: 1, explanation: 'On imbalanced data, high accuracy can mask poor minority class recall.' },
-          { question: 'When building a regression model, which split ratio is most commonly used?', options: ['50/50 train/test', '80/10/10 train/val/test', '90/5/5 train/val/test', 'No split needed'], correctOptionIndex: 1, explanation: 'Standard practice is 80% train, 10% validation, 10% test.' },
-          { question: 'Compared to a single decision tree, why do random forests reduce overfitting?', options: ['Trees are smaller', 'Averaging multiple trees reduces variance', 'Faster computation', 'Only fewer parameters'], correctOptionIndex: 1, explanation: 'Ensemble averaging reduces overfitting compared to single models.' },
-          { question: 'What is the main advantage of K-means clustering over hierarchical clustering?', options: ['Better accuracy', 'Faster for large datasets', 'No distance metric needed', 'Only works on images'], correctOptionIndex: 1, explanation: 'K-means is computationally efficient for large data.' },
-          { question: 'Which technique most directly addresses data leakage in preprocessing?', options: ['Increasing batch size', 'Fitting scaler on train set only before splitting', 'Using more features', 'Removing outliers manually'], correctOptionIndex: 1, explanation: 'Fit preprocessing on train data only to prevent test info leaking into training.' },
-          { question: 'What is the primary purpose of cross-validation?', options: ['To make training faster', 'To estimate model performance on unseen data using different train/val splits', 'To avoid using a test set', 'Only for neural networks'], correctOptionIndex: 1, explanation: 'Cross-validation provides robust generalization estimates.' }
+          { question: 'Why do we use a validation set separate from the test set?', options: ['To make training faster', 'To tune hyperparameters without touching the held-out test set', 'To increase model accuracy', 'No real reason'], correctOptionIndex: 1, explanation: 'Validation sets let us evaluate generalization during training; test sets should only be touched for final evaluation.' },
+          { question: 'What is the cost function (MSE) in linear regression measuring?', options: ['Model complexity', 'Average squared error between predictions and actual values', 'Number of features', 'Learning rate'], correctOptionIndex: 1, explanation: 'MSE quantifies how far predictions deviate from true values; minimizing it is the goal of training.' },
+          { question: 'When is F1-score preferred over accuracy for classification?', options: ['Always', 'When classes are balanced', 'When data is imbalanced or one class matters more', 'For regression only'], correctOptionIndex: 2, explanation: 'F1-score balances precision and recall; on imbalanced data, accuracy alone is misleading.' },
+          { question: 'What does the sigmoid function do in logistic regression?', options: ['Compute gradients', 'Map predictions to probabilities between 0 and 1', 'Scale input features', 'Split train/test'], correctOptionIndex: 1, explanation: 'Sigmoid squashes any input to [0,1], making it ideal for binary classification probabilities.' },
+          { question: 'Why do random forests reduce overfitting compared to a single decision tree?', options: ['Faster training', 'Averaging many trees reduces variance', 'Simpler to interpret', 'Uses fewer features'], correctOptionIndex: 1, explanation: 'Ensemble averaging smooths individual tree variance, producing better generalization on new data.' },
+          { question: 'What is a key advantage of ReLU activation over sigmoid in neural networks?', options: ['Always reaches [0,1]', 'Avoids vanishing gradients, enabling faster training', 'Smaller parameter count', 'Better for regression'], correctOptionIndex: 1, explanation: 'ReLU has non-zero gradient almost everywhere; sigmoid vanishes for extreme inputs, slowing learning.' },
+          { question: 'In K-means clustering, what does the silhouette score measure?', options: ['Number of clusters to use', 'How well-separated and compact clusters are', 'Training time', 'Model accuracy'], correctOptionIndex: 1, explanation: 'Silhouette scores from -1 to 1; values near 1 indicate tight, well-separated clusters.' },
+          { question: 'What is the cold start problem in collaborative filtering?', options: ['Too many users', 'New users/items lack interaction history', 'Too many features', 'Requires too much computation'], correctOptionIndex: 1, explanation: 'New users/items have no rating history, making recommendations difficult; hybrid approaches can help.' }
         ],
         interviewPrep: [
-          'Walk through a real end-to-end ML project: problem definition, data preprocessing, model selection, and evaluation.',
-          'Explain when to use supervised vs unsupervised learning and justify the choice for a given business problem.',
-          'Describe the bias-variance tradeoff and how you would adjust model complexity.',
-          'Compare three different algorithms (e.g., logistic regression, random forest, neural network) on the same dataset and justify model choice.',
-          'Discuss how you would detect and address data leakage in a preprocessing pipeline.',
-          'Walk through a recommender system project: data, collaborative filtering method, and evaluation on rating predictions.'
+          'Build a linear regression model: explain train/val/test split, cost function, gradient descent, and how to detect overfitting.',
+          'Compare logistic regression vs linear regression: explain decision boundaries, sigmoid, and classification metrics (precision, recall, F1).',
+          'Walk through a neural network: forward propagation, backpropagation, activation functions (ReLU vs sigmoid), and why ensembles reduce overfitting.',
+          'Explain when to use supervised vs unsupervised learning; describe K-means clustering, collaborative filtering, and basic reinforcement learning.',
+          'Describe how to detect and prevent data leakage; explain feature scaling, train/val/test split, and why validation is separate from testing.',
+          'Given a business problem, propose an algorithm: justify choice of regression vs classification vs clustering; explain trade-offs (accuracy vs interpretability vs speed).'
         ]
       });
     }
