@@ -749,8 +749,11 @@ document.addEventListener('DOMContentLoaded', function () {
     if (/[@\d]/.test(value)) return false;
     if (/https?:\/\/|www\.|linkedin\.com/i.test(value)) return false;
     if (/^(phone|email|location|contact|profile|summary|experience|education|skills|awards|certifications|projects)\b/i.test(value)) return false;
-    if (value.split(/\s+/).length > 5) return false;
-    return /^[A-Za-z][A-Za-z\s'.-]+$/.test(value);
+    // Strip credential suffixes like R.T.(R), ARRT, CPA before word-count check
+    const nameCore = value.split(',')[0].replace(/[()®™\[\]]/g, ' ').replace(/\s+/g, ' ').trim();
+    if (nameCore.split(/\s+/).length > 6) return false;
+    // Allow credential chars: parentheses, commas, registered marks
+    return /^[A-Za-z][A-Za-z\s'.,()\-®™]+$/.test(value);
   }
 
   function findNameInLines(lines) {
@@ -770,7 +773,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function hasDateRangeToken(value) {
     const text = String(value || '');
-    return /\b\d{1,2}\/\d{3,4}\b/.test(text) || /\b(present|current|in progress)\b/i.test(text);
+    // Matches: 1/2023, 11/2023, 2015, 2015-2022, 2015 – Present, Jan 2021 – Nov 2023, Present/Current/Now
+    return /\b\d{1,2}\/\d{3,4}\b/.test(text)
+      || /\b(present|current|in progress|now)\b/i.test(text)
+      || /\b\d{4}\s*[-–]\s*(\d{4}|present|current|now)\b/i.test(text)
+      || /\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\b[^,\n]*\d{4}/i.test(text);
   }
 
   function isLikelyContactLocationLine(value) {
@@ -831,9 +838,9 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // Parses experience entries from resume body where there is NO explicit "EXPERIENCE"
-  // section heading — handles "Company Name   2015-2022" style lines.
+  // section heading — handles "Company Name   2015-2022", "Company   Jan 2020 – Present", etc.
   function parseExperienceEntriesFromBody(lines) {
-    const companyDateRx = /^(.+?)\s{2,}(\d{1,2}\/\d{2,4}|\d{4})\s*(?:[-–]\s*(?:\d{1,2}\/\d{2,4}|\d{4}|Present|Current|Now))?$/i;
+    const companyDateRx = /^(.+?)\s{2,}((?:\d{1,2}\/\d{2,4}|\d{4}|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*\s+\d{4})\s*(?:[-–to]+\s*(?:\d{1,2}\/\d{2,4}|\d{4}|present|current|now))?)$/i;
     const sectionBoundaryRx = /^(education|skills|core skills|certification|certifications|profile|summary|awards|projects)\b/i;
 
     const entries = [];
@@ -1183,11 +1190,14 @@ document.addEventListener('DOMContentLoaded', function () {
       let key = line.replace(/[:\-]/g, '').trim().toUpperCase();
       // Strip common prefixes from section headers (e.g., "CORE SKILLS" → "SKILLS")
       key = key.replace(/^(CORE|PROFESSIONAL|MY|PRIMARY|ADDITIONAL|KEY)\s+/, '');
-      // Strip trailing inline content like dates on same line as heading
-      // e.g. "SUMMARY  11/2023-Present" → "SUMMARY"
-      key = key.replace(/\s{2,}[\d\s/\\,()@#!?]+.*$/, '').trim();
+      // Strip trailing inline dates from section headers (1+ spaces before date)
+      // Handles: "SUMMARY  11/2023-Present", "SUMMARY 2015-2022", "EXPERIENCE 01/2020"
+      key = key.replace(/\s+((?:\d{1,2}\/|\d{4})\S*).*$/, '').trim();
       // Alias SUMMARY → PROFILE (some resumes use "Summary" instead of "Profile")
       if (key === 'SUMMARY') key = 'PROFILE';
+      // Alias WORK → EXPERIENCE for "WORK HISTORY"/"WORK EXPERIENCE" variants
+      if (key === 'WORK') key = 'EXPERIENCE';
+      if (key === 'HISTORY') key = 'EXPERIENCE';
       if (Object.prototype.hasOwnProperty.call(sectionIndex, key)) sectionIndex[key] = idx;
     });
 
@@ -1219,8 +1229,8 @@ document.addEventListener('DOMContentLoaded', function () {
       structured.fullName = cleanCandidateName(parsedName);
     }
 
-    // Regex that matches "Company Name   1/2021-11/2023" or "Company Name   2015-2022" style lines
-    const companyDateLineRx = /^(.+?)\s{2,}(\d{1,2}\/\d{2,4}|\d{4})\s*(?:[-–]\s*(?:\d{1,2}\/\d{2,4}|\d{4}|Present|Current|Now))?$/i;
+    // Matches lines like: "Company  1/2021-11/2023", "Company  2015-2022", "Company  Jan 2020 – Present"
+    const companyDateLineRx = /^(.+?)\s{2,}((?:\d{1,2}\/\d{2,4}|\d{4}|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*\s+\d{4})\s*(?:[-–to]+\s*(?:\d{1,2}\/\d{2,4}|\d{4}|present|current|now))?)$/i;
 
     const rawProfileLines = between(sectionIndex.PROFILE, nextSectionStart('PROFILE'));
 

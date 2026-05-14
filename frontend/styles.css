@@ -1422,9 +1422,7 @@ body.rr-theme-jm main.home-red-hint .marketing-card {
     grid-template-columns: 1fr;
   }
 
-  .features-page-grid {
-    grid-template-columns: 1fr;
-  }
+  /* features-page-grid collapses at 820px via features.html inline style — intentionally kept 2-col on iPad landscape */
 }
 
 .dashboard-resume-library {
