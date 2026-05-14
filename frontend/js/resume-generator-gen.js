@@ -427,7 +427,10 @@ document.addEventListener('DOMContentLoaded', function () {
         .split("'")
         .map((piece) => {
           if (!piece) return piece;
-          if (/^[A-Z]{2,3}$/.test(piece)) return piece;
+          // Preserve all-caps abbreviations (e.g. MBA, RN, ARRT)
+          if (/^[A-Z]{2,6}$/.test(piece)) return piece;
+          // Preserve credential/abbreviation tokens that contain dots or parentheses (e.g. R.T.(R), Ph.D., (ARRT))
+          if (/[.(]/.test(piece) || /^\(/.test(piece)) return piece;
           return piece.charAt(0).toUpperCase() + piece.slice(1).toLowerCase();
         })
         .join("'"))
@@ -1053,7 +1056,7 @@ document.addEventListener('DOMContentLoaded', function () {
       /^experience$/i,
       /^contact$/i,
       /^profile$/i,
-      /^manage|coordinate|maintain|create|lead|develop|implement/i
+      /^(manage|coordinate|maintain|create|lead|develop|implement)/i
     ].some((pattern) => pattern.test(normalized));
   }
 
@@ -2400,9 +2403,20 @@ document.addEventListener('DOMContentLoaded', function () {
           : parsedBaseline.skills;
         structured.experiences = mergeExperienceEntries(parsedBaseline.experiences, structured.experiences);
         structured.profile = sanitizeProfileText(parsedBaseline.profile || structured.profile);
-        structured.skills = (baselineSkills && baselineSkills.length)
-          ? baselineSkills.slice()
-          : mergeUniqueLines(parsedBaseline.skills, structured.skills);
+        if (baselineSkills && baselineSkills.length) {
+          structured.skills = filterAndCleanSkills(baselineSkills);
+        } else {
+          // No explicit SKILLS section — mine skills from experience bullets in the original resume
+          const bulletSkillCandidates = (parsedBaseline.experiences || [])
+            .flatMap((exp) => (exp.bullets || []))
+            .flatMap((bullet) => bullet.split(/[,;•]/))
+            .map((s) => s.trim())
+            .filter(Boolean);
+          const minedSkills = filterAndCleanSkills(bulletSkillCandidates);
+          // Also filter the AI-generated skills as a fallback
+          const aiSkills = filterAndCleanSkills(structured.skills || []);
+          structured.skills = minedSkills.length ? minedSkills : aiSkills;
+        }
         structured.education = mergeUniqueLines(structured.education, parsedBaseline.education);
         structured.awards = mergeUniqueLines(structured.awards, parsedBaseline.awards);
       }
