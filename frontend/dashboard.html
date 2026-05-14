@@ -72,7 +72,7 @@
       position: absolute;
       inset: 0 0 auto;
       height: 4px;
-      background: linear-gradient(90deg, #2563eb 0%, #38bdf8 48%, #bf0a30 82%, #facc15 100%);
+      background: linear-gradient(90deg, var(--rr-exp-primary) 0%, var(--rr-exp-accent) 48%, var(--rr-exp-accent) 82%, var(--rr-exp-accent) 100%);
     }
     .rr-shot-header h2 {
       margin: 0;
@@ -199,9 +199,9 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      border: 1px solid rgba(254, 202, 202, .75);
+      border: 1px solid rgba(var(--rr-exp-accent-rgb, 252, 165, 165), .75);
       color: #0f172a;
-      background: linear-gradient(180deg, #fda4af 0%, #fecaca 100%);
+      background: linear-gradient(180deg, var(--rr-exp-accent) 0%, var(--rr-exp-accent) 100%);
       padding: 7px 14px;
       border-radius: 9px;
       font-weight: 800;
@@ -210,6 +210,7 @@
       text-decoration: none;
       white-space: nowrap;
       align-self: center;
+      opacity: 0.95;
     }
     .rr-shot-ats-wrap { text-align: center; }
     .rr-shot-ats-ring {
@@ -217,7 +218,7 @@
       height: 220px;
       margin: 6px auto 12px;
       border-radius: 50%;
-      background: conic-gradient(#f87171 0 var(--rr-ats-angle, 338deg), rgba(30, 41, 59, .45) var(--rr-ats-angle, 338deg) 360deg);
+      background: conic-gradient(var(--rr-exp-accent) 0 var(--rr-ats-angle, 338deg), rgba(30, 41, 59, .45) var(--rr-ats-angle, 338deg) 360deg);
       display: grid;
       place-items: center;
       position: relative;
@@ -232,7 +233,7 @@
     }
     .rr-shot-ats-core { position: relative; z-index: 1; }
     .rr-shot-ats-score { font-size: 3rem; font-weight: 900; line-height: 1; color: #f8fafc; }
-    .rr-shot-ats-grade { font-size: 1.5rem; font-weight: 800; color: #fda4af; margin-top: 6px; }
+    .rr-shot-ats-grade { font-size: 1.5rem; font-weight: 800; color: var(--rr-exp-accent); margin-top: 6px; }
     .rr-shot-ats-msg { color: #bfdbfe; font-size: 1.02rem; margin: 4px 0 16px; }
     .rr-shot-btn {
       display: inline-flex;
@@ -241,11 +242,12 @@
       min-width: 180px;
       padding: 11px 16px;
       border-radius: 10px;
-      border: 1px solid rgba(254, 202, 202, .75);
+      border: 1px solid rgba(var(--rr-exp-accent-rgb, 252, 165, 165), .75);
       color: #0f172a;
       text-decoration: none;
-      background: linear-gradient(180deg, #fda4af 0%, #fecaca 100%);
+      background: var(--rr-exp-accent);
       font-weight: 800;
+      opacity: 0.95;
     }
     .rr-shot-tools {
       margin-top: 16px;
