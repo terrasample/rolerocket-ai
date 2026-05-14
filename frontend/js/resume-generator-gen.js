@@ -1353,6 +1353,22 @@ document.addEventListener('DOMContentLoaded', function () {
     return merged;
   }
 
+  function extractInlineSkillsFromResumeText(sourceText) {
+    const text = String(sourceText || '').replace(/\r/g, ' ');
+    if (!text.trim()) return [];
+
+    const sectionMatch = text.match(/\bSKILLS?\b\s*[:\-]?\s*([\s\S]*?)(?=\b(?:EXPERIENCE|EDUCATION|CERTIFICATION|CERTIFICATIONS|AWARDS|PROJECTS|PROFILE|SUMMARY)\b|$)/i);
+    const sectionText = sectionMatch ? sectionMatch[1] : '';
+    if (!sectionText.trim()) return [];
+
+    return sectionText
+      .split(/[,|•\n]/)
+      .map((item) => normalizeBulletText(item))
+      .filter(Boolean)
+      .filter((item) => item.length > 1)
+      .slice(0, 12);
+  }
+
   function isEducationInstitutionLine(line) {
     const value = normalizeBulletText(line);
     if (!value) return false;
@@ -2155,11 +2171,20 @@ document.addEventListener('DOMContentLoaded', function () {
       const alignmentContext = withLearningContext(jobDescription);
       const parsed = parseResume(raw, extractContactInfo(baseResume), baseResume);
       const structured = baseResume
-        ? alignResumeToJobDescription(parsed, alignmentContext, baseResume)
-        : parsed;
+        ? parsed
+        : alignResumeToJobDescription(parsed, alignmentContext, baseResume);
 
       if (baseResume) {
         const parsedBaseline = parseResume(baseResume, extractContactInfo(baseResume), baseResume);
+        const inlineBaselineSkills = extractInlineSkillsFromResumeText(baseResume);
+        const baselineSkills = inlineBaselineSkills.length
+          ? inlineBaselineSkills
+          : parsedBaseline.skills;
+        structured.experiences = mergeExperienceEntries(parsedBaseline.experiences, structured.experiences);
+        structured.profile = sanitizeProfileText(parsedBaseline.profile || structured.profile);
+        structured.skills = (baselineSkills && baselineSkills.length)
+          ? baselineSkills.slice()
+          : mergeUniqueLines(parsedBaseline.skills, structured.skills);
         structured.education = mergeUniqueLines(structured.education, parsedBaseline.education);
         structured.awards = mergeUniqueLines(structured.awards, parsedBaseline.awards);
       }
@@ -2208,16 +2233,14 @@ document.addEventListener('DOMContentLoaded', function () {
       fullJobDescription ? 'Full Job Description:' : '',
       fullJobDescription
     ].filter(Boolean).join('\n');
-    const alignmentContext = withLearningContext(jobDescription);
-    
-    // Parse the resume to extract all sections
-    const parsed = alignResumeToJobDescription(parseResume(resumeText, {
+    // Parse the resume to extract all sections. Preview should preserve source content.
+    const parsed = parseResume(resumeText, {
       fullName: '',
       phone: '',
       email: '',
       location: '',
       linkedin: ''
-    }, resumeText), alignmentContext, resumeText);
+    }, resumeText);
 
     parsed.education = formatEducationEntries(parsed.education);
     parsed.profile = sanitizeProfileText(parsed.profile);
