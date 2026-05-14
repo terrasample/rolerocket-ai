@@ -74,7 +74,6 @@ const UserCredentialSchema = new mongoose.Schema(
 );
 
 UserCredentialSchema.index({ userId: 1, credentialType: 1, verificationStatus: 1 });
-UserCredentialSchema.index({ verificationCode: 1 });
 UserCredentialSchema.index({ verifiedAt: 1 });
 
 module.exports = mongoose.model('UserCredential', UserCredentialSchema);

@@ -8,7 +8,7 @@ const CourseLearningSessionSchema = new mongoose.Schema(
     contentFingerprint: { type: String, required: true, trim: true, index: true },
     sessionToken: { type: String, required: true, trim: true, index: true },
     answers: { type: [mongoose.Schema.Types.Mixed], default: [] },
-    expiresAt: { type: Date, required: true, index: true }
+    expiresAt: { type: Date, required: true }
   },
   { timestamps: true }
 );

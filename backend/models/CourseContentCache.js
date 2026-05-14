@@ -6,7 +6,7 @@ const CourseContentCacheSchema = new mongoose.Schema(
     courseTitle: { type: String, required: true, trim: true },
     contentFingerprint: { type: String, required: true, trim: true, index: true },
     coursePayload: { type: mongoose.Schema.Types.Mixed, required: true },
-    expiresAt: { type: Date, required: true, index: true }
+    expiresAt: { type: Date, required: true }
   },
   { timestamps: true }
 );
