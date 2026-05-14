@@ -40,7 +40,18 @@
   }
 
   function resolveThemeCountry(countryCode) {
+    // 1. Check localStorage for user preference (HIGHEST PRIORITY - immutable once set)
+    try {
+      const stored = localStorage.getItem(LOCAL_EXP_KEY);
+      if (stored && (stored === 'US' || stored === 'JM' || stored === 'GLOBAL')) {
+        return stored;
+      }
+    } catch (_) {}
+
+    // 2. If on Jamaica page, force Jamaica theme (page-aware priority)
     if (isJamaicaExperiencePage()) return 'JM';
+    
+    // 3. Use provided code, fallback to GLOBAL
     return normalizeCountryCode(countryCode);
   }
 
@@ -157,7 +168,7 @@
     const style = document.createElement('style');
     style.id = 'rrNavExpThemeStyle';
     style.textContent = [
-      ':root{--rr-exp-primary:#F97316;--rr-exp-accent:#0EA5E9;--rr-exp-dark:#0F172A;--rr-exp-border:rgba(249,115,22,.40);--rr-exp-bg:rgba(249,115,22,.12);}',
+      ':root{--rr-exp-primary:#3B82F6;--rr-exp-accent:#06B6D4;--rr-exp-dark:#1E3A8A;--rr-exp-border:rgba(59,130,246,.40);--rr-exp-bg:rgba(59,130,246,.12);}',
       '.business-bar{border-bottom:1px solid var(--rr-exp-border) !important;box-shadow:0 8px 24px var(--rr-exp-bg) !important;}',
       '.sidebar-link-btn.active{background:linear-gradient(180deg,var(--rr-exp-primary),var(--rr-exp-dark)) !important;border-color:var(--rr-exp-primary) !important;color:#fff !important;}',
       '.sidebar-link-btn:hover{border-color:var(--rr-exp-primary) !important;box-shadow:0 0 0 1px var(--rr-exp-border) inset;}',
@@ -194,11 +205,11 @@
         bg: 'rgba(255,255,255,.16)'
       },
       GLOBAL: {
-        primary: '#F97316',
-        accent: '#0EA5E9',
-        dark: '#0F172A',
-        border: 'rgba(249,115,22,.40)',
-        bg: 'rgba(249,115,22,.12)'
+        primary: '#3B82F6',
+        accent: '#06B6D4',
+        dark: '#1E3A8A',
+        border: 'rgba(59,130,246,.40)',
+        bg: 'rgba(59,130,246,.12)'
       }
     };
     const theme = themes[code] || themes.GLOBAL;

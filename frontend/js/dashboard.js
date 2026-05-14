@@ -14,8 +14,38 @@ if (!token && !demoMode) {
 
 // ─── RoleRocket Dashboard (Personalized) ─────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
+    // Normalize country code
+    function normalizeCountryCode(value) {
+      const code = String(value || '').trim().toUpperCase();
+      if (code === 'GLOBAL' || code === 'JM' || code === 'US') return code;
+      return 'GLOBAL';
+    }
+
+    // Detect Jamaica experience pages
+    function isJamaicaExperiencePage() {
+      const page = String(window.location.pathname || '').split('/').pop().toLowerCase();
+      return page === 'jamaica-workforce-accelerator.html' || page === 'nav-flow-mock-jamaica.html';
+    }
+
+    // Resolve theme country with page-aware awareness and immutability
+    function resolveThemeCountry(countryCode) {
+      // Check if user explicitly set an experience (user preference takes priority)
+      try {
+        const stored = localStorage.getItem('rr_exp_country_local_v1');
+        if (stored && (stored === 'US' || stored === 'JM' || stored === 'GLOBAL')) {
+          return stored;
+        }
+      } catch (_) {}
+
+      // If on Jamaica page, force Jamaica theme
+      if (isJamaicaExperiencePage()) return 'JM';
+      
+      return normalizeCountryCode(countryCode);
+    }
+
+    // Apply experience theme class immutably
     function applyExperienceThemeClass(countryCode) {
-      const normalized = String(countryCode || 'GLOBAL').toUpperCase();
+      const resolved = resolveThemeCountry(countryCode);
       const root = document.documentElement;
       const body = document.body;
       const classes = ['rr-theme-us', 'rr-theme-jm', 'rr-theme-global'];
@@ -25,14 +55,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (body) body.classList.remove(name);
       });
 
-      const nextClass = normalized === 'US'
+      const nextClass = resolved === 'US'
         ? 'rr-theme-us'
-        : (normalized === 'JM' ? 'rr-theme-jm' : 'rr-theme-global');
+        : (resolved === 'JM' ? 'rr-theme-jm' : 'rr-theme-global');
       if (root) root.classList.add(nextClass);
       if (body) body.classList.add(nextClass);
     }
 
+    // Ensure theme is applied and locked
     async function ensureGlobalThemeClass() {
+      // First, check localStorage for explicit user preference
+      try {
+        const stored = localStorage.getItem('rr_exp_country_local_v1');
+        if (stored && (stored === 'US' || stored === 'JM' || stored === 'GLOBAL')) {
+          applyExperienceThemeClass(stored);
+          return;
+        }
+      } catch (_) {}
+
+      // Then check window context
       const seeded =
         (window.__rrPersonalization && window.__rrPersonalization.effectiveCountry) ||
         window.__rrExperienceCountry ||

@@ -17,7 +17,18 @@
   }
 
   function resolveThemeCountry(countryCode) {
+    // 1. Check localStorage for user preference (HIGHEST PRIORITY - immutable once set)
+    try {
+      const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (stored && (stored === 'US' || stored === 'JM' || stored === 'GLOBAL')) {
+        return stored;
+      }
+    } catch (_) {}
+
+    // 2. If on Jamaica page, force Jamaica theme (page-aware priority)
     if (isJamaicaExperiencePage()) return 'JM';
+    
+    // 3. Use provided code, fallback to GLOBAL
     return normalizeCountryCode(countryCode);
   }
 
@@ -439,11 +450,11 @@
         label: '🇺🇸'
       },
       GLOBAL: {
-        primary: '#F97316',
-        accent: '#0EA5E9',
-        dark: '#7C2D12',
-        border: 'rgba(249, 115, 22, 0.4)',
-        bg: 'rgba(249, 115, 22, 0.12)',
+        primary: '#3B82F6',
+        accent: '#06B6D4',
+        dark: '#1E3A8A',
+        border: 'rgba(59, 130, 246, 0.4)',
+        bg: 'rgba(59, 130, 246, 0.08)',
         label: '🌍'
       }
     };
