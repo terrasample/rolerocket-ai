@@ -68,7 +68,9 @@ async function requestDisplayAudioStream(audioConstraints) {
   let lastError = null;
   for (const constraints of attempts) {
     try {
-      return await navigator.mediaDevices.getDisplayMedia(constraints);
+      // Call getDisplayMedia directly - do not wrap in async/await
+      const promise = navigator.mediaDevices.getDisplayMedia(constraints);
+      return await promise;
     } catch (err) {
       lastError = err;
       if (isPermissionDeniedError(err)) {
@@ -328,7 +330,14 @@ async function startSharedAudioCapture(handlers = {}) {
     autoGainControl: false
   };
 
-  captureStream = await requestDisplayAudioStream(audioConstraints);
+  // Capture the user gesture immediately by calling getDisplayMedia synchronously
+  // Must not be inside any await chain to maintain gesture context
+  try {
+    captureStream = await requestDisplayAudioStream(audioConstraints);
+  } catch (err) {
+    if (typeof handlers.onError === 'function') handlers.onError(err);
+    throw err;
+  }
 
   let activeStream = captureStream;
   let recordSourceStream = null;

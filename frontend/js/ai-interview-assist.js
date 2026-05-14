@@ -562,10 +562,8 @@ document.addEventListener('DOMContentLoaded', () => {
       setLiveButtons(true);
       setLiveStatus('Choose the interview tab or audio source and enable Share audio.', '#0f766e');
 
-      // Call getDisplayMedia first so the user gesture activation is not consumed
-      // by SpeechRecognition.start() beforehand — some browsers reject getDisplayMedia
-      // if another privileged API was already called in the same gesture chain.
-      await window.AIInterviewAudio.startSharedAudioCapture({
+      // Start the async capture flow - getDisplayMedia will be called from this handler
+      window.AIInterviewAudio.startSharedAudioCapture({
         onChunk(blob) {
           queueLiveTranscription(blob);
         },
@@ -586,7 +584,7 @@ document.addEventListener('DOMContentLoaded', () => {
           } else if (state === 'shared-audio-active') {
             setLiveStatus('Shared recruiter audio detected. Listening now...', '#0f766e');
           } else if (state === 'fallback-mic') {
-            setLiveStatus('Shared audio was unavailable. Switched to microphone listening.', '#b45309');
+            setLiveStatus('Switched to microphone listening (shared audio unavailable).', '#b45309');
           } else if (state === 'listening') {
             setLiveStatus('Listening to shared interview audio...', '#0f766e');
           } else if (state === 'listening-mixed') {
@@ -597,29 +595,33 @@ document.addEventListener('DOMContentLoaded', () => {
             stopLiveListening();
           }
         }
-      });
-
-      // Start browser speech recognition AFTER getDisplayMedia has been granted,
-      // so its user-gesture requirement does not interfere with the display-media picker.
-      if (window.AIInterviewAudio?.startLiveQuestionCapture) {
-        try {
-          window.AIInterviewAudio.startLiveQuestionCapture({
-            onInterim(text) {
-              if (!liveListenerEnabled || !text) return;
-              appendTranscriptForDetection(text);
-            },
-            onFinal(text) {
-              if (!liveListenerEnabled || !text) return;
-              appendTranscriptForDetection(text);
-            },
-            onError() {
-              // Ignore browser recognition errors — shared audio capture is still running.
-            }
-          });
-        } catch {
-          // Ignore unsupported/permission errors.
+      }).then(() => {
+        // Start browser speech recognition AFTER getDisplayMedia has been granted,
+        // so its user-gesture requirement does not interfere with the display-media picker.
+        if (window.AIInterviewAudio?.startLiveQuestionCapture) {
+          try {
+            window.AIInterviewAudio.startLiveQuestionCapture({
+              onInterim(text) {
+                if (!liveListenerEnabled || !text) return;
+                appendTranscriptForDetection(text);
+              },
+              onFinal(text) {
+                if (!liveListenerEnabled || !text) return;
+                appendTranscriptForDetection(text);
+              },
+              onError() {
+                // Ignore browser recognition errors — shared audio capture is still running.
+              }
+            });
+          } catch {
+            // Ignore unsupported/permission errors.
+          }
         }
-      }
+      }).catch((err) => {
+        liveListenerEnabled = false;
+        setLiveButtons(false);
+        setLiveStatus(`Could not start live listening: ${err.message || err}`, '#dc2626');
+      });
     } catch (err) {
       liveListenerEnabled = false;
       setLiveButtons(false);
