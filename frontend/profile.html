@@ -13,24 +13,35 @@
       background: linear-gradient(180deg, #0b1d3f 0%, #102a58 56%, #173a73 100%) !important;
     }
     .hero {
-      display: block !important;
-      background: linear-gradient(135deg, var(--rr-exp-dark, #082f49) 0%, #0f172a 48%, var(--rr-exp-primary, #0c4a6e) 100%) !important;
-      border-bottom: 1px solid var(--rr-exp-border, rgba(148, 163, 184, .25));
-      box-shadow: 0 14px 30px var(--rr-exp-bg, rgba(8, 47, 73, .22));
-      text-align: center;
+      display: none !important;
     }
-    .hero h1 { color: #f8fafc !important; }
-    .hero p { color: #dbeafe !important; }
     body.rr-theme-us .hero {
-      background: linear-gradient(135deg, #0a1a3a 0%, #173a73 58%, #bf0a30 100%) !important;
-      border-bottom-color: rgba(191, 10, 48, 0.35) !important;
+      display: none !important;
+    }
+    .rr-page-header {
+      padding: 16px 0 20px;
+      border-bottom: 1px solid rgba(59, 130, 246, .18);
+      margin-bottom: 16px;
+    }
+    .rr-page-header h1 {
+      margin: 0 0 8px;
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: #f8fafc;
+      letter-spacing: -.02em;
+    }
+    .rr-page-header p {
+      margin: 0;
+      font-size: .9rem;
+      color: #9fb3cf;
+      line-height: 1.5;
     }
     #profileMain.main.marketing-main {
       max-width: none !important;
       width: 100% !important;
       margin-left: 0 !important;
       margin-right: 0 !important;
-      padding-top: 20px;
+      padding-top: 0;
     }
 
     .rr-profile-shell {
@@ -444,6 +455,10 @@
   <div class="layout">
     <aside class="sidebar" aria-label="Primary navigation">
       <h2 aria-label="RoleRocket AI"></h2>
+      <div class="rr-page-header">
+        <h1>My Profile</h1>
+        <p>Manage your career preferences to improve job match quality and profile strength.</p>
+      </div>
             <nav>
         <a class="sidebar-link-btn" href="index.html">🏠 Home</a>
         <a class="sidebar-link-btn" href="about-us.html">📖 About Us</a>
