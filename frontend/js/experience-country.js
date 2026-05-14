@@ -439,11 +439,11 @@
     var normalizedCountryCode = resolveThemeCountry(countryCode);
     var themes = {
       JM: {
-        primary: '#007A5E',
-        accent: '#FFD700',
+        primary: '#009B3A',
+        accent: '#FED100',
         dark: '#000000',
-        border: 'rgba(0, 122, 94, 0.4)',
-        bg: 'rgba(0, 122, 94, 0.08)',
+        border: 'rgba(0, 155, 58, 0.4)',
+        bg: 'rgba(0, 155, 58, 0.08)',
         label: '🇯🇲'
       },
       US: {
