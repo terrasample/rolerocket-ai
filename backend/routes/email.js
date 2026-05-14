@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { authenticateToken } = require('../middleware/auth');
+const authenticateToken = require('../middleware/auth');
 const { getDocumentGenerationStatus, consumeDocumentGeneration } = require('../services/documentGenerationBilling');
 const openai = require('openai');
 
