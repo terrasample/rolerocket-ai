@@ -2875,14 +2875,6 @@ document.addEventListener('DOMContentLoaded', function () {
         const idx = Number(summary.getAttribute('data-week-summary'));
         if (!Number.isInteger(idx) || idx < 0) return;
 
-        const maxIndex = Math.max(0, Number(progressState.currentModuleIndex || 0));
-        if (!progressState.diagnosticCompleted && idx > 0) {
-          return;
-        }
-        if (progressState.diagnosticCompleted && idx > maxIndex && !progressState.completedModules.has(idx)) {
-          return;
-        }
-
         // Delay to allow native <details> toggle state to settle first.
         setTimeout(() => {
           progressState.currentModuleIndex = idx;
@@ -3280,7 +3272,7 @@ document.addEventListener('DOMContentLoaded', function () {
       const objective = escapeHtml(String(mod?.objective || 'Module objective will appear here.'));
       const isCompleted = progressState.completedModules.has(idx);
       const isCurrent = idx === currentIdx && !isCompleted;
-      const isLocked = !isCompleted && (diagnosticDone ? idx > currentIdx : idx > 0);
+      const isLocked = !isCompleted && (diagnosticDone ? idx > currentIdx : false);
 
       let statusIcon, statusColor;
       if (isCompleted) {
