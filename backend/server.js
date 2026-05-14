@@ -143,6 +143,18 @@ function normalizeExperienceCountryCode(value = '') {
   return '';
 }
 
+function getDefaultJobSearchLocationForExperienceCountry(countryCode = '') {
+  switch (normalizeExperienceCountryCode(countryCode)) {
+    case 'US':
+      return 'United States';
+    case 'JM':
+      return 'Jamaica';
+    case 'GLOBAL':
+    default:
+      return 'Worldwide';
+  }
+}
+
 function parseCookieMap(cookieHeader = '') {
   const cookieMap = {};
   String(cookieHeader || '').split(';').forEach((entry) => {
@@ -14981,21 +14993,32 @@ Rules:
 app.post('/api/jobs/find', authenticateToken, async (req, res) => {
   try {
     const { title, location, resume, forceRefresh } = req.body;
+    const normalizedTitle = String(title || '').trim();
+    let normalizedLocation = String(location || '').trim();
 
-    if (!title || !location) {
-      return res.status(400).json({ error: 'title and location are required' });
+    if (!normalizedTitle) {
+      return res.status(400).json({ error: 'title is required' });
+    }
+
+    if (!normalizedLocation) {
+      const user = await User.findById(req.user.userId)
+        .select('experienceCountry')
+        .lean();
+      const experienceCountry = normalizeExperienceCountryCode(user?.experienceCountry || '') || 'GLOBAL';
+      normalizedLocation = getDefaultJobSearchLocationForExperienceCountry(experienceCountry);
     }
 
     if (E2E_MOCK_MODE) {
       return res.json({
-        jobs: buildMockJobs(title, location),
+        jobs: buildMockJobs(normalizedTitle, normalizedLocation),
         meta: {
           fromCache: false,
           source: 'e2e-mock',
           hydrated: true,
           refreshAfterMs: 0,
-          linkedinSearchUrl: makeLinkedInSearchUrl(title, location),
-          googleJobsUrl: makeGoogleJobsUrl(title, location)
+          effectiveLocation: normalizedLocation,
+          linkedinSearchUrl: makeLinkedInSearchUrl(normalizedTitle, normalizedLocation),
+          googleJobsUrl: makeGoogleJobsUrl(normalizedTitle, normalizedLocation)
         }
       });
     }
@@ -15004,7 +15027,7 @@ app.post('/api/jobs/find', authenticateToken, async (req, res) => {
     let meta;
 
     if (forceRefresh) {
-      const fresh = await searchJobsFast({ title, location, resume });
+      const fresh = await searchJobsFast({ title: normalizedTitle, location: normalizedLocation, resume });
       jobs = fresh.jobs;
       meta = {
         fromCache: fresh.fromCache,
@@ -15013,7 +15036,7 @@ app.post('/api/jobs/find', authenticateToken, async (req, res) => {
         refreshAfterMs: 0
       };
     } else {
-      const instant = getInstantJobs({ title, location, resume });
+      const instant = getInstantJobs({ title: normalizedTitle, location: normalizedLocation, resume });
       jobs = instant.jobs;
       meta = instant.meta;
     }
@@ -15022,8 +15045,9 @@ app.post('/api/jobs/find', authenticateToken, async (req, res) => {
       jobs,
       meta: {
         ...meta,
-        linkedinSearchUrl: makeLinkedInSearchUrl(title, location),
-        googleJobsUrl: makeGoogleJobsUrl(title, location)
+        effectiveLocation: normalizedLocation,
+        linkedinSearchUrl: makeLinkedInSearchUrl(normalizedTitle, normalizedLocation),
+        googleJobsUrl: makeGoogleJobsUrl(normalizedTitle, normalizedLocation)
       }
     });
   } catch (err) {
