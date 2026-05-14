@@ -94,10 +94,10 @@ document.addEventListener('DOMContentLoaded', function () {
   const COVERAGE_DEFAULT_MOCK_QUESTION_COUNT = 30;
   const COVERAGE_DEFAULT_OVERALL_PASS_MARK = 70;
   const COVERAGE_DEFAULT_DOMAIN_PASS_MARK = 65;
-  const COVERAGE_AI_ML_MIN_MODULES = 5;
-  const COVERAGE_AI_ML_FINAL_QUESTION_COUNT = 150;
-  const COVERAGE_AI_ML_PRACTICE_QUESTION_COUNT = 320;
-  const COVERAGE_AI_ML_MOCK_QUESTION_COUNT = 75;
+  const COVERAGE_AI_ML_MIN_MODULES = 3;
+  const COVERAGE_AI_ML_FINAL_QUESTION_COUNT = 90;
+  const COVERAGE_AI_ML_PRACTICE_QUESTION_COUNT = 180;
+  const COVERAGE_AI_ML_MOCK_QUESTION_COUNT = 45;
   const COVERAGE_AI_ML_OVERALL_PASS_MARK = 80;
   const COVERAGE_AI_ML_DOMAIN_PASS_MARK = 75;
   const COVERAGE_STEM_MIN_MODULES = 14;
@@ -1194,9 +1194,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const mockExamSet = ensureTimedMockExams(baseCourse.mockExams, practiceQuestionBank, fallbackTopic, certificationPlan);
     const outcomes = asArray(baseCourse.learningOutcomes).concat([
       `Complete a full coverage pathway with ${targets.minModules}+ modules.`,
-      `Work through a ${certificationPlan.practiceQuestionCount}+ question practice bank with answer rationales.`,
-      `Pass ${certificationPlan.mockExamCount} timed mock exams with rotating question sets.`,
-      `Pass a comprehensive ${targets.finalQuestionCount}-question multiple-choice certification exam with domain thresholds.`
+      `Pass ${certificationPlan.mockExamCount} timed mock exams with rotating question sets.`
     ]).filter(Boolean);
 
     const uniqueOutcomes = [];
@@ -1335,17 +1333,16 @@ document.addEventListener('DOMContentLoaded', function () {
     if (/ai|machine learning|ml|deep learning|data science|artificial intelligence/i.test(name)) {
       return buildCourse({
         courseTitle: 'AI + Machine Learning',
-        subtitle: 'Industry-standard curriculum aligned with Stanford University and DeepLearning.AI.',
+        subtitle: 'Guided pathway closely aligned to the Stanford and DeepLearning.AI Machine Learning Specialization sequence.',
         difficulty: 'Advanced',
-        estimatedDuration: '10 weeks (10 hrs/week) | 100-120 hours total',
+        estimatedDuration: '3-week guided flow (10-12 hrs/week)',
         marketDemand: 'AI and machine learning skills are in demand across software, analytics, automation, product, and data teams. Median entry-level ML engineer salary: $169,700 USD.',
-        overview: 'This certification follows Stanford University and DeepLearning.AI Machine Learning Specialization (taught by Andrew Ng). Course 1: Supervised ML (regression & classification with scikit-learn). Course 2: Advanced Algorithms (neural networks with TensorFlow, decision trees, ensembles). Course 3: Unsupervised Learning (clustering, PCA, recommender systems, reinforcement learning). Modules 4-5: Production-ready MLOps, Docker deployment, monitoring, fairness, and end-to-end project delivery. Every step teaches concepts first, shows worked examples, then validates mastery through transfer tasks.',
+        overview: 'This independent RoleRocket AI pathway is closely aligned to the Stanford and DeepLearning.AI Machine Learning Specialization sequence taught by Andrew Ng.\n\nWeek 1 mirrors Supervised ML (regression and classification with scikit-learn).\nWeek 2 mirrors Advanced Learning Algorithms (neural networks, decision trees, and ensembles).\nWeek 3 mirrors Unsupervised Learning, Recommenders, and Reinforcement Learning.\n\nEach week teaches concepts first, then worked examples, then mastery validation through transfer tasks and quizzes.',
         learningOutcomes: [
           'Build and train supervised ML models for regression and classification using scikit-learn and best practices.',
           'Master neural networks, decision trees, and ensemble methods using TensorFlow and scikit-learn.',
           'Apply unsupervised learning (clustering, dimensionality reduction), recommender systems, and reinforcement learning.',
           'Engineer features, preprocess data rigorously, and avoid common pitfalls like data leakage.',
-          'Deploy models to production with Docker, FastAPI, and monitoring for model drift.',
           'Evaluate models comprehensively: cross-validation, confusion matrices, fairness audits, and interpretability.'
         ],
         resumeSignals: [
@@ -1434,59 +1431,6 @@ document.addEventListener('DOMContentLoaded', function () {
               { question: 'What is PCA primarily used for in machine learning?', options: ['Classification of labelled data', 'Dimensionality reduction while preserving maximum variance', 'Generating synthetic training samples', 'Detecting anomalies in time-series data'], correctOptionIndex: 1, explanation: 'PCA projects data onto the directions of greatest variance, reducing feature count while retaining the most information.' }
             ]
           },
-          {
-            title: '4. Data Preprocessing, Feature Engineering, and MLOps',
-            objective: 'Prepare production-grade ML systems with rigorous preprocessing, thoughtful feature engineering, and deployment discipline.',
-            lesson: 'Part 1 - Data Preprocessing: handling missing values, outliers, and imbalanced classes; encoding categorical variables; feature scaling. Part 2 - Feature Engineering: selecting relevant features, creating new features from raw data, avoiding data leakage, and interpreting feature importance. Part 3 - MLOps Fundamentals: containerizing models with Docker, serving with FastAPI or Flask, monitoring model drift, versioning data and models, and automating retraining. Part 4 - Production Checklist: documentation, logging, error handling, and CI/CD pipelines.',
-            workedExample: 'Clean a messy dataset (missing values, outliers, categories); engineer features; package model in Docker; deploy to a simple API; monitor predictions over time.',
-            workedExampleSteps: [
-              'Part 1: Impute missing values; scale numerical features; one-hot encode categories.',
-              'Part 2: Compute feature importance; create polynomial features; validate no data leakage.',
-              'Part 3: Write Dockerfile; create FastAPI endpoint; add drift monitoring.',
-              'Part 4: Write model documentation; add logging; test endpoint with sample requests.'
-            ],
-            commonMistake: 'Leaking target info into features; not scaling before training; deploying without monitoring.',
-            practiceTask: 'Take a raw dataset: preprocess it, engineer 3-5 features, train a model, containerize with Docker, and create a prediction API. Document preprocessing steps.',
-            progressCheckQuestion: 'What is data leakage in machine learning?',
-            progressCheckOptions: ['Losing data files', 'Using information from the test set during training', 'Having too many features', 'Only a database concern'],
-            correctOptionIndex: 1,
-            progressCheckExplanation: 'Data leakage inflates training accuracy but fails on production data.',
-            colabLink: 'https://colab.research.google.com/#create=true',
-            labTitle: 'Lab: Preprocessing Pipeline + FastAPI Deployment',
-            labInstructions: 'Create a new Colab notebook. Build a full scikit-learn Pipeline that imputes missing values, scales numerical features, and one-hot encodes categoricals. Train a model, save it with joblib, then write a FastAPI app that loads the model and serves a /predict endpoint. Test it with sample JSON requests and add a basic drift-monitoring stub.',
-            quizQuestions: [
-              { question: 'Why should feature scalers be fit on the training set only — not on the full dataset?', options: ['It is computationally faster', 'To prevent test set statistics from leaking into the training process', 'The test set has no numerical features', 'Scaling is optional for tree-based models'], correctOptionIndex: 1, explanation: 'Fitting a scaler on all data lets test set statistics influence training, which is a form of data leakage that inflates performance metrics.' },
-              { question: 'What is model drift in a production ML system?', options: ['The training loss increasing during training', 'Incoming production data distribution shifts, causing model performance to degrade', 'The model running out of GPU memory', 'A bug introduced during Docker containerisation'], correctOptionIndex: 1, explanation: 'Drift occurs when real-world data evolves away from the training distribution, so predictions become less accurate over time.' },
-              { question: 'Which of these is the most common cause of data leakage in a preprocessing pipeline?', options: ['Using too many training epochs', 'Including future or target-correlated information in training features', 'Having a large dataset', 'Normalising numerical columns'], correctOptionIndex: 1, explanation: 'Including information that would not be available at prediction time (e.g. post-event features, scaled on full data) is the classic leakage source.' }
-            ]
-          },
-          {
-            title: '5. Capstone: End-to-End ML Project with Ethics and Best Practices',
-            objective: 'Design, build, deploy, and evaluate a complete ML system demonstrating mastery of supervised, unsupervised, feature engineering, and MLOps concepts.',
-            lesson: 'Part 1 - Problem Framing: define business objective, success metrics, and ethical considerations. Part 2 - EDA and Preprocessing: exploratory analysis, feature engineering, and preparing train/val/test splits. Part 3 - Model Development: experiment with multiple algorithms, compare cross-validation scores, and select the best. Part 4 - Evaluation and Interpretation: hold-out test performance, confusion matrices, fairness audits, and feature importance. Part 5 - Deployment and Monitoring: package model, write API, deploy, and set up monitoring for performance drift. Part 6 - Documentation and Communication: model card, ethical statement, and clear communication of limitations.',
-            workedExample: 'Build an end-to-end credit default prediction system: preprocess financial data, engineer risk features, compare logistic regression vs. random forest, audit for fairness across income groups, deploy as Docker API, and document limitations.',
-            workedExampleSteps: [
-              'Part 1: Define success metrics (precision, recall) based on cost of false positives/negatives.',
-              'Part 2: Perform EDA; create financial ratios as features; split data.',
-              'Part 3: Experiment with 3-4 algorithms; use cross-validation to select best.',
-              'Part 4: Test on hold-out set; analyze confusion matrix; check fairness by demographics.',
-              'Part 5: Containerize; deploy as REST API; add monitoring.',
-              'Part 6: Write model card with limitations and use cases.'
-            ],
-            commonMistake: 'Optimizing for accuracy without considering fairness; deploying without monitoring; not documenting assumptions.',
-            practiceTask: 'Complete one end-to-end project: problem statement, EDA, multiple models, fairness audit, deployed API, and documentation. Demonstrate each step.',
-            progressCheckQuestion: 'What is the primary purpose of a model card in ML?',
-            progressCheckOptions: ['To store API keys', 'To document model details, use cases, limitations, and ethical considerations', 'Only for internal use', 'To replace model training'],
-            correctOptionIndex: 1,
-            progressCheckExplanation: 'Model cards promote transparency, reproducibility, and responsible AI deployment.',
-            colabLink: 'https://colab.research.google.com/#create=true',
-            labTitle: 'Capstone Lab: End-to-End ML Project',
-            labInstructions: 'Create a new Colab notebook for your capstone. Choose a real dataset, write an EDA section with visualisations, preprocess features in a Pipeline, train at least 3 algorithms with cross-validation, evaluate on a held-out test set with confusion matrix and classification report, perform a demographic fairness audit, containerise with Docker, and write a model card documenting your approach, limitations, and ethical considerations.',
-            quizQuestions: [
-              { question: 'What is the purpose of a model card in responsible AI deployment?', options: ['To store API authentication keys', 'To document model details, intended use, performance, limitations, and ethical considerations', 'To speed up model inference', 'To replace unit and integration tests'], correctOptionIndex: 1, explanation: 'Model cards are standardised documents that make AI systems transparent, reproducible, and accountable to users and stakeholders.' },
-              { question: 'Which metric is most appropriate for detecting demographic bias in a classification model?', options: ['Overall training loss', 'Equalized odds or demographic parity across groups', 'Total model file size', 'Number of trainable parameters'], correctOptionIndex: 1, explanation: 'Fairness metrics like equalized odds compare true and false positive rates across demographic subgroups to surface disparate impact.' },
-              { question: 'What is the correct order of operations to prevent data leakage in a full ML pipeline?', options: ['Fit scaler on the full dataset, then split into train/test', 'Split into train/test first, then fit all preprocessing only on the training partition', 'Scale features after model training is complete', 'Data splitting is unnecessary when using cross-validation'], correctOptionIndex: 1, explanation: 'Splitting before any fitting ensures test data is never seen during preprocessing, which is the only leak-free approach.' }
-            ]
           }
         ],
         finalAssessment: [
@@ -1857,6 +1801,31 @@ document.addEventListener('DOMContentLoaded', function () {
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
+  }
+
+  function renderStructuredLessonHtml(lessonText) {
+    const text = String(lessonText || '').trim();
+    if (!text) {
+      return '<div style="color:#9fb0c7;font-size:0.92rem;line-height:1.6;">Lesson details will appear here.</div>';
+    }
+
+    const normalized = text
+      .replace(/\s+(Week\s+\d+\s*-)/gi, '||$1')
+      .replace(/\s+(Part\s+\d+\s*-)/gi, '||$1');
+    const segments = normalized
+      .split('||')
+      .map((segment) => String(segment || '').trim())
+      .filter(Boolean);
+
+    if (!segments.length || segments.length === 1) {
+      return `<p style="margin:0;color:#d0d9e7;line-height:1.7;">${escapeHtml(text)}</p>`;
+    }
+
+    return `
+      <ul style="margin:0;padding-left:18px;color:#d0d9e7;line-height:1.62;display:grid;gap:8px;">
+        ${segments.map((segment) => `<li>${escapeHtml(segment)}</li>`).join('')}
+      </ul>
+    `;
   }
 
   function getBestVoice(voices) {
@@ -3449,7 +3418,8 @@ document.addEventListener('DOMContentLoaded', function () {
       const moduleItem = currentModule;
       const title = escapeHtml(String(moduleItem?.title || `Module ${index + 1}`));
       const objective = escapeHtml(String(moduleItem?.objective || ''));
-      const lesson = escapeHtml(String(moduleItem?.lesson || ''));
+      const lesson = String(moduleItem?.lesson || '');
+      const lessonStructuredHtml = renderStructuredLessonHtml(lesson);
       const workedExample = escapeHtml(String(moduleItem?.workedExample || ''));
       const workedExampleSteps = asArray(moduleItem?.workedExampleSteps);
       const workedExampleStepsHtml = workedExampleSteps.length
@@ -3551,7 +3521,10 @@ document.addEventListener('DOMContentLoaded', function () {
             </div>
           </div>
           <p data-module-follow-idx="${index}" data-module-follow-part="objective"><strong style="color:#93c5fd;">Objective:</strong> ${objective}</p>
-          <p data-module-follow-idx="${index}" data-module-follow-part="lesson"><strong style="color:#93c5fd;">Lesson:</strong> ${lesson}</p>
+          <div data-module-follow-idx="${index}" data-module-follow-part="lesson" style="margin:0 0 12px 0;padding:12px;border-radius:10px;background:#0b1220;border:1px solid #273449;">
+            <div style="color:#93c5fd;font-weight:700;font-size:0.85rem;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.04em;">Lesson Breakdown</div>
+            ${lessonStructuredHtml}
+          </div>
           <div data-module-follow-idx="${index}" data-module-follow-part="workedExample">
             <p><strong style="color:#93c5fd;">Example (What this means in practice):</strong> ${workedExample}</p>
             ${workedExampleStepsHtml}
