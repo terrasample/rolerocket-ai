@@ -205,6 +205,32 @@
         });
     }
 
+    function confirmCheckoutSession(sessionId) {
+      var token = getToken();
+      if (!token || !sessionId) return Promise.resolve(null);
+
+      var base = typeof getApiBase === 'function' ? getApiBase() : '/api';
+      return fetch(base + '/stripe/confirm-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + token,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ sessionId: String(sessionId) })
+      })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data && data.paidCredits >= 0) {
+            return data;
+          }
+          return null;
+        })
+        .catch(function(err) {
+          console.warn('Checkout session confirm failed:', err && err.message ? err.message : err);
+          return null;
+        });
+    }
+
     function checkCredits() {
       var token = getToken();
       var base = typeof getApiBase === 'function' ? getApiBase() : '/api';
@@ -241,8 +267,12 @@
         });
     }
 
-    // Start checking immediately
-    checkCredits();
+    // Try immediate backend confirmation first, then poll status.
+    var params = new URLSearchParams(window.location.search || '');
+    var sessionId = params.get('session_id') || '';
+    confirmCheckoutSession(sessionId).finally(function() {
+      checkCredits();
+    });
   })();
   </script>
 </body>

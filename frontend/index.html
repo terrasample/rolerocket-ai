@@ -741,9 +741,53 @@
         });
       }
 
+      async function handleStripeReturnSync() {
+        const params = new URLSearchParams(window.location.search || '');
+        const success = params.get('success') === 'true' || params.get('lifetime') === 'true';
+        if (!success) return;
+
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        const sessionId = String(params.get('session_id') || '').trim();
+        if (sessionId) {
+          try {
+            await fetch('/api/stripe/confirm-checkout-session', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({ sessionId })
+            });
+          } catch (err) {
+            console.warn('Stripe checkout confirmation failed:', err && err.message ? err.message : err);
+          }
+        }
+
+        try {
+          const meRes = await fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } });
+          const meData = await meRes.json();
+          const me = meData && meData.user ? meData.user : null;
+          const unlocked = Boolean(me && (me.isAdmin === true || String(me.plan || '').toLowerCase() === 'lifetime' || me.isSubscribed === true));
+          if (unlocked) {
+            const cleaned = new URLSearchParams(window.location.search || '');
+            cleaned.delete('success');
+            cleaned.delete('lifetime');
+            cleaned.delete('session_id');
+            const suffix = cleaned.toString() ? `?${cleaned.toString()}` : '';
+            window.history.replaceState({}, '', `${window.location.pathname}${suffix}`);
+            window.location.href = 'dashboard.html?upgraded=1';
+          }
+        } catch (err) {
+          console.warn('Could not refresh account after Stripe return:', err && err.message ? err.message : err);
+        }
+      }
+
       initQuickstartSprint();
       initQuickstartNudge();
       initHomepageMobileSidebar();
+      handleStripeReturnSync();
       </script>
     </main>
   </div>

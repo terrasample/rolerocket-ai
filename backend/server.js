@@ -32,7 +32,11 @@ const LearningRoadmap = require('./models/LearningRoadmap');
 
 
 const app = express();
-app.use(express.json({ limit: '2mb' }));
+// Keep raw webhook payload intact for Stripe signature verification.
+app.use((req, res, next) => {
+  if (req.originalUrl === '/api/stripe/webhook') return next();
+  return express.json({ limit: '2mb' })(req, res, next);
+});
 app.use(cors());
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -5631,6 +5635,121 @@ app.post(
   express.raw({ type: 'application/json' }),
   async (req, res) => {
     try {
+      const resolveUserIdFromStripeContext = async ({ userId, userEmail, customerEmail, customerId }) => {
+        if (userId) {
+          const exists = await User.findById(String(userId)).select('_id').lean();
+          if (exists) return String(exists._id);
+        }
+
+        const emailCandidates = [userEmail, customerEmail]
+          .map((value) => String(value || '').toLowerCase().trim())
+          .filter(Boolean);
+
+        if (customerId && !emailCandidates.length) {
+          try {
+            const customer = await stripe.customers.retrieve(String(customerId));
+            const stripeEmail = String(customer?.email || '').toLowerCase().trim();
+            if (stripeEmail) emailCandidates.push(stripeEmail);
+          } catch (customerErr) {
+            console.warn(`[STRIPE] Could not retrieve customer ${customerId}: ${customerErr.message}`);
+          }
+        }
+
+        for (const email of emailCandidates) {
+          const fallbackUser = await User.findOne({ email }).select('_id').lean();
+          if (fallbackUser) return String(fallbackUser._id);
+        }
+
+        return '';
+      };
+
+      const applyCheckoutSessionEntitlements = async (session, sourceLabel = 'webhook') => {
+        if (!session || typeof session !== 'object') return { applied: false, reason: 'invalid_session' };
+
+        const resolvedUserId = await resolveUserIdFromStripeContext({
+          userId: session.metadata?.userId,
+          userEmail: session.metadata?.userEmail,
+          customerEmail: session.customer_details?.email,
+          customerId: session.customer
+        });
+
+        if (!resolvedUserId) {
+          return { applied: false, reason: 'user_not_resolved' };
+        }
+
+        const sessionType = String(session.metadata?.type || '').toLowerCase().trim();
+        const paymentStatus = String(session.payment_status || '').toLowerCase().trim();
+
+        if (sessionType === 'document_bundle') {
+          if (paymentStatus !== 'paid') {
+            return { applied: false, reason: `payment_status_${paymentStatus || 'unknown'}` };
+          }
+
+          const credits = Number(session.metadata?.docCredits || 0);
+          await grantDocumentCreditsFromCheckout({
+            userId: resolvedUserId,
+            credits,
+            bundleId: session.metadata?.docBundle || 'custom',
+            amountCents: Number(session.metadata?.docAmountCents || 0),
+            currency: session.currency || 'usd',
+            stripeSessionId: session.id || ''
+          });
+
+          return { applied: true, userId: resolvedUserId, type: 'document_bundle', source: sourceLabel };
+        }
+
+        if (sessionType === 'lifetime' || sessionType === 'recruiter_lifetime') {
+          if (paymentStatus !== 'paid') {
+            return { applied: false, reason: `payment_status_${paymentStatus || 'unknown'}` };
+          }
+
+          const nextPlan = sessionType === 'recruiter_lifetime' ? 'recruiter_lifetime' : 'lifetime';
+          await User.findByIdAndUpdate(resolvedUserId, {
+            isSubscribed: true,
+            plan: nextPlan
+          });
+
+          if (nextPlan === 'lifetime' && session.id) {
+            await LifetimeSale.findOneAndUpdate(
+              { stripeSessionId: String(session.id) },
+              {
+                stripeSessionId: String(session.id),
+                userId: resolvedUserId,
+                priceId: session.metadata?.lifetimePriceId || null,
+                purchasedAt: new Date()
+              },
+              { upsert: true, new: true, setDefaultsOnInsert: true }
+            );
+          }
+
+          return { applied: true, userId: resolvedUserId, type: nextPlan, source: sourceLabel };
+        }
+
+        const selectedPlan = String(session.metadata?.plan || 'premium').toLowerCase().trim() || 'premium';
+        let shouldUnlock = paymentStatus === 'paid' || paymentStatus === 'no_payment_required';
+
+        if (session.subscription) {
+          try {
+            const subscription = await stripe.subscriptions.retrieve(String(session.subscription));
+            const subStatus = String(subscription?.status || '').toLowerCase().trim();
+            shouldUnlock = shouldUnlock || ['active', 'trialing', 'past_due'].includes(subStatus);
+          } catch (subErr) {
+            console.warn(`[STRIPE] Could not fetch subscription ${session.subscription}: ${subErr.message}`);
+          }
+        }
+
+        if (!shouldUnlock) {
+          return { applied: false, reason: `subscription_not_active_${paymentStatus || 'unknown'}` };
+        }
+
+        await User.findByIdAndUpdate(resolvedUserId, {
+          isSubscribed: true,
+          plan: selectedPlan
+        });
+
+        return { applied: true, userId: resolvedUserId, type: selectedPlan, source: sourceLabel };
+      };
+
       const signature = req.headers['stripe-signature'];
       if (!signature) {
         console.error('[STRIPE WEBHOOK] Missing stripe-signature header');
@@ -5653,73 +5772,38 @@ app.post(
 
       if (event.type === 'checkout.session.completed') {
         const session = event.data.object;
-        const userId = session.metadata?.userId;
+        console.log(`[STRIPE WEBHOOK] checkout.session.completed | session=${session.id} | type=${session.metadata?.type} | userId=${session.metadata?.userId || 'MISSING'} | status=${session.payment_status}`);
+        const result = await applyCheckoutSessionEntitlements(session, 'webhook_checkout_session_completed');
+        if (!result.applied) {
+          console.error(`[STRIPE WEBHOOK] Entitlement application skipped for session ${session.id}: ${result.reason}`);
+        }
+      }
 
-        console.log(`[STRIPE WEBHOOK] checkout.session.completed | session=${session.id} | type=${session.metadata?.type} | userId=${userId || 'MISSING'} | status=${session.payment_status}`);
+      if (event.type === 'customer.subscription.updated') {
+        const subscription = event.data.object;
+        const subStatus = String(subscription?.status || '').toLowerCase().trim();
+        const userId = await resolveUserIdFromStripeContext({
+          userId: subscription?.metadata?.userId,
+          userEmail: '',
+          customerEmail: '',
+          customerId: subscription?.customer
+        });
 
-        if (session.metadata?.type === 'document_bundle') {
-          const credits = Number(session.metadata?.docCredits || 0);
-          console.log(`[STRIPE WEBHOOK] Document bundle detected: ${credits} credits | bundleId=${session.metadata?.docBundle}`);
-          
-          // Resolve user by userId first, fall back to email from metadata or Stripe customer_details
-          let resolvedUserId = userId;
-          if (!resolvedUserId) {
-            const fallbackEmail = String(session.metadata?.userEmail || session.customer_details?.email || '').toLowerCase().trim();
-            console.log(`[STRIPE WEBHOOK] userId missing, attempting email fallback: ${fallbackEmail}`);
-            if (fallbackEmail) {
-              const fallbackUser = await User.findOne({ email: fallbackEmail }).select('_id email').lean();
-              if (fallbackUser) {
-                resolvedUserId = String(fallbackUser._id);
-                console.log(`[STRIPE WEBHOOK] User resolved by email: ${fallbackUser.email} -> userId=${resolvedUserId}`);
-              } else {
-                console.error(`[STRIPE WEBHOOK] No user found with email: ${fallbackEmail}`);
-              }
-            }
-          }
-          
-          if (resolvedUserId) {
-            console.log(`[STRIPE WEBHOOK] Granting ${credits} document credits to userId=${resolvedUserId}`);
-            try {
-              await grantDocumentCreditsFromCheckout({
-                userId: resolvedUserId,
-                credits,
-                bundleId: session.metadata?.docBundle || 'custom',
-                amountCents: Number(session.metadata?.docAmountCents || 0),
-                currency: session.currency || 'usd',
-                stripeSessionId: session.id || ''
-              });
-              console.log(`[STRIPE WEBHOOK] ✅ Successfully granted ${credits} credits to userId=${resolvedUserId} for session ${session.id}`);
-            } catch (grantErr) {
-              console.error(`[STRIPE WEBHOOK] ❌ Failed to grant credits: ${grantErr.message}`);
-              throw grantErr;
-            }
-          } else {
-            console.error(`[STRIPE WEBHOOK] ❌ FAILED: could not resolve userId for session ${session.id}. metadata=${JSON.stringify(session.metadata)}`);
-          }
-        } else if (userId) {
-          if (session.metadata?.type === 'lifetime') {
+        if (userId) {
+          const user = await User.findById(userId).select('plan').lean();
+          const currentPlan = String(user?.plan || 'free').toLowerCase();
+          const nextPlan = String(subscription?.metadata?.plan || currentPlan || 'premium').toLowerCase();
+          const active = ['active', 'trialing', 'past_due'].includes(subStatus);
+
+          if (active) {
             await User.findByIdAndUpdate(userId, {
               isSubscribed: true,
-              plan: 'lifetime'
+              plan: currentPlan === 'lifetime' ? 'lifetime' : nextPlan
             });
-
-            if (session.id) {
-              await LifetimeSale.findOneAndUpdate(
-                { stripeSessionId: String(session.id) },
-                {
-                  stripeSessionId: String(session.id),
-                  userId,
-                  priceId: session.metadata?.lifetimePriceId || null,
-                  purchasedAt: new Date()
-                },
-                { upsert: true, new: true, setDefaultsOnInsert: true }
-              );
-            }
-          } else {
-            const selectedPlan = session.metadata?.plan || 'premium';
+          } else if (currentPlan !== 'lifetime' && currentPlan !== 'recruiter_lifetime') {
             await User.findByIdAndUpdate(userId, {
-              isSubscribed: true,
-              plan: selectedPlan
+              isSubscribed: false,
+              plan: 'free'
             });
           }
         }
@@ -5727,13 +5811,22 @@ app.post(
 
       if (event.type === 'customer.subscription.deleted') {
         const subscription = event.data.object;
-        const userId = subscription.metadata?.userId;
+        const userId = await resolveUserIdFromStripeContext({
+          userId: subscription?.metadata?.userId,
+          userEmail: '',
+          customerEmail: '',
+          customerId: subscription?.customer
+        });
 
         if (userId) {
-          await User.findByIdAndUpdate(userId, {
-            isSubscribed: false,
-            plan: 'free'
-          });
+          const user = await User.findById(userId).select('plan').lean();
+          const currentPlan = String(user?.plan || 'free').toLowerCase();
+          if (currentPlan !== 'lifetime' && currentPlan !== 'recruiter_lifetime') {
+            await User.findByIdAndUpdate(userId, {
+              isSubscribed: false,
+              plan: 'free'
+            });
+          }
         }
       }
 
@@ -5759,9 +5852,13 @@ app.post('/api/document-credits/sync-from-stripe', authenticateToken, async (req
       limit: 100
     });
 
-    const pendingSessions = sessions.data.filter(
-      (s) => s.metadata?.type === 'document_bundle' && s.payment_status === 'paid'
-    );
+    const pendingSessions = sessions.data.filter((s) => {
+      const paidBundle = s.metadata?.type === 'document_bundle' && s.payment_status === 'paid';
+      if (!paidBundle) return false;
+      const byUserId = String(s.metadata?.userId || '') === String(req.user.userId || '');
+      const byEmail = String(s.metadata?.userEmail || s.customer_details?.email || '').toLowerCase().trim() === String(user.email || '').toLowerCase().trim();
+      return byUserId || byEmail;
+    });
 
     if (pendingSessions.length === 0) {
       console.log(`[CREDIT SYNC] No pending paid document bundles found for ${user.email}`);
@@ -5806,6 +5903,120 @@ app.post('/api/document-credits/sync-from-stripe', authenticateToken, async (req
   } catch (err) {
     console.error(`[CREDIT SYNC] Error: ${err.message}`);
     return res.status(500).json({ error: 'Failed to sync credits from Stripe' });
+  }
+});
+
+app.post('/api/stripe/confirm-checkout-session', authenticateToken, async (req, res) => {
+  try {
+    const sessionId = String(req.body?.sessionId || req.query?.sessionId || '').trim();
+    if (!sessionId) {
+      return res.status(400).json({ error: 'sessionId is required' });
+    }
+
+    const user = await User.findById(req.user.userId).select('_id email plan isSubscribed isAdmin documentGeneration');
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    if (!session) return res.status(404).json({ error: 'Stripe session not found' });
+
+    const email = String(user.email || '').toLowerCase().trim();
+    const sessionUserId = String(session.metadata?.userId || '').trim();
+    const sessionEmail = String(session.metadata?.userEmail || session.customer_details?.email || '').toLowerCase().trim();
+    const owned = sessionUserId === String(user._id)
+      || (sessionEmail && sessionEmail === email);
+
+    if (!owned) {
+      return res.status(403).json({ error: 'This checkout session does not belong to the current user.' });
+    }
+
+    const sessionType = String(session.metadata?.type || '').toLowerCase().trim();
+    const paymentStatus = String(session.payment_status || '').toLowerCase().trim();
+
+    if (sessionType === 'document_bundle') {
+      if (paymentStatus === 'paid') {
+        await grantDocumentCreditsFromCheckout({
+          userId: String(user._id),
+          credits: Number(session.metadata?.docCredits || 0),
+          bundleId: session.metadata?.docBundle || 'custom',
+          amountCents: Number(session.metadata?.docAmountCents || 0),
+          currency: session.currency || 'usd',
+          stripeSessionId: session.id || ''
+        });
+      }
+
+      const refreshed = await User.findById(user._id).select('documentGeneration plan isSubscribed isAdmin');
+      const status = getDocumentGenerationStatus(refreshed, 'resume');
+      return res.json({
+        confirmed: true,
+        type: 'document_bundle',
+        paymentStatus,
+        status,
+        paidCredits: Number(refreshed?.documentGeneration?.paidCredits || 0)
+      });
+    }
+
+    if (sessionType === 'lifetime' || sessionType === 'recruiter_lifetime') {
+      if (paymentStatus === 'paid') {
+        const nextPlan = sessionType === 'recruiter_lifetime' ? 'recruiter_lifetime' : 'lifetime';
+        await User.findByIdAndUpdate(user._id, {
+          isSubscribed: true,
+          plan: nextPlan
+        });
+
+        if (nextPlan === 'lifetime' && session.id) {
+          await LifetimeSale.findOneAndUpdate(
+            { stripeSessionId: String(session.id) },
+            {
+              stripeSessionId: String(session.id),
+              userId: String(user._id),
+              priceId: session.metadata?.lifetimePriceId || null,
+              purchasedAt: new Date()
+            },
+            { upsert: true, new: true, setDefaultsOnInsert: true }
+          );
+        }
+      }
+
+      const refreshed = await User.findById(user._id).select('plan isSubscribed isAdmin');
+      return res.json({
+        confirmed: true,
+        type: sessionType,
+        paymentStatus,
+        plan: refreshed?.plan || 'free',
+        isSubscribed: Boolean(refreshed?.isSubscribed)
+      });
+    }
+
+    const selectedPlan = String(session.metadata?.plan || 'premium').toLowerCase().trim() || 'premium';
+    let unlock = paymentStatus === 'paid' || paymentStatus === 'no_payment_required';
+    if (session.subscription) {
+      try {
+        const subscription = await stripe.subscriptions.retrieve(String(session.subscription));
+        const subStatus = String(subscription?.status || '').toLowerCase().trim();
+        unlock = unlock || ['active', 'trialing', 'past_due'].includes(subStatus);
+      } catch (subErr) {
+        console.warn(`[STRIPE CONFIRM] Could not retrieve subscription ${session.subscription}: ${subErr.message}`);
+      }
+    }
+
+    if (unlock) {
+      await User.findByIdAndUpdate(user._id, {
+        isSubscribed: true,
+        plan: selectedPlan
+      });
+    }
+
+    const refreshed = await User.findById(user._id).select('plan isSubscribed isAdmin');
+    return res.json({
+      confirmed: unlock,
+      type: 'subscription',
+      paymentStatus,
+      plan: refreshed?.plan || 'free',
+      isSubscribed: Boolean(refreshed?.isSubscribed)
+    });
+  } catch (err) {
+    console.error('[STRIPE CONFIRM] Error confirming checkout session:', err);
+    return res.status(500).json({ error: err.message || 'Failed to confirm checkout session' });
   }
 });
 
@@ -15902,8 +16113,10 @@ app.post('/api/create-checkout-session', paymentLimiter, authenticateToken, asyn
       allow_promotion_codes: !shouldApplyVeteranDiscount,
       payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${process.env.CLIENT_URL}/index.html?success=true`,
+      success_url: `${process.env.CLIENT_URL}/index.html?success=true&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.CLIENT_URL}/index.html`,
+      customer_email: email,
+      client_reference_id: userId,
       metadata: {
         userId,
         plan: normalizedPlan || 'custom',
@@ -15988,6 +16201,9 @@ app.post('/api/document-credits/create-checkout-session', paymentLimiter, authen
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
       payment_method_types: ['card'],
+      customer_email: String(user.email || '').toLowerCase(),
+      customer_creation: 'always',
+      client_reference_id: String(req.user.userId),
       line_items: [
         {
           quantity: 1,
@@ -16001,7 +16217,7 @@ app.post('/api/document-credits/create-checkout-session', paymentLimiter, authen
           }
         }
       ],
-      success_url: `${process.env.CLIENT_URL}${safeReturnPath}${safeReturnPath.includes('?') ? '&' : '?'}docCredits=success`,
+      success_url: `${process.env.CLIENT_URL}${safeReturnPath}${safeReturnPath.includes('?') ? '&' : '?'}docCredits=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.CLIENT_URL}${safeReturnPath}${safeReturnPath.includes('?') ? '&' : '?'}docCredits=cancel`,
       metadata: {
         type: 'document_bundle',
@@ -16070,8 +16286,11 @@ app.post('/api/create-lifetime-checkout', paymentLimiter, authenticateToken, asy
       allow_promotion_codes: !shouldApplyVeteranDiscount,
       payment_method_types: ['card'],
       line_items: [{ price: selectedPriceId, quantity: 1 }],
-      success_url: `${process.env.CLIENT_URL}/index.html?lifetime=true`,
+      success_url: `${process.env.CLIENT_URL}/index.html?lifetime=true&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.CLIENT_URL}/index.html`,
+      customer_email: String(user.email || '').toLowerCase(),
+      customer_creation: 'always',
+      client_reference_id: String(req.user.userId),
       metadata: {
         userId: req.user.userId,
         type: normalizedPlan === 'recruiter_lifetime' ? 'recruiter_lifetime' : 'lifetime',
