@@ -5944,31 +5944,59 @@ app.post('/api/document-credits/sync-from-stripe', authenticateToken, async (req
   }
 });
 
-app.post('/api/stripe/confirm-checkout-session', authenticateToken, async (req, res) => {
+app.post('/api/stripe/confirm-checkout-session', async (req, res) => {
   try {
     const sessionId = String(req.body?.sessionId || req.query?.sessionId || '').trim();
     if (!sessionId) {
       return res.status(400).json({ error: 'sessionId is required' });
     }
 
-    const user = await User.findById(req.user.userId).select('_id email plan isSubscribed isAdmin documentGeneration');
-    if (!user) return res.status(404).json({ error: 'User not found' });
-
     const session = await stripe.checkout.sessions.retrieve(sessionId);
     if (!session) return res.status(404).json({ error: 'Stripe session not found' });
 
-    const email = String(user.email || '').toLowerCase().trim();
+    const sessionType = String(session.metadata?.type || '').toLowerCase().trim();
+    const paymentStatus = String(session.payment_status || '').toLowerCase().trim();
     const sessionUserId = String(session.metadata?.userId || '').trim();
     const sessionEmail = String(session.metadata?.userEmail || session.customer_details?.email || '').toLowerCase().trim();
+
+    const authHeader = String(req.headers.authorization || '').trim();
+    let user = null;
+    if (authHeader && process.env.JWT_SECRET) {
+      try {
+        const bearer = authHeader.toLowerCase().startsWith('bearer ')
+          ? authHeader.slice(7).trim()
+          : authHeader;
+        const decoded = jwt.verify(bearer, process.env.JWT_SECRET);
+        const tokenUserId = decoded.userId || decoded.id || decoded._id || decoded.sub || null;
+        if (tokenUserId) {
+          user = await User.findById(tokenUserId).select('_id email plan isSubscribed isAdmin documentGeneration');
+        }
+      } catch {
+        user = null;
+      }
+    }
+
+    if (!user) {
+      if (sessionUserId) {
+        user = await User.findById(sessionUserId).select('_id email plan isSubscribed isAdmin documentGeneration');
+      }
+      if (!user && sessionEmail) {
+        const escapedEmail = sessionEmail.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        user = await User.findOne({ email: new RegExp(`^${escapedEmail}$`, 'i') }).select('_id email plan isSubscribed isAdmin documentGeneration');
+      }
+    }
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found for checkout session.' });
+    }
+
+    const email = String(user.email || '').toLowerCase().trim();
     const owned = sessionUserId === String(user._id)
       || (sessionEmail && sessionEmail === email);
 
     if (!owned) {
       return res.status(403).json({ error: 'This checkout session does not belong to the current user.' });
     }
-
-    const sessionType = String(session.metadata?.type || '').toLowerCase().trim();
-    const paymentStatus = String(session.payment_status || '').toLowerCase().trim();
 
     if (sessionType === 'document_bundle') {
       if (paymentStatus === 'paid') {

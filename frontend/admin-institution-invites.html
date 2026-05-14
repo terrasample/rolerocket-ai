@@ -605,7 +605,7 @@
     try {
       const token = await getAdminToken();
       const base = typeof getApiBase === 'function' ? getApiBase() : '/api';
-      const res = await fetch(base + '/admin/grant-document-credits', {
+      const res = await fetch(base + '/api/admin/grant-document-credits', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
         body: JSON.stringify({ email, credits, note })
@@ -631,7 +631,7 @@
     try {
       const token = await getAdminToken();
       const base = typeof getApiBase === 'function' ? getApiBase() : '/api';
-      const res = await fetch(base + '/admin/document-credits?email=' + encodeURIComponent(email), {
+      const res = await fetch(base + '/api/admin/document-credits?email=' + encodeURIComponent(email), {
         headers: { Authorization: 'Bearer ' + token }
       });
       const data = await res.json();

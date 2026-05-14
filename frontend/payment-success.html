@@ -131,6 +131,9 @@
     var INTERVAL_MS = 2500;
     var attempts = 0;
 
+    var queryParams = new URLSearchParams(window.location.search || '');
+    var sessionId = queryParams.get('session_id') || '';
+
     function getToken() {
       if (typeof getStoredToken === 'function') return getStoredToken();
       return localStorage.getItem('token') || sessionStorage.getItem('token') || '';
@@ -176,46 +179,21 @@
       btn.style.opacity = '';
     }
 
-    function syncCredits() {
-      var token = getToken();
-      if (!token) return;
-      
-      var base = typeof getApiBase === 'function' ? getApiBase() : '/api';
-      var syncBtn = document.getElementById('syncBtn');
-      if (syncBtn) syncBtn.disabled = true;
-      
-      fetch(base + '/document-credits/sync-from-stripe', {
-        method: 'POST',
-        headers: {
-          'Authorization': 'Bearer ' + token,
-          'Content-Type': 'application/json'
-        }
-      })
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-          if (data.synced && data.creditsGranted > 0) {
-            setReady(data.newBalance);
-          } else {
-            if (syncBtn) syncBtn.disabled = false;
-          }
-        })
-        .catch(function(err) {
-          console.error('Sync error:', err);
-          if (syncBtn) syncBtn.disabled = false;
-        });
-    }
-
     function confirmCheckoutSession(sessionId) {
-      var token = getToken();
-      if (!token || !sessionId) return Promise.resolve(null);
+      if (!sessionId) return Promise.resolve(null);
 
+      var token = getToken();
       var base = typeof getApiBase === 'function' ? getApiBase() : '/api';
+      var headers = {
+        'Content-Type': 'application/json'
+      };
+      if (token) {
+        headers.Authorization = 'Bearer ' + token;
+      }
+
       return fetch(base + '/stripe/confirm-checkout-session', {
         method: 'POST',
-        headers: {
-          'Authorization': 'Bearer ' + token,
-          'Content-Type': 'application/json'
-        },
+        headers: headers,
         body: JSON.stringify({ sessionId: String(sessionId) })
       })
         .then(function(r) { return r.json(); })
@@ -229,6 +207,45 @@
           console.warn('Checkout session confirm failed:', err && err.message ? err.message : err);
           return null;
         });
+    }
+
+    function syncCredits() {
+      var token = getToken();
+      var syncBtn = document.getElementById('syncBtn');
+      if (syncBtn) syncBtn.disabled = true;
+
+      confirmCheckoutSession(sessionId).then(function(data) {
+        if (data && (data.paidCredits > 0 || (data.status && data.status.canGenerate))) {
+          setReady(Number(data.paidCredits || (data.status && data.status.paidCredits) || 0));
+          return;
+        }
+
+        if (!token) {
+          if (syncBtn) syncBtn.disabled = false;
+          return;
+        }
+
+        var base = typeof getApiBase === 'function' ? getApiBase() : '/api';
+        fetch(base + '/document-credits/sync-from-stripe', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + token,
+            'Content-Type': 'application/json'
+          }
+        })
+          .then(function(r) { return r.json(); })
+          .then(function(payload) {
+            if (payload.synced && payload.creditsGranted > 0) {
+              setReady(payload.newBalance);
+            } else if (syncBtn) {
+              syncBtn.disabled = false;
+            }
+          })
+          .catch(function(err) {
+            console.error('Sync error:', err);
+            if (syncBtn) syncBtn.disabled = false;
+          });
+      });
     }
 
     function checkCredits() {
@@ -267,11 +284,25 @@
         });
     }
 
-    // Try immediate backend confirmation first, then poll status.
-    var params = new URLSearchParams(window.location.search || '');
-    var sessionId = params.get('session_id') || '';
-    confirmCheckoutSession(sessionId).finally(function() {
-      checkCredits();
+    // Try immediate backend confirmation first, then poll status when authenticated.
+    confirmCheckoutSession(sessionId).then(function(data) {
+      if (data && (data.paidCredits > 0 || (data.status && data.status.canGenerate) || data.confirmed)) {
+        setReady(Number(data.paidCredits || (data.status && data.status.paidCredits) || 0));
+        return;
+      }
+
+      if (getToken()) {
+        checkCredits();
+        return;
+      }
+
+      setError(true);
+    }).catch(function() {
+      if (getToken()) {
+        checkCredits();
+      } else {
+        setError(true);
+      }
     });
   })();
   </script>
