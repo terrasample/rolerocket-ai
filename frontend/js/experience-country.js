@@ -187,15 +187,15 @@
       var data = await response.json();
       
       // IMPORTANT: Only update localStorage if user hasn't set an explicit preference
-      // Check if user has already selected an experience (immutable preference)
+      // User preference is immutable once set - don't override with API context
       var userPreference = getSavedLocalCountry();
-      if (!userPreference || userPreference === 'GLOBAL') {
-        // User has no preference or has default; OK to use server context
+      if (!userPreference) {
+        // User has NO preference; OK to use server context
         if (data && data.effectiveCountry) {
           setSavedLocalCountry(data.effectiveCountry);
         }
       }
-      // If user HAS set a preference (US, JM, etc.), DO NOT override it with server response
+      // If user HAS set a preference (US, JM, GLOBAL, etc.), DO NOT override it with server response
       
       var merged = Object.assign(defaultContext(), data || {});
       publishPersonalizationContext(merged);

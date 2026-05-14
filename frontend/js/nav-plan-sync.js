@@ -707,16 +707,16 @@
       const context = await res.json();
       
       // IMPORTANT: Respect user's explicit preference from localStorage
-      // Only use API context if user hasn't already set their preference
+      // User preference is immutable once set - don't override with API context
       const userPreference = readCachedExperienceCountry();
       let effectiveCountry;
       
-      if (userPreference && userPreference !== 'GLOBAL') {
+      if (userPreference) {
         // User has explicit preference - use it regardless of API response
         effectiveCountry = userPreference;
       } else {
-        // No explicit preference - use API response
-        effectiveCountry = normalizeCountryCode((context && context.effectiveCountry) || readCachedExperienceCountry());
+        // No explicit preference - use API response or fallback
+        effectiveCountry = normalizeCountryCode((context && context.effectiveCountry) || 'GLOBAL');
       }
       
       const resolvedCountry = resolveThemeCountry(effectiveCountry);
