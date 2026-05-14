@@ -985,21 +985,21 @@ document.addEventListener('DOMContentLoaded', function () {
   function isGenericSkill(skill) {
     const normalized = normalizeBulletText(skill).toLowerCase();
     if (!normalized) return true;
-    if (normalized.length > 100) return true; // Too long to be a skill
+    if (normalized.length > 80) return true; // Too long to be a skill
     if (normalized.length < 3) return true; // Too short
     
     // Filter out company names - very aggressive
-    if (/\b(corporation|corp|company|inc\.?|llc|ltd|services|service|center|center|medical|hospital|group|consulting|consulting|solutions|solution|systems|system|technologies|technology|networks|network|digital|global|international|american|national|universal|regional|corporate|business|enterprise|management|management|consulting|agency|firm|firm|institute|university|college|school|schools|health|healthcare|inc|corp|co|co\.|gmbh)\b/i.test(normalized)) {
+    if (/\b(corporation|corp|company|inc\.?|llc|ltd|plc|gmbh|co\.|co|medical center|hospital|university|college|school|healthcare system)\b/i.test(normalized)) {
       return true;
     }
     
     // Filter out very common companies specifically
-    if (/microsoft|ibm|accenture|deloitte|mckinsey|goldman|jpmorgan|chase|good samaritan|google|apple|amazon|facebook|meta|netflix|tesla|walmart|target|costco|kroger/.test(normalized)) {
+    if (/^(ibm|accenture|deloitte|mckinsey|goldman|jpmorgan|chase|good samaritan|good samaritan medical center|google|apple|amazon|facebook|meta|netflix|tesla|walmart|target|costco|kroger)$/i.test(normalized)) {
       return true;
     }
     
     // Filter out job titles and roles
-    if (/\b(manager|engineer|director|analyst|consultant|specialist|coordinator|supervisor|lead|chief|officer|president|vice|administrator|operator|technician|developer|programmer|architect|designer|author|writer|editor|producer|representative|associate|assistant|intern|trainee|apprentice|student|teacher|instructor|lecturer|professor|doctor|nurse|specialist|technologist|executive|leader|supervisor|manager|analyst|designer|architect)\b/i.test(normalized)) {
+    if (/\b(manager|engineer|director|analyst|consultant|specialist|coordinator|supervisor|lead|chief|officer|president|vice|administrator|operator|technician|developer|programmer|architect|designer|author|writer|editor|producer|representative|associate|assistant|intern|trainee|apprentice|student|teacher|instructor|lecturer|professor|doctor|nurse|technologist|executive|leader)\b/i.test(normalized)) {
       return true;
     }
     
@@ -1060,6 +1060,35 @@ document.addEventListener('DOMContentLoaded', function () {
     ].some((pattern) => pattern.test(normalized));
   }
 
+  function expandSkillCandidates(rawText) {
+    const text = normalizeBulletText(rawText);
+    if (!text) return [];
+
+    return text
+      .split(/[.!?]\s+/)
+      .flatMap((segment) => {
+        const cleanedSegment = normalizeBulletText(segment)
+          .replace(/^(proficient|skill(?:ed)?|experience|experienced|knowledge(?:able)?|expertise|familiar)\s+(with|in|using|on)\s+/i, '')
+          .replace(/^(proficient|skill(?:ed)?|experience|experienced|knowledge(?:able)?|expertise|familiar)\s+in\s+/i, '')
+          .trim();
+
+        return cleanedSegment.split(/[,;]|\s+and\s+/i);
+      })
+      .map((item) => normalizeBulletText(item))
+      .map((item) => item.replace(/^\b(in|with|using|on|for)\b\s+/i, '').trim())
+      .map((item) => item.replace(/\b(such as|including)\b.*$/i, '').trim())
+      .filter(Boolean);
+  }
+
+  function isSentenceLikeSkillFragment(skill) {
+    const value = String(skill || '').trim();
+    if (!value) return true;
+    if (value.split(/\s+/).length > 6) return true;
+    if (/\b(teaching|mentoring|perform|execute|maintain|managed|manage|coordinate|build|working|works|collaborate|interview|approve|onboard|establish)\b/i.test(value)) return true;
+    if (/\b(i|we|they|he|she|our|their|my)\b/i.test(value)) return true;
+    return false;
+  }
+
   function isLikelySkill(text) {
     const normalized = String(text || '').toLowerCase().trim();
     if (!normalized || normalized.length < 3 || normalized.length > 100) return false;
@@ -1091,7 +1120,7 @@ document.addEventListener('DOMContentLoaded', function () {
       // Finance & Accounting
       /\b(gaap|ifrs|tax accounting|audit|financial analysis|budget planning|treasury|corporate finance|investment banking|trading|valuation)\b/i,
       // Healthcare
-      /\b(ehr|emr|pacs|hitech|hipaa|clinical documentation|icd|cpt|medical coding|ris|his)\b/i,
+      /\b(ehr|emr|pacs|hitech|hipaa|clinical documentation|icd|cpt|medical coding|ris|his|meditech|epic|cerner|centricity|mckesson|kronos|hologic|ge imaging|ge healthcare)\b/i,
       // Other Technical
       /\b(seo|sem|digital marketing|content marketing|email marketing|crm|marketing automation|social media management|brand management|seo optimization)\b/i,
       // Languages
@@ -1184,39 +1213,32 @@ document.addEventListener('DOMContentLoaded', function () {
     const skills = [];
     
     for (const line of (skillLines || [])) {
-      const skill = normalizeBulletText(line);
-      if (!skill) continue;
-      
-      // Skip if it's a generic/invalid skill
-      if (isGenericSkill(skill)) {
-        continue;
-      }
-      
-      // Only keep if it's a likely skill OR a common technical term
-      if (!isLikelySkill(skill)) {
-        // Check for common technical keywords as fallback
-        if (!/\b(excel|sql|data|analysis|management|leadership|planning|strategy|communication|software|system|network|security|automation|integration)\b/i.test(skill)) {
-          continue;
-        }
-      }
-      
-      // Clean up common prefixes
-      let cleanedSkill = skill
+      const candidates = expandSkillCandidates(line);
+      for (const candidate of candidates) {
+        // Skip if it's a generic/invalid skill
+        if (isGenericSkill(candidate)) continue;
+        if (isSentenceLikeSkillFragment(candidate)) continue;
+        if (!isLikelySkill(candidate)) continue;
+
+        // Clean up common prefixes
+        let cleanedSkill = candidate
         .replace(/^proficient in\s+/i, '')
         .replace(/^skilled in\s+/i, '')
         .replace(/^experience with\s+/i, '')
+        .replace(/^experience in\s+/i, '')
         .replace(/^knowledgeable in\s+/i, '')
         .replace(/^familiar with\s+/i, '')
         .replace(/^expertise in\s+/i, '')
         .trim();
-      
-      // Remove trailing dates or qualifiers
-      cleanedSkill = cleanedSkill.replace(/\s*\d{1,2}\/\d{3,4}.*$/i, '').trim();
-      cleanedSkill = cleanedSkill.replace(/\s*\(\d{4}[-–]\d{4}\).*$/i, '').trim();
-      
-      if (cleanedSkill && cleanedSkill.length > 2 && cleanedSkill.length < 80) {
-        if (!skills.includes(cleanedSkill)) {
-          skills.push(cleanedSkill);
+
+        // Remove trailing dates or qualifiers
+        cleanedSkill = cleanedSkill.replace(/\s*\d{1,2}\/\d{3,4}.*$/i, '').trim();
+        cleanedSkill = cleanedSkill.replace(/\s*\(\d{4}[-–]\d{4}\).*$/i, '').trim();
+
+        if (cleanedSkill && cleanedSkill.length > 2 && cleanedSkill.length < 80) {
+          if (!skills.includes(cleanedSkill)) {
+            skills.push(cleanedSkill);
+          }
         }
       }
     }
