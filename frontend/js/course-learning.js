@@ -94,7 +94,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const COVERAGE_DEFAULT_MOCK_QUESTION_COUNT = 30;
   const COVERAGE_DEFAULT_OVERALL_PASS_MARK = 70;
   const COVERAGE_DEFAULT_DOMAIN_PASS_MARK = 65;
-  const COVERAGE_AI_ML_MIN_MODULES = 3;
+  const COVERAGE_AI_ML_MIN_MODULES = 4;
   const COVERAGE_AI_ML_FINAL_QUESTION_COUNT = 90;
   const COVERAGE_AI_ML_PRACTICE_QUESTION_COUNT = 180;
   const COVERAGE_AI_ML_MOCK_QUESTION_COUNT = 45;
@@ -1335,9 +1335,9 @@ document.addEventListener('DOMContentLoaded', function () {
         courseTitle: 'AI + Machine Learning',
         subtitle: 'Guided pathway closely aligned to the Stanford and DeepLearning.AI Machine Learning Specialization sequence.',
         difficulty: 'Advanced',
-        estimatedDuration: '3-week guided flow (10-12 hrs/week)',
+        estimatedDuration: '4-module guided flow (8-10 hrs/module)',
         marketDemand: 'AI and machine learning skills are in demand across software, analytics, automation, product, and data teams. Median entry-level ML engineer salary: $169,700 USD.',
-        overview: 'This independent RoleRocket AI pathway is closely aligned to the Stanford and DeepLearning.AI Machine Learning Specialization sequence taught by Andrew Ng.\n\nWeek 1 mirrors Supervised ML (regression and classification with scikit-learn).\nWeek 2 mirrors Advanced Learning Algorithms (neural networks, decision trees, and ensembles).\nWeek 3 mirrors Unsupervised Learning, Recommenders, and Reinforcement Learning.\n\nEach week teaches concepts first, then worked examples, then mastery validation through transfer tasks and quizzes.',
+        overview: 'This independent RoleRocket AI pathway is closely aligned to the Stanford and DeepLearning.AI Machine Learning Specialization sequence taught by Andrew Ng.\n\nModule 1: Linear Regression — foundations, cost functions, gradient descent, train/val/test splits.\nModule 2: Multiple Variable Regression and Classification — logistic regression, sigmoid, decision boundaries, F1-score.\nModule 3: Advanced Algorithms — neural networks, decision trees, random forests.\nModule 4: Unsupervised Learning — K-means, anomaly detection, collaborative filtering, reinforcement learning basics.\n\nEach module teaches concepts first, then worked examples, then mastery validation through transfer tasks and quizzes.',
         learningOutcomes: [
           'Build supervised ML models for regression and classification using scikit-learn; evaluate with precision, recall, F1.',
           'Master neural networks, decision trees, and ensemble methods using TensorFlow/Keras and scikit-learn.',
@@ -1352,7 +1352,7 @@ document.addEventListener('DOMContentLoaded', function () {
         ],
         modules: [
           {
-            title: '1. Linear Regression: Foundations and Single Variables',
+            title: 'Linear Regression: Foundations and Single Variables',
             objective: 'Build intuition for supervised learning and implement linear regression with one variable.',
             lesson: 'Part 1 - Supervised Learning Foundations: What is machine learning, cost functions, gradient descent, and why we need train/val/test splits. Part 2 - Linear Regression: Fit a line to data, compute mean squared error (MSE), and understand overfitting vs underfitting. Part 3 - Model Evaluation: Calculate train and validation loss, visualize learning curves, and interpret what they mean.',
             workedExample: 'Predict house prices from square footage using scikit-learn linear regression; plot the line; report MSE on train and validation sets.',
@@ -1377,7 +1377,7 @@ document.addEventListener('DOMContentLoaded', function () {
             ]
           },
           {
-            title: '2. Multiple Variable Regression and Classification',
+            title: 'Multiple Variable Regression and Classification',
             objective: 'Extend linear regression to multiple features and introduce classification with logistic regression.',
             lesson: 'Part 1 - Multiple Variable Regression: Handle multiple input features, feature scaling, and the design matrix. Part 2 - Logistic Regression Foundations: Binary classification, sigmoid function, decision boundary, and log-loss (cross-entropy). Part 3 - Classification Evaluation: Confusion matrix, precision, recall, F1-score, and why accuracy is misleading on imbalanced data.',
             workedExample: 'Predict housing prices with multiple features (square footage, bedrooms, age); then classify customer churn (yes/no) using logistic regression.',
@@ -1402,7 +1402,7 @@ document.addEventListener('DOMContentLoaded', function () {
             ]
           },
           {
-            title: '3. Advanced Algorithms: Neural Networks, Trees, and Ensembles',
+            title: 'Advanced Algorithms: Neural Networks, Trees, and Ensembles',
             objective: 'Learn more powerful and flexible algorithms beyond linear models.',
             lesson: 'Part 1 - Neural Networks: Neurons, layers, forward propagation, backpropagation, activation functions (ReLU, sigmoid), and training with TensorFlow/Keras. Part 2 - Tree-Based Methods: Decision trees, how they split on features, preventing overfitting with max_depth. Part 3 - Ensemble Methods: Random forests (bootstrap aggregating), why averaging reduces overfitting, and hyperparameter tuning.',
             workedExample: 'Build a neural network for digit classification; train a decision tree and random forest on the same data; compare test accuracy and training time.',
@@ -1426,7 +1426,7 @@ document.addEventListener('DOMContentLoaded', function () {
             ]
           },
           {
-            title: '4. Unsupervised Learning, Recommenders, and Reinforcement Learning',
+            title: 'Unsupervised Learning, Recommenders, and Reinforcement Learning',
             objective: 'Discover patterns without labels; build recommendation systems; introduce RL.',
             lesson: 'Part 1 - Unsupervised Learning: K-means clustering (initialization, iterations, elbow method), anomaly detection using Gaussian modeling. Part 2 - Recommender Systems: Collaborative filtering (user-based and item-based), rating matrices, and how to handle new users. Part 3 - Introduction to Reinforcement Learning: Markov decision processes, Q-learning basics, exploration vs exploitation.',
             workedExample: 'Cluster customer segments using K-means; build a simple movie recommender using collaborative filtering; implement a basic Q-learning agent in a grid environment.',
