@@ -78,6 +78,7 @@ document.addEventListener('DOMContentLoaded', function () {
   };
   const AUDIO_VOICE_PREF_KEY = 'courseAudioVoicePreference';
   const COURSE_PROGRESS_PREFIX = 'rr:course-progress:cert-v4:';
+  const COURSE_DIAGNOSTIC_PREFIX = 'rr:course-diagnostic:v1:';
   const COVERAGE_DEFAULT_MIN_MODULES = 10;
   const COVERAGE_DEFAULT_FINAL_QUESTION_COUNT = 60;
   const COVERAGE_DEFAULT_PRACTICE_QUESTION_COUNT = 180;
@@ -109,6 +110,129 @@ document.addEventListener('DOMContentLoaded', function () {
     { key: 'communication', label: 'Communication & Measurement' },
     { key: 'improvement', label: 'Improvement & Career Readiness' }
   ];
+
+  progressState.diagnosticCompleted = false;
+  progressState.diagnosticScore = null;
+  progressState.diagnosticQuestions = [];
+  progressState.recommendedStartIndex = 0;
+  progressState.moduleMastery = {};
+
+  function getCourseStorageKey() {
+    const normalizedTopic = normalizeTopic(topic || 'course');
+    return normalizedTopic || 'course';
+  }
+
+  function getDiagnosticStorageKey() {
+    return `${COURSE_DIAGNOSTIC_PREFIX}${getCourseStorageKey()}`;
+  }
+
+  function loadStoredDiagnostic() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(getDiagnosticStorageKey()) || '{}');
+      if (!parsed || parsed.completed !== true) return null;
+      return {
+        completed: true,
+        score: Number(parsed.score || 0),
+        total: Number(parsed.total || 0),
+        recommendedStartIndex: Number(parsed.recommendedStartIndex || 0)
+      };
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function saveStoredDiagnostic(payload) {
+    try {
+      localStorage.setItem(getDiagnosticStorageKey(), JSON.stringify({
+        completed: payload?.completed === true,
+        score: Number(payload?.score || 0),
+        total: Number(payload?.total || 0),
+        recommendedStartIndex: Number(payload?.recommendedStartIndex || 0),
+        updatedAt: new Date().toISOString()
+      }));
+    } catch (_) {
+      // Ignore storage errors in restricted contexts.
+    }
+  }
+
+  function resetStoredDiagnostic() {
+    try {
+      localStorage.removeItem(getDiagnosticStorageKey());
+    } catch (_) {
+      // Ignore storage errors.
+    }
+  }
+
+  function getModuleMasteryState(idx) {
+    const key = String(Number(idx));
+    if (!progressState.moduleMastery[key]) {
+      progressState.moduleMastery[key] = {
+        quizPassed: false,
+        transferPassed: false,
+        transferText: '',
+        transferFeedback: ''
+      };
+    }
+    return progressState.moduleMastery[key];
+  }
+
+  function generateDiagnosticQuestions(modulesData) {
+    const list = asArray(modulesData).slice(0, 3);
+    return list.map((moduleItem, idx) => ({
+      idx,
+      question: String(moduleItem?.progressCheckQuestion || `What is the key objective in Module ${idx + 1}?`).trim(),
+      options: asArray(moduleItem?.progressCheckOptions).slice(0, 4),
+      correctOptionIndex: Number(moduleItem?.correctOptionIndex),
+      rationale: String(moduleItem?.progressCheckExplanation || '').trim()
+    })).filter((item) => item.options.length >= 2 && Number.isInteger(item.correctOptionIndex));
+  }
+
+  function gradeDiagnostic(selectedAnswers) {
+    const questions = asArray(progressState.diagnosticQuestions);
+    let score = 0;
+    questions.forEach((question, idx) => {
+      if (Number(selectedAnswers[idx]) === Number(question.correctOptionIndex)) score += 1;
+    });
+    return {
+      score,
+      total: questions.length,
+      percent: questions.length ? Math.round((score / questions.length) * 100) : 0
+    };
+  }
+
+  function buildRemediationGuidance(idx) {
+    const moduleItem = progressState.allModules?.[idx] || {};
+    const objective = String(moduleItem?.objective || '').trim();
+    const practiceTask = String(moduleItem?.practiceTask || '').trim();
+    return [
+      objective ? `Review objective: ${objective}` : 'Review the objective section before retrying.',
+      'Replay the Example lesson section and narrate the steps in your own words.',
+      practiceTask ? `Do this mini task before retry: ${practiceTask}` : 'Complete a short practice attempt before retrying.'
+    ];
+  }
+
+  function validateTransferResponse(idx, text) {
+    const response = String(text || '').trim();
+    if (response.length < 120) {
+      return { ok: false, message: 'Add more detail. Write at least 120 characters to explain how you would apply this module in a new scenario.' };
+    }
+
+    const objective = String(progressState.allModules?.[idx]?.objective || '').toLowerCase();
+    const objectiveKeywords = objective
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .split(/\s+/)
+      .filter((word) => word.length >= 5)
+      .slice(0, 4);
+    const hasObjectiveSignal = objectiveKeywords.length
+      ? objectiveKeywords.some((word) => response.toLowerCase().includes(word))
+      : true;
+
+    if (!hasObjectiveSignal) {
+      return { ok: false, message: 'Reference at least one core idea from the module objective so the transfer proof is competency-based.' };
+    }
+
+    return { ok: true, message: 'Transfer task accepted. This module can now advance after checkpoint success.' };
+  }
   function getCurriculumLastReviewed() {
     return new Date().toISOString().slice(0, 10);
   }
@@ -574,8 +698,25 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function renderTeachingFrameworkPanel(courseTitle, fallbackTopic) {
     if (!teachingFramework) return;
-    teachingFramework.innerHTML = '';
-    teachingFramework.style.display = 'none';
+    const academy = getRoleRocketAcademy(courseTitle, fallbackTopic);
+    const focus = inferCourseFocus(courseTitle, fallbackTopic);
+    const academyLabel = String(academy?.name || 'RoleRocket Learning Studio');
+    const outcomes = asArray(academy?.outcomes);
+    const outcomeList = outcomes.length
+      ? outcomes.map((item) => `<li>${escapeHtml(String(item))}</li>`).join('')
+      : '<li>Adaptive pacing based on demonstrated mastery</li><li>Hands-on transfer proof before progression</li><li>Certification-aligned objective checkpoints</li>';
+
+    teachingFramework.style.display = 'block';
+    teachingFramework.innerHTML = `
+      <div style="font-size:0.82rem;color:#67e8f9;text-transform:uppercase;letter-spacing:0.04em;font-weight:700;margin-bottom:8px;">Teaching Framework</div>
+      <div style="margin-bottom:8px;"><strong style="color:#bfdbfe;">Model:</strong> Adaptive mastery sequence for ${escapeHtml(String(focus))}</div>
+      <div style="margin-bottom:8px;"><strong style="color:#bfdbfe;">Academy alignment:</strong> ${escapeHtml(academyLabel)}</div>
+      <ul style="margin:0 0 10px 0;padding-left:18px;line-height:1.55;">${outcomeList}</ul>
+      <div style="color:#cbd5e1;line-height:1.6;">
+        The course now runs with a placement diagnostic, targeted remediation on incorrect checkpoints, and a transfer-task mastery gate.
+        Learners progress only after they demonstrate both checkpoint accuracy and applied competency.
+      </div>
+    `;
   }
 
   function inferCourseFocus(courseTitle, fallbackTopic) {
@@ -1795,10 +1936,14 @@ document.addEventListener('DOMContentLoaded', function () {
     const color = isCorrect ? '#86efac' : '#fda4af';
     const icon = isCorrect ? '✓' : '✗';
     const label = isCorrect ? 'Correct' : 'Not quite';
-    resultWrap.innerHTML = `<span style="font-weight:700;color:${color};">${icon} ${escapeHtml(label)}.</span> <span style="color:#d0d9e7;">${escapeHtml(message)}</span>`;
+    let remediationMarkup = '';
+    if (!isCorrect && idx !== undefined) {
+      remediationMarkup = `<div style="margin-top:8px;"><button type="button" data-progress-remediate-btn="${Number(idx)}" style="background:#1d4ed8;border:1px solid #60a5fa;color:#dbeafe;border-radius:6px;padding:7px 10px;cursor:pointer;font-size:0.8rem;font-weight:700;">Start targeted remediation</button></div>`;
+    }
+    resultWrap.innerHTML = `<span style="font-weight:700;color:${color};">${icon} ${escapeHtml(label)}.</span> <span style="color:#d0d9e7;">${escapeHtml(message)}</span>${remediationMarkup}`;
     if (!isCorrect && idx !== undefined) {
       const continueBtn = document.querySelector(`button[data-progress-continue-btn="${idx}"]`);
-      if (continueBtn) continueBtn.style.display = 'inline-flex';
+      if (continueBtn) continueBtn.style.display = 'none';
       const correctIndex = progressState.answerKey[idx];
       const selectedInput = document.querySelector(`input[name="module-progress-check-${idx}"]:checked`);
       if (selectedInput) {
@@ -2164,6 +2309,12 @@ document.addEventListener('DOMContentLoaded', function () {
     progressState.practiceUnlockedModules = new Set(contiguous);
     progressState.currentModuleIndex = contiguous.length >= moduleCount ? Math.max(0, moduleCount - 1) : contiguous.length;
     saveStoredProgress();
+    contiguous.forEach((completedIdx) => {
+      const mastery = getModuleMasteryState(completedIdx);
+      mastery.quizPassed = true;
+      mastery.transferPassed = true;
+      if (!mastery.transferFeedback) mastery.transferFeedback = 'Previously completed module.';
+    });
     contiguous.forEach((completedIdx) => setPassedModuleUi(completedIdx, completedIdx === freshIdx ? 'fresh' : 'restored'));
     updateProgressUi();
     renderProgressiveContent();
@@ -2193,8 +2344,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (selectedOptionIndex !== correctOptionIndex) {
       progressState.lastProgressFeedback = null;
+      const masteryOnMiss = getModuleMasteryState(idx);
+      masteryOnMiss.quizPassed = false;
       setResultHtml(resultWrap, false, formatProgressCheckFeedback(false, correctAnswer, explanation), idx);
       return false;
+    }
+
+    const mastery = getModuleMasteryState(idx);
+    mastery.quizPassed = true;
+
+    if (!mastery.transferPassed) {
+      setResultHtml(resultWrap, true, 'Checkpoint passed. Complete the transfer task below to prove applied mastery and unlock continue.', idx);
+      return true;
     }
 
     const completedModules = Array.from(new Set([
@@ -2207,6 +2368,80 @@ document.addEventListener('DOMContentLoaded', function () {
     return true;
   }
 
+  function runTransferSubmission(idx) {
+    const input = document.querySelector(`textarea[data-transfer-response="${idx}"]`);
+    const feedback = document.querySelector(`div[data-transfer-feedback="${idx}"]`);
+    if (!input || !feedback) return;
+
+    const mastery = getModuleMasteryState(idx);
+    const result = validateTransferResponse(idx, input.value);
+    mastery.transferText = String(input.value || '').trim();
+
+    if (!result.ok) {
+      mastery.transferPassed = false;
+      mastery.transferFeedback = result.message;
+      feedback.innerHTML = `<span style="font-weight:700;color:#fda4af;">Needs revision.</span> <span style="color:#d0d9e7;">${escapeHtml(result.message)}</span>`;
+      return;
+    }
+
+    mastery.transferPassed = true;
+    mastery.transferFeedback = result.message;
+    feedback.innerHTML = `<span style="font-weight:700;color:#86efac;">Transfer accepted.</span> <span style="color:#d0d9e7;">${escapeHtml(result.message)}</span>`;
+
+    if (mastery.quizPassed && !progressState.completedModules.has(idx)) {
+      const completedModules = Array.from(new Set([
+        ...progressState.completedModules,
+        idx
+      ])).sort((left, right) => left - right);
+      queueProgressAdvance(idx, completedModules, 'Mastery complete: checkpoint + transfer task validated. Continue to next module.');
+    }
+  }
+
+  function runCourseDiagnostic() {
+    const questions = asArray(progressState.diagnosticQuestions);
+    const resultWrap = document.querySelector('[data-course-diagnostic-result]');
+    if (!resultWrap || !questions.length) return;
+
+    const selectedAnswers = questions.map((_, idx) => {
+      const selected = document.querySelector(`input[name="course-diagnostic-${idx}"]:checked`);
+      return selected ? Number(selected.value) : null;
+    });
+
+    const allAnswered = selectedAnswers.every((value) => Number.isInteger(value));
+    if (!allAnswered) {
+      resultWrap.innerHTML = '<span style="font-weight:700;color:#fda4af;">Answer all diagnostic questions first.</span>';
+      return;
+    }
+
+    const outcome = gradeDiagnostic(selectedAnswers);
+    const score = Number(outcome.score || 0);
+    const total = Number(outcome.total || 0);
+    const percent = Number(outcome.percent || 0);
+    const recommendedStartIndex = percent >= 67
+      ? Math.min(1, Math.max(0, Number(progressState.totalModules || 1) - 1))
+      : 0;
+
+    progressState.diagnosticCompleted = true;
+    progressState.diagnosticScore = score;
+    progressState.recommendedStartIndex = recommendedStartIndex;
+    if (progressState.completedModules.size === 0) {
+      progressState.currentModuleIndex = recommendedStartIndex;
+    }
+
+    saveStoredDiagnostic({
+      completed: true,
+      score,
+      total,
+      recommendedStartIndex
+    });
+
+    const recommendation = recommendedStartIndex > 0
+      ? `You scored ${score}/${total}. Start at Module ${recommendedStartIndex + 1} and use refresher review on demand.`
+      : `You scored ${score}/${total}. Start at Module 1 for foundation-first sequencing.`;
+    resultWrap.innerHTML = `<span style="font-weight:700;color:#86efac;">Diagnostic complete.</span> <span style="color:#d0d9e7;">${escapeHtml(recommendation)}</span>`;
+    renderProgressiveContent();
+  }
+
   function setCourseLoadingState(isLoading, buttonLabel) {
     if (!refreshCourseBtn) return;
     refreshCourseBtn.disabled = isLoading;
@@ -2216,6 +2451,14 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   async function runProgressCheck(idx) {
+    if (!progressState.diagnosticCompleted) {
+      const resultWrapLocked = document.querySelector(`div[data-progress-check-result="${idx}"]`);
+      if (resultWrapLocked) {
+        resultWrapLocked.innerHTML = '<span style="font-weight:700;color:#fbbf24;">Complete the placement diagnostic first.</span>';
+      }
+      return;
+    }
+
     if (progressState.pendingAdvance && Number(progressState.pendingAdvance.idx) === Number(idx)) {
       return;
     }
@@ -2245,7 +2488,10 @@ document.addEventListener('DOMContentLoaded', function () {
     if (progressState.preferLocalProgressCheck || String(progressState.sessionToken || '').startsWith('local-')) {
       const usedLocalFallback = applyLocalProgressCheck(idx, selectedOptionIndex, resultWrap);
       if (usedLocalFallback) {
-        setResultHtml(resultWrap, true, formatProgressCheckFeedback(true, fallbackCorrectAnswer, fallbackExplanation));
+        const mastery = getModuleMasteryState(idx);
+        if (mastery.transferPassed) {
+          setResultHtml(resultWrap, true, formatProgressCheckFeedback(true, fallbackCorrectAnswer, fallbackExplanation));
+        }
       }
       return;
     }
@@ -2278,13 +2524,19 @@ document.addEventListener('DOMContentLoaded', function () {
 
       const payload = await response.json();
       if (response.ok && payload?.passed) {
+        const mastery = getModuleMasteryState(idx);
+        mastery.quizPassed = true;
         const feedbackMsg = formatProgressCheckFeedback(
           true,
           String(payload?.correctOptionText || fallbackCorrectAnswer).trim(),
           String(payload?.explanation || fallbackExplanation).trim()
         );
         progressState.lastProgressFeedback = null;
-        queueProgressAdvance(idx, payload?.completedModules, feedbackMsg);
+        if (mastery.transferPassed) {
+          queueProgressAdvance(idx, payload?.completedModules, feedbackMsg);
+        } else {
+          setResultHtml(resultWrap, true, 'Checkpoint passed. Complete the transfer task below to prove applied mastery and unlock continue.', idx);
+        }
         return;
       }
 
@@ -2292,7 +2544,10 @@ document.addEventListener('DOMContentLoaded', function () {
         // 409 = session expired; 404 = scaffold module the server doesn't know about — use local answer key
         const usedLocalFallback = applyLocalProgressCheck(idx, selectedOptionIndex, resultWrap);
         if (usedLocalFallback) {
-          setResultHtml(resultWrap, true, formatProgressCheckFeedback(true, fallbackCorrectAnswer, fallbackExplanation));
+          const mastery = getModuleMasteryState(idx);
+          if (mastery.transferPassed) {
+            setResultHtml(resultWrap, true, formatProgressCheckFeedback(true, fallbackCorrectAnswer, fallbackExplanation));
+          }
         } else if (response.status === 409) {
           resultWrap.textContent = String(payload?.error || 'Session expired. Reload the course.');
           resultWrap.style.color = '#fbbf24';
@@ -2306,6 +2561,8 @@ document.addEventListener('DOMContentLoaded', function () {
         resultWrap.style.color = '#fda4af';
       } else {
         progressState.lastProgressFeedback = null;
+        const mastery = getModuleMasteryState(idx);
+        mastery.quizPassed = false;
         const wrongMsg = formatProgressCheckFeedback(
           false,
           String(payload?.correctOptionText || fallbackCorrectAnswer).trim(),
@@ -2316,7 +2573,10 @@ document.addEventListener('DOMContentLoaded', function () {
     } catch (error) {
       const usedLocalFallback = applyLocalProgressCheck(idx, selectedOptionIndex, resultWrap);
       if (usedLocalFallback) {
-        setResultHtml(resultWrap, true, formatProgressCheckFeedback(true, fallbackCorrectAnswer, fallbackExplanation));
+        const mastery = getModuleMasteryState(idx);
+        if (mastery.transferPassed) {
+          setResultHtml(resultWrap, true, formatProgressCheckFeedback(true, fallbackCorrectAnswer, fallbackExplanation));
+        }
       } else if (error?.name === 'AbortError') {
         progressState.lastProgressFeedback = null;
         resultWrap.textContent = 'Validation took too long. Refresh the course and try again.';
@@ -2406,6 +2666,31 @@ document.addEventListener('DOMContentLoaded', function () {
     moduleHandlersBound = true;
 
     modules.addEventListener('click', async function (event) {
+      const diagnosticBtn = event.target.closest('button[data-course-diagnostic-submit]');
+      if (diagnosticBtn) {
+        event.preventDefault();
+        runCourseDiagnostic();
+        return;
+      }
+
+      const remediateBtn = event.target.closest('button[data-progress-remediate-btn]');
+      if (remediateBtn) {
+        event.preventDefault();
+        const idx = Number(remediateBtn.getAttribute('data-progress-remediate-btn'));
+        const guidance = buildRemediationGuidance(idx);
+        setLessonStage(idx, 'Targeted Remediation', guidance.join(' '));
+        setFollowAlongStatus(idx, 'Remediation loaded: review objective, example, then retry.');
+        return;
+      }
+
+      const transferBtn = event.target.closest('button[data-transfer-submit-btn]');
+      if (transferBtn) {
+        event.preventDefault();
+        const idx = Number(transferBtn.getAttribute('data-transfer-submit-btn'));
+        runTransferSubmission(idx);
+        return;
+      }
+
       const continueButton = event.target.closest('button[data-progress-continue-btn]');
       if (continueButton) {
         event.preventDefault();
@@ -2732,6 +3017,31 @@ document.addEventListener('DOMContentLoaded', function () {
     progressState.practiceBankPage = 1;
     progressState.practiceRevealState = {};
     progressState.activeMockExam = null;
+    progressState.moduleMastery = {};
+    progressState.diagnosticQuestions = generateDiagnosticQuestions(list);
+
+    const savedDiagnostic = loadStoredDiagnostic();
+    if (savedDiagnostic && savedDiagnostic.completed && savedDiagnostic.total > 0) {
+      progressState.diagnosticCompleted = true;
+      progressState.diagnosticScore = Math.max(0, Number(savedDiagnostic.score || 0));
+      progressState.recommendedStartIndex = Math.max(0, Number(savedDiagnostic.recommendedStartIndex || 0));
+    } else {
+      progressState.diagnosticCompleted = false;
+      progressState.diagnosticScore = null;
+      progressState.recommendedStartIndex = 0;
+    }
+
+    Array.from(progressState.completedModules).forEach((idx) => {
+      const mastery = getModuleMasteryState(idx);
+      mastery.quizPassed = true;
+      mastery.transferPassed = true;
+      mastery.transferFeedback = 'Previously completed module.';
+    });
+
+    if (progressState.diagnosticCompleted && progressState.completedModules.size === 0) {
+      const targetIndex = Math.max(0, Math.min(progressState.recommendedStartIndex, Math.max(0, list.length - 1)));
+      progressState.currentModuleIndex = targetIndex;
+    }
     const narrationData = list.map((moduleItem, index) => buildModuleNarrationEntry(moduleItem, index));
     progressState.moduleNarration = narrationData.map((entry) => entry.narration);
     progressState.moduleNarrationSegments = narrationData.map((entry) => entry.segments);
@@ -2797,6 +3107,39 @@ document.addEventListener('DOMContentLoaded', function () {
 
     let html = '';
 
+    if (!progressState.diagnosticCompleted && progressState.diagnosticQuestions.length) {
+      const diagnosticRows = progressState.diagnosticQuestions.map((question, qIdx) => `
+        <div style="padding:12px;border-radius:8px;background:#0b1220;border:1px solid #273449;">
+          <div style="color:#d0d9e7;font-weight:700;margin-bottom:8px;line-height:1.5;">${qIdx + 1}. ${escapeHtml(question.question)}</div>
+          <div style="display:grid;gap:8px;">
+            ${question.options.map((option, oIdx) => `
+              <label style="display:grid;grid-template-columns:18px minmax(0,1fr);column-gap:10px;align-items:flex-start;padding:8px 10px;border-radius:8px;background:#111c31;border:1px solid #2a3954;color:#d0d9e7;cursor:pointer;">
+                <input type="radio" name="course-diagnostic-${qIdx}" value="${oIdx}" style="margin-top:3px;accent-color:#10b981;" />
+                <span>${escapeHtml(String(option))}</span>
+              </label>
+            `).join('')}
+          </div>
+        </div>
+      `).join('');
+
+      html += `
+        <section class="module-item" style="border-color:#0ea5e9;background:#0b1a2e;">
+          <h4 style="margin:0 0 8px 0;color:#bfdbfe;">Placement Diagnostic (3 minutes)</h4>
+          <p style="margin:0 0 12px 0;color:#cbd5e1;line-height:1.6;">Complete this quick check first. It places you on a foundation-first or accelerated path so learning is adaptive.</p>
+          <div style="display:grid;gap:10px;">${diagnosticRows}</div>
+          <div style="display:flex;flex-direction:column;align-items:flex-start;gap:8px;margin-top:12px;">
+            <button type="button" data-course-diagnostic-submit="1" style="background:#2563eb;border:none;color:#fff;border-radius:8px;padding:9px 12px;cursor:pointer;font-size:0.85rem;font-weight:700;">Submit Diagnostic</button>
+            <div data-course-diagnostic-result style="color:#9fb0c7;font-size:0.85rem;line-height:1.5;">Your recommended starting module will appear here.</div>
+          </div>
+        </section>
+      `;
+    } else if (progressState.diagnosticCompleted && Number.isFinite(progressState.diagnosticScore)) {
+      const total = Math.max(1, asArray(progressState.diagnosticQuestions).length);
+      const score = Number(progressState.diagnosticScore || 0);
+      const recommended = Number(progressState.recommendedStartIndex || 0);
+      html += `<div style="margin-bottom:16px;padding:12px;border-radius:10px;background:#052e2b;border:1px solid #0f766e;color:#99f6e4;"><strong>Placement complete:</strong> ${score}/${total}. Recommended start: Module ${recommended + 1}.</div>`;
+    }
+
     if (progressState.lastProgressFeedback?.message) {
       const isSuccess = progressState.lastProgressFeedback.type === 'success';
       const fbIcon = isSuccess ? '✓' : '✗';
@@ -2835,12 +3178,14 @@ document.addEventListener('DOMContentLoaded', function () {
       const practiceTask = escapeHtml(String(moduleItem?.practiceTask || ''));
       const progressCheckQuestion = escapeHtml(String(moduleItem?.progressCheckQuestion || `In one sentence, what is the key takeaway of module ${index + 1}?`));
       const progressCheckOptions = asArray(moduleItem?.progressCheckOptions).slice(0, 4);
+      const mastery = getModuleMasteryState(index);
+      const diagnosticLocked = !progressState.diagnosticCompleted;
       const pendingAdvance = progressState.pendingAdvance && Number(progressState.pendingAdvance.idx) === index
         ? progressState.pendingAdvance
         : null;
       const optionMarkup = progressCheckOptions.map((option, optionIndex) => `
         <label style="display:grid;grid-template-columns:18px minmax(0,1fr);align-items:flex-start;column-gap:10px;width:100%;box-sizing:border-box;padding:10px 12px;border-radius:8px;background:#111c31;border:1px solid #2a3954;cursor:pointer;color:#d0d9e7;overflow:hidden;">
-          <input type="radio" name="module-progress-check-${index}" data-progress-check-option="${index}" value="${optionIndex}" ${pendingAdvance ? 'disabled' : ''} style="margin-top:3px;accent-color:#2563eb;" />
+          <input type="radio" name="module-progress-check-${index}" data-progress-check-option="${index}" value="${optionIndex}" ${(pendingAdvance || diagnosticLocked) ? 'disabled' : ''} style="margin-top:3px;accent-color:#2563eb;" />
           <span style="line-height:1.5;word-break:break-word;overflow-wrap:anywhere;white-space:normal;min-width:0;max-width:100%;flex:1 1 auto;display:block;">${escapeHtml(String(option))}</span>
         </label>
       `).join('');
@@ -2894,12 +3239,22 @@ document.addEventListener('DOMContentLoaded', function () {
             </div>
           </div>
           <div data-module-audio-follow-status="${index}" style="margin:-2px 0 10px;color:#7dd3fc;font-size:0.8rem;font-weight:700;">Lesson player ready: choose a section to begin.</div>
+          <div style="margin:0 0 10px;padding:10px;border-radius:8px;background:#0b1220;border:1px solid #273449;">
+            <div style="font-size:0.82rem;color:#c4b5fd;font-weight:700;margin-bottom:6px;">Transfer Task (Mastery Proof)</div>
+            <div style="color:#d0d9e7;font-size:0.85rem;line-height:1.55;margin-bottom:8px;">Apply this module in a new scenario. Explain your approach, decisions, and why they align with the objective.</div>
+            <textarea data-transfer-response="${index}" placeholder="Write your transfer response (minimum 120 characters)..." style="width:100%;min-height:86px;padding:10px;background:#111c31;border:1px solid #2a3954;border-radius:8px;color:#d0d9e7;font-family:inherit;font-size:0.88rem;resize:vertical;">${escapeHtml(String(mastery.transferText || ''))}</textarea>
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px;">
+              <button type="button" data-transfer-submit-btn="${index}" ${diagnosticLocked ? 'disabled' : ''} style="background:#0f766e;border:1px solid #14b8a6;color:#ecfeff;border-radius:6px;padding:7px 10px;${diagnosticLocked ? 'opacity:0.65;cursor:default;' : 'cursor:pointer;'}font-size:0.82rem;font-weight:700;">Validate Transfer Task</button>
+              <span style="font-size:0.8rem;color:${mastery.transferPassed ? '#86efac' : '#fbbf24'};font-weight:700;">${mastery.transferPassed ? 'Transfer status: Passed' : 'Transfer status: Pending'}</span>
+            </div>
+            <div data-transfer-feedback="${index}" style="margin-top:6px;color:#9fb0c7;font-size:0.82rem;line-height:1.5;">${escapeHtml(String(mastery.transferFeedback || 'Validate transfer mastery before unlock.'))}</div>
+          </div>
           <div data-module-follow-idx="${index}" data-module-follow-part="progressCheck" style="margin-top:12px;padding:10px;border-radius:8px;background:#0b1220;border:1px solid #273449;">
             <div style="font-size:0.82rem;color:#c4b5fd;font-weight:700;margin-bottom:6px;">End-of-Module Practice</div>
             <div style="color:#d0d9e7;font-size:calc(0.9rem + 2pt);line-height:1.55;margin-bottom:8px;">${progressCheckQuestion}</div>
             <div style="display:grid;gap:8px;margin-bottom:10px;">${optionMarkup}</div>
             <div style="display:flex;flex-direction:column;align-items:flex-start;gap:8px;">
-              <button type="button" data-progress-check-btn="${index}" ${pendingAdvance ? 'disabled' : ''} style="background:#7c3aed;border:none;color:#fff;border-radius:6px;padding:7px 10px;${pendingAdvance ? 'opacity:0.75;cursor:default;' : 'cursor:pointer;'}font-size:0.82rem;font-weight:700;">${pendingAdvance ? 'Correct!' : 'Submit Answer'}</button>
+              <button type="button" data-progress-check-btn="${index}" ${(pendingAdvance || diagnosticLocked) ? 'disabled' : ''} style="background:#7c3aed;border:none;color:#fff;border-radius:6px;padding:7px 10px;${(pendingAdvance || diagnosticLocked) ? 'opacity:0.75;cursor:default;' : 'cursor:pointer;'}font-size:0.82rem;font-weight:700;">${pendingAdvance ? 'Correct!' : (diagnosticLocked ? 'Complete Diagnostic First' : 'Submit Answer')}</button>
               <button type="button" data-progress-continue-btn="${index}" style="display:${pendingAdvance ? 'inline-flex' : 'none'};background:#0f766e;border:1px solid #14b8a6;color:#ecfeff;border-radius:6px;padding:7px 10px;cursor:pointer;font-size:0.82rem;font-weight:700;">Continue to Next Module</button>
               <div data-progress-check-result="${index}" style="font-size:calc(0.82rem + 2pt);color:#9fb0c7;line-height:1.5;word-break:break-word;overflow-wrap:anywhere;width:100%;">${pendingResultMarkup}</div>
             </div>
@@ -3453,11 +3808,18 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     setCourseLoadingState(true, forceRefresh ? 'Refreshing...' : 'Loading...');
-    if (forceRefresh) clearStoredProgress();
+    if (forceRefresh) {
+      clearStoredProgress();
+      resetStoredDiagnostic();
+    }
     stopModuleAudio();
     progressState.sessionToken = '';
     progressState.moduleNarration = [];
     progressState.pendingAdvance = null;
+    progressState.diagnosticCompleted = false;
+    progressState.diagnosticScore = null;
+    progressState.recommendedStartIndex = 0;
+    progressState.moduleMastery = {};
     titleMain.textContent = `Loading ${topic}...`;
     titleSide.textContent = `Loading ${topic}...`;
     subtitleSide.textContent = forceRefresh ? 'Refreshing course version...' : 'Generating complete curriculum...';
