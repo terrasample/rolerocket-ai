@@ -93,11 +93,35 @@
     .crs-section-h2 {
       font-size: 1.3rem; font-weight: 700; color: #f1f5f9; margin: 0 0 16px;
     }
+    .crs-section-sub {
+      margin: -6px 0 16px 0;
+      font-size: 0.86rem;
+      line-height: 1.55;
+      color: #8fa3bf;
+      max-width: 760px;
+    }
+    .crs-subsection-h3 {
+      margin: 0 0 10px 0;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #dbeafe;
+      line-height: 1.3;
+    }
+    .crs-section-panel {
+      border: 1px solid #1e3a5f;
+      border-radius: 12px;
+      background: linear-gradient(180deg, rgba(15, 23, 42, 0.72), rgba(12, 22, 38, 0.72));
+      padding: 16px;
+    }
+    #outcomes.crs-section {
+      padding-top: 6px;
+      margin-top: 4px;
+    }
 
     /* What you'll learn */
     .crs-outcome-list {
       display: grid; grid-template-columns: repeat(2, 1fr);
-      gap: 10px; margin: 0; padding: 0; list-style: none;
+      gap: 10px; margin: 0 0 20px 0; padding: 0; list-style: none;
     }
     .crs-outcome-list li {
       display: flex; align-items: flex-start; gap: 8px;
@@ -394,21 +418,25 @@
             <!-- About: Course overview only -->
             <section id="about" class="crs-section">
               <h2 class="crs-section-h2">About this course</h2>
-              <div id="courseOverview" class="crs-overview-text"></div>
-              <div id="courseCurriculumMeta" style="display:none;font-size:0.88rem;color:#d0d9e7;line-height:1.6;margin-bottom:16px;"></div>
+              <div class="crs-section-panel">
+                <div id="courseOverview" class="crs-overview-text"></div>
+                <div id="courseCurriculumMeta" style="display:none;font-size:0.88rem;color:#d0d9e7;line-height:1.6;margin-bottom:0;"></div>
+              </div>
             </section>
 
             <!-- Outcomes: What you'll learn + skills + details -->
             <section id="outcomes" class="crs-section">
-              <h2 class="crs-section-h2">What you'll learn</h2>
-              <ul id="courseOutcomeList" class="crs-outcome-list" style="margin-bottom:18px;"></ul>
-              <div class="crs-two-col">
+              <h2 class="crs-section-h2">Outcomes</h2>
+              <p class="crs-section-sub">What you will learn, the skills you will gain, and assessment details.</p>
+              <h3 class="crs-subsection-h3">What you'll learn</h3>
+              <ul id="courseOutcomeList" class="crs-outcome-list"></ul>
+              <div class="crs-two-col crs-section-panel">
                 <div>
-                  <h2 class="crs-section-h2">Skills you'll gain</h2>
+                  <h3 class="crs-subsection-h3">Skills you'll gain</h3>
                   <ul id="courseResumeSignals" class="crs-skill-chips"></ul>
                 </div>
                 <div>
-                  <h2 class="crs-section-h2">Details to know</h2>
+                  <h3 class="crs-subsection-h3">Details to know</h3>
                   <div class="crs-details-grid">
                     <div class="crs-detail-item">
                       <div class="crs-detail-icon">📜</div>
