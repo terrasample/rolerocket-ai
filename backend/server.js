@@ -9999,15 +9999,15 @@ app.post('/api/auth/signup', authLimiter, async (req, res) => {
       throw new Error('Failed to create user');
     }
 
-    // Grant initial tokens/credits to new users: 3 resume credits + 3 cover letter credits
+    // Grant initial tokens/credits to new users: 1 resume generation + 1 cover letter generation = 2 total credits
     user.documentGeneration = {
-      paidCredits: 6,
+      paidCredits: 2,
       resumeFirstFreeUsed: false,
       coverLetterFirstFreeUsed: false,
       totalCreditsPurchased: 0,
       purchases: [{
         bundleId: 'initial-grant',
-        credits: 6,
+        credits: 2,
         amountCents: 0,
         currency: 'usd',
         stripeSessionId: 'onboarding-grant',
@@ -11025,6 +11025,72 @@ app.get('/api/admin/document-credits', authenticateToken, requireAdminAccess, as
   } catch (err) {
     console.error('Admin document-credits error:', err);
     return res.status(500).json({ error: err.message || 'Failed to load credits' });
+  }
+});
+
+// Admin: view all purchased tokens across all users (monitoring dashboard)
+app.get('/api/admin/purchased-tokens', authenticateToken, requireAdminAccess, async (req, res) => {
+  try {
+    const limit = Math.min(Math.max(Number(req.query.limit || 500), 1), 5000);
+    const sortBy = String(req.query.sortBy || 'createdAt').toLowerCase();
+    const validSorts = ['createdat', 'name', 'email', 'paidcredits', 'totalpurchased'];
+    const sort = validSorts.includes(sortBy) ? sortBy : 'createdat';
+    
+    const users = await User.find({})
+      .select('name email plan createdAt documentGeneration')
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .lean();
+
+    const withCredits = users
+      .map((user) => ({
+        name: user.name || '',
+        email: user.email || '',
+        plan: user.plan || 'free',
+        createdAt: user.createdAt || null,
+        paidCredits: Number(user.documentGeneration?.paidCredits || 0),
+        totalCreditsPurchased: Number(user.documentGeneration?.totalCreditsPurchased || 0),
+        purchaseCount: (user.documentGeneration?.purchases || []).length,
+        purchases: (user.documentGeneration?.purchases || [])
+          .map((p) => ({
+            bundleId: String(p.bundleId || ''),
+            credits: Number(p.credits || 0),
+            amountCents: Number(p.amountCents || 0),
+            amountUSD: Number(p.amountCents || 0) / 100,
+            currency: String(p.currency || 'usd').toUpperCase(),
+            stripeSessionId: String(p.stripeSessionId || ''),
+            purchasedAt: p.purchasedAt || null
+          }))
+          .sort((a, b) => new Date(b.purchasedAt) - new Date(a.purchasedAt))
+      }))
+      .filter((u) => u.paidCredits > 0 || u.totalCreditsPurchased > 0)
+      .sort((a, b) => {
+        if (sort === 'name') return (a.name || '').localeCompare(b.name || '');
+        if (sort === 'email') return (a.email || '').localeCompare(b.email || '');
+        if (sort === 'paidcredits') return b.paidCredits - a.paidCredits;
+        if (sort === 'totalpurchased') return b.totalCreditsPurchased - a.totalCreditsPurchased;
+        return new Date(b.createdAt) - new Date(a.createdAt);
+      });
+
+    const totalCreditsInSystem = withCredits.reduce((sum, u) => sum + u.paidCredits, 0);
+    const totalCreditsPurchased = withCredits.reduce((sum, u) => sum + u.totalCreditsPurchased, 0);
+    const totalRevenueUSD = withCredits.reduce((sum, u) =>
+      sum + u.purchases.reduce((purchaseSum, p) => purchaseSum + p.amountUSD, 0), 0
+    );
+
+    return res.json({
+      summary: {
+        totalUsersWithCredits: withCredits.length,
+        totalCreditsInSystem,
+        totalCreditsPurchased,
+        totalRevenueUSD: Number(totalRevenueUSD.toFixed(2)),
+        averageCreditsPerUser: withCredits.length > 0 ? Number((totalCreditsInSystem / withCredits.length).toFixed(2)) : 0
+      },
+      users: withCredits.slice(0, limit)
+    });
+  } catch (err) {
+    console.error('Admin purchased-tokens error:', err);
+    return res.status(500).json({ error: 'Failed to load purchased tokens' });
   }
 });
 
