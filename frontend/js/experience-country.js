@@ -807,6 +807,12 @@
     applyDashboardVariant(effective);
     applyCountryTheme(effective);
     hideJamaicaElements(effective === 'JM');
+    updateHeaderButtonStates(effective);
+
+    var sidebarSelect = document.getElementById('rrExpCountrySelect');
+    if (sidebarSelect) {
+      sidebarSelect.value = effective;
+    }
   }
 
   // Listen for same-tab personalization changes and refresh UI immediately.

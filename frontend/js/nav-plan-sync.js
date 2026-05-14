@@ -140,9 +140,11 @@
 
   function readCachedExperienceCountry() {
     try {
-      return normalizeCountryCode(localStorage.getItem(LOCAL_EXP_KEY) || '');
+      const raw = String(localStorage.getItem(LOCAL_EXP_KEY) || '').trim().toUpperCase();
+      if (raw === 'GLOBAL' || raw === 'JM' || raw === 'US') return raw;
+      return '';
     } catch (_) {
-      return 'GLOBAL';
+      return '';
     }
   }
 
@@ -274,7 +276,7 @@
         note.textContent = 'Saving experience...';
         try {
           const saved = await saveExperiencePreference(selected, activeToken);
-          const effective = normalizeCountryCode((saved && saved.effectiveCountry) || selected);
+          const effective = selected;
           writeCachedExperienceCountry(effective);
           applyExperienceTheme(effective);
           const personalization = publishPersonalizationContext(Object.assign({}, saved || {}, {
@@ -282,7 +284,7 @@
             showJamaicaHub: effective === 'JM' || (saved && saved.showJamaicaHub === true)
           }));
           applyJamaicaHubVisibility(personalization.showJamaicaHub);
-          upsertHomepageExperienceSwitcher(saved || {}, activeToken);
+          upsertHomepageExperienceSwitcher(Object.assign({}, saved || {}, { effectiveCountry: effective }), activeToken);
           note.textContent = 'Experience updated.';
         } catch (error) {
           note.textContent = (error && error.message) ? error.message : 'Could not update experience.';
@@ -310,7 +312,7 @@
         option.textContent = country.label;
         select.appendChild(option);
       });
-      select.value = normalizeCountryCode((context && context.effectiveCountry) || readCachedExperienceCountry());
+      select.value = normalizeCountryCode((context && context.effectiveCountry) || readCachedExperienceCountry() || 'GLOBAL');
     }
 
     if (note && !(context && context.requiresChoice === true)) {
@@ -415,7 +417,7 @@
       button.textContent = 'Saving...';
       try {
         const saved = await saveExperiencePreference(selected, token);
-        const effective = normalizeCountryCode((saved && saved.effectiveCountry) || selected);
+        const effective = selected;
         writeCachedExperienceCountry(effective);
         applyExperienceTheme(effective);
         const personalization = publishPersonalizationContext(Object.assign({}, saved || {}, {
@@ -423,7 +425,7 @@
           showJamaicaHub: effective === 'JM' || (saved && saved.showJamaicaHub === true)
         }));
         applyJamaicaHubVisibility(personalization.showJamaicaHub);
-          upsertHomepageExperienceSwitcher(saved || {}, token);
+        upsertHomepageExperienceSwitcher(Object.assign({}, saved || {}, { effectiveCountry: effective }), token);
         overlay.remove();
         document.removeEventListener('keydown', stopEscape, true);
         window.removeEventListener('popstate', stopPopState);
@@ -752,8 +754,8 @@
     } catch (_) {
       const fallbackCountry = readCachedExperienceCountry();
       const fallback = publishPersonalizationContext({
-        effectiveCountry: resolveThemeCountry(fallbackCountry),
-        showJamaicaHub: resolveThemeCountry(fallbackCountry) === 'JM',
+        effectiveCountry: resolveThemeCountry(fallbackCountry || 'GLOBAL'),
+        showJamaicaHub: resolveThemeCountry(fallbackCountry || 'GLOBAL') === 'JM',
         requiresChoice: false,
         source: 'fallback'
       });
