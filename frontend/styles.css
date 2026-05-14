@@ -820,6 +820,18 @@ h3,
   color: #e0f2fe;
 }
 
+body main.home-red-hint .marketing-card,
+body.rr-theme-us main.home-red-hint .marketing-card,
+body.rr-theme-jm main.home-red-hint .marketing-card {
+  border-color: rgba(248, 113, 113, 0.34) !important;
+  box-shadow:
+    0 24px 52px var(--rr-exp-bg, rgba(8, 47, 73, 0.5)),
+    0 2px 0 rgba(255, 255, 255, 0.04) inset,
+    0 0 0 1px rgba(248, 113, 113, 0.22) inset,
+    0 0 0 1px rgba(127, 29, 29, 0.16),
+    0 14px 28px rgba(127, 29, 29, 0.15) !important;
+}
+
 .marketing-card a {
   color: #7dd3fc;
   font-weight: 600;

@@ -36,6 +36,51 @@
       color: #9fb3cf;
       line-height: 1.5;
     }
+
+    /* Keep profile visuals aligned with the shared US experience theme */
+    body.rr-theme-us .rr-page-header {
+      border-bottom-color: rgba(191, 10, 48, .28);
+    }
+    body.rr-theme-us .rr-profile-shell,
+    body.rr-theme-us .rr-profile-card,
+    body.rr-theme-us .rr-strength-breakdown,
+    body.rr-theme-us .rr-quick-link {
+      background: linear-gradient(180deg, rgba(30, 64, 175, .42), rgba(15, 23, 42, .34)) !important;
+      border-color: rgba(191, 10, 48, .28) !important;
+      box-shadow:
+        0 24px 52px rgba(2, 6, 23, .4),
+        0 2px 0 rgba(255, 255, 255, .04) inset,
+        0 0 0 1px rgba(248, 113, 113, .2) inset,
+        0 0 0 1px rgba(127, 29, 29, .14),
+        0 14px 28px rgba(127, 29, 29, .14) !important;
+    }
+    body.rr-theme-us .rr-field input[type="text"],
+    body.rr-theme-us .rr-field input[type="number"],
+    body.rr-theme-us .rr-field textarea,
+    body.rr-theme-us .rr-field select {
+      border-color: rgba(191, 10, 48, .35);
+    }
+    body.rr-theme-us .rr-tag {
+      border-color: rgba(191, 10, 48, .28);
+      background: linear-gradient(180deg, rgba(30, 64, 175, .3), rgba(15, 23, 42, .26));
+      color: #bfdbfe;
+    }
+    body.rr-theme-us .rr-tag.active {
+      background: linear-gradient(180deg, #bf0a30 0%, #1d4ed8 100%);
+      border-color: rgba(254, 202, 202, .72);
+      color: #ffffff;
+    }
+    body.rr-theme-us .rr-keywords-wrap button,
+    body.rr-theme-us .rr-save-btn {
+      background: linear-gradient(180deg, #bf0a30 0%, #1d4ed8 100%);
+      border-color: rgba(254, 202, 202, .72);
+      color: #ffffff;
+    }
+    body.rr-theme-us .rr-keywords-wrap button:hover,
+    body.rr-theme-us .rr-save-btn:hover {
+      background: linear-gradient(180deg, #a50b2c 0%, #1e40af 100%);
+    }
+
     #profileMain.main.marketing-main {
       max-width: none !important;
       width: 100% !important;
