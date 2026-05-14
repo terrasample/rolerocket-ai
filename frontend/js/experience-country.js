@@ -17,18 +17,9 @@
   }
 
   function resolveThemeCountry(countryCode) {
-    // 1. Check localStorage for user preference (HIGHEST PRIORITY - immutable once set)
-    try {
-      const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (stored && (stored === 'US' || stored === 'JM' || stored === 'GLOBAL')) {
-        return stored;
-      }
-    } catch (_) {}
-
-    // 2. If on Jamaica page, force Jamaica theme (page-aware priority)
+    // If on Jamaica page, force Jamaica theme
     if (isJamaicaExperiencePage()) return 'JM';
     
-    // 3. Use provided code, fallback to GLOBAL
     return normalizeCountryCode(countryCode);
   }
 
@@ -194,9 +185,18 @@
       });
       if (!response.ok) return defaultContext();
       var data = await response.json();
-      if (data && data.effectiveCountry) {
-        setSavedLocalCountry(data.effectiveCountry);
+      
+      // IMPORTANT: Only update localStorage if user hasn't set an explicit preference
+      // Check if user has already selected an experience (immutable preference)
+      var userPreference = getSavedLocalCountry();
+      if (!userPreference || userPreference === 'GLOBAL') {
+        // User has no preference or has default; OK to use server context
+        if (data && data.effectiveCountry) {
+          setSavedLocalCountry(data.effectiveCountry);
+        }
       }
+      // If user HAS set a preference (US, JM, etc.), DO NOT override it with server response
+      
       var merged = Object.assign(defaultContext(), data || {});
       publishPersonalizationContext(merged);
       return merged;

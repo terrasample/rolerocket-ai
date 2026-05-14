@@ -40,18 +40,9 @@
   }
 
   function resolveThemeCountry(countryCode) {
-    // 1. Check localStorage for user preference (HIGHEST PRIORITY - immutable once set)
-    try {
-      const stored = localStorage.getItem(LOCAL_EXP_KEY);
-      if (stored && (stored === 'US' || stored === 'JM' || stored === 'GLOBAL')) {
-        return stored;
-      }
-    } catch (_) {}
-
-    // 2. If on Jamaica page, force Jamaica theme (page-aware priority)
+    // If on Jamaica page, force Jamaica theme
     if (isJamaicaExperiencePage()) return 'JM';
     
-    // 3. Use provided code, fallback to GLOBAL
     return normalizeCountryCode(countryCode);
   }
 
@@ -714,8 +705,21 @@
       const res = await fetch(apiBase + EXP_CONTEXT_ENDPOINT, { headers, credentials: 'include' });
       if (!res.ok) return;
       const context = await res.json();
-      const country = normalizeCountryCode((context && context.effectiveCountry) || readCachedExperienceCountry());
-      const resolvedCountry = resolveThemeCountry(country);
+      
+      // IMPORTANT: Respect user's explicit preference from localStorage
+      // Only use API context if user hasn't already set their preference
+      const userPreference = readCachedExperienceCountry();
+      let effectiveCountry;
+      
+      if (userPreference && userPreference !== 'GLOBAL') {
+        // User has explicit preference - use it regardless of API response
+        effectiveCountry = userPreference;
+      } else {
+        // No explicit preference - use API response
+        effectiveCountry = normalizeCountryCode((context && context.effectiveCountry) || readCachedExperienceCountry());
+      }
+      
+      const resolvedCountry = resolveThemeCountry(effectiveCountry);
       writeCachedExperienceCountry(resolvedCountry);
       const personalization = publishPersonalizationContext(Object.assign({}, context || {}, {
         effectiveCountry: resolvedCountry,

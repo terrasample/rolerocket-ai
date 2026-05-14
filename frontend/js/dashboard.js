@@ -27,16 +27,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       return page === 'jamaica-workforce-accelerator.html' || page === 'nav-flow-mock-jamaica.html';
     }
 
-    // Resolve theme country with page-aware awareness and immutability
+    // Resolve theme country with page-aware awareness
     function resolveThemeCountry(countryCode) {
-      // Check if user explicitly set an experience (user preference takes priority)
-      try {
-        const stored = localStorage.getItem('rr_exp_country_local_v1');
-        if (stored && (stored === 'US' || stored === 'JM' || stored === 'GLOBAL')) {
-          return stored;
-        }
-      } catch (_) {}
-
       // If on Jamaica page, force Jamaica theme
       if (isJamaicaExperiencePage()) return 'JM';
       
