@@ -802,6 +802,27 @@
     }
   }
 
+  function applyLiveExperienceRefresh(countryCode) {
+    var effective = normalizeCountryCode(countryCode || 'GLOBAL');
+    applyDashboardVariant(effective);
+    applyCountryTheme(effective);
+    hideJamaicaElements(effective === 'JM');
+  }
+
+  // Listen for same-tab personalization changes and refresh UI immediately.
+  document.addEventListener('rr:personalization-updated', function (event) {
+    var detail = event && event.detail ? event.detail : null;
+    if (detail && detail.effectiveCountry) {
+      applyLiveExperienceRefresh(detail.effectiveCountry);
+    }
+  });
+
+  // Listen for cross-tab updates so open dashboards update without manual reload.
+  window.addEventListener('storage', function (event) {
+    if (!event || event.key !== LOCAL_STORAGE_KEY) return;
+    applyLiveExperienceRefresh(event.newValue || 'GLOBAL');
+  });
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init, { once: true });
   } else {
