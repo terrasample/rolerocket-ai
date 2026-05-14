@@ -90,6 +90,23 @@
       padding-bottom: 28px; border-bottom: 1px solid #1e3a5f; margin-bottom: 28px;
     }
     .crs-section:last-child { border-bottom: none; }
+    .crs-main-col > .crs-section {
+      scroll-margin-top: 84px;
+    }
+    .crs-section-standalone {
+      border: 1px solid #1e3a5f;
+      border-radius: 14px;
+      background: linear-gradient(180deg, rgba(15, 23, 42, 0.82), rgba(12, 22, 38, 0.82));
+      padding: 20px 20px 24px;
+      margin-bottom: 22px;
+      border-bottom: 1px solid #1e3a5f;
+    }
+    .crs-section-standalone .crs-section-h2 {
+      margin-bottom: 14px;
+    }
+    .crs-section-standalone .crs-section-sub {
+      margin-top: 0;
+    }
     .crs-section-h2 {
       font-size: 1.3rem; font-weight: 700; color: #f1f5f9; margin: 0 0 16px;
     }
@@ -113,9 +130,16 @@
       background: linear-gradient(180deg, rgba(15, 23, 42, 0.72), rgba(12, 22, 38, 0.72));
       padding: 16px;
     }
+    .crs-section-standalone .crs-section-panel {
+      background: rgba(11, 27, 43, 0.72);
+    }
     #outcomes.crs-section {
       padding-top: 6px;
       margin-top: 4px;
+    }
+    #outcomes.crs-section-standalone {
+      padding-top: 20px;
+      margin-top: 0;
     }
 
     /* What you'll learn */
@@ -164,8 +188,8 @@
     /* Week accordion list items (Coursera-style flow) */
     .crs-week-item {
       border: 1px solid #1e3a5f;
-      border-radius: 8px;
-      margin-bottom: 10px;
+      border-radius: 12px;
+      margin-bottom: 14px;
       background: #0f172a;
       overflow: hidden;
     }
@@ -186,7 +210,7 @@
       justify-content: space-between;
       align-items: flex-start;
       gap: 10px;
-      padding: 14px 18px;
+      padding: 18px 22px;
       cursor: pointer;
     }
     .crs-week-summary::-webkit-details-marker {
@@ -213,7 +237,7 @@
     }
     .crs-week-title {
       margin: 0 0 3px;
-      font-size: 0.95rem;
+      font-size: 1.04rem;
       font-weight: 700;
       color: #f1f5f9;
       line-height: 1.3;
@@ -221,7 +245,7 @@
       overflow-wrap: anywhere;
     }
     .crs-week-meta {
-      font-size: 0.78rem;
+      font-size: 0.86rem;
       color: #64748b;
     }
     .crs-week-right {
@@ -246,9 +270,9 @@
     .crs-week-body {
       border-top: 1px solid #1e3a5f;
       background: rgba(10, 26, 45, 0.65);
-      padding: 10px 18px 12px;
+      padding: 14px 22px 16px;
       display: grid;
-      gap: 6px;
+      gap: 8px;
     }
     .crs-week-active-indicator {
       font-size: 0.78rem;
@@ -295,7 +319,7 @@
     /* Module-item dark theme kept as-is */
     .module-item {
       border: 1px solid #2a3954; border-radius: 10px;
-      background: #111c31; padding: 16px; margin-bottom: 12px;
+      background: #111c31; padding: 20px; margin-bottom: 16px;
     }
     .module-item h4 { margin: 0 0 8px 0; color: #f1f5f9; font-size: 1rem; }
     .module-item p { margin: 0 0 10px 0; color: #d0d9e7; line-height: 1.68; font-size: 0.93rem; }
@@ -307,6 +331,7 @@
       .crs-modules-cols { grid-template-columns: 1fr; }
       .crs-week-detail-label { display: none; }
       .crs-week-summary { padding: 12px 14px; }
+      .crs-section-standalone { padding: 16px 14px 18px; }
     }
   </style>
 </head>
@@ -416,7 +441,7 @@
           <div class="crs-main-col">
 
             <!-- About: Course overview only -->
-            <section id="about" class="crs-section">
+            <section id="about" class="crs-section crs-section-standalone">
               <h2 class="crs-section-h2">About this course</h2>
               <div class="crs-section-panel">
                 <div id="courseOverview" class="crs-overview-text"></div>
@@ -425,7 +450,7 @@
             </section>
 
             <!-- Outcomes: What you'll learn + skills + details -->
-            <section id="outcomes" class="crs-section">
+            <section id="outcomes" class="crs-section crs-section-standalone">
               <h2 class="crs-section-h2">Outcomes</h2>
               <p class="crs-section-sub">What you will learn, the skills you will gain, and assessment details.</p>
               <h3 class="crs-subsection-h3">What you'll learn</h3>
@@ -465,7 +490,7 @@
             </section>
 
             <!-- Modules section -->
-            <section id="modules" class="crs-section">
+            <section id="modules" class="crs-section crs-section-standalone">
               <h2 class="crs-section-h2" id="moduleCountHeading">There are 5 modules in this course</h2>
 
               <div class="crs-modules-cols">
@@ -593,7 +618,7 @@
   <script src="js/nav-plan-sync.js?v=20260514-sync4"></script>
   <script src="js/idle-timeout.js"></script>
   <script src="js/jspdf-loader.js"></script>
-  <script src="js/course-learning.js?v=20260514-outcomes-polish-v2"></script>
+  <script src="js/course-learning.js?v=20260514-sections-cards-v1"></script>
   <script src="js/page-assistant.js"></script>
   <script src="js/return-navigation.js"></script>
 </body>
