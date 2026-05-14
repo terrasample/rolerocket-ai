@@ -115,8 +115,10 @@ const UserSchema = new mongoose.Schema(
       paidCredits: { type: Number, default: 0 },
       resumeFirstFreeUsed: { type: Boolean, default: false },
       coverLetterFirstFreeUsed: { type: Boolean, default: false },
+      emailAssistantFirstFreeUsed: { type: Boolean, default: false },
       resumeFreeLastUsedDay: { type: String, default: '' },
       coverLetterFreeLastUsedDay: { type: String, default: '' },
+      emailAssistantFreeLastUsedDay: { type: String, default: '' },
       totalCreditsPurchased: { type: Number, default: 0 },
       purchases: {
         type: [

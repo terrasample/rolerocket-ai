@@ -316,6 +316,8 @@ app.use('/api/ats', require('./routes/ats'));
 app.use('/api/networking', require('./routes/networking'));
 // Register Cover Letter API route
 app.use('/api/cover-letter', require('./routes/coverLetter'));
+// Register Email Assistant API route
+app.use('/api/email', require('./routes/email'));
 // Register school/university/government/employer integration APIs
 app.use('/api/integrations', require('./routes/integrations'));
 

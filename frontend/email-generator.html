@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Email Assistant - Write & Rewrite Emails in Different Tones | RoleRocket</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .email-generator-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      margin-top: 2rem;
+    }
+
+    .email-form-section {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .form-group label {
+      font-weight: 600;
+      color: #333;
+      font-size: 0.95rem;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      padding: 0.75rem;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      transition: border-color 0.2s;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    }
+
+    .form-group textarea {
+      resize: vertical;
+      min-height: 120px;
+    }
+
+    .tone-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.75rem;
+      margin-top: 0.5rem;
+    }
+
+    .tone-option {
+      padding: 0.75rem;
+      border: 2px solid #e0e0e0;
+      border-radius: 6px;
+      cursor: pointer;
+      text-align: center;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: all 0.2s;
+      background-color: #f9f9f9;
+    }
+
+    .tone-option:hover {
+      border-color: #6366f1;
+      background-color: #f0f4ff;
+    }
+
+    .tone-option.selected {
+      background-color: #6366f1;
+      color: white;
+      border-color: #6366f1;
+    }
+
+    .generate-btn {
+      background-color: #6366f1;
+      color: white;
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .generate-btn:hover:not(:disabled) {
+      background-color: #4f46e5;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+    }
+
+    .generate-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .email-output-section {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .email-output-area {
+      background-color: #f9f9f9;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      padding: 1.5rem;
+      min-height: 300px;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    .email-output-area.empty {
+      color: #999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .export-buttons {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .export-btn {
+      padding: 0.6rem 1.2rem;
+      background-color: #f0f0f0;
+      border: 1px solid #d0d0d0;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+
+    .export-btn:hover {
+      background-color: #e0e0e0;
+      border-color: #999;
+    }
+
+    .billing-panel {
+      background-color: #f0f7ff;
+      border: 1px solid #b3d9ff;
+      border-radius: 6px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+    }
+
+    .billing-status {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+
+    .billing-status-text {
+      font-weight: 500;
+    }
+
+    .billing-status-value {
+      color: #6366f1;
+      font-weight: 600;
+    }
+
+    .buy-buttons {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+    }
+
+    .buy-btn {
+      padding: 0.6rem;
+      background-color: #6366f1;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .buy-btn:hover {
+      background-color: #4f46e5;
+    }
+
+    .error-message {
+      background-color: #fee;
+      color: #c33;
+      padding: 1rem;
+      border-radius: 6px;
+      margin-bottom: 1rem;
+      display: none;
+    }
+
+    .error-message.show {
+      display: block;
+    }
+
+    .loading-indicator {
+      display: none;
+      text-align: center;
+      padding: 2rem;
+      color: #666;
+    }
+
+    .loading-indicator.show {
+      display: block;
+    }
+
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #6366f1;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 0.5rem;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .pro-badge {
+      display: inline-block;
+      background-color: #fbbf24;
+      color: #92400e;
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      margin-left: 0.5rem;
+    }
+
+    @media (max-width: 1024px) {
+      .email-generator-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .tone-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .buy-buttons {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="top-nav">
+    <div class="nav-brand">
+      <a href="index.html">🚀 RoleRocket</a>
+    </div>
+    <div class="nav-menu">
+      <a href="index.html">🏠 Home</a>
+      <a href="features.html">✨ Features</a>
+      <a href="dashboard.html">🧑‍💼 Dashboard</a>
+      <a href="pricing.html">💳 Pricing</a>
+      <a href="account.html">👤 Account</a>
+    </div>
+  </nav>
+
+  <main class="page-main">
+    <section class="page-header">
+      <h1>Email Assistant <span class="pro-badge">Pro</span></h1>
+      <p>Write and rewrite emails in different tones for job hunting scenarios</p>
+    </section>
+
+    <div class="email-generator-container">
+      <!-- Form Section -->
+      <div class="email-form-section">
+        <div id="emailBillingPanel" class="billing-panel">
+          <div class="billing-status">
+            <span class="billing-status-text">Free rewrites remaining today:</span>
+            <span class="billing-status-value"><span id="emailFreeRemaining">1</span> / 1</span>
+          </div>
+          <div class="billing-status" style="font-size: 0.85rem; margin-bottom: 0.5rem;">
+            <span class="billing-status-text">Paid credits:</span>
+            <span class="billing-status-value"><span id="emailPaidCredits">0</span></span>
+          </div>
+          <div id="emailCreditStatus" style="margin-bottom: 0.75rem; font-size: 0.9rem;"></div>
+          <div id="emailBuyPanel" class="buy-buttons" style="display: none;">
+            <button class="buy-btn" onclick="startEmailCheckout('single')">Buy 1<br>$1.99</button>
+            <button class="buy-btn" onclick="startEmailCheckout('five')">Buy 5<br>$6.99</button>
+            <button class="buy-btn" onclick="startEmailCheckout('ten')">Buy 10<br>$11.99</button>
+          </div>
+        </div>
+
+        <div id="emailErrorMessage" class="error-message"></div>
+
+        <div class="form-group">
+          <label for="emailScenario">Scenario</label>
+          <select id="emailScenario">
+            <option value="thank-you">Thank you after interview</option>
+            <option value="salary-range">Request salary range before applying</option>
+            <option value="decline-offer">Decline offer gracefully</option>
+            <option value="check-status">Check application status</option>
+            <option value="follow-up">General follow-up</option>
+            <option value="cold-outreach">Cold outreach to recruiters</option>
+            <option value="custom">Custom / Other</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="emailContent">Email Body</label>
+          <textarea id="emailContent" placeholder="Paste or type your email here..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Select Tone</label>
+          <div class="tone-grid">
+            <div class="tone-option" data-tone="professional" onclick="selectTone('professional')">
+              Professional / Formal
+            </div>
+            <div class="tone-option" data-tone="warm" onclick="selectTone('warm')">
+              Warm & Personable
+            </div>
+            <div class="tone-option" data-tone="confident" onclick="selectTone('confident')">
+              Confident & Direct
+            </div>
+            <div class="tone-option" data-tone="concise" onclick="selectTone('concise')">
+              Concise
+            </div>
+            <div class="tone-option" data-tone="follow-up" onclick="selectTone('follow-up')">
+              Follow-Up
+            </div>
+            <div class="tone-option" data-tone="cold-outreach" onclick="selectTone('cold-outreach')">
+              Cold Outreach
+            </div>
+          </div>
+        </div>
+
+        <button id="emailGenerateBtn" class="generate-btn" onclick="generateEmail()">
+          ✨ Rewrite Email
+        </button>
+      </div>
+
+      <!-- Output Section -->
+      <div class="email-output-section">
+        <div class="email-output-area empty" id="emailOutput">
+          Your rewritten email will appear here...
+        </div>
+
+        <div id="emailLoadingIndicator" class="loading-indicator">
+          <div class="spinner"></div>
+          <p>Rewriting your email...</p>
+        </div>
+
+        <div class="export-buttons">
+          <button class="export-btn" id="emailCopyBtn" onclick="copyEmailToClipboard()" style="display: none;">
+            📋 Copy to Clipboard
+          </button>
+          <button class="export-btn" id="emailDownloadBtn" onclick="downloadEmailAsText()" style="display: none;">
+            💾 Download as .txt
+          </button>
+          <button class="export-btn" id="emailSendBtn" onclick="sendEmailViaProvider()" style="display: none;">
+            ✉️ Send via Email
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="js/api-base.js"></script>
+  <script src="js/email-generator.js"></script>
+</body>
+</html>

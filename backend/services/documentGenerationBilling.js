@@ -2,12 +2,14 @@ const User = require('../models/User');
 
 const FEATURE_KEYS = {
   resume: 'resumeFirstFreeUsed',
-  'cover-letter': 'coverLetterFirstFreeUsed'
+  'cover-letter': 'coverLetterFirstFreeUsed',
+  'email-assistant': 'emailAssistantFirstFreeUsed'
 };
 
 const FEATURE_DAILY_KEYS = {
   resume: 'resumeFreeLastUsedDay',
-  'cover-letter': 'coverLetterFreeLastUsedDay'
+  'cover-letter': 'coverLetterFreeLastUsedDay',
+  'email-assistant': 'emailAssistantFreeLastUsedDay'
 };
 
 const CREDIT_BUNDLES = {
@@ -39,7 +41,7 @@ function isPaidOrAdmin(user) {
 
 function normalizeFeature(feature) {
   const normalized = String(feature || '').toLowerCase();
-  return FEATURE_KEYS[normalized] ? normalized : 'resume';
+  return (normalized === 'resume' || normalized === 'cover-letter' || normalized === 'email-assistant') ? normalized : 'resume';
 }
 
 function getUtcDayStamp(date = new Date()) {
@@ -56,6 +58,7 @@ function ensureWallet(user) {
       paidCredits: 0,
       resumeFirstFreeUsed: false,
       coverLetterFirstFreeUsed: false,
+      emailAssistantFirstFreeUsed: false,
       totalCreditsPurchased: 0,
       purchases: []
     };
@@ -70,11 +73,17 @@ function ensureWallet(user) {
   if (typeof user.documentGeneration.coverLetterFirstFreeUsed !== 'boolean') {
     user.documentGeneration.coverLetterFirstFreeUsed = false;
   }
+  if (typeof user.documentGeneration.emailAssistantFirstFreeUsed !== 'boolean') {
+    user.documentGeneration.emailAssistantFirstFreeUsed = false;
+  }
   if (typeof user.documentGeneration.resumeFreeLastUsedDay !== 'string') {
     user.documentGeneration.resumeFreeLastUsedDay = '';
   }
   if (typeof user.documentGeneration.coverLetterFreeLastUsedDay !== 'string') {
     user.documentGeneration.coverLetterFreeLastUsedDay = '';
+  }
+  if (typeof user.documentGeneration.emailAssistantFreeLastUsedDay !== 'string') {
+    user.documentGeneration.emailAssistantFreeLastUsedDay = '';
   }
   if (!Number.isFinite(Number(user.documentGeneration.totalCreditsPurchased))) {
     user.documentGeneration.totalCreditsPurchased = 0;
