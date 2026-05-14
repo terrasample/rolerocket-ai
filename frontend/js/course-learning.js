@@ -1318,7 +1318,15 @@ document.addEventListener('DOMContentLoaded', function () {
             progressCheckQuestion: 'What is the primary purpose of a validation set in machine learning?',
             progressCheckOptions: ['To make training faster', 'To evaluate model performance on unseen data and detect overfitting', 'To store the final results', 'To replace the training set'],
             correctOptionIndex: 1,
-            progressCheckExplanation: 'Validation sets help catch overfitting before the test set is used for final evaluation.'
+            progressCheckExplanation: 'Validation sets help catch overfitting before the test set is used for final evaluation.',
+            colabLink: 'https://colab.research.google.com/github/greyhatguy007/Machine-Learning-Specialization-Coursera/blob/main/C1%20-%20Supervised%20Machine%20Learning%20-%20Regression%20and%20Classification/Week%202/C1W2A1/C1_W2_Linear_Regression.ipynb',
+            labTitle: 'Lab: Linear Regression with scikit-learn (Week 2)',
+            labInstructions: 'Open the notebook. Implement linear regression on the housing dataset, split into train/val/test sets, compute the cost function, and report mean squared error on the validation set. Then extend to logistic regression on the churn dataset and evaluate with a confusion matrix.',
+            quizQuestions: [
+              { question: 'What is the primary purpose of a validation set?', options: ['To train the model', 'To detect overfitting and tune hyperparameters', 'To replace the test set', 'To speed up training'], correctOptionIndex: 1, explanation: 'The validation set is used during training to tune hyperparameters and catch overfitting before the held-out test set is ever touched.' },
+              { question: 'Which metric is most appropriate for evaluating a classifier on a heavily imbalanced dataset?', options: ['Accuracy', 'Mean Squared Error', 'F1-score', 'R-squared'], correctOptionIndex: 2, explanation: 'F1-score balances precision and recall, making it reliable when class sizes are unequal and accuracy alone is misleading.' },
+              { question: 'In logistic regression, what does the decision boundary represent?', options: ['The training loss value', 'The threshold that separates predicted class regions', 'The model accuracy', 'The number of features used'], correctOptionIndex: 1, explanation: 'The decision boundary is where the model predicts a 50% probability — it separates the two class regions in feature space.' }
+            ]
           },
           {
             title: '2. Advanced Learning Algorithms',
@@ -1336,7 +1344,15 @@ document.addEventListener('DOMContentLoaded', function () {
             progressCheckQuestion: 'What is a key advantage of random forests over a single decision tree?',
             progressCheckOptions: ['Faster training time', 'Reduced variance through ensemble averaging; better generalization', 'Smaller model size', 'Easier to visualize'],
             correctOptionIndex: 1,
-            progressCheckExplanation: 'Ensemble methods reduce overfitting by averaging predictions from multiple models.'
+            progressCheckExplanation: 'Ensemble methods reduce overfitting by averaging predictions from multiple models.',
+            colabLink: 'https://colab.research.google.com/github/greyhatguy007/Machine-Learning-Specialization-Coursera/blob/main/C2%20-%20Advanced%20Learning%20Algorithms/Week%201/C2W1A1/C2_W1_Assignment.ipynb',
+            labTitle: 'Lab: Neural Networks with TensorFlow/Keras (Week 1)',
+            labInstructions: 'Open the notebook. Build a multi-layer neural network in Keras for digit classification. Train the model, plot the training/validation loss curve, and compare performance against a logistic regression baseline. Then build a decision tree and random forest on the same dataset and report test accuracy and training time for each.',
+            quizQuestions: [
+              { question: 'What does backpropagation compute in a neural network?', options: ['The number of hidden layers', 'Gradients of the loss with respect to each weight', 'The final output predictions', 'The optimal batch size'], correctOptionIndex: 1, explanation: 'Backpropagation applies the chain rule to compute gradients layer-by-layer so gradient descent can update every weight.' },
+              { question: 'Why do random forests reduce overfitting compared to a single decision tree?', options: ['They use fewer features per tree', 'They average predictions from many trees, reducing variance', 'They train on less data', 'They have shallower trees'], correctOptionIndex: 1, explanation: 'Ensemble averaging smooths out the high variance of individual deep trees, producing a model that generalises better.' },
+              { question: 'Which activation function is most commonly used in hidden layers of modern deep neural networks?', options: ['Sigmoid', 'Tanh', 'ReLU', 'Softmax'], correctOptionIndex: 2, explanation: 'ReLU avoids the vanishing gradient problem and allows faster training in deep networks compared to sigmoid or tanh.' }
+            ]
           },
           {
             title: '3. Unsupervised Learning, Recommender Systems, and Reinforcement Learning',
@@ -1354,7 +1370,15 @@ document.addEventListener('DOMContentLoaded', function () {
             progressCheckQuestion: 'Which technique is best for finding hidden patterns in unlabeled data?',
             progressCheckOptions: ['Logistic regression', 'Decision trees', 'K-means clustering or PCA', 'Only neural networks'],
             correctOptionIndex: 2,
-            progressCheckExplanation: 'Unsupervised learning discovers structure when labels are not available.'
+            progressCheckExplanation: 'Unsupervised learning discovers structure when labels are not available.',
+            colabLink: 'https://colab.research.google.com/github/greyhatguy007/Machine-Learning-Specialization-Coursera/blob/main/C3%20-%20Unsupervised%20Learning%2C%20Recommenders%2C%20Reinforcement%20Learning/Week%201/C3W1A1/C3_W1_KMeans_Assignment.ipynb',
+            labTitle: 'Lab: K-Means Clustering and Anomaly Detection (Week 1)',
+            labInstructions: 'Open the notebook. Apply K-means to cluster a customer dataset. Choose the number of clusters with the elbow method, evaluate quality with the silhouette score, then implement a Gaussian anomaly detector and flag outliers. In a second section, build a simple user-based collaborative filter on a ratings matrix.',
+            quizQuestions: [
+              { question: 'What does the silhouette score measure in a clustering result?', options: ['Number of clusters chosen', 'How similar each point is to its own cluster versus neighbouring clusters', 'Training accuracy of the model', 'Distance from each point to the global centroid'], correctOptionIndex: 1, explanation: 'Silhouette scores range from -1 to 1; values close to 1 indicate tight, well-separated clusters.' },
+              { question: 'In collaborative filtering, what is the primary input used to generate recommendations?', options: ['Product description text', 'User-item interaction history such as ratings', 'Image features of items', 'Only user demographic data'], correctOptionIndex: 1, explanation: 'Collaborative filtering learns from patterns of who liked what, finding users or items with similar interaction histories.' },
+              { question: 'What is PCA primarily used for in machine learning?', options: ['Classification of labelled data', 'Dimensionality reduction while preserving maximum variance', 'Generating synthetic training samples', 'Detecting anomalies in time-series data'], correctOptionIndex: 1, explanation: 'PCA projects data onto the directions of greatest variance, reducing feature count while retaining the most information.' }
+            ]
           },
           {
             title: '4. Data Preprocessing, Feature Engineering, and MLOps',
@@ -1372,7 +1396,15 @@ document.addEventListener('DOMContentLoaded', function () {
             progressCheckQuestion: 'What is data leakage in machine learning?',
             progressCheckOptions: ['Losing data files', 'Using information from the test set during training', 'Having too many features', 'Only a database concern'],
             correctOptionIndex: 1,
-            progressCheckExplanation: 'Data leakage inflates training accuracy but fails on production data.'
+            progressCheckExplanation: 'Data leakage inflates training accuracy but fails on production data.',
+            colabLink: 'https://colab.research.google.com/#create=true',
+            labTitle: 'Lab: Preprocessing Pipeline + FastAPI Deployment',
+            labInstructions: 'Create a new Colab notebook. Build a full scikit-learn Pipeline that imputes missing values, scales numerical features, and one-hot encodes categoricals. Train a model, save it with joblib, then write a FastAPI app that loads the model and serves a /predict endpoint. Test it with sample JSON requests and add a basic drift-monitoring stub.',
+            quizQuestions: [
+              { question: 'Why should feature scalers be fit on the training set only — not on the full dataset?', options: ['It is computationally faster', 'To prevent test set statistics from leaking into the training process', 'The test set has no numerical features', 'Scaling is optional for tree-based models'], correctOptionIndex: 1, explanation: 'Fitting a scaler on all data lets test set statistics influence training, which is a form of data leakage that inflates performance metrics.' },
+              { question: 'What is model drift in a production ML system?', options: ['The training loss increasing during training', 'Incoming production data distribution shifts, causing model performance to degrade', 'The model running out of GPU memory', 'A bug introduced during Docker containerisation'], correctOptionIndex: 1, explanation: 'Drift occurs when real-world data evolves away from the training distribution, so predictions become less accurate over time.' },
+              { question: 'Which of these is the most common cause of data leakage in a preprocessing pipeline?', options: ['Using too many training epochs', 'Including future or target-correlated information in training features', 'Having a large dataset', 'Normalising numerical columns'], correctOptionIndex: 1, explanation: 'Including information that would not be available at prediction time (e.g. post-event features, scaled on full data) is the classic leakage source.' }
+            ]
           },
           {
             title: '5. Capstone: End-to-End ML Project with Ethics and Best Practices',
@@ -1392,7 +1424,15 @@ document.addEventListener('DOMContentLoaded', function () {
             progressCheckQuestion: 'What is the primary purpose of a model card in ML?',
             progressCheckOptions: ['To store API keys', 'To document model details, use cases, limitations, and ethical considerations', 'Only for internal use', 'To replace model training'],
             correctOptionIndex: 1,
-            progressCheckExplanation: 'Model cards promote transparency, reproducibility, and responsible AI deployment.'
+            progressCheckExplanation: 'Model cards promote transparency, reproducibility, and responsible AI deployment.',
+            colabLink: 'https://colab.research.google.com/#create=true',
+            labTitle: 'Capstone Lab: End-to-End ML Project',
+            labInstructions: 'Create a new Colab notebook for your capstone. Choose a real dataset, write an EDA section with visualisations, preprocess features in a Pipeline, train at least 3 algorithms with cross-validation, evaluate on a held-out test set with confusion matrix and classification report, perform a demographic fairness audit, containerise with Docker, and write a model card documenting your approach, limitations, and ethical considerations.',
+            quizQuestions: [
+              { question: 'What is the purpose of a model card in responsible AI deployment?', options: ['To store API authentication keys', 'To document model details, intended use, performance, limitations, and ethical considerations', 'To speed up model inference', 'To replace unit and integration tests'], correctOptionIndex: 1, explanation: 'Model cards are standardised documents that make AI systems transparent, reproducible, and accountable to users and stakeholders.' },
+              { question: 'Which metric is most appropriate for detecting demographic bias in a classification model?', options: ['Overall training loss', 'Equalized odds or demographic parity across groups', 'Total model file size', 'Number of trainable parameters'], correctOptionIndex: 1, explanation: 'Fairness metrics like equalized odds compare true and false positive rates across demographic subgroups to surface disparate impact.' },
+              { question: 'What is the correct order of operations to prevent data leakage in a full ML pipeline?', options: ['Fit scaler on the full dataset, then split into train/test', 'Split into train/test first, then fit all preprocessing only on the training partition', 'Scale features after model training is complete', 'Data splitting is unnecessary when using cross-validation'], correctOptionIndex: 1, explanation: 'Splitting before any fitting ensures test data is never seen during preprocessing, which is the only leak-free approach.' }
+            ]
           }
         ],
         finalAssessment: [
@@ -2376,6 +2416,83 @@ document.addEventListener('DOMContentLoaded', function () {
     return true;
   }
 
+  function runMultiQuestionQuiz(idx) {
+    const moduleItem = progressState.allModules?.[idx];
+    const quizQuestions = asArray(moduleItem?.quizQuestions);
+    if (!quizQuestions.length) {
+      runProgressCheck(idx);
+      return;
+    }
+
+    const resultWrap = document.querySelector(`div[data-quiz-result="${idx}"]`);
+    if (!resultWrap) return;
+
+    const results = quizQuestions.map((q, qIdx) => {
+      const selected = document.querySelector(`input[name="module-quiz-${idx}-${qIdx}"]:checked`);
+      const selectedVal = selected ? Number(selected.value) : null;
+      const isCorrect = Number.isInteger(selectedVal) && selectedVal === Number(q.correctOptionIndex);
+      return { isCorrect, selectedVal, correctOptionIndex: Number(q.correctOptionIndex), explanation: String(q.explanation || '') };
+    });
+
+    const total = quizQuestions.length;
+    const allAnswered = results.every((r) => Number.isInteger(r.selectedVal));
+    if (!allAnswered) {
+      resultWrap.innerHTML = '<span style="color:#fda4af;font-weight:700;">Answer all questions before submitting the quiz.</span>';
+      return;
+    }
+
+    const correct = results.filter((r) => r.isCorrect).length;
+    const passed = correct >= Math.ceil(total * 0.67);
+    const mastery = getModuleMasteryState(idx);
+    mastery.quizPassed = passed;
+    mastery.quizScore = `${correct}/${total}`;
+
+    // Per-question visual feedback
+    results.forEach((result, qIdx) => {
+      document.querySelectorAll(`input[name="module-quiz-${idx}-${qIdx}"]`).forEach((inp) => { inp.disabled = true; });
+      if (!result.isCorrect) {
+        const wrongInput = document.querySelector(`input[name="module-quiz-${idx}-${qIdx}"]:checked`);
+        if (wrongInput) {
+          const wrongLabel = wrongInput.closest('label');
+          if (wrongLabel) { wrongLabel.style.background = '#3b0a0a'; wrongLabel.style.borderColor = '#ef4444'; wrongLabel.style.color = '#fca5a5'; }
+        }
+      }
+      const correctInput = document.querySelector(`input[name="module-quiz-${idx}-${qIdx}"][value="${result.correctOptionIndex}"]`);
+      if (correctInput) {
+        const correctLabel = correctInput.closest('label');
+        if (correctLabel) { correctLabel.style.background = '#052e16'; correctLabel.style.borderColor = '#22c55e'; correctLabel.style.color = '#86efac'; }
+      }
+    });
+
+    const submitBtn = document.querySelector(`button[data-module-quiz-submit-btn="${idx}"]`);
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.style.opacity = '0.75'; submitBtn.style.cursor = 'default'; }
+
+    const scoreColor = passed ? '#86efac' : '#fda4af';
+    const scoreIcon = passed ? '✓' : '✗';
+    const scoreLabel = passed ? 'Passed' : 'Not yet \u2014 review the highlighted answers';
+
+    let resultHtml = `<div style="margin-top:4px;"><span style="font-weight:700;color:${scoreColor};">${scoreIcon} Quiz Score: ${correct}/${total} \u2014 ${scoreLabel}.</span>`;
+
+    if (passed && !mastery.transferPassed) {
+      resultHtml += ` <span style="color:#d0d9e7;">Complete the transfer task to unlock continue.</span>`;
+    } else if (passed && mastery.transferPassed) {
+      const completedModules = Array.from(new Set([...progressState.completedModules, idx])).sort((a, b) => a - b);
+      progressState.lastProgressFeedback = null;
+      queueProgressAdvance(idx, completedModules, `Quiz passed (${correct}/${total}). Great work!`);
+    } else {
+      resultHtml += ` <span style="color:#fde68a;">Review the answers above, then retry.</span>`;
+      setTimeout(() => {
+        const btn = document.querySelector(`button[data-module-quiz-submit-btn="${idx}"]`);
+        if (btn) { btn.disabled = false; btn.textContent = 'Retry Quiz'; btn.style.opacity = '1'; btn.style.cursor = 'pointer'; }
+        document.querySelectorAll(`input[name^="module-quiz-${idx}-"]`).forEach((inp) => { inp.disabled = false; inp.checked = false; });
+        document.querySelectorAll(`[data-quiz-panel="${idx}"] label`).forEach((lbl) => { lbl.style.background = '#111c31'; lbl.style.borderColor = '#2a3954'; lbl.style.color = '#d0d9e7'; });
+      }, 3000);
+    }
+
+    resultHtml += '</div>';
+    resultWrap.innerHTML = resultHtml;
+  }
+
   function runTransferSubmission(idx) {
     const input = document.querySelector(`textarea[data-transfer-response="${idx}"]`);
     const feedback = document.querySelector(`div[data-transfer-feedback="${idx}"]`);
@@ -2712,6 +2829,14 @@ document.addEventListener('DOMContentLoaded', function () {
         event.preventDefault();
         const idx = Number(progressButton.getAttribute('data-progress-check-btn'));
         await runProgressCheck(idx);
+        return;
+      }
+
+      const quizSubmitButton = event.target.closest('button[data-module-quiz-submit-btn]');
+      if (quizSubmitButton) {
+        event.preventDefault();
+        const idx = Number(quizSubmitButton.getAttribute('data-module-quiz-submit-btn'));
+        runMultiQuestionQuiz(idx);
         return;
       }
 
@@ -3184,6 +3309,11 @@ document.addEventListener('DOMContentLoaded', function () {
         : '';
       const commonMistake = escapeHtml(String(moduleItem?.commonMistake || ''));
       const practiceTask = escapeHtml(String(moduleItem?.practiceTask || ''));
+      const colabLink = String(moduleItem?.colabLink || '').trim();
+      const labTitle = String(moduleItem?.labTitle || '').trim();
+      const labInstructions = String(moduleItem?.labInstructions || '').trim();
+      const quizQuestionsData = asArray(moduleItem?.quizQuestions);
+      const hasMultiQuiz = quizQuestionsData.length > 0;
       const progressCheckQuestion = escapeHtml(String(moduleItem?.progressCheckQuestion || `In one sentence, what is the key takeaway of module ${index + 1}?`));
       const progressCheckOptions = asArray(moduleItem?.progressCheckOptions).slice(0, 4);
       const mastery = getModuleMasteryState(index);
@@ -3200,6 +3330,63 @@ document.addEventListener('DOMContentLoaded', function () {
       const pendingResultMarkup = pendingAdvance
         ? `<span style="font-weight:700;color:#86efac;">✓ Correct.</span> <span style="color:#d0d9e7;">${escapeHtml(String(pendingAdvance.feedbackMessage || ''))}</span>`
         : '';
+
+      const colabPanelHtml = colabLink ? `
+        <div style="margin:10px 0 12px;padding:14px;border-radius:10px;background:#0c1a2e;border:1px solid #f59e0b;display:grid;gap:8px;">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span style="font-size:0.78rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#fbbf24;background:#3d2500;border:1px solid #f59e0b;border-radius:6px;padding:3px 8px;">Coding Lab</span>
+            <span style="font-weight:700;color:#fde68a;font-size:0.9rem;">${escapeHtml(labTitle)}</span>
+          </div>
+          <p style="margin:0;color:#d0d9e7;font-size:0.87rem;line-height:1.6;">${escapeHtml(labInstructions)}</p>
+          <a href="${escapeHtml(colabLink)}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:6px;background:#f59e0b;color:#0c0a00;font-weight:700;font-size:0.84rem;border-radius:8px;padding:8px 14px;text-decoration:none;width:fit-content;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            Open Notebook in Colab
+          </a>
+        </div>
+      ` : '';
+
+      const multiQuizHtml = hasMultiQuiz ? `
+        <div data-module-follow-idx="${index}" data-module-follow-part="progressCheck" style="margin-top:12px;padding:12px;border-radius:10px;background:#0b1220;border:1px solid #273449;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;">
+            <span style="font-size:0.78rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#c4b5fd;background:#1e1040;border:1px solid #7c3aed;border-radius:6px;padding:3px 8px;">Module Quiz</span>
+            <span style="font-size:0.82rem;color:#94a3b8;">Pass 2 of ${quizQuestionsData.length} to advance</span>
+          </div>
+          <div data-quiz-panel="${index}" style="display:grid;gap:10px;margin-top:10px;">
+            ${quizQuestionsData.map((q, qIdx) => `
+              <div style="padding:12px;border-radius:8px;background:#0b1220;border:1px solid #273449;">
+                <div style="color:#d0d9e7;font-weight:700;margin-bottom:8px;line-height:1.5;font-size:0.9rem;">${qIdx + 1}. ${escapeHtml(String(q.question || ''))}</div>
+                <div style="display:grid;gap:6px;">
+                  ${asArray(q.options).map((opt, oIdx) => `
+                    <label style="display:grid;grid-template-columns:18px minmax(0,1fr);column-gap:10px;align-items:flex-start;padding:8px 10px;border-radius:8px;background:#111c31;border:1px solid #2a3954;color:#d0d9e7;cursor:pointer;transition:border-color 0.15s;">
+                      <input type="radio" name="module-quiz-${index}-${qIdx}" value="${oIdx}" ${(pendingAdvance || diagnosticLocked) ? 'disabled' : ''} style="margin-top:3px;accent-color:#7c3aed;" />
+                      <span style="line-height:1.5;word-break:break-word;">${escapeHtml(String(opt))}</span>
+                    </label>
+                  `).join('')}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-start;gap:8px;margin-top:10px;">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+              <button type="button" data-module-quiz-submit-btn="${index}" ${(pendingAdvance || diagnosticLocked) ? 'disabled' : ''} style="background:#7c3aed;border:none;color:#fff;border-radius:6px;padding:8px 14px;${(pendingAdvance || diagnosticLocked) ? 'opacity:0.75;cursor:default;' : 'cursor:pointer;'}font-size:0.84rem;font-weight:700;">${pendingAdvance ? 'Quiz Passed ✓' : (diagnosticLocked ? 'Complete Diagnostic First' : 'Submit Quiz')}</button>
+              <button type="button" data-progress-continue-btn="${index}" style="display:${pendingAdvance ? 'inline-flex' : 'none'};background:#0f766e;border:1px solid #14b8a6;color:#ecfeff;border-radius:6px;padding:8px 14px;cursor:pointer;font-size:0.84rem;font-weight:700;">Continue to Next Module</button>
+            </div>
+            <div data-quiz-result="${index}" style="font-size:0.85rem;color:#9fb0c7;line-height:1.5;word-break:break-word;width:100%;">${pendingAdvance ? pendingResultMarkup : ''}</div>
+            <div data-progress-check-result="${index}" style="display:none;"></div>
+          </div>
+        </div>
+      ` : `
+        <div data-module-follow-idx="${index}" data-module-follow-part="progressCheck" style="margin-top:12px;padding:10px;border-radius:8px;background:#0b1220;border:1px solid #273449;">
+          <div style="font-size:0.82rem;color:#c4b5fd;font-weight:700;margin-bottom:6px;">End-of-Module Practice</div>
+          <div style="color:#d0d9e7;font-size:calc(0.9rem + 2pt);line-height:1.55;margin-bottom:8px;">${progressCheckQuestion}</div>
+          <div style="display:grid;gap:8px;margin-bottom:10px;">${optionMarkup}</div>
+          <div style="display:flex;flex-direction:column;align-items:flex-start;gap:8px;">
+            <button type="button" data-progress-check-btn="${index}" ${(pendingAdvance || diagnosticLocked) ? 'disabled' : ''} style="background:#7c3aed;border:none;color:#fff;border-radius:6px;padding:7px 10px;${(pendingAdvance || diagnosticLocked) ? 'opacity:0.75;cursor:default;' : 'cursor:pointer;'}font-size:0.82rem;font-weight:700;">${pendingAdvance ? 'Correct!' : (diagnosticLocked ? 'Complete Diagnostic First' : 'Submit Answer')}</button>
+            <button type="button" data-progress-continue-btn="${index}" style="display:${pendingAdvance ? 'inline-flex' : 'none'};background:#0f766e;border:1px solid #14b8a6;color:#ecfeff;border-radius:6px;padding:7px 10px;cursor:pointer;font-size:0.82rem;font-weight:700;">Continue to Next Module</button>
+            <div data-progress-check-result="${index}" style="font-size:calc(0.82rem + 2pt);color:#9fb0c7;line-height:1.5;word-break:break-word;overflow-wrap:anywhere;width:100%;">${pendingResultMarkup}</div>
+          </div>
+        </div>
+      `;
 
       html += `
         <section class="module-item">
@@ -3218,6 +3405,7 @@ document.addEventListener('DOMContentLoaded', function () {
           </div>
           <p data-module-follow-idx="${index}" data-module-follow-part="commonMistake"><strong style="color:#fda4af;">Common Mistake:</strong> ${commonMistake}</p>
           <p data-module-follow-idx="${index}" data-module-follow-part="practiceTask"><strong style="color:#86efac;">Practice Task:</strong> ${practiceTask}</p>
+          ${colabPanelHtml}
           <div style="margin:10px 0 12px;padding:12px;border-radius:10px;background:#0b1220;border:1px solid #273449;">
             <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap;margin-bottom:10px;">
               <div>
@@ -3257,16 +3445,7 @@ document.addEventListener('DOMContentLoaded', function () {
             </div>
             <div data-transfer-feedback="${index}" style="margin-top:6px;color:#9fb0c7;font-size:0.82rem;line-height:1.5;">${escapeHtml(String(mastery.transferFeedback || 'Validate transfer mastery before unlock.'))}</div>
           </div>
-          <div data-module-follow-idx="${index}" data-module-follow-part="progressCheck" style="margin-top:12px;padding:10px;border-radius:8px;background:#0b1220;border:1px solid #273449;">
-            <div style="font-size:0.82rem;color:#c4b5fd;font-weight:700;margin-bottom:6px;">End-of-Module Practice</div>
-            <div style="color:#d0d9e7;font-size:calc(0.9rem + 2pt);line-height:1.55;margin-bottom:8px;">${progressCheckQuestion}</div>
-            <div style="display:grid;gap:8px;margin-bottom:10px;">${optionMarkup}</div>
-            <div style="display:flex;flex-direction:column;align-items:flex-start;gap:8px;">
-              <button type="button" data-progress-check-btn="${index}" ${(pendingAdvance || diagnosticLocked) ? 'disabled' : ''} style="background:#7c3aed;border:none;color:#fff;border-radius:6px;padding:7px 10px;${(pendingAdvance || diagnosticLocked) ? 'opacity:0.75;cursor:default;' : 'cursor:pointer;'}font-size:0.82rem;font-weight:700;">${pendingAdvance ? 'Correct!' : (diagnosticLocked ? 'Complete Diagnostic First' : 'Submit Answer')}</button>
-              <button type="button" data-progress-continue-btn="${index}" style="display:${pendingAdvance ? 'inline-flex' : 'none'};background:#0f766e;border:1px solid #14b8a6;color:#ecfeff;border-radius:6px;padding:7px 10px;cursor:pointer;font-size:0.82rem;font-weight:700;">Continue to Next Module</button>
-              <div data-progress-check-result="${index}" style="font-size:calc(0.82rem + 2pt);color:#9fb0c7;line-height:1.5;word-break:break-word;overflow-wrap:anywhere;width:100%;">${pendingResultMarkup}</div>
-            </div>
-          </div>
+          ${multiQuizHtml}
         </section>
       `;
     }
