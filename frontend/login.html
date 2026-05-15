@@ -21,9 +21,251 @@
   <meta name="twitter:image" content="https://www.rolerocketai.com/assets/rolerocket-logo-new.png" />
   <link rel="icon" type="image/png" href="assets/rolerocket-logo-new.png" />
   <link rel="stylesheet" href="styles.css" />
+  <style>
+    .login-cinematic-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 99999;
+      pointer-events: none;
+      overflow: hidden;
+      font-family: Georgia, 'Times New Roman', serif;
+    }
+
+    .login-cinematic-overlay[hidden] {
+      display: none;
+    }
+
+    .login-cinematic-black {
+      position: absolute;
+      inset: 0;
+      background: #020617;
+      opacity: 1;
+      transition: opacity 1400ms cubic-bezier(.18,.72,.2,1);
+    }
+
+    .login-cinematic-overlay.reveal .login-cinematic-black {
+      opacity: 0;
+    }
+
+    .login-cinematic-center {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      color: #fff;
+      text-shadow: 0 10px 28px rgba(0, 0, 0, .7);
+      opacity: 1;
+      transition: opacity 360ms ease;
+      padding: 0 22px;
+    }
+
+    .login-cinematic-overlay.launch .login-cinematic-center {
+      opacity: 0;
+    }
+
+    .login-cinematic-title {
+      margin: 0;
+      font-size: clamp(62px, 10vw, 180px);
+      font-weight: 700;
+      line-height: .95;
+      letter-spacing: .01em;
+      background: linear-gradient(180deg, #fef3b8 0%, #facc15 38%, #f59e0b 74%, #b45309 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      text-shadow: 0 0 18px rgba(250, 204, 21, .22), 0 10px 24px rgba(0, 0, 0, .45);
+    }
+
+    .login-cinematic-count {
+      margin-top: 24px;
+      font-size: clamp(56px, 9vw, 128px);
+      font-weight: 900;
+      line-height: 1;
+      letter-spacing: .06em;
+      color: #f8fafc;
+      font-family: Inter, 'Segoe UI', sans-serif;
+    }
+
+    .login-cinematic-tag {
+      margin-top: 10px;
+      font-size: clamp(20px, 2.5vw, 42px);
+      font-weight: 700;
+      line-height: 1.2;
+      background: linear-gradient(180deg, #fde68a 0%, #fbbf24 55%, #d97706 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      text-shadow: 0 0 14px rgba(251, 191, 36, .2), 0 8px 20px rgba(0, 0, 0, .45);
+    }
+
+    .login-cinematic-smoke {
+      position: absolute;
+      left: -5%;
+      bottom: 8%;
+      width: 70%;
+      height: 52%;
+      opacity: 0;
+      filter: blur(12px);
+      transform: translate3d(-18px, 10px, 0) scale(.94);
+      background:
+        radial-gradient(ellipse at 15% 82%, rgba(127, 29, 29, .30), transparent 46%),
+        radial-gradient(ellipse at 28% 72%, rgba(153, 27, 27, .25), transparent 48%),
+        radial-gradient(ellipse at 42% 64%, rgba(185, 28, 28, .20), transparent 46%),
+        radial-gradient(ellipse at 56% 58%, rgba(220, 38, 38, .15), transparent 44%),
+        radial-gradient(ellipse at 72% 52%, rgba(248, 113, 113, .10), transparent 42%);
+      will-change: transform, opacity;
+      z-index: 4;
+    }
+
+    .login-cinematic-rocket {
+      position: absolute;
+      left: 7.2%;
+      bottom: 9.2%;
+      font-size: clamp(112px, 13vw, 172px);
+      transform: translate3d(0, 0, 0) rotate(-18deg) scale(1);
+      filter: drop-shadow(0 18px 30px rgba(15, 23, 42, .56));
+      opacity: 0;
+      will-change: transform, opacity;
+      z-index: 6;
+    }
+
+    .login-cinematic-flame {
+      position: absolute;
+      left: 8.8%;
+      bottom: 12.4%;
+      width: 34px;
+      height: 90px;
+      border-radius: 52% 52% 66% 66%;
+      background:
+        radial-gradient(circle at 50% 16%, #fffce8 0%, #fef9c3 16%, #fde68a 34%, #facc15 52%, #f59e0b 72%, rgba(234, 88, 12, .76) 88%, rgba(220, 38, 38, .08) 100%);
+      opacity: 0;
+      transform-origin: 50% 10%;
+      filter: drop-shadow(0 0 14px rgba(250, 204, 21, .6));
+      will-change: transform, opacity;
+      z-index: 5;
+      mix-blend-mode: screen;
+    }
+
+    .login-cinematic-flame::before {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 8%;
+      width: 14px;
+      height: 34px;
+      transform: translateX(-50%);
+      border-radius: 50% 50% 60% 60%;
+      background: radial-gradient(circle at 50% 20%, #ffffff 0%, #fef08a 55%, rgba(255, 255, 255, 0) 100%);
+      opacity: .9;
+    }
+
+    .login-cinematic-overlay.launch .login-cinematic-rocket {
+      opacity: 1;
+      animation: loginRocketSmooth 5200ms cubic-bezier(.18, .76, .16, 1) forwards;
+    }
+
+    .login-cinematic-overlay.launch .login-cinematic-smoke {
+      opacity: .64;
+      animation: loginSmokeSmooth 3800ms cubic-bezier(.16, .74, .2, 1) forwards;
+    }
+
+    .login-cinematic-overlay.launch .login-cinematic-flame {
+      opacity: .98;
+      animation:
+        loginFlameTrack 5200ms cubic-bezier(.18, .76, .16, 1) forwards,
+        loginFlameNatural 160ms ease-in-out infinite;
+    }
+
+    .login-cinematic-replay {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      z-index: 100000;
+      border: 1px solid rgba(148, 163, 184, .4);
+      background: rgba(2, 6, 23, .88);
+      color: #f8fafc;
+      border-radius: 999px;
+      padding: 10px 16px;
+      font-size: .86rem;
+      font-weight: 700;
+      letter-spacing: .03em;
+      pointer-events: auto;
+      cursor: pointer;
+      box-shadow: 0 10px 24px rgba(2, 6, 23, .4);
+    }
+
+    .login-cinematic-replay[hidden] {
+      display: none;
+    }
+
+    @keyframes loginRocketSmooth {
+      0%   { transform: translate3d(0px, 0px, 0) rotate(-18deg) scale(1); opacity: 1; }
+      12%  { transform: translate3d(20px, -12px, 0) rotate(-19deg) scale(1.01); opacity: 1; }
+      24%  { transform: translate3d(46px, -30px, 0) rotate(-20deg) scale(1.02); opacity: 1; }
+      38%  { transform: translate3d(84px, -58px, 0) rotate(-22deg) scale(1.02); opacity: .99; }
+      52%  { transform: translate3d(136px, -100px, 0) rotate(-24deg) scale(1); opacity: .95; }
+      66%  { transform: translate3d(204px, -158px, 0) rotate(-27deg) scale(.95); opacity: .84; }
+      78%  { transform: translate3d(276px, -222px, 0) rotate(-30deg) scale(.89); opacity: .66; }
+      88%  { transform: translate3d(336px, -276px, 0) rotate(-33deg) scale(.82); opacity: .42; }
+      96%  { transform: translate3d(378px, -314px, 0) rotate(-34deg) scale(.76); opacity: .20; }
+      100% { transform: translate3d(396px, -330px, 0) rotate(-35deg) scale(.72); opacity: 0; }
+    }
+
+    @keyframes loginFlameTrack {
+      0%   { transform: translate3d(-8px, 16px, 0) rotate(-18deg) scale(1); opacity: .98; }
+      12%  { transform: translate3d(11px, 4px, 0) rotate(-19deg) scale(1.02); opacity: .98; }
+      24%  { transform: translate3d(36px, -14px, 0) rotate(-20deg) scale(1.03); opacity: .97; }
+      38%  { transform: translate3d(73px, -42px, 0) rotate(-22deg) scale(1.05); opacity: .95; }
+      52%  { transform: translate3d(125px, -84px, 0) rotate(-24deg) scale(1.02); opacity: .90; }
+      66%  { transform: translate3d(193px, -142px, 0) rotate(-27deg) scale(.98); opacity: .80; }
+      78%  { transform: translate3d(265px, -206px, 0) rotate(-30deg) scale(.92); opacity: .62; }
+      88%  { transform: translate3d(325px, -260px, 0) rotate(-33deg) scale(.84); opacity: .40; }
+      96%  { transform: translate3d(367px, -298px, 0) rotate(-34deg) scale(.78); opacity: .20; }
+      100% { transform: translate3d(385px, -314px, 0) rotate(-35deg) scale(.72); opacity: 0; }
+    }
+
+    @keyframes loginSmokeSmooth {
+      0%   { opacity: 0; transform: translate3d(-18px, 10px, 0) scale(.94); }
+      16%  { opacity: .58; transform: translate3d(-6px, 4px, 0) scale(.98); }
+      36%  { opacity: .46; transform: translate3d(8px, -3px, 0) scale(1.03); }
+      58%  { opacity: .32; transform: translate3d(20px, -10px, 0) scale(1.08); }
+      80%  { opacity: .18; transform: translate3d(30px, -15px, 0) scale(1.12); }
+      100% { opacity: .04; transform: translate3d(38px, -18px, 0) scale(1.15); }
+    }
+
+    @keyframes loginFlameNatural {
+      0%   { filter: drop-shadow(0 0 14px rgba(250, 204, 21, .60)); }
+      25%  { filter: drop-shadow(0 0 10px rgba(250, 204, 21, .45)); }
+      50%  { filter: drop-shadow(0 0 16px rgba(253, 224, 71, .68)); }
+      75%  { filter: drop-shadow(0 0 11px rgba(245, 158, 11, .52)); }
+      100% { filter: drop-shadow(0 0 15px rgba(250, 204, 21, .62)); }
+    }
+
+    @media (max-width: 680px) {
+      .login-cinematic-flame {
+        width: 28px;
+        height: 70px;
+      }
+    }
+  </style>
 </head>
 <body class="landing-page login-page">
   <a class="skip-link" href="#loginMain">Skip to main content</a>
+  <div id="loginCinematicOverlay" class="login-cinematic-overlay" hidden aria-hidden="true">
+    <div class="login-cinematic-black"></div>
+    <div class="login-cinematic-center">
+      <h1 class="login-cinematic-title">RoleRocket AI</h1>
+      <div id="loginCinematicCount" class="login-cinematic-count">3</div>
+      <div class="login-cinematic-tag">Helping Your Future Career Take Off</div>
+    </div>
+    <div class="login-cinematic-smoke" aria-hidden="true"></div>
+    <div class="login-cinematic-flame" aria-hidden="true"></div>
+    <div class="login-cinematic-rocket" aria-hidden="true">🚀</div>
+  </div>
+  <button id="loginCinematicReplay" class="login-cinematic-replay" type="button" hidden>Replay Cinematic</button>
 
   <section class="landing-hero auth-hero" id="loginMain">
     <div class="auth-shell">
@@ -711,6 +953,59 @@
       window.addEventListener('resize', applyEqualHeights);
       requestAnimationFrame(applyEqualHeights);
       setTimeout(applyEqualHeights, 120);
+    })();
+
+    (function initLoginCinematic() {
+      const overlay = document.getElementById('loginCinematicOverlay');
+      const countEl = document.getElementById('loginCinematicCount');
+      const replayBtn = document.getElementById('loginCinematicReplay');
+      if (!overlay || !countEl || !replayBtn) return;
+
+      const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (prefersReducedMotion) {
+        return;
+      }
+
+      const params = new URLSearchParams(window.location.search);
+      const demoMode = params.get('demo') === 'true';
+      const forceCinematic = params.get('cinematic') === '1' || demoMode;
+      const seenKey = 'rr_login_cinematic_seen';
+
+      const timers = [];
+      const clearTimers = () => {
+        while (timers.length) {
+          clearTimeout(timers.pop());
+        }
+      };
+
+      const hideOverlay = () => {
+        overlay.hidden = true;
+        overlay.classList.remove('launch', 'reveal');
+      };
+
+      const runSequence = () => {
+        clearTimers();
+        overlay.hidden = false;
+        overlay.classList.remove('launch', 'reveal');
+        countEl.textContent = '3';
+
+        timers.push(setTimeout(() => { countEl.textContent = '2'; }, 1200));
+        timers.push(setTimeout(() => { countEl.textContent = '1'; }, 2400));
+        timers.push(setTimeout(() => { overlay.classList.add('launch'); }, 3600));
+        timers.push(setTimeout(() => { overlay.classList.add('reveal'); }, 7600));
+        timers.push(setTimeout(() => { hideOverlay(); }, 9200));
+      };
+
+      replayBtn.addEventListener('click', runSequence);
+      replayBtn.hidden = !demoMode;
+
+      window.playRoleRocketCinematic = runSequence;
+
+      const alreadySeen = sessionStorage.getItem(seenKey) === '1';
+      if (!alreadySeen || forceCinematic) {
+        runSequence();
+        sessionStorage.setItem(seenKey, '1');
+      }
     })();
   </script>
 
