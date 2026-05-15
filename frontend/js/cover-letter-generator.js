@@ -71,6 +71,14 @@ document.addEventListener('DOMContentLoaded', function () {
     setBillingButtonsDisabled(false);
   }
 
+  function toUserFriendlyNetworkMessage(message, fallback) {
+    const raw = String(message || '').trim();
+    if (/failed to fetch|networkerror|load failed|network request failed/i.test(raw)) {
+      return 'Cannot reach billing server right now. Please retry in a moment.';
+    }
+    return raw || fallback;
+  }
+
   async function loadCoverCreditStatus() {
     const token = getAuthToken();
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
@@ -631,7 +639,12 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   loadCoverCreditStatus().catch((error) => {
-    if (billingStatus) billingStatus.textContent = error.message || 'Could not load billing status.';
+    if (billingStatus) {
+      billingStatus.textContent = toUserFriendlyNetworkMessage(
+        error && error.message,
+        'Could not load billing status.'
+      );
+    }
   });
 
   const checkoutParams = new URLSearchParams(window.location.search);
@@ -644,6 +657,15 @@ document.addEventListener('DOMContentLoaded', function () {
     const cleanedQuery = checkoutParams.toString();
     const cleanedUrl = `${window.location.pathname}${cleanedQuery ? `?${cleanedQuery}` : ''}${window.location.hash}`;
     window.history.replaceState({}, '', cleanedUrl);
+
+    // Keep the first Back press inside the app after returning from Stripe.
+    if (checkoutResult === 'success' || checkoutResult === 'cancel') {
+      const guardKey = `rr:doc-checkout:guarded:${checkoutSessionId || 'no-session'}`;
+      if (sessionStorage.getItem(guardKey) !== '1') {
+        window.history.pushState({ rrCheckoutReturnGuard: true }, '', cleanedUrl);
+        sessionStorage.setItem(guardKey, '1');
+      }
+    }
   }
 
   if (checkoutResult === 'success') {
