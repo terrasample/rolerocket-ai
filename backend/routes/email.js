@@ -1,12 +1,19 @@
 const express = require('express');
 const router = express.Router();
 const authenticateToken = require('../middleware/auth');
-const { getDocumentGenerationStatus, consumeDocumentGeneration } = require('../services/documentGenerationBilling');
 const openai = require('openai');
 
 const client = new openai.OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
+
+// Helper: Check if user has PRO+ tier
+function hasProTier(user) {
+  if (!user) return false;
+  if (user.isAdmin === true) return true;
+  const plan = String(user.plan || 'free').toLowerCase();
+  return ['pro', 'premium', 'elite', 'lifetime'].includes(plan);
+}
 
 // Email tone descriptions for the system prompt
 const TONE_DESCRIPTIONS = {
@@ -50,11 +57,20 @@ const SCENARIO_TEMPLATES = {
   }
 };
 
-// POST /api/email/generate - Generate rewritten email
+// POST /api/email/generate - Generate rewritten email (PRO+ only)
 router.post('/generate', authenticateToken, async (req, res) => {
   try {
     const { emailContent, tone, scenario } = req.body;
     const user = req.user;
+
+    // Tier check: Email Assistant is a PRO+ feature
+    if (!hasProTier(user)) {
+      return res.status(403).json({
+        error: 'Email Assistant is a PRO feature. Please upgrade your plan to access this feature.',
+        code: 'FEATURE_REQUIRES_PRO',
+        requiredPlan: 'pro'
+      });
+    }
 
     // Validate input
     if (!emailContent || typeof emailContent !== 'string') {
@@ -68,20 +84,6 @@ router.post('/generate', authenticateToken, async (req, res) => {
     if (emailContent.length < 20) {
       return res.status(400).json({ error: 'Email content must be at least 20 characters' });
     }
-
-    // Check credit status
-    const creditStatus = await getDocumentGenerationStatus(user, 'email-assistant');
-
-    if (!creditStatus.canGenerate) {
-      return res.status(402).json({
-        error: 'No credits remaining',
-        code: 'DOC_CREDIT_REQUIRED',
-        status: creditStatus
-      });
-    }
-
-    // Consume credits
-    const consumeResult = await consumeDocumentGeneration(user, 'email-assistant');
 
     // Get scenario context
     const scenarioInfo = SCENARIO_TEMPLATES[scenario] || SCENARIO_TEMPLATES.custom;
@@ -121,24 +123,20 @@ ${emailContent}`;
 
     // Return result
     res.json({
-      result: rewrittenEmail,
-      creditInfo: {
-        source: consumeResult.source,
-        charged: consumeResult.charged
-      }
+      result: rewrittenEmail
     });
   } catch (error) {
     console.error('Error in email generation:', error);
 
-    if (error.code === 'DOC_CREDIT_REQUIRED') {
-      return res.status(402).json({
+    if (error.code === 'FEATURE_REQUIRES_PRO') {
+      return res.status(403).json({
         error: error.message,
-        code: 'DOC_CREDIT_REQUIRED'
+        code: 'FEATURE_REQUIRES_PRO'
       });
     }
 
     res.status(500).json({
-      error: 'Failed to generate email. Please try again.',
+      error: 'Failed to rewrite email. Please try again.',
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }

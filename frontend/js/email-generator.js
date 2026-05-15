@@ -67,7 +67,10 @@ async function generateEmail() {
 
     const data = await response.json();
 
-    if (!response.ok) {
+    if (response.status === 403) {
+      // Access denied - not PRO tier
+      showEmailError('Email Assistant is a PRO feature. Upgrade your plan to unlock unlimited email rewrites.');
+    } else if (!response.ok) {
       showEmailError(data.error || 'Failed to rewrite email. Please try again.');
     } else {
       // Success
