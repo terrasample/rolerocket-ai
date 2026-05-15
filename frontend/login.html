@@ -360,7 +360,7 @@
         </div>
       </div>
 
-      <div class="auth-right">
+      <div class="auth-right" id="loginAuthRight" style="visibility:hidden;">
         <div class="auth-right-top">
           <h1 class="login-heading">
             <span>Log in to</span>
@@ -982,7 +982,9 @@
       const hideOverlay = () => {
         overlay.hidden = true;
         overlay.classList.remove('launch', 'reveal');
-        // Restore autocomplete now that the cinematic is done
+        // Reveal the login form and restore autocomplete now that cinematic is done
+        const authRight = document.getElementById('loginAuthRight');
+        if (authRight) authRight.style.visibility = '';
         const emailEl = document.getElementById('loginEmail');
         const passEl = document.getElementById('loginPassword');
         if (emailEl) emailEl.autocomplete = 'email';
