@@ -105,24 +105,7 @@
       text-shadow: 0 0 14px rgba(251, 191, 36, .2), 0 8px 20px rgba(0, 0, 0, .45);
     }
 
-    .login-cinematic-smoke {
-      position: absolute;
-      left: -5%;
-      bottom: 8%;
-      width: 70%;
-      height: 52%;
-      opacity: 0;
-      filter: blur(12px);
-      transform: translate3d(-18px, 10px, 0) scale(.94);
-      background:
-        radial-gradient(ellipse at 15% 82%, rgba(127, 29, 29, .30), transparent 46%),
-        radial-gradient(ellipse at 28% 72%, rgba(153, 27, 27, .25), transparent 48%),
-        radial-gradient(ellipse at 42% 64%, rgba(185, 28, 28, .20), transparent 46%),
-        radial-gradient(ellipse at 56% 58%, rgba(220, 38, 38, .15), transparent 44%),
-        radial-gradient(ellipse at 72% 52%, rgba(248, 113, 113, .10), transparent 42%);
-      will-change: transform, opacity;
-      z-index: 4;
-    }
+
 
     .login-cinematic-rocket {
       position: absolute;
@@ -169,11 +152,6 @@
     .login-cinematic-overlay.launch .login-cinematic-rocket {
       opacity: 1;
       animation: loginRocketSmooth 5200ms cubic-bezier(.18, .76, .16, 1) forwards;
-    }
-
-    .login-cinematic-overlay.launch .login-cinematic-smoke {
-      opacity: .64;
-      animation: loginSmokeSmooth 3800ms cubic-bezier(.16, .74, .2, 1) forwards;
     }
 
     .login-cinematic-overlay.launch .login-cinematic-flame {
@@ -231,15 +209,6 @@
       100% { transform: translate3d(385px, -314px, 0) rotate(-35deg) scale(.72); opacity: 0; }
     }
 
-    @keyframes loginSmokeSmooth {
-      0%   { opacity: 0; transform: translate3d(-18px, 10px, 0) scale(.94); }
-      16%  { opacity: .58; transform: translate3d(-6px, 4px, 0) scale(.98); }
-      36%  { opacity: .46; transform: translate3d(8px, -3px, 0) scale(1.03); }
-      58%  { opacity: .32; transform: translate3d(20px, -10px, 0) scale(1.08); }
-      80%  { opacity: .18; transform: translate3d(30px, -15px, 0) scale(1.12); }
-      100% { opacity: .04; transform: translate3d(38px, -18px, 0) scale(1.15); }
-    }
-
     @keyframes loginFlameNatural {
       0%   { filter: drop-shadow(0 0 14px rgba(250, 204, 21, .60)); }
       25%  { filter: drop-shadow(0 0 10px rgba(250, 204, 21, .45)); }
@@ -265,7 +234,6 @@
       <div id="loginCinematicCount" class="login-cinematic-count">3</div>
       <div class="login-cinematic-tag">Helping Your Future Career Take Off</div>
     </div>
-    <div class="login-cinematic-smoke" aria-hidden="true"></div>
     <div class="login-cinematic-flame" aria-hidden="true"></div>
     <div class="login-cinematic-rocket" aria-hidden="true">🚀</div>
   </div>
