@@ -263,6 +263,18 @@ document.addEventListener('DOMContentLoaded', function () {
       if (!response.ok || !data.url) {
         throw new Error(data.error || 'Could not start checkout.');
       }
+
+      // Store a same-origin return target so in-page back does not bounce to Stripe.
+      try {
+        const returnUrl = new URL(window.location.href);
+        returnUrl.searchParams.delete('docCredits');
+        returnUrl.searchParams.delete('session_id');
+        returnUrl.searchParams.delete('rr_restore');
+        sessionStorage.setItem('rr:return:url', `${returnUrl.pathname}${returnUrl.search}${returnUrl.hash}`);
+      } catch (err) {
+        // Ignore storage/URL parsing issues and continue to checkout.
+      }
+
       window.location.href = data.url;
     } catch (error) {
       statusBanner(error.message || 'Could not start checkout.', false);
@@ -1956,11 +1968,24 @@ document.addEventListener('DOMContentLoaded', function () {
     output.innerHTML = `<div style="color:#dc2626;font-size:1.05rem;">${escapeHtml(message)}</div>`;
   }
 
-  function statusBanner(message, ok) {
-    output.insertAdjacentHTML(
-      'afterbegin',
-      `<div style="margin-bottom:10px;padding:10px 12px;border-radius:8px;font-size:0.95rem;background:${ok ? '#ecfdf5' : '#fef2f2'};color:${ok ? '#166534' : '#991b1b'};border:1px solid ${ok ? '#86efac' : '#fecaca'};">${escapeHtml(message)}</div>`
-    );
+  function statusBanner(message, ok, options = {}) {
+    const banner = document.createElement('div');
+    banner.style.marginBottom = '10px';
+    banner.style.padding = '10px 12px';
+    banner.style.borderRadius = '8px';
+    banner.style.fontSize = '0.95rem';
+    banner.style.background = ok ? '#ecfdf5' : '#fef2f2';
+    banner.style.color = ok ? '#166534' : '#991b1b';
+    banner.style.border = `1px solid ${ok ? '#86efac' : '#fecaca'}`;
+    banner.textContent = message;
+    output.insertBefore(banner, output.firstChild);
+
+    const autoDismissMs = Number(options.autoDismissMs || 0);
+    if (autoDismissMs > 0) {
+      setTimeout(() => {
+        if (banner.parentNode) banner.remove();
+      }, autoDismissMs);
+    }
   }
 
   function resolveSelectedTheme() {
@@ -2691,8 +2716,22 @@ document.addEventListener('DOMContentLoaded', function () {
 
   const checkoutParams = new URLSearchParams(window.location.search);
   const checkoutResult = checkoutParams.get('docCredits');
+  const checkoutSessionId = String(checkoutParams.get('session_id') || '').trim();
+
+  if (checkoutResult || checkoutSessionId) {
+    checkoutParams.delete('docCredits');
+    checkoutParams.delete('session_id');
+    const cleanedQuery = checkoutParams.toString();
+    const cleanedUrl = `${window.location.pathname}${cleanedQuery ? `?${cleanedQuery}` : ''}${window.location.hash}`;
+    window.history.replaceState({}, '', cleanedUrl);
+  }
+
   if (checkoutResult === 'success') {
-    statusBanner('Payment received! Loading your credits...', true);
+    if (checkoutSessionId) {
+      sessionStorage.setItem(`rr:doc-checkout:seen:${checkoutSessionId}`, '1');
+    }
+
+    statusBanner('Payment received! Loading your credits...', true, { autoDismissMs: 5000 });
 
     // Poll until credits appear (webhook may be slightly delayed)
     let attempts = 0;
@@ -2703,7 +2742,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const status = await loadResumeCreditStatus();
         if (status && (status.unlimited || status.canGenerate)) {
           clearInterval(pollInterval);
-          statusBanner('Credits added successfully. You can generate now.', true);
+          statusBanner('Credits added successfully. You can generate now.', true, { autoDismissMs: 5000 });
         } else if (attempts >= maxAttempts) {
           clearInterval(pollInterval);
           statusBanner('Credits may take a moment to appear. Refresh the page if the button is still locked.', false);
@@ -2713,7 +2752,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     }, 2000);
   } else if (checkoutResult === 'cancel') {
-    statusBanner('Checkout canceled. You can continue with your free generation or purchase anytime.', false);
+    statusBanner('Checkout canceled. You can continue with your free generation or purchase anytime.', false, { autoDismissMs: 5000 });
   }
 
   templateStateReadyPromise?.then(() => {

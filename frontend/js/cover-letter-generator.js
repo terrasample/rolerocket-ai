@@ -102,6 +102,18 @@ document.addEventListener('DOMContentLoaded', function () {
       if (!response.ok || !data.url) {
         throw new Error(data.error || 'Could not start checkout.');
       }
+
+      // Store a same-origin return target so in-page back does not bounce to Stripe.
+      try {
+        const returnUrl = new URL(window.location.href);
+        returnUrl.searchParams.delete('docCredits');
+        returnUrl.searchParams.delete('session_id');
+        returnUrl.searchParams.delete('rr_restore');
+        sessionStorage.setItem('rr:return:url', `${returnUrl.pathname}${returnUrl.search}${returnUrl.hash}`);
+      } catch (err) {
+        // Ignore storage/URL parsing issues and continue to checkout.
+      }
+
       window.location.href = data.url;
     } catch (error) {
       output.innerHTML = `<div style="color:#dc2626;">${escapeHtml(error.message || 'Could not start checkout.')}</div>`;
@@ -624,10 +636,31 @@ document.addEventListener('DOMContentLoaded', function () {
 
   const checkoutParams = new URLSearchParams(window.location.search);
   const checkoutResult = checkoutParams.get('docCredits');
+  const checkoutSessionId = String(checkoutParams.get('session_id') || '').trim();
+
+  if (checkoutResult || checkoutSessionId) {
+    checkoutParams.delete('docCredits');
+    checkoutParams.delete('session_id');
+    const cleanedQuery = checkoutParams.toString();
+    const cleanedUrl = `${window.location.pathname}${cleanedQuery ? `?${cleanedQuery}` : ''}${window.location.hash}`;
+    window.history.replaceState({}, '', cleanedUrl);
+  }
+
   if (checkoutResult === 'success') {
-    output.innerHTML = '<div style="color:#166534;background:#ecfdf5;border:1px solid #86efac;border-radius:8px;padding:10px 12px;">Credits added successfully. You can generate now.</div>';
+    if (checkoutSessionId) {
+      sessionStorage.setItem(`rr:doc-checkout:seen:${checkoutSessionId}`, '1');
+    }
+    output.innerHTML = '<div id="coverCheckoutNotice" style="color:#166534;background:#ecfdf5;border:1px solid #86efac;border-radius:8px;padding:10px 12px;">Credits added successfully. You can generate now.</div>';
+    setTimeout(() => {
+      const notice = document.getElementById('coverCheckoutNotice');
+      if (notice) notice.remove();
+    }, 5000);
     loadCoverCreditStatus().catch(() => {});
   } else if (checkoutResult === 'cancel') {
-    output.innerHTML = '<div style="color:#92400e;background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:10px 12px;">Checkout canceled. You can continue with your free generation or purchase anytime.</div>';
+    output.innerHTML = '<div id="coverCheckoutNotice" style="color:#92400e;background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:10px 12px;">Checkout canceled. You can continue with your free generation or purchase anytime.</div>';
+    setTimeout(() => {
+      const notice = document.getElementById('coverCheckoutNotice');
+      if (notice) notice.remove();
+    }, 5000);
   }
 });
