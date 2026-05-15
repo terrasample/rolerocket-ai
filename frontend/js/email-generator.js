@@ -3,6 +3,10 @@
 let currentSelectedTone = 'professional';
 let currentEmailOutput = '';
 
+function getEmailApiBase() {
+  return typeof getApiBase === 'function' ? getApiBase() : '';
+}
+
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
   loadEmailStatus();
@@ -14,7 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // Load email credit status
 async function loadEmailStatus() {
   try {
-    const response = await fetch(`${API_BASE}/document-credits/status?feature=email-assistant`, {
+    const response = await fetch(`${getEmailApiBase()}/document-credits/status?feature=email-assistant`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -97,7 +101,7 @@ async function generateEmail() {
   document.getElementById('emailErrorMessage').classList.remove('show');
 
   try {
-    const response = await fetch(`${API_BASE}/email/generate`, {
+    const response = await fetch(`${getEmailApiBase()}/email/generate`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -190,7 +194,7 @@ function sendEmailViaProvider() {
 // Start email checkout
 async function startEmailCheckout(bundle) {
   try {
-    const response = await fetch(`${API_BASE}/document-credits/create-checkout-session`, {
+    const response = await fetch(`${getEmailApiBase()}/document-credits/create-checkout-session`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`,
