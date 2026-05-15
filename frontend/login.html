@@ -397,8 +397,8 @@
         </div>
 
         <form id="loginForm" class="auth-form">
-          <input id="loginEmail" type="email" placeholder="Email" autocomplete="email" required />
-          <input id="loginPassword" type="password" placeholder="Password" autocomplete="current-password" required />
+          <input id="loginEmail" type="email" placeholder="Email" autocomplete="off" required />
+          <input id="loginPassword" type="password" placeholder="Password" autocomplete="off" required />
           <button id="loginSubmitBtn" type="submit" class="auth-submit-btn">Log In</button>
         </form>
 
@@ -982,6 +982,11 @@
       const hideOverlay = () => {
         overlay.hidden = true;
         overlay.classList.remove('launch', 'reveal');
+        // Restore autocomplete now that the cinematic is done
+        const emailEl = document.getElementById('loginEmail');
+        const passEl = document.getElementById('loginPassword');
+        if (emailEl) emailEl.autocomplete = 'email';
+        if (passEl) passEl.autocomplete = 'current-password';
       };
 
       const runSequence = () => {
