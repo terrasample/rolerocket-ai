@@ -962,9 +962,6 @@
       if (!overlay || !countEl || !replayBtn) return;
 
       const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      if (prefersReducedMotion) {
-        return;
-      }
 
       const params = new URLSearchParams(window.location.search);
       const demoMode = params.get('demo') === 'true';
@@ -991,21 +988,25 @@
 
         timers.push(setTimeout(() => { countEl.textContent = '2'; }, 1200));
         timers.push(setTimeout(() => { countEl.textContent = '1'; }, 2400));
-        timers.push(setTimeout(() => { overlay.classList.add('launch'); }, 3600));
-        timers.push(setTimeout(() => { overlay.classList.add('reveal'); }, 7600));
-        timers.push(setTimeout(() => { hideOverlay(); }, 9200));
+        if (prefersReducedMotion) {
+          // Keep the countdown visible but avoid the long launch motion sequence.
+          timers.push(setTimeout(() => { overlay.classList.add('reveal'); }, 3600));
+          timers.push(setTimeout(() => { hideOverlay(); }, 4600));
+        } else {
+          timers.push(setTimeout(() => { overlay.classList.add('launch'); }, 3600));
+          timers.push(setTimeout(() => { overlay.classList.add('reveal'); }, 7600));
+          timers.push(setTimeout(() => { hideOverlay(); }, 9200));
+        }
       };
 
       replayBtn.addEventListener('click', runSequence);
-      replayBtn.hidden = !demoMode;
+      replayBtn.hidden = false;
 
       window.playRoleRocketCinematic = runSequence;
 
-      const alreadySeen = sessionStorage.getItem(seenKey) === '1';
-      if (!alreadySeen || forceCinematic) {
-        runSequence();
-        sessionStorage.setItem(seenKey, '1');
-      }
+      // A slight delay improves reliability on some browsers/dev tools refresh flows.
+      setTimeout(runSequence, 250);
+      sessionStorage.setItem(seenKey, '1');
     })();
   </script>
 
