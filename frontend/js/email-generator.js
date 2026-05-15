@@ -26,13 +26,13 @@ function titleCase(value) {
 
 function buildScenarioText(scenario) {
   const map = {
-    'thank-you': 'thanking the hiring team after an interview',
-    'salary-range': 'requesting salary range details before applying',
-    'decline-offer': 'declining an offer respectfully while keeping the door open',
-    'check-status': 'checking in on application status',
-    'follow-up': 'sending a professional follow-up',
-    'cold-outreach': 'reaching out to a recruiter for potential roles',
-    custom: 'sending a professional career-related message'
+    'thank-you': 'our recent interview conversation',
+    'salary-range': 'salary range details for this opportunity',
+    'decline-offer': 'a respectful decline of the offer while preserving future rapport',
+    'check-status': 'the current status of my application',
+    'follow-up': 'our previous discussion and next steps',
+    'cold-outreach': 'potential opportunities on your team',
+    custom: 'a professional update related to my candidacy'
   };
 
   return map[scenario] || map.custom;
@@ -41,9 +41,9 @@ function buildScenarioText(scenario) {
 function getToneLead(tone) {
   const map = {
     professional: 'Thank you for your time and consideration.',
-    warm: 'I really appreciate your time and the chance to connect.',
-    confident: 'I am reaching out with a clear objective and strong interest.',
-    concise: 'I am writing with a quick and focused note.',
+    warm: 'Thank you again for the conversation. I genuinely enjoyed speaking with you.',
+    confident: 'I am reaching out with a clear objective and strong interest in next steps.',
+    concise: 'Quick follow-up from my side.',
     'follow-up': 'I wanted to follow up and keep momentum moving on this conversation.',
     'cold-outreach': 'I am reaching out because I can add immediate value to your team.'
   };
@@ -54,11 +54,11 @@ function getToneLead(tone) {
 function getToneClose(tone) {
   const map = {
     professional: 'I would welcome the opportunity to discuss next steps at your convenience.',
-    warm: 'If helpful, I would love to continue the conversation and share anything else you need.',
+    warm: 'If it is useful, I would be happy to continue the conversation and share anything else that would help.',
     confident: 'If this aligns with your priorities, I am ready to move forward quickly.',
-    concise: 'Please let me know the best next step.',
-    'follow-up': 'I would appreciate any update you can share on timing and next steps.',
-    'cold-outreach': 'If useful, I can send a brief overview of how I can help and suggest a short call.'
+    concise: 'Please let me know the next step when convenient.',
+    'follow-up': 'I would appreciate a quick update on timing and next steps.',
+    'cold-outreach': 'If helpful, I can send a short summary of relevant wins and suggest a brief call.'
   };
 
   return map[tone] || map.professional;
@@ -73,11 +73,28 @@ function buildLocalGeneratedEmail(scenario, tone) {
   const selectedTone = tone || 'professional';
   const toneLead = getToneLead(selectedTone);
   const toneClose = getToneClose(selectedTone);
+  const openerByTone = {
+    professional: `I am following up on ${scenarioText} and wanted to communicate with clarity and professionalism.`,
+    warm: `I wanted to follow up on ${scenarioText} in a way that is clear, thoughtful, and easy to respond to.`,
+    confident: `I am following up on ${scenarioText} with a direct message because I am serious about moving this forward.`,
+    concise: `I am following up on ${scenarioText}.`,
+    'follow-up': `I am circling back on ${scenarioText} so we can keep momentum.`,
+    'cold-outreach': `I am reaching out on ${scenarioText} because there is a strong fit between your needs and what I deliver.`
+  };
+
+  const valueByTone = {
+    professional: 'My approach combines dependable execution, clear communication, and ownership from start to finish.',
+    warm: 'I care deeply about doing strong work with people I can learn from and support.',
+    confident: 'I can contribute quickly by bringing structure, urgency, and measurable results to the role.',
+    concise: 'I can add value quickly and operate with low ramp-up.',
+    'follow-up': 'I remain interested and prepared to contribute right away.',
+    'cold-outreach': 'I bring relevant experience, strong communication, and a track record of delivering outcomes.'
+  };
 
   return [
     'Hello Hiring Team,',
-    `${toneLead} I am writing regarding ${scenarioText}. I am very interested in opportunities where I can contribute with strong execution, clear communication, and reliable follow-through.`,
-    `${toneClose} Thank you again for reviewing my message, and I look forward to hearing from you.`,
+    `${toneLead} ${openerByTone[selectedTone] || openerByTone.professional} ${valueByTone[selectedTone] || valueByTone.professional}`,
+    `${toneClose} Thank you again for your time, and I look forward to your response.`,
     'Best regards,\nYour Name'
   ].join('\n\n');
 }
@@ -88,11 +105,19 @@ function buildLocalRewrittenEmail(emailContent, scenario, tone) {
   const toneClose = getToneClose(selectedTone);
   const compact = compactText(emailContent);
   const scenarioText = buildScenarioText(scenario);
+  const rewriteAddOn = {
+    professional: 'I have refined the wording for clarity, credibility, and stronger flow.',
+    warm: 'I have polished the message so it sounds more human while staying professional.',
+    confident: 'I have tightened the language so the intent is direct and action-oriented.',
+    concise: 'I have shortened the message to keep only what matters.',
+    'follow-up': 'I have adjusted the wording to be polite, clear, and easy to respond to.',
+    'cold-outreach': 'I have sharpened the message to lead with value and a clear reason to reply.'
+  };
 
   return [
     'Hello Hiring Team,',
-    `${toneLead} ${compact} This revision keeps the original intent while making the message cleaner and easier to act on for ${scenarioText}.`,
-    `${toneClose} I appreciate your time and look forward to your response.`,
+    `${toneLead} ${compact} ${rewriteAddOn[selectedTone] || rewriteAddOn.professional} This keeps your original intent for ${scenarioText}.`,
+    `${toneClose} Thank you for your time and consideration.`,
     'Best regards,\nYour Name'
   ].join('\n\n');
 }

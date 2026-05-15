@@ -111,11 +111,17 @@ Tone differentiation rules:
 - Follow-up: polite persistence and momentum.
 - Cold-outreach: value-first pitch and specific call to action.
 
+Quality rules:
+- Avoid generic filler and vague lines.
+- Do not use phrases like "I am writing regarding" or "I hope this message finds you well".
+- Use concrete wording that sounds like a real professional person, not a template.
+- Include one specific value statement and one clear next-step ask.
+
 Requirements:
 - Exactly 2 body paragraphs (not 3 or 4)
 - Include a greeting line and a closing signature line
 - No placeholders like [Name] or [Company]
-- 130-200 words total
+- 120-180 words total
 - Make the tone clearly distinguishable from other tones
 - Return only the finished email text`;
     } else {
@@ -134,6 +140,8 @@ Requirements:
 - Include proper greeting/closing if missing
 - Output exactly 2 body paragraphs
 - Make tone differences obvious (Professional vs Warm should not read the same)
+- Remove robotic phrases and improve natural flow
+- Keep wording specific and purposeful, not generic
 
 Original email:
 ${emailContent}`;
