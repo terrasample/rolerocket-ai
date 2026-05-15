@@ -129,7 +129,7 @@
           <article class="price-card founders-lifetime">
             <div class="plan-pill" id="lifetimePricingPill" style="background:#facc15;color:#1e293b;">FOUNDERS DEAL</div>
             <h3>Founders Deal Lifetime Membership</h3>
-            <div class="price-amount" id="lifetimePricingAmount">$499<span> one-time</span></div>
+            <div class=\"price-amount\" id=\"lifetimePricingAmount\"><span class=\"price-original\">$499</span> $299<span> one-time</span></div>
             <ul>
               <li>All Elite features</li>
               <li>Lifetime access</li>
@@ -421,13 +421,13 @@
         if (!amountEl || !pillEl || !noteEl) return;
 
         if (data.offerActive) {
-          amountEl.innerHTML = '$499<span> one-time</span>';
+          amountEl.innerHTML = '<span class=\"price-original\">$499</span> $299<span> one-time</span>';
           pillEl.textContent = 'LIFETIME LIMITED';
-          noteEl.textContent = `$499 one-time for lifetime access.`;
+          noteEl.textContent = `Limited offer: $299 for the first 50 customers. ${data.remaining} spots left.`;
         } else {
           amountEl.innerHTML = '$499<span> one-time</span>';
           pillEl.textContent = 'LIFETIME ACCESS';
-          noteEl.textContent = '$499 one-time for lifetime access.';
+          noteEl.textContent = 'Limited offer sold out. Lifetime is now $499 one-time.';
         }
       } catch (_err) {
         // Keep default pricing UI if offer status API is not reachable.

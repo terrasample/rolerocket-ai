@@ -59,9 +59,9 @@ window.RoleRocketPricingData = {
     }
   },
   lifetimeOffer: {
-    limitedPriceHtml: '$499<span> one-time</span>',
+    limitedPriceHtml: '<span class="price-original">$499</span> $299<span> one-time</span>',
     standardPriceHtml: '$499<span> one-time</span>',
-    limitedNoteTemplate: (remaining) => `$499 one-time for lifetime access.`,
-    standardNote: '$499 one-time for lifetime access.',
+    limitedNoteTemplate: (remaining) => `Limited offer: $299 for the first 50 customers. ${remaining} spots left.`,
+    standardNote: 'Limited offer sold out. Lifetime is now $499 one-time.',
   }
 };
