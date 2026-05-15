@@ -5863,81 +5863,89 @@ app.post(
 );
 
 // Recovery endpoint: Check Stripe for pending payments and grant credits if webhook missed
+async function reconcileDocumentCreditsFromStripe(userId, userEmail) {
+  const user = await User.findById(userId).select('email documentGeneration');
+  if (!user) {
+    return { synced: false, reason: 'User not found', currentCredits: 0 };
+  }
+
+  console.log(`[CREDIT SYNC] Checking Stripe for pending payments for ${user.email}`);
+
+  // Stripe checkout.sessions.list does not support customer_email filtering.
+  // Pull recent sessions and filter by metadata/email in app logic.
+  const sessions = await stripe.checkout.sessions.list({
+    limit: 100
+  });
+
+  const normalizedUserEmail = String(userEmail || user.email || '').toLowerCase().trim();
+  const pendingSessions = sessions.data.filter((s) => {
+    const paidBundle = s.metadata?.type === 'document_bundle' && s.payment_status === 'paid';
+    if (!paidBundle) return false;
+    const byUserId = String(s.metadata?.userId || '') === String(userId || '');
+    const byEmail = String(s.metadata?.userEmail || s.customer_details?.email || '').toLowerCase().trim() === normalizedUserEmail;
+    return byUserId || byEmail;
+  });
+
+  if (pendingSessions.length === 0) {
+    console.log(`[CREDIT SYNC] No pending paid document bundles found for ${user.email}`);
+    return {
+      synced: false,
+      reason: 'No pending payments found',
+      currentCredits: user.documentGeneration?.paidCredits || 0
+    };
+  }
+
+  const stripeReportedTotal = pendingSessions.reduce(
+    (sum, s) => sum + Math.max(0, Number(s.metadata?.docCredits || 0)),
+    0
+  );
+  const alreadyAccountedTotal = Math.max(0, Number(user.documentGeneration?.totalCreditsPurchased || 0));
+  if (alreadyAccountedTotal >= stripeReportedTotal) {
+    console.log(`[CREDIT SYNC] Credits already accounted for ${user.email}. local_total=${alreadyAccountedTotal} stripe_total=${stripeReportedTotal}`);
+    return {
+      synced: false,
+      reason: 'Credits already accounted locally',
+      currentCredits: user.documentGeneration?.paidCredits || 0
+    };
+  }
+
+  console.log(`[CREDIT SYNC] Found ${pendingSessions.length} paid sessions that may have missed webhook`);
+
+  let totalCreditsGranted = 0;
+  for (const session of pendingSessions) {
+    const credits = Number(session.metadata?.docCredits || 0);
+    const alreadyProcessed = (user.documentGeneration?.purchases || []).some(
+      (p) => String(p.stripeSessionId || '') === String(session.id)
+    );
+
+    if (!alreadyProcessed && credits > 0) {
+      console.log(`[CREDIT SYNC] Processing missed session ${session.id} with ${credits} credits`);
+      await grantDocumentCreditsFromCheckout({
+        userId: String(user._id),
+        credits,
+        bundleId: session.metadata?.docBundle || 'custom',
+        amountCents: Number(session.metadata?.docAmountCents || 0),
+        currency: session.currency || 'usd',
+        stripeSessionId: session.id || ''
+      });
+      totalCreditsGranted += credits;
+    }
+  }
+
+  const updatedUser = await User.findById(userId).select('documentGeneration');
+  console.log(`[CREDIT SYNC] Synced ${totalCreditsGranted} credits for ${user.email}. New balance: ${updatedUser?.documentGeneration?.paidCredits || 0}`);
+
+  return {
+    synced: totalCreditsGranted > 0,
+    creditsGranted: totalCreditsGranted,
+    newBalance: updatedUser?.documentGeneration?.paidCredits || 0
+  };
+}
+
 app.post('/api/document-credits/sync-from-stripe', authenticateToken, async (req, res) => {
   try {
-    const user = await User.findById(req.user.userId).select('email documentGeneration');
-    if (!user) return res.status(404).json({ error: 'User not found' });
-
-    console.log(`[CREDIT SYNC] Checking Stripe for pending payments for ${user.email}`);
-
-    // Stripe checkout.sessions.list does not support customer_email filtering.
-    // Pull recent sessions and filter by metadata/email in app logic.
-    const sessions = await stripe.checkout.sessions.list({
-      limit: 100
-    });
-
-    const pendingSessions = sessions.data.filter((s) => {
-      const paidBundle = s.metadata?.type === 'document_bundle' && s.payment_status === 'paid';
-      if (!paidBundle) return false;
-      const byUserId = String(s.metadata?.userId || '') === String(req.user.userId || '');
-      const byEmail = String(s.metadata?.userEmail || s.customer_details?.email || '').toLowerCase().trim() === String(user.email || '').toLowerCase().trim();
-      return byUserId || byEmail;
-    });
-
-    if (pendingSessions.length === 0) {
-      console.log(`[CREDIT SYNC] No pending paid document bundles found for ${user.email}`);
-      return res.json({
-        synced: false,
-        reason: 'No pending payments found',
-        currentCredits: user.documentGeneration?.paidCredits || 0
-      });
-    }
-
-    const stripeReportedTotal = pendingSessions.reduce(
-      (sum, s) => sum + Math.max(0, Number(s.metadata?.docCredits || 0)),
-      0
-    );
-    const alreadyAccountedTotal = Math.max(0, Number(user.documentGeneration?.totalCreditsPurchased || 0));
-    if (alreadyAccountedTotal >= stripeReportedTotal) {
-      console.log(`[CREDIT SYNC] Credits already accounted for ${user.email}. local_total=${alreadyAccountedTotal} stripe_total=${stripeReportedTotal}`);
-      return res.json({
-        synced: false,
-        reason: 'Credits already accounted locally',
-        currentCredits: user.documentGeneration?.paidCredits || 0
-      });
-    }
-
-    console.log(`[CREDIT SYNC] Found ${pendingSessions.length} paid sessions that may have missed webhook`);
-
-    let totalCreditsGranted = 0;
-    for (const session of pendingSessions) {
-      const credits = Number(session.metadata?.docCredits || 0);
-      const alreadyProcessed = (user.documentGeneration?.purchases || []).some(
-        (p) => String(p.stripeSessionId || '') === String(session.id)
-      );
-
-      if (!alreadyProcessed && credits > 0) {
-        console.log(`[CREDIT SYNC] Processing missed session ${session.id} with ${credits} credits`);
-        await grantDocumentCreditsFromCheckout({
-          userId: String(user._id),
-          credits,
-          bundleId: session.metadata?.docBundle || 'custom',
-          amountCents: Number(session.metadata?.docAmountCents || 0),
-          currency: session.currency || 'usd',
-          stripeSessionId: session.id || ''
-        });
-        totalCreditsGranted += credits;
-      }
-    }
-
-    const updatedUser = await User.findById(req.user.userId).select('documentGeneration');
-    console.log(`[CREDIT SYNC] Synced ${totalCreditsGranted} credits for ${user.email}. New balance: ${updatedUser?.documentGeneration?.paidCredits || 0}`);
-
-    return res.json({
-      synced: totalCreditsGranted > 0,
-      creditsGranted: totalCreditsGranted,
-      newBalance: updatedUser?.documentGeneration?.paidCredits || 0
-    });
+    const result = await reconcileDocumentCreditsFromStripe(req.user.userId);
+    return res.json(result);
   } catch (err) {
     console.error(`[CREDIT SYNC] Error: ${err.message}`);
     return res.status(500).json({ error: 'Failed to sync credits from Stripe' });
@@ -16309,6 +16317,8 @@ app.get('/api/document-credits/status', authenticateToken, async (req, res) => {
     if (!['resume', 'cover-letter'].includes(feature)) {
       return res.status(400).json({ error: 'feature must be resume or cover-letter' });
     }
+
+    await reconcileDocumentCreditsFromStripe(req.user.userId);
 
     const user = await User.findById(req.user.userId).select('plan isAdmin documentGeneration');
     if (!user) return res.status(404).json({ error: 'User not found' });
