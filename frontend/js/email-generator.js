@@ -1,5 +1,6 @@
 // Email Generator JS - Frontend Logic
 
+let currentMode = 'generate'; // 'generate' or 'rewrite'
 let currentSelectedTone = 'professional';
 let currentEmailOutput = '';
 
@@ -10,39 +11,81 @@ function getEmailApiBase() {
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
   // Set first tone as selected
-  selectTone('professional');
+  selectTone('professional', 'gen');
+  switchMode('generate');
 });
 
-// Select tone
-function selectTone(tone) {
-  // Remove selected class from all tone options
-  document.querySelectorAll('.tone-option').forEach(el => {
-    el.classList.remove('selected');
-  });
+// Switch between modes
+function switchMode(mode) {
+  currentMode = mode;
+  const generateBtn = document.getElementById('modeGenerateBtn');
+  const rewriteBtn = document.getElementById('modeRewriteBtn');
+  const generateModeDiv = document.getElementById('generateMode');
+  const rewriteModeDiv = document.getElementById('rewriteMode');
 
-  // Add selected class to clicked tone
-  document.querySelector(`[data-tone="${tone}"]`).classList.add('selected');
+  if (mode === 'generate') {
+    generateBtn.classList.add('selected');
+    rewriteBtn.classList.remove('selected');
+    generateModeDiv.style.display = 'flex';
+    rewriteModeDiv.style.display = 'none';
+    selectTone('professional', 'gen');
+  } else {
+    generateBtn.classList.remove('selected');
+    rewriteBtn.classList.add('selected');
+    generateModeDiv.style.display = 'none';
+    rewriteModeDiv.style.display = 'flex';
+    selectTone('professional', 'rewrite');
+  }
+  
+  // Clear error messages
+  document.getElementById('emailErrorMessage').classList.remove('show');
+}
+
+// Select tone
+function selectTone(tone, modePrefix) {
+  // Remove selected class from all tone options in the current mode
+  if (modePrefix === 'gen') {
+    document.querySelectorAll('#generateMode .tone-option').forEach(el => {
+      el.classList.remove('selected');
+    });
+    document.querySelector(`#generateMode [data-tone="${tone}"]`).classList.add('selected');
+  } else {
+    document.querySelectorAll('#rewriteMode .tone-option').forEach(el => {
+      el.classList.remove('selected');
+    });
+    document.querySelector(`#rewriteMode [data-tone="${tone}"]`).classList.add('selected');
+  }
   currentSelectedTone = tone;
 }
 
-// Generate email
-async function generateEmail() {
-  const emailContent = document.getElementById('emailContent').value.trim();
-  const scenario = document.getElementById('emailScenario').value;
+// Generate or rewrite email
+async function generateEmail(mode) {
+  let emailContent = '';
+  let scenario = '';
 
-  // Validate input
-  if (!emailContent) {
-    showEmailError('Please enter an email to rewrite.');
-    return;
-  }
+  if (mode === 'generate') {
+    scenario = document.getElementById('emailScenarioGen').value;
+    // No emailContent needed for generation
+  } else {
+    emailContent = document.getElementById('emailContent').value.trim();
+    scenario = document.getElementById('emailScenarioRewrite').value;
 
-  if (emailContent.length < 20) {
-    showEmailError('Please enter a longer email (at least 20 characters).');
-    return;
+    // Validate input
+    if (!emailContent) {
+      showEmailError('Please enter an email to rewrite.');
+      return;
+    }
+
+    if (emailContent.length < 20) {
+      showEmailError('Please enter a longer email (at least 20 characters).');
+      return;
+    }
   }
 
   // Show loading state
-  const generateBtn = document.getElementById('emailGenerateBtn');
+  const generateBtn = mode === 'generate' 
+    ? document.getElementById('emailGenerateBtn')
+    : document.getElementById('emailRewriteBtn');
   const loadingIndicator = document.getElementById('emailLoadingIndicator');
   const outputArea = document.getElementById('emailOutput');
 
@@ -61,7 +104,8 @@ async function generateEmail() {
       body: JSON.stringify({
         emailContent,
         tone: currentSelectedTone,
-        scenario
+        scenario,
+        mode
       })
     });
 
@@ -71,7 +115,7 @@ async function generateEmail() {
       // Access denied - not PRO tier
       showEmailError('Email Assistant is a PRO feature. Upgrade your plan to unlock unlimited email rewrites.');
     } else if (!response.ok) {
-      showEmailError(data.error || 'Failed to rewrite email. Please try again.');
+      showEmailError(data.error || 'Failed to generate email. Please try again.');
     } else {
       // Success
       currentEmailOutput = data.result;

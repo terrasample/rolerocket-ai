@@ -233,6 +233,17 @@
       box-shadow: 0 2px 8px rgba(251, 191, 36, 0.3);
     }
 
+    .mode-btn {
+      transition: all 0.3s ease;
+    }
+
+    .mode-btn.selected {
+      background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
+      color: white !important;
+      border-color: #6366f1 !important;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    }
+
     @media (max-width: 1024px) {
       .email-generator-container {
         grid-template-columns: 1fr;
@@ -263,53 +274,110 @@
     <div class="email-generator-container">
       <!-- Form Section -->
       <div class="email-form-section">
+        <!-- Mode Toggle -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem;">
+          <button id="modeGenerateBtn" class="mode-btn selected" onclick="switchMode('generate')" style="padding: 0.75rem; border: 2px solid #6366f1; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; border-radius: 8px; font-weight: 700; cursor: pointer; transition: all 0.3s;">
+            ✏️ Generate New
+          </button>
+          <button id="modeRewriteBtn" class="mode-btn" onclick="switchMode('rewrite')" style="padding: 0.75rem; border: 2px solid #d4d4d8; background-color: #fafafa; color: #0f172a; border-radius: 8px; font-weight: 700; cursor: pointer; transition: all 0.3s;">
+            🔄 Rewrite Existing
+          </button>
+        </div>
+
         <div id="emailErrorMessage" class="error-message"></div>
 
-        <div class="form-group">
-          <label for="emailScenario">Email Scenario</label>
-          <select id="emailScenario">
-            <option value="thank-you">Thank you after interview</option>
-            <option value="salary-range">Request salary range before applying</option>
-            <option value="decline-offer">Decline offer gracefully</option>
-            <option value="check-status">Check application status</option>
-            <option value="follow-up">General follow-up</option>
-            <option value="cold-outreach">Cold outreach to recruiters</option>
-            <option value="custom">Custom / Other</option>
-          </select>
-        </div>
+        <!-- Generate Mode -->
+        <div id="generateMode" style="display: flex; flex-direction: column; gap: 1.75rem;">
+          <div class="form-group">
+            <label for="emailScenarioGen">Email Scenario</label>
+            <select id="emailScenarioGen">
+              <option value="thank-you">Thank you after interview</option>
+              <option value="salary-range">Request salary range before applying</option>
+              <option value="decline-offer">Decline offer gracefully</option>
+              <option value="check-status">Check application status</option>
+              <option value="follow-up">General follow-up</option>
+              <option value="cold-outreach">Cold outreach to recruiters</option>
+              <option value="custom">Custom / Other</option>
+            </select>
+          </div>
 
-        <div class="form-group">
-          <label for="emailContent">Your Email</label>
-          <textarea id="emailContent" placeholder="Paste your email here..."></textarea>
-        </div>
-
-        <div class="form-group">
-          <label>Desired Tone</label>
-          <div class="tone-grid">
-            <div class="tone-option" data-tone="professional" onclick="selectTone('professional')">
-              Professional / Formal
-            </div>
-            <div class="tone-option" data-tone="warm" onclick="selectTone('warm')">
-              Warm & Personable
-            </div>
-            <div class="tone-option" data-tone="confident" onclick="selectTone('confident')">
-              Confident & Direct
-            </div>
-            <div class="tone-option" data-tone="concise" onclick="selectTone('concise')">
-              Concise
-            </div>
-            <div class="tone-option" data-tone="follow-up" onclick="selectTone('follow-up')">
-              Follow-Up
-            </div>
-            <div class="tone-option" data-tone="cold-outreach" onclick="selectTone('cold-outreach')">
-              Cold Outreach
+          <div class="form-group">
+            <label>Desired Tone</label>
+            <div class="tone-grid">
+              <div class="tone-option" data-tone="professional" onclick="selectTone('professional', 'gen')">
+                Professional / Formal
+              </div>
+              <div class="tone-option" data-tone="warm" onclick="selectTone('warm', 'gen')">
+                Warm & Personable
+              </div>
+              <div class="tone-option" data-tone="confident" onclick="selectTone('confident', 'gen')">
+                Confident & Direct
+              </div>
+              <div class="tone-option" data-tone="concise" onclick="selectTone('concise', 'gen')">
+                Concise
+              </div>
+              <div class="tone-option" data-tone="follow-up" onclick="selectTone('follow-up', 'gen')">
+                Follow-Up
+              </div>
+              <div class="tone-option" data-tone="cold-outreach" onclick="selectTone('cold-outreach', 'gen')">
+                Cold Outreach
+              </div>
             </div>
           </div>
+
+          <button id="emailGenerateBtn" class="generate-btn" onclick="generateEmail('generate')">
+            ✏️ Generate Email
+          </button>
         </div>
 
-        <button id="emailGenerateBtn" class="generate-btn" onclick="generateEmail()">
-          ✨ Rewrite Email
-        </button>
+        <!-- Rewrite Mode -->
+        <div id="rewriteMode" style="display: none; flex-direction: column; gap: 1.75rem;">
+          <div class="form-group">
+            <label for="emailScenarioRewrite">Email Scenario</label>
+            <select id="emailScenarioRewrite">
+              <option value="thank-you">Thank you after interview</option>
+              <option value="salary-range">Request salary range before applying</option>
+              <option value="decline-offer">Decline offer gracefully</option>
+              <option value="check-status">Check application status</option>
+              <option value="follow-up">General follow-up</option>
+              <option value="cold-outreach">Cold outreach to recruiters</option>
+              <option value="custom">Custom / Other</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="emailContent">Your Email</label>
+            <textarea id="emailContent" placeholder="Paste your email here..."></textarea>
+          </div>
+
+          <div class="form-group">
+            <label>Desired Tone</label>
+            <div class="tone-grid">
+              <div class="tone-option" data-tone="professional" onclick="selectTone('professional', 'rewrite')">
+                Professional / Formal
+              </div>
+              <div class="tone-option" data-tone="warm" onclick="selectTone('warm', 'rewrite')">
+                Warm & Personable
+              </div>
+              <div class="tone-option" data-tone="confident" onclick="selectTone('confident', 'rewrite')">
+                Confident & Direct
+              </div>
+              <div class="tone-option" data-tone="concise" onclick="selectTone('concise', 'rewrite')">
+                Concise
+              </div>
+              <div class="tone-option" data-tone="follow-up" onclick="selectTone('follow-up', 'rewrite')">
+                Follow-Up
+              </div>
+              <div class="tone-option" data-tone="cold-outreach" onclick="selectTone('cold-outreach', 'rewrite')">
+                Cold Outreach
+              </div>
+            </div>
+          </div>
+
+          <button id="emailRewriteBtn" class="generate-btn" onclick="generateEmail('rewrite')">
+            🔄 Rewrite Email
+          </button>
+        </div>
       </div>
 
       <!-- Output Section -->

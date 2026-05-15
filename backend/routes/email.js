@@ -57,10 +57,10 @@ const SCENARIO_TEMPLATES = {
   }
 };
 
-// POST /api/email/generate - Generate rewritten email (PRO+ only)
+// POST /api/email/generate - Generate or rewrite email (PRO+ only)
 router.post('/generate', authenticateToken, async (req, res) => {
   try {
-    const { emailContent, tone, scenario } = req.body;
+    const { emailContent, tone, scenario, mode } = req.body;
     const user = req.user;
 
     // Tier check: Email Assistant is a PRO+ feature
@@ -72,24 +72,47 @@ router.post('/generate', authenticateToken, async (req, res) => {
       });
     }
 
-    // Validate input
-    if (!emailContent || typeof emailContent !== 'string') {
-      return res.status(400).json({ error: 'Email content is required' });
-    }
-
+    // Validate tone
     if (!tone || !TONE_DESCRIPTIONS[tone]) {
       return res.status(400).json({ error: 'Invalid tone selected' });
     }
 
-    if (emailContent.length < 20) {
-      return res.status(400).json({ error: 'Email content must be at least 20 characters' });
+    // Determine mode
+    const actualMode = mode || (emailContent ? 'rewrite' : 'generate');
+
+    // Validate input based on mode
+    if (actualMode === 'rewrite') {
+      if (!emailContent || typeof emailContent !== 'string') {
+        return res.status(400).json({ error: 'Email content is required for rewrite mode' });
+      }
+      if (emailContent.length < 20) {
+        return res.status(400).json({ error: 'Email content must be at least 20 characters' });
+      }
     }
 
     // Get scenario context
     const scenarioInfo = SCENARIO_TEMPLATES[scenario] || SCENARIO_TEMPLATES.custom;
 
-    // Build system prompt
-    const systemPrompt = `You are an expert email writer specializing in professional job search communications. Your task is to rewrite the provided email in a ${TONE_DESCRIPTIONS[tone]}.
+    // Build system prompt based on mode
+    let systemPrompt;
+
+    if (actualMode === 'generate') {
+      systemPrompt = `You are an expert email writer specializing in professional job search communications. Your task is to write a complete, professional email in a ${TONE_DESCRIPTIONS[tone]}.
+
+Context: ${scenarioInfo.context}
+Guidance: ${scenarioInfo.guidance}
+
+Requirements:
+- Write a complete 4-paragraph email ready to send
+- Use the specified tone throughout
+- Ensure proper grammar and punctuation
+- Make it compelling, professional, and appropriate for job search
+- Do not include placeholders or brackets like [Name] or [Company]
+- Start with a proper greeting and end with a professional closing
+- Paragraph structure: Opening/intro, main body/purpose, call to action/next steps, closing
+- Return only the complete email, nothing else`;
+    } else {
+      systemPrompt = `You are an expert email writer specializing in professional job search communications. Your task is to rewrite the provided email in a ${TONE_DESCRIPTIONS[tone]}.
 
 Context: ${scenarioInfo.context}
 Guidance: ${scenarioInfo.guidance}
@@ -105,6 +128,7 @@ Requirements:
 
 Original email to rewrite:
 ${emailContent}`;
+    }
 
     // Call OpenAI
     const response = await client.chat.completions.create({
@@ -116,14 +140,15 @@ ${emailContent}`;
         }
       ],
       temperature: 0.7,
-      max_tokens: 600
+      max_tokens: 800
     });
 
-    const rewrittenEmail = response.choices[0].message.content.trim();
+    const result = response.choices[0].message.content.trim();
 
     // Return result
     res.json({
-      result: rewrittenEmail
+      result,
+      mode: actualMode
     });
   } catch (error) {
     console.error('Error in email generation:', error);
@@ -136,7 +161,7 @@ ${emailContent}`;
     }
 
     res.status(500).json({
-      error: 'Failed to rewrite email. Please try again.',
+      error: 'Failed to generate email. Please try again.',
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
