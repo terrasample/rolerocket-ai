@@ -247,19 +247,12 @@
   </style>
 </head>
 <body>
-  <!-- Navigation -->
-  <nav class="top-nav">
-    <div class="nav-brand">
-      <a href="index.html">🚀 RoleRocket</a>
-    </div>
-    <div class="nav-menu">
-      <a href="index.html">🏠 Home</a>
-      <a href="features.html">✨ Features</a>
-      <a href="dashboard.html">🧑‍💼 Dashboard</a>
-      <a href="pricing.html">💳 Pricing</a>
-      <a href="account.html">👤 Account</a>
-    </div>
-  </nav>
+  <!-- Back Button -->
+  <div style="padding: 1.5rem 2rem; border-bottom: 1px solid #e4e4e7;">
+    <button onclick="if (window.history.length > 1) { window.history.back(); } else { window.location.href = 'dashboard.html'; }" style="background: none; border: none; font-size: 1rem; cursor: pointer; color: #6366f1; font-weight: 600;">
+      ← Back
+    </button>
+  </div>
 
   <main class="page-main">
     <section class="page-header">
