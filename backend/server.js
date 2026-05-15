@@ -8813,6 +8813,7 @@ const JOB_ALERT_MIN_MATCH_SCORE = 90;
 const JOB_ALERT_SCHEDULE_INTERVAL_MS = 1000 * 60 * 5;
 const WHATSAPP_STATUS_NUDGE_INTERVAL_MS = 1000 * 60 * 10;
 const WHATSAPP_STATUS_NUDGE_DELAY_MS = 1000 * 60 * 60 * 24;
+const CREDIT_INTEGRITY_AUDIT_INTERVAL_MS = Math.max(1000 * 60 * 30, Number(process.env.CREDIT_INTEGRITY_AUDIT_INTERVAL_MS || 1000 * 60 * 60 * 24));
 const JOB_ALERT_FREQUENCY_MS = {
   instant: 1000 * 60 * 60 * 2,
   daily: 1000 * 60 * 60 * 24,
@@ -8822,6 +8823,8 @@ let jobAlertSchedulerTimer = null;
 let jobAlertSchedulerRunning = false;
 let whatsappStatusNudgeTimer = null;
 let whatsappStatusNudgeRunning = false;
+let creditIntegrityAuditTimer = null;
+let creditIntegrityAuditRunning = false;
 
 function cleanAlertString(value, maxLen = 160) {
   return String(value || '').replace(/\s+/g, ' ').trim().slice(0, maxLen);
@@ -9324,6 +9327,129 @@ function startWhatsAppStatusNudgeScheduler() {
 
   runWhatsAppStatusNudges().catch((err) => {
     console.error('Initial WhatsApp status nudge run failed:', err.message);
+  });
+}
+
+function normalizeAuditEmail(value = '') {
+  return String(value || '').toLowerCase().trim();
+}
+
+async function runCreditIntegrityAudit() {
+  if (creditIntegrityAuditRunning || mongoose.connection.readyState !== 1) return;
+  creditIntegrityAuditRunning = true;
+
+  try {
+    const users = await User.find({ 'documentGeneration.totalCreditsPurchased': { $gt: 0 } })
+      .select('email name documentGeneration')
+      .lean();
+
+    if (!users.length) return;
+
+    const trackedUserIds = new Set(users.map((u) => String(u._id || '')));
+    const trackedEmails = new Set(users.map((u) => normalizeAuditEmail(u.email)).filter(Boolean));
+
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+    const stripeTotalsByUserId = new Map();
+    const stripeTotalsByEmail = new Map();
+
+    for await (const session of stripe.checkout.sessions.list({ limit: 100 })) {
+      const isPaidDocBundle = String(session?.metadata?.type || '').toLowerCase() === 'document_bundle'
+        && String(session?.payment_status || '').toLowerCase() === 'paid';
+      if (!isPaidDocBundle) continue;
+
+      const credits = Math.max(0, Number(session?.metadata?.docCredits || 0));
+      if (!credits) continue;
+
+      const userId = String(session?.metadata?.userId || '').trim();
+      const email = normalizeAuditEmail(session?.metadata?.userEmail || session?.customer_details?.email || '');
+
+      if (userId && trackedUserIds.has(userId)) {
+        stripeTotalsByUserId.set(userId, (stripeTotalsByUserId.get(userId) || 0) + credits);
+      }
+      if (email && trackedEmails.has(email)) {
+        stripeTotalsByEmail.set(email, (stripeTotalsByEmail.get(email) || 0) + credits);
+      }
+    }
+
+    const anomalies = [];
+    for (const user of users) {
+      const userId = String(user._id || '');
+      const email = normalizeAuditEmail(user.email);
+      const wallet = user.documentGeneration || {};
+      const totalPurchased = Math.max(0, Number(wallet.totalCreditsPurchased || 0));
+      const paidCredits = Math.max(0, Number(wallet.paidCredits || 0));
+
+      const purchases = Array.isArray(wallet.purchases) ? wallet.purchases : [];
+      const hasManualAdminGrants = purchases.some((purchase) => {
+        const bundle = String(purchase?.bundleId || '').toLowerCase();
+        const stripeSessionId = String(purchase?.stripeSessionId || '').toLowerCase();
+        return bundle === 'admin-grant' || bundle === 'admin-manual-grant' || stripeSessionId.startsWith('admin-') || stripeSessionId.startsWith('manual-admin');
+      });
+
+      const stripeTotal = Math.max(
+        Number(stripeTotalsByUserId.get(userId) || 0),
+        Number(stripeTotalsByEmail.get(email) || 0)
+      );
+
+      // Over-credit protection: local purchased should never exceed Stripe paid total unless explicitly admin-granted.
+      if (totalPurchased > stripeTotal && !hasManualAdminGrants) {
+        anomalies.push({
+          userId,
+          email,
+          name: String(user.name || ''),
+          totalPurchased,
+          paidCredits,
+          stripeTotal,
+          deltaPurchased: totalPurchased - stripeTotal
+        });
+      }
+    }
+
+    if (!anomalies.length) {
+      console.log(`[CREDIT AUDIT] Completed: ${users.length} users checked, no over-credit anomalies found.`);
+      return;
+    }
+
+    console.error(`[CREDIT AUDIT] Found ${anomalies.length} over-credit anomaly/anomalies.`, anomalies);
+
+    const supportRecipient = process.env.SUPPORT_TO || process.env.CONTACT_TO || 'support@rolerocketai.com';
+    const subject = `[RoleRocket] Credit Integrity Alert (${anomalies.length})`;
+    const listItems = anomalies
+      .slice(0, 20)
+      .map((item) => `<li><strong>${item.email}</strong> (${item.name || 'Unknown'}) — local purchased ${item.totalPurchased}, Stripe purchased ${item.stripeTotal}, delta ${item.deltaPurchased}</li>`)
+      .join('');
+    const html = `
+      <div style="font-family:Segoe UI,Arial,sans-serif;color:#0f172a;line-height:1.55;max-width:700px;">
+        <h2 style="margin:0 0 10px;">Credit Integrity Audit Alert</h2>
+        <p style="margin:0 0 14px;">The daily audit detected <strong>${anomalies.length}</strong> over-credit anomaly/anomalies.</p>
+        <ul style="margin:0 0 14px 18px;">${listItems}</ul>
+        <p style="margin:0;color:#64748b;">Review admin credit tools and Stripe session history for the listed users.</p>
+      </div>
+    `;
+
+    try {
+      await sendEmail({ to: supportRecipient, subject, html });
+    } catch (emailErr) {
+      console.error('[CREDIT AUDIT] Failed to send alert email:', emailErr.message);
+    }
+  } catch (err) {
+    console.error('[CREDIT AUDIT] Scheduler failed:', err.message);
+  } finally {
+    creditIntegrityAuditRunning = false;
+  }
+}
+
+function startCreditIntegrityAuditScheduler() {
+  if (process.env.NODE_ENV === 'test' || creditIntegrityAuditTimer) return;
+
+  creditIntegrityAuditTimer = setInterval(() => {
+    runCreditIntegrityAudit().catch((err) => {
+      console.error('[CREDIT AUDIT] Loop failed:', err.message);
+    });
+  }, CREDIT_INTEGRITY_AUDIT_INTERVAL_MS);
+
+  runCreditIntegrityAudit().catch((err) => {
+    console.error('[CREDIT AUDIT] Initial run failed:', err.message);
   });
 }
 
@@ -17124,6 +17250,7 @@ if (process.env.NODE_ENV !== 'test') {
     console.log(`🚀 Server running on port ${PORT}`);
     startJobAlertScheduler();
     startWhatsAppStatusNudgeScheduler();
+    startCreditIntegrityAuditScheduler();
     setTimeout(() => {
       prewarmJobSearches().catch((err) => {
         console.warn('Job prewarm failed:', err.message);
