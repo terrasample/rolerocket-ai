@@ -220,7 +220,7 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
 
-    const freeLabel = status.freeRemaining > 0 ? '1 free generation remaining' : 'Free generation already used';
+    const freeLabel = status.freeRemaining > 0 ? '1 free daily generation remaining' : 'Free daily generation already used';
     const remainingCredits = Number(status.paidCredits || 0);
     const purchasedCredits = Number(status.totalCreditsPurchased || 0);
     const usedCredits = Number(status.usedCredits || Math.max(0, purchasedCredits - remainingCredits));
@@ -256,7 +256,7 @@ document.addEventListener('DOMContentLoaded', function () {
         headers,
         body: JSON.stringify({
           bundle,
-          returnPath: '/payment-success.html'
+          returnPath: '/resume-generator.html'
         })
       });
       const data = await response.json();

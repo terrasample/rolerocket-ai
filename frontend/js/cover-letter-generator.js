@@ -65,7 +65,7 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
 
-    const freeLabel = status.freeRemaining > 0 ? '1 free generation remaining' : 'Free generation already used';
+    const freeLabel = status.freeRemaining > 0 ? '1 free daily generation remaining' : 'Free daily generation already used';
     const creditLabel = `${Number(status.paidCredits || 0)} paid credit${Number(status.paidCredits || 0) === 1 ? '' : 's'} available`;
     billingStatus.textContent = `${freeLabel}. ${creditLabel}.`;
     setBillingButtonsDisabled(false);
@@ -95,7 +95,7 @@ document.addEventListener('DOMContentLoaded', function () {
         headers,
         body: JSON.stringify({
           bundle,
-          returnPath: '/payment-success.html'
+          returnPath: '/resume-generator.html'
         })
       });
       const data = await response.json();
