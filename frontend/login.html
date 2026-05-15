@@ -119,46 +119,11 @@
       z-index: 6;
     }
 
-    .login-cinematic-flame {
-      position: absolute;
-      left: 8.8%;
-      bottom: 12.4%;
-      width: 34px;
-      height: 90px;
-      border-radius: 52% 52% 66% 66%;
-      background:
-        radial-gradient(circle at 50% 16%, #fffce8 0%, #fef9c3 16%, #fde68a 34%, #facc15 52%, #f59e0b 72%, rgba(234, 88, 12, .76) 88%, rgba(220, 38, 38, .08) 100%);
-      opacity: 0;
-      transform-origin: 50% 10%;
-      filter: drop-shadow(0 0 14px rgba(250, 204, 21, .6));
-      will-change: transform, opacity;
-      z-index: 5;
-      mix-blend-mode: screen;
-    }
 
-    .login-cinematic-flame::before {
-      content: '';
-      position: absolute;
-      left: 50%;
-      top: 8%;
-      width: 14px;
-      height: 34px;
-      transform: translateX(-50%);
-      border-radius: 50% 50% 60% 60%;
-      background: radial-gradient(circle at 50% 20%, #ffffff 0%, #fef08a 55%, rgba(255, 255, 255, 0) 100%);
-      opacity: .9;
-    }
 
     .login-cinematic-overlay.launch .login-cinematic-rocket {
       opacity: 1;
       animation: loginRocketSmooth 5200ms cubic-bezier(.18, .76, .16, 1) forwards;
-    }
-
-    .login-cinematic-overlay.launch .login-cinematic-flame {
-      opacity: .98;
-      animation:
-        loginFlameTrack 5200ms cubic-bezier(.18, .76, .16, 1) forwards,
-        loginFlameNatural 160ms ease-in-out infinite;
     }
 
     .login-cinematic-replay {
@@ -196,33 +161,8 @@
       100% { transform: translate3d(396px, -330px, 0) rotate(-35deg) scale(.72); opacity: 0; }
     }
 
-    @keyframes loginFlameTrack {
-      0%   { transform: translate3d(-8px, 16px, 0) rotate(-18deg) scale(1); opacity: .98; }
-      12%  { transform: translate3d(11px, 4px, 0) rotate(-19deg) scale(1.02); opacity: .98; }
-      24%  { transform: translate3d(36px, -14px, 0) rotate(-20deg) scale(1.03); opacity: .97; }
-      38%  { transform: translate3d(73px, -42px, 0) rotate(-22deg) scale(1.05); opacity: .95; }
-      52%  { transform: translate3d(125px, -84px, 0) rotate(-24deg) scale(1.02); opacity: .90; }
-      66%  { transform: translate3d(193px, -142px, 0) rotate(-27deg) scale(.98); opacity: .80; }
-      78%  { transform: translate3d(265px, -206px, 0) rotate(-30deg) scale(.92); opacity: .62; }
-      88%  { transform: translate3d(325px, -260px, 0) rotate(-33deg) scale(.84); opacity: .40; }
-      96%  { transform: translate3d(367px, -298px, 0) rotate(-34deg) scale(.78); opacity: .20; }
-      100% { transform: translate3d(385px, -314px, 0) rotate(-35deg) scale(.72); opacity: 0; }
-    }
 
-    @keyframes loginFlameNatural {
-      0%   { filter: drop-shadow(0 0 14px rgba(250, 204, 21, .60)); }
-      25%  { filter: drop-shadow(0 0 10px rgba(250, 204, 21, .45)); }
-      50%  { filter: drop-shadow(0 0 16px rgba(253, 224, 71, .68)); }
-      75%  { filter: drop-shadow(0 0 11px rgba(245, 158, 11, .52)); }
-      100% { filter: drop-shadow(0 0 15px rgba(250, 204, 21, .62)); }
-    }
 
-    @media (max-width: 680px) {
-      .login-cinematic-flame {
-        width: 28px;
-        height: 70px;
-      }
-    }
   </style>
 </head>
 <body class="landing-page login-page">
@@ -234,7 +174,7 @@
       <div id="loginCinematicCount" class="login-cinematic-count">3</div>
       <div class="login-cinematic-tag">Helping Your Future Career Take Off</div>
     </div>
-    <div class="login-cinematic-flame" aria-hidden="true"></div>
+
     <div class="login-cinematic-rocket" aria-hidden="true">🚀</div>
   </div>
   <button id="loginCinematicReplay" class="login-cinematic-replay" type="button" hidden>Replay Cinematic</button>
