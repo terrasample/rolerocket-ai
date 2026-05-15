@@ -1191,9 +1191,11 @@
                 scoutTitles.push(titleVal);
               };
 
-              if (roleProfile && roleProfile.targetRole) addScoutTitle(roleProfile.targetRole);
               if (jad.targetRole) addScoutTitle(jad.targetRole);
               prefKeywords.slice(0, 8).forEach(addScoutTitle);
+              if ((!jad.targetRole || !String(jad.targetRole).trim()) && roleProfile && roleProfile.targetRole) {
+                addScoutTitle(roleProfile.targetRole);
+              }
               if (!scoutTitles.length) addScoutTitle('Software Engineer');
               scoutTitles = uniqueLower(scoutTitles);
 
@@ -1637,6 +1639,11 @@
                     reasons.push('Role relevance');
                   }
 
+                  var computedFitScore = Math.max(0, Math.min(99, Math.round(score)));
+                  job.__rrFitScore = computedFitScore;
+                  if (!job.matchScore || Number(job.matchScore) < computedFitScore) {
+                    job.matchScore = computedFitScore;
+                  }
                   job.__rrReasons = reasons.slice(0, 3);
 
                   return { job: job, score: score };
@@ -1656,6 +1663,18 @@
               }
 
               if (scopedJobs.length) {
+                var topScopedJob = scopedJobs[0] || null;
+                if (topScopedJob) {
+                  var topTitle = String(topScopedJob.title || '').trim();
+                  var topLocation = String(topScopedJob.location || '').trim();
+                  if (topTitle) primaryScoutTitle = topTitle;
+                  if (topLocation) {
+                    panelLocationLabel = topLocation;
+                    panelLocationQuery = topLocation;
+                  }
+                  setPanelHeadingAndLink();
+                }
+
                 var directScopedJobs = scopedJobs.map(function(j) {
                   return {
                     job: j,
@@ -1669,6 +1688,7 @@
                   list.innerHTML = directScopedJobs.map(function(entry) {
                     var j = entry.job;
                     var applyLink = entry.applyLink;
+                  var fitScore = Number(j.__rrFitScore || j.matchScore || 0);
                   var metaBits = [j.company || 'Company'];
                   if (j.location) metaBits.push(j.location);
                   var reasons = Array.isArray(j.__rrReasons) ? j.__rrReasons.slice(0, 3) : [];
@@ -1684,7 +1704,10 @@
                     '    <div class="meta">' + esc(metaBits.join(' \u00b7 ')) + '</div>',
                     reasonHtml,
                     '  </div>',
-                    '  <span class="rr-shot-apply">Open job</span>',
+                    '  <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">',
+                    '    <span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:999px;border:1px solid rgba(16,185,129,.45);background:rgba(6,95,70,.22);color:#a7f3d0;font-size:11px;font-weight:800;letter-spacing:.02em;">Fit ' + esc(fitScore) + '%</span>',
+                    '    <span class="rr-shot-apply">Open job</span>',
+                    '  </div>',
                     '</a>'
                   ].join('');
                   }).join('');
@@ -1724,7 +1747,19 @@
                     var applyLink = entry.applyLink;
                   var metaBits = [j.company || 'Company'];
                   if (j.location) metaBits.push(j.location);
-                  return renderMatchRow(j.title || 'Role', metaBits.join(' \u00b7 '), applyLink);
+                  var fitScore = Number(j.__rrFitScore || j.matchScore || 0);
+                  return [
+                    '<a class="rr-shot-row rr-shot-row-link" href="' + esc(applyLink) + '" target="_blank" rel="noopener noreferrer">',
+                    '  <div>',
+                    '    <div class="title">' + esc(j.title || 'Role') + '</div>',
+                    '    <div class="meta">' + esc(metaBits.join(' \u00b7 ')) + '</div>',
+                    '  </div>',
+                    '  <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">',
+                    '    <span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:999px;border:1px solid rgba(16,185,129,.45);background:rgba(6,95,70,.22);color:#a7f3d0;font-size:11px;font-weight:800;letter-spacing:.02em;">Fit ' + esc(fitScore) + '%</span>',
+                    '    <span class="rr-shot-apply">Open job</span>',
+                    '  </div>',
+                    '</a>'
+                  ].join('');
                   }).join('');
                 }
               } else if (prefSalaryMin > 0) {
