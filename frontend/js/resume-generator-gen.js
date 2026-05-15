@@ -239,6 +239,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
   async function loadResumeCreditStatus() {
     const token = getAuthToken();
+    if (!token) {
+      throw new Error('Please log in to load your credit balance.');
+    }
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
     const response = await fetch(getApiEndpoint('/api/document-credits/status?feature=resume'), { headers });
     const data = await response.json();
@@ -2015,6 +2018,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const raw = String(message || '').trim();
     if (/failed to fetch|networkerror|load failed|network request failed/i.test(raw)) {
       return 'Cannot reach billing server right now. Please retry in a moment.';
+    }
+    if (/no token|unauthorized|forbidden|auth/i.test(raw)) {
+      return 'Please log in to load your credit balance.';
     }
     return raw || fallback;
   }

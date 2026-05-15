@@ -81,11 +81,17 @@ document.addEventListener('DOMContentLoaded', function () {
     if (/failed to fetch|networkerror|load failed|network request failed/i.test(raw)) {
       return 'Cannot reach billing server right now. Please retry in a moment.';
     }
+    if (/no token|unauthorized|forbidden|auth/i.test(raw)) {
+      return 'Please log in to load your credit balance.';
+    }
     return raw || fallback;
   }
 
   async function loadCoverCreditStatus() {
     const token = getAuthToken();
+    if (!token) {
+      throw new Error('Please log in to load your credit balance.');
+    }
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
     const response = await fetch(getApiEndpoint('/api/document-credits/status?feature=cover-letter'), { headers });
     const data = await response.json();

@@ -2,12 +2,45 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
-			"label": "Start RoleRocket Server",
+			"label": "Auto Start Backend (5001)",
 			"type": "shell",
-			"command": "$conn = Get-NetTCPConnection -LocalPort 5000 -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1; if ($conn) { Stop-Process -Id $conn.OwningProcess -Force; Start-Sleep -Milliseconds 900; Write-Host 'Killed old process on port 5000' }; Set-Location \"${workspaceFolder}\"; node server.js",
-			"isBackground": false,
-			"problemMatcher": [],
-			"group": "build"
+			"command": "if lsof -ti:5001 -sTCP:LISTEN >/dev/null; then echo 'Backend already running on 5001'; else npm start; fi",
+			"options": {
+				"cwd": "${workspaceFolder}/backend"
+			},
+			"isBackground": true,
+			"runOptions": {
+				"runOn": "folderOpen"
+			},
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared",
+				"focus": false
+			},
+			"problemMatcher": [
+				{
+					"pattern": [
+						{
+							"regexp": "^(.*)$"
+						}
+					],
+					"background": {
+						"activeOnStart": true,
+						"beginsPattern": "^(.*)$",
+						"endsPattern": "(Backend already running on 5001|Server running on port 5001)"
+					}
+				}
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			}
+		},
+		{
+			"label": "Stop Backend (5001)",
+			"type": "shell",
+			"command": "lsof -ti:5001 -sTCP:LISTEN | xargs kill -15 2>/dev/null || true",
+			"problemMatcher": []
 		}
 	]
 }
