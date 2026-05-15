@@ -8,6 +8,64 @@ function getEmailApiBase() {
   return typeof getApiBase === 'function' ? getApiBase() : '';
 }
 
+function isDemoMode() {
+  try {
+    const params = new URLSearchParams(window.location.search || '');
+    if (params.get('demo') === 'true') return true;
+  } catch {
+    // ignore
+  }
+
+  return window.location.protocol === 'file:';
+}
+
+function titleCase(value) {
+  const text = String(value || '').replace(/-/g, ' ');
+  return text.replace(/\b\w/g, ch => ch.toUpperCase());
+}
+
+function buildScenarioText(scenario) {
+  const map = {
+    'thank-you': 'thanking the hiring team after an interview',
+    'salary-range': 'requesting salary range details before applying',
+    'decline-offer': 'declining an offer respectfully while keeping the door open',
+    'check-status': 'checking in on application status',
+    'follow-up': 'sending a professional follow-up',
+    'cold-outreach': 'reaching out to a recruiter for potential roles',
+    custom: 'sending a professional career-related message'
+  };
+
+  return map[scenario] || map.custom;
+}
+
+function buildLocalGeneratedEmail(scenario, tone) {
+  const scenarioText = buildScenarioText(scenario);
+  const toneLabel = titleCase(tone || 'professional');
+
+  return [
+    'Hello Hiring Team,',
+    `I am writing regarding ${scenarioText}. I appreciate your time and wanted to share a thoughtful message that reflects both professionalism and genuine interest. I have been intentional about how I communicate during this process, and I wanted this note to be clear, respectful, and action-oriented.`,
+    `From my perspective, strong communication should create confidence and keep momentum moving forward. In a ${toneLabel} tone, I want to reinforce that I am engaged, prepared, and serious about finding the right opportunity where I can contribute quickly and effectively. I value teams that move with clarity, collaboration, and accountability.`,
+    'If helpful, I would be glad to provide any additional details or context to support next steps. Thank you again for your time and consideration. I look forward to hearing from you and hope we can continue the conversation soon.',
+    'Best regards,\nYour Name'
+  ].join('\n\n');
+}
+
+function buildLocalRewrittenEmail(emailContent, scenario, tone) {
+  const toneLabel = titleCase(tone || 'professional');
+  const lines = String(emailContent || '').trim().split(/\n+/).filter(Boolean);
+  const compact = lines.join(' ').replace(/\s+/g, ' ').trim();
+  const scenarioText = buildScenarioText(scenario);
+
+  return [
+    'Hello Hiring Team,',
+    `${compact} I wanted to share a cleaner and more polished version of this message while keeping the original intent intact.`,
+    `In a ${toneLabel} tone, my goal is to keep this focused and respectful while making sure the request is clear. This note is specifically for ${scenarioText}, and I hope it communicates both professionalism and strong interest.`,
+    'Thank you for your time and consideration. I appreciate your review and look forward to any updates on next steps.',
+    'Best regards,\nYour Name'
+  ].join('\n\n');
+}
+
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
   // Set first tone as selected
@@ -95,12 +153,33 @@ async function generateEmail(mode) {
   document.getElementById('emailErrorMessage').classList.remove('show');
 
   try {
-    const response = await fetch(`${getEmailApiBase()}/email/generate`, {
+    const token = localStorage.getItem('token');
+    const demoMode = isDemoMode();
+
+    if (!token && demoMode) {
+      currentEmailOutput = mode === 'generate'
+        ? buildLocalGeneratedEmail(scenario, currentSelectedTone)
+        : buildLocalRewrittenEmail(emailContent, scenario, currentSelectedTone);
+      outputArea.textContent = currentEmailOutput;
+      outputArea.classList.remove('empty');
+
+      document.getElementById('emailCopyBtn').style.display = 'inline-block';
+      document.getElementById('emailDownloadBtn').style.display = 'inline-block';
+      document.getElementById('emailSendBtn').style.display = 'inline-block';
+      return;
+    }
+
+    const headers = {
+      'Content-Type': 'application/json'
+    };
+
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${getEmailApiBase()}/api/email/generate`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        'Content-Type': 'application/json'
-      },
+      headers,
       body: JSON.stringify({
         emailContent,
         tone: currentSelectedTone,
@@ -109,11 +188,18 @@ async function generateEmail(mode) {
       })
     });
 
-    const data = await response.json();
+    const contentType = response.headers.get('content-type') || '';
+    const data = contentType.includes('application/json')
+      ? await response.json()
+      : { error: `Unexpected response (${response.status}).` };
 
-    if (response.status === 403) {
+    if (response.status === 401) {
+      showEmailError('Please log in to use Email Assistant.');
+    } else if (response.status === 403 && data.code === 'FEATURE_REQUIRES_PRO') {
       // Access denied - not PRO tier
       showEmailError('Email Assistant is a PRO feature. Upgrade your plan to unlock unlimited email rewrites.');
+    } else if (response.status === 403) {
+      showEmailError('Your session expired. Please log in again.');
     } else if (!response.ok) {
       showEmailError(data.error || 'Failed to generate email. Please try again.');
     } else {
@@ -128,6 +214,19 @@ async function generateEmail(mode) {
       document.getElementById('emailSendBtn').style.display = 'inline-block';
     }
   } catch (error) {
+    if (isDemoMode()) {
+      currentEmailOutput = mode === 'generate'
+        ? buildLocalGeneratedEmail(scenario, currentSelectedTone)
+        : buildLocalRewrittenEmail(emailContent, scenario, currentSelectedTone);
+      outputArea.textContent = currentEmailOutput;
+      outputArea.classList.remove('empty');
+
+      document.getElementById('emailCopyBtn').style.display = 'inline-block';
+      document.getElementById('emailDownloadBtn').style.display = 'inline-block';
+      document.getElementById('emailSendBtn').style.display = 'inline-block';
+      return;
+    }
+
     showEmailError('An error occurred. Please try again.');
     console.error('Error:', error);
   } finally {
