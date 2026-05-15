@@ -109,7 +109,7 @@ app.get('/api/me', async (req, res) => {
     const user = await User.findById(decoded.userId).lean();
     if (!user) return res.status(404).json({ error: 'User not found' });
     const email = String(user.email || '').toLowerCase();
-    const isAdmin = user.isAdmin === true || (ADMIN_EMAILS.length && ADMIN_EMAILS.includes(email));
+    const isAdmin = isAdminUser(email, user.isAdmin === true);
     const trialEntitlements = applyInstitutionTrialEntitlements(user);
     return res.json({
       user: {
@@ -2751,7 +2751,7 @@ async function resolveEffectiveWhatsAppPlan(user, phone = '') {
     }
 
     const email = String(account.email || '').toLowerCase();
-    const isAdmin = account.isAdmin === true || (ADMIN_EMAILS.length && ADMIN_EMAILS.includes(email));
+    const isAdmin = isAdminUser(email, account.isAdmin === true);
     const trialEntitlements = applyInstitutionTrialEntitlements(account);
     const linkedPlan = isAdmin
       ? 'lifetime'
@@ -5616,6 +5616,19 @@ const DEFAULT_INSTITUTION_TRIAL_DAYS = Math.max(1, Number(process.env.INSTITUTIO
 const E2E_MOCK_MODE = process.env.E2E_MOCK === '1';
 const DB_DIAGNOSTIC_TOKEN = String(process.env.DB_DIAGNOSTIC_TOKEN || '').trim();
 
+function isAdminUser(email = '', isDbAdmin = false) {
+  const normalizedEmail = String(email || '').toLowerCase().trim();
+  const isAllowlisted = ADMIN_EMAILS.includes(normalizedEmail);
+
+  // When an explicit allowlist is configured, only that list can grant admin access.
+  if (ADMIN_EMAILS.length > 0) {
+    return isAllowlisted;
+  }
+
+  // Fallback for environments without ADMIN_EMAILS configured.
+  return isDbAdmin === true;
+}
+
 function getConfiguredWhatsAppShareLink(defaultText = 'START') {
   const configured = String(process.env.TWILIO_WHATSAPP_NUMBER || process.env.TWILIO_PHONE_NUMBER || '').trim();
   if (!configured) return '';
@@ -6781,8 +6794,7 @@ async function requireAnalyticsAccess(req, res, next) {
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     const email = String(user.email || '').toLowerCase();
-    const isAdminEmail = ADMIN_EMAILS.length ? ADMIN_EMAILS.includes(email) : false;
-    const isAdmin = user.isAdmin === true || isAdminEmail;
+    const isAdmin = isAdminUser(email, user.isAdmin === true);
     const allowByPlan = !ADMIN_EMAILS.length && hasRequiredPlan(user, 'elite');
 
     if (!isAdmin && !allowByPlan) {
@@ -6802,8 +6814,7 @@ async function requireAdminAccess(req, res, next) {
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     const email = String(user.email || '').toLowerCase();
-    const isAdminEmail = ADMIN_EMAILS.length ? ADMIN_EMAILS.includes(email) : false;
-    const isAdmin = user.isAdmin === true || isAdminEmail;
+    const isAdmin = isAdminUser(email, user.isAdmin === true);
     if (!isAdmin) {
       return res.status(403).json({ error: 'Admin access required' });
     }
@@ -6836,10 +6847,9 @@ function hasRequiredPlan(user, requiredPlan) {
   if (!user) return false;
   // Admins always have access to everything
   const email = String(user.email || '').toLowerCase();
-  const isConfiguredAdmin = ADMIN_EMAILS.length && ADMIN_EMAILS.includes(email);
-  const isDbAdmin = user.isAdmin === true;
+  const isConfiguredAdmin = isAdminUser(email, user.isAdmin === true);
   const isInternalAdmin = email.endsWith('@rolerocketai.com');
-  if (isConfiguredAdmin || isDbAdmin || isInternalAdmin) {
+  if (isConfiguredAdmin || isInternalAdmin) {
     return true;
   }
   return getPlanLevel(user.plan || 'free') >= getPlanLevel(requiredPlan);
@@ -10174,7 +10184,7 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
     const trialEntitlements = applyInstitutionTrialEntitlements(user);
     let plan = trialEntitlements.plan;
     let isSubscribed = trialEntitlements.isSubscribed;
-    const isAdmin = user.isAdmin === true || (ADMIN_EMAILS.length && ADMIN_EMAILS.includes(normalizedEmail));
+    const isAdmin = isAdminUser(normalizedEmail, user.isAdmin === true);
     if (isAdmin) {
       plan = 'lifetime';
       isSubscribed = true;
@@ -16249,7 +16259,7 @@ app.post('/api/create-checkout-session', paymentLimiter, authenticateToken, asyn
 
     const user = await User.findById(userId).select('email plan veteranVerified isAdmin');
     const email = String(user?.email || '').toLowerCase();
-    const isAdmin = user?.isAdmin === true || (ADMIN_EMAILS && ADMIN_EMAILS.includes(email));
+    const isAdmin = isAdminUser(email, user?.isAdmin === true);
     const isLifetime = (user?.plan || '').toLowerCase() === 'lifetime';
     // DEBUG LOGGING
     console.log('[CHECKOUT DEBUG]', {
@@ -16346,7 +16356,8 @@ app.post('/api/document-credits/create-checkout-session', paymentLimiter, authen
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     const plan = String(user.plan || 'free').toLowerCase();
-    if (user.isAdmin === true || plan !== 'free') {
+    const email = String(user.email || '').toLowerCase();
+    if (isAdminUser(email, user.isAdmin === true) || plan !== 'free') {
       return res.status(400).json({ error: 'Document credit checkout is only required for free tier users.' });
     }
 
@@ -16434,7 +16445,7 @@ app.post('/api/create-lifetime-checkout', paymentLimiter, authenticateToken, asy
 
     const user = await User.findById(req.user.userId).select('email plan veteranVerified isAdmin');
     const email = String(user?.email || '').toLowerCase();
-    const isAdmin = user?.isAdmin === true || (ADMIN_EMAILS && ADMIN_EMAILS.includes(email));
+    const isAdmin = isAdminUser(email, user?.isAdmin === true);
     const isLifetime = (user?.plan || '').toLowerCase() === 'lifetime';
     if (isAdmin || isLifetime) {
       return res.status(403).json({ error: 'Already Unlocked' });
