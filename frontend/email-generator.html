@@ -9,37 +9,47 @@
     .email-generator-container {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 2rem;
+      gap: 2.5rem;
       margin-top: 2rem;
     }
 
     .email-form-section {
       display: flex;
       flex-direction: column;
-      gap: 1.5rem;
+      gap: 1.75rem;
     }
 
     .form-group {
       display: flex;
       flex-direction: column;
-      gap: 0.5rem;
+      gap: 0.75rem;
     }
 
     .form-group label {
-      font-weight: 600;
-      color: #333;
+      font-weight: 700;
+      color: #0f172a;
       font-size: 0.95rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-size: 0.85rem;
     }
 
     .form-group input,
     .form-group select,
     .form-group textarea {
-      padding: 0.75rem;
-      border: 1px solid #e0e0e0;
-      border-radius: 6px;
+      padding: 0.95rem;
+      border: 1px solid #d4d4d8;
+      border-radius: 8px;
       font-size: 0.95rem;
       font-family: inherit;
-      transition: border-color 0.2s;
+      transition: all 0.3s ease;
+      background-color: #fff;
+    }
+
+    .form-group input:hover,
+    .form-group select:hover,
+    .form-group textarea:hover {
+      border-color: #a1a1aa;
     }
 
     .form-group input:focus,
@@ -47,60 +57,68 @@
     .form-group textarea:focus {
       outline: none;
       border-color: #6366f1;
-      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
     }
 
     .form-group textarea {
       resize: vertical;
-      min-height: 120px;
+      min-height: 140px;
+      font-family: 'Monaco', 'Courier New', monospace;
+      font-size: 0.9rem;
     }
 
     .tone-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 0.75rem;
-      margin-top: 0.5rem;
+      gap: 0.9rem;
+      margin-top: 0.75rem;
     }
 
     .tone-option {
-      padding: 0.75rem;
-      border: 2px solid #e0e0e0;
-      border-radius: 6px;
+      padding: 1rem;
+      border: 2px solid #e4e4e7;
+      border-radius: 8px;
       cursor: pointer;
       text-align: center;
       font-size: 0.9rem;
-      font-weight: 500;
-      transition: all 0.2s;
-      background-color: #f9f9f9;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      background-color: #fafafa;
+      color: #0f172a;
     }
 
     .tone-option:hover {
       border-color: #6366f1;
-      background-color: #f0f4ff;
+      background-color: #eef2ff;
+      transform: translateY(-2px);
     }
 
     .tone-option.selected {
-      background-color: #6366f1;
+      background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
       color: white;
       border-color: #6366f1;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
     }
 
     .generate-btn {
-      background-color: #6366f1;
+      background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
       color: white;
-      padding: 0.75rem 1.5rem;
+      padding: 1rem 2rem;
       border: none;
-      border-radius: 6px;
-      font-size: 1rem;
-      font-weight: 600;
+      border-radius: 8px;
+      font-size: 1.05rem;
+      font-weight: 700;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(99, 102, 241, 0.25);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 0.5rem;
     }
 
     .generate-btn:hover:not(:disabled) {
-      background-color: #4f46e5;
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+      transform: translateY(-3px);
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
     }
 
     .generate-btn:disabled {
@@ -111,105 +129,65 @@
     .email-output-section {
       display: flex;
       flex-direction: column;
-      gap: 1rem;
+      gap: 1.25rem;
     }
 
     .email-output-area {
-      background-color: #f9f9f9;
-      border: 1px solid #e0e0e0;
-      border-radius: 6px;
-      padding: 1.5rem;
-      min-height: 300px;
+      background: linear-gradient(135deg, #f8f9ff 0%, #fafbff 100%);
+      border: 2px solid #e4e4f7;
+      border-radius: 8px;
+      padding: 1.75rem;
+      min-height: 320px;
       font-size: 0.95rem;
-      line-height: 1.6;
+      line-height: 1.7;
       white-space: pre-wrap;
       word-wrap: break-word;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
     }
 
     .email-output-area.empty {
-      color: #999;
+      color: #a1a1aa;
       display: flex;
       align-items: center;
       justify-content: center;
       text-align: center;
+      font-style: italic;
+      font-weight: 500;
     }
 
     .export-buttons {
       display: flex;
-      gap: 0.75rem;
+      gap: 0.9rem;
       flex-wrap: wrap;
     }
 
     .export-btn {
-      padding: 0.6rem 1.2rem;
-      background-color: #f0f0f0;
-      border: 1px solid #d0d0d0;
-      border-radius: 6px;
+      padding: 0.75rem 1.4rem;
+      background-color: #f4f4f5;
+      border: 2px solid #d4d4d8;
+      border-radius: 8px;
       cursor: pointer;
       font-size: 0.9rem;
-      font-weight: 500;
-      transition: all 0.2s;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      color: #0f172a;
     }
 
     .export-btn:hover {
-      background-color: #e0e0e0;
-      border-color: #999;
-    }
-
-    .billing-panel {
-      background-color: #f0f7ff;
-      border: 1px solid #b3d9ff;
-      border-radius: 6px;
-      padding: 1rem;
-      margin-bottom: 1rem;
-      font-size: 0.9rem;
-    }
-
-    .billing-status {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 0.75rem;
-    }
-
-    .billing-status-text {
-      font-weight: 500;
-    }
-
-    .billing-status-value {
-      color: #6366f1;
-      font-weight: 600;
-    }
-
-    .buy-buttons {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 0.5rem;
-    }
-
-    .buy-btn {
-      padding: 0.6rem;
-      background-color: #6366f1;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      font-size: 0.85rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .buy-btn:hover {
-      background-color: #4f46e5;
+      background-color: #e4e4e7;
+      border-color: #a1a1aa;
+      transform: translateY(-2px);
     }
 
     .error-message {
-      background-color: #fee;
-      color: #c33;
-      padding: 1rem;
-      border-radius: 6px;
+      background-color: #fee2e2;
+      color: #b91c1c;
+      padding: 1rem 1.25rem;
+      border-radius: 8px;
+      border-left: 4px solid #dc2626;
       margin-bottom: 1rem;
       display: none;
+      font-weight: 500;
     }
 
     .error-message.show {
@@ -219,8 +197,8 @@
     .loading-indicator {
       display: none;
       text-align: center;
-      padding: 2rem;
-      color: #666;
+      padding: 2.5rem;
+      color: #6366f1;
     }
 
     .loading-indicator.show {
@@ -228,13 +206,13 @@
     }
 
     .spinner {
-      border: 3px solid #f3f3f3;
+      border: 3px solid #e4e4e7;
       border-top: 3px solid #6366f1;
       border-radius: 50%;
-      width: 30px;
-      height: 30px;
+      width: 35px;
+      height: 35px;
       animation: spin 1s linear infinite;
-      margin: 0 auto 0.5rem;
+      margin: 0 auto 1rem;
     }
 
     @keyframes spin {
@@ -244,14 +222,15 @@
 
     .pro-badge {
       display: inline-block;
-      background-color: #fbbf24;
-      color: #92400e;
-      padding: 0.25rem 0.75rem;
+      background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+      color: #fff;
+      padding: 0.35rem 0.85rem;
       border-radius: 20px;
       font-size: 0.75rem;
-      font-weight: 700;
+      font-weight: 800;
       text-transform: uppercase;
-      margin-left: 0.5rem;
+      margin-left: 0.75rem;
+      box-shadow: 0 2px 8px rgba(251, 191, 36, 0.3);
     }
 
     @media (max-width: 1024px) {
@@ -262,10 +241,6 @@
 
     @media (max-width: 768px) {
       .tone-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .buy-buttons {
         grid-template-columns: 1fr;
       }
     }
@@ -295,27 +270,10 @@
     <div class="email-generator-container">
       <!-- Form Section -->
       <div class="email-form-section">
-        <div id="emailBillingPanel" class="billing-panel">
-          <div class="billing-status">
-            <span class="billing-status-text">Free rewrites remaining today:</span>
-            <span class="billing-status-value"><span id="emailFreeRemaining">1</span> / 1</span>
-          </div>
-          <div class="billing-status" style="font-size: 0.85rem; margin-bottom: 0.5rem;">
-            <span class="billing-status-text">Paid credits:</span>
-            <span class="billing-status-value"><span id="emailPaidCredits">0</span></span>
-          </div>
-          <div id="emailCreditStatus" style="margin-bottom: 0.75rem; font-size: 0.9rem;"></div>
-          <div id="emailBuyPanel" class="buy-buttons" style="display: none;">
-            <button class="buy-btn" onclick="startEmailCheckout('single')">Buy 1<br>$1.99</button>
-            <button class="buy-btn" onclick="startEmailCheckout('five')">Buy 5<br>$6.99</button>
-            <button class="buy-btn" onclick="startEmailCheckout('ten')">Buy 10<br>$11.99</button>
-          </div>
-        </div>
-
         <div id="emailErrorMessage" class="error-message"></div>
 
         <div class="form-group">
-          <label for="emailScenario">Scenario</label>
+          <label for="emailScenario">Email Scenario</label>
           <select id="emailScenario">
             <option value="thank-you">Thank you after interview</option>
             <option value="salary-range">Request salary range before applying</option>
@@ -328,12 +286,12 @@
         </div>
 
         <div class="form-group">
-          <label for="emailContent">Email Body</label>
-          <textarea id="emailContent" placeholder="Paste or type your email here..."></textarea>
+          <label for="emailContent">Your Email</label>
+          <textarea id="emailContent" placeholder="Paste your email here..."></textarea>
         </div>
 
         <div class="form-group">
-          <label>Select Tone</label>
+          <label>Desired Tone</label>
           <div class="tone-grid">
             <div class="tone-option" data-tone="professional" onclick="selectTone('professional')">
               Professional / Formal

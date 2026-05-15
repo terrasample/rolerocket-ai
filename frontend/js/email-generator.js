@@ -9,58 +9,9 @@ function getEmailApiBase() {
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
-  loadEmailStatus();
-  
   // Set first tone as selected
   selectTone('professional');
 });
-
-// Load email credit status
-async function loadEmailStatus() {
-  try {
-    const response = await fetch(`${getEmailApiBase()}/document-credits/status?feature=email-assistant`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    if (!response.ok) {
-      console.error('Failed to load email status:', response.statusText);
-      return;
-    }
-
-    const status = await response.json();
-    renderEmailCreditStatus(status);
-  } catch (error) {
-    console.error('Error loading email status:', error);
-  }
-}
-
-// Render email credit status UI
-function renderEmailCreditStatus(status) {
-  const freeRemaining = status.freeRemaining || 0;
-  const paidCredits = status.paidCredits || 0;
-
-  document.getElementById('emailFreeRemaining').textContent = freeRemaining;
-  document.getElementById('emailPaidCredits').textContent = paidCredits;
-
-  const creditStatusEl = document.getElementById('emailCreditStatus');
-  const buyPanelEl = document.getElementById('emailBuyPanel');
-
-  if (status.unlimited) {
-    creditStatusEl.textContent = '✅ You have unlimited email rewrites (Pro/Premium/Elite plan)';
-    buyPanelEl.style.display = 'none';
-  } else if (freeRemaining > 0 || paidCredits > 0) {
-    creditStatusEl.textContent = `✅ Ready to generate (${freeRemaining > 0 ? 'free' : 'paid'} credits available)`;
-    buyPanelEl.style.display = 'none';
-  } else {
-    creditStatusEl.textContent = `❌ No credits remaining. Purchase more to continue.`;
-    creditStatusEl.style.color = '#c33';
-    buyPanelEl.style.display = 'grid';
-  }
-}
 
 // Select tone
 function selectTone(tone) {
@@ -116,11 +67,8 @@ async function generateEmail() {
 
     const data = await response.json();
 
-    if (response.status === 402) {
-      showEmailError('No credits remaining. Please purchase credits to continue.');
-      loadEmailStatus(); // Refresh status
-    } else if (!response.ok) {
-      showEmailError(data.error || 'Failed to generate email. Please try again.');
+    if (!response.ok) {
+      showEmailError(data.error || 'Failed to rewrite email. Please try again.');
     } else {
       // Success
       currentEmailOutput = data.result;
@@ -131,9 +79,6 @@ async function generateEmail() {
       document.getElementById('emailCopyBtn').style.display = 'inline-block';
       document.getElementById('emailDownloadBtn').style.display = 'inline-block';
       document.getElementById('emailSendBtn').style.display = 'inline-block';
-
-      // Refresh status
-      loadEmailStatus();
     }
   } catch (error) {
     showEmailError('An error occurred. Please try again.');
@@ -189,32 +134,4 @@ function sendEmailViaProvider() {
   const subject = `Job Search Email`;
   const body = encodeURIComponent(currentEmailOutput);
   window.location.href = `mailto:?subject=${subject}&body=${body}`;
-}
-
-// Start email checkout
-async function startEmailCheckout(bundle) {
-  try {
-    const response = await fetch(`${getEmailApiBase()}/document-credits/create-checkout-session`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        bundle,
-        returnPath: '/email-generator.html'
-      })
-    });
-
-    const data = await response.json();
-
-    if (response.ok && data.url) {
-      window.location.href = data.url;
-    } else {
-      showEmailError('Failed to start checkout. Please try again.');
-    }
-  } catch (error) {
-    showEmailError('An error occurred during checkout. Please try again.');
-    console.error('Error:', error);
-  }
 }
