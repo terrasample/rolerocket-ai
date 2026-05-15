@@ -5913,6 +5913,7 @@ async function reconcileDocumentCreditsFromStripe(userId, userEmail) {
     0
   );
   const alreadyAccountedTotal = Math.max(0, Number(user.documentGeneration?.totalCreditsPurchased || 0));
+  let remainingCreditsToGrant = Math.max(0, stripeReportedTotal - alreadyAccountedTotal);
   if (alreadyAccountedTotal >= stripeReportedTotal) {
     console.log(`[CREDIT SYNC] Credits already accounted for ${user.email}. local_total=${alreadyAccountedTotal} stripe_total=${stripeReportedTotal}`);
     return {
@@ -5926,12 +5927,18 @@ async function reconcileDocumentCreditsFromStripe(userId, userEmail) {
 
   let totalCreditsGranted = 0;
   for (const session of pendingSessions) {
+    if (remainingCreditsToGrant <= 0) break;
+
     const credits = Number(session.metadata?.docCredits || 0);
     const alreadyProcessed = (user.documentGeneration?.purchases || []).some(
       (p) => String(p.stripeSessionId || '') === String(session.id)
     );
 
     if (!alreadyProcessed && credits > 0) {
+      if (credits > remainingCreditsToGrant) {
+        console.warn(`[CREDIT SYNC] Skipping session ${session.id} (${credits} credits) because remaining delta is ${remainingCreditsToGrant}. Manual review may be required.`);
+        continue;
+      }
       console.log(`[CREDIT SYNC] Processing missed session ${session.id} with ${credits} credits`);
       await grantDocumentCreditsFromCheckout({
         userId: String(user._id),
@@ -5942,6 +5949,7 @@ async function reconcileDocumentCreditsFromStripe(userId, userEmail) {
         stripeSessionId: session.id || ''
       });
       totalCreditsGranted += credits;
+      remainingCreditsToGrant -= credits;
     }
   }
 
