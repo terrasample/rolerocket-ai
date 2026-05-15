@@ -103,19 +103,21 @@ Scenario: ${scenarioInfo.context}
 Tone: ${TONE_DESCRIPTIONS[tone]}
 Special Instructions: ${scenarioInfo.guidance}
 
-Create a high-quality 4-paragraph email:
-1. Strong opening with clear purpose and gratitude/respect
-2. Specific details showing engagement (mention specific points from conversation, role requirements, or company details)
-3. Your value proposition - why you're the right fit with concrete examples
-4. Clear call-to-action or closing statement
+Tone differentiation rules:
+- Professional: formal, precise, no contractions, executive-level language.
+- Warm: friendly and human, natural contractions, supportive and appreciative language.
+- Confident: direct and assertive, outcome-focused, clear ask.
+- Concise: shortest clear version, no filler.
+- Follow-up: polite persistence and momentum.
+- Cold-outreach: value-first pitch and specific call to action.
 
 Requirements:
-- No placeholders like [Name] - write as if ready to send
-- 4 distinct paragraphs with substance
-- Professional but personable
-- 250-400 words
-- Include proper greeting and professional closing
-- Compelling enough to get response`;
+- Exactly 2 body paragraphs (not 3 or 4)
+- Include a greeting line and a closing signature line
+- No placeholders like [Name] or [Company]
+- 130-200 words total
+- Make the tone clearly distinguishable from other tones
+- Return only the finished email text`;
     } else {
       systemPrompt = `You are an expert email editor. Take this rough email and make it concise, punchy, and professional while preserving the original intent.
 
@@ -130,6 +132,8 @@ Requirements:
 - Maintain the original message and personality
 - Make it more impactful and clear
 - Include proper greeting/closing if missing
+- Output exactly 2 body paragraphs
+- Make tone differences obvious (Professional vs Warm should not read the same)
 
 Original email:
 ${emailContent}`;

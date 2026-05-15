@@ -38,30 +38,61 @@ function buildScenarioText(scenario) {
   return map[scenario] || map.custom;
 }
 
+function getToneLead(tone) {
+  const map = {
+    professional: 'Thank you for your time and consideration.',
+    warm: 'I really appreciate your time and the chance to connect.',
+    confident: 'I am reaching out with a clear objective and strong interest.',
+    concise: 'I am writing with a quick and focused note.',
+    'follow-up': 'I wanted to follow up and keep momentum moving on this conversation.',
+    'cold-outreach': 'I am reaching out because I can add immediate value to your team.'
+  };
+
+  return map[tone] || map.professional;
+}
+
+function getToneClose(tone) {
+  const map = {
+    professional: 'I would welcome the opportunity to discuss next steps at your convenience.',
+    warm: 'If helpful, I would love to continue the conversation and share anything else you need.',
+    confident: 'If this aligns with your priorities, I am ready to move forward quickly.',
+    concise: 'Please let me know the best next step.',
+    'follow-up': 'I would appreciate any update you can share on timing and next steps.',
+    'cold-outreach': 'If useful, I can send a brief overview of how I can help and suggest a short call.'
+  };
+
+  return map[tone] || map.professional;
+}
+
+function compactText(value) {
+  return String(value || '').replace(/\s+/g, ' ').trim();
+}
+
 function buildLocalGeneratedEmail(scenario, tone) {
   const scenarioText = buildScenarioText(scenario);
-  const toneLabel = titleCase(tone || 'professional');
+  const selectedTone = tone || 'professional';
+  const toneLead = getToneLead(selectedTone);
+  const toneClose = getToneClose(selectedTone);
 
   return [
     'Hello Hiring Team,',
-    `I am writing regarding ${scenarioText}. I appreciate your time and wanted to share a thoughtful message that reflects both professionalism and genuine interest. I have been intentional about how I communicate during this process, and I wanted this note to be clear, respectful, and action-oriented.`,
-    `From my perspective, strong communication should create confidence and keep momentum moving forward. In a ${toneLabel} tone, I want to reinforce that I am engaged, prepared, and serious about finding the right opportunity where I can contribute quickly and effectively. I value teams that move with clarity, collaboration, and accountability.`,
-    'If helpful, I would be glad to provide any additional details or context to support next steps. Thank you again for your time and consideration. I look forward to hearing from you and hope we can continue the conversation soon.',
+    `${toneLead} I am writing regarding ${scenarioText}. I am very interested in opportunities where I can contribute with strong execution, clear communication, and reliable follow-through.`,
+    `${toneClose} Thank you again for reviewing my message, and I look forward to hearing from you.`,
     'Best regards,\nYour Name'
   ].join('\n\n');
 }
 
 function buildLocalRewrittenEmail(emailContent, scenario, tone) {
-  const toneLabel = titleCase(tone || 'professional');
-  const lines = String(emailContent || '').trim().split(/\n+/).filter(Boolean);
-  const compact = lines.join(' ').replace(/\s+/g, ' ').trim();
+  const selectedTone = tone || 'professional';
+  const toneLead = getToneLead(selectedTone);
+  const toneClose = getToneClose(selectedTone);
+  const compact = compactText(emailContent);
   const scenarioText = buildScenarioText(scenario);
 
   return [
     'Hello Hiring Team,',
-    `${compact} I wanted to share a cleaner and more polished version of this message while keeping the original intent intact.`,
-    `In a ${toneLabel} tone, my goal is to keep this focused and respectful while making sure the request is clear. This note is specifically for ${scenarioText}, and I hope it communicates both professionalism and strong interest.`,
-    'Thank you for your time and consideration. I appreciate your review and look forward to any updates on next steps.',
+    `${toneLead} ${compact} This revision keeps the original intent while making the message cleaner and easier to act on for ${scenarioText}.`,
+    `${toneClose} I appreciate your time and look forward to your response.`,
     'Best regards,\nYour Name'
   ].join('\n\n');
 }
