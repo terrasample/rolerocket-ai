@@ -198,6 +198,11 @@ document.addEventListener('DOMContentLoaded', function () {
     );
   }
 
+  function getApiEndpoint(path) {
+    if (typeof apiUrl === 'function') return apiUrl(path);
+    return path;
+  }
+
   function setBillingButtonsDisabled(disabled) {
     [buySingleBtn, buyFiveBtn, buyTenBtn].forEach((btn) => {
       if (!btn) return;
@@ -235,7 +240,7 @@ document.addEventListener('DOMContentLoaded', function () {
   async function loadResumeCreditStatus() {
     const token = getAuthToken();
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
-    const response = await fetch('/api/document-credits/status?feature=resume', { headers });
+    const response = await fetch(getApiEndpoint('/api/document-credits/status?feature=resume'), { headers });
     const data = await response.json();
     if (!response.ok) {
       throw new Error(data.error || 'Could not load billing status.');
@@ -251,7 +256,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     setBillingButtonsDisabled(true);
     try {
-      const response = await fetch('/api/document-credits/create-checkout-session', {
+      const response = await fetch(getApiEndpoint('/api/document-credits/create-checkout-session'), {
         method: 'POST',
         headers,
         body: JSON.stringify({
@@ -279,6 +284,24 @@ document.addEventListener('DOMContentLoaded', function () {
     } catch (error) {
       statusBanner(error.message || 'Could not start checkout.', false);
       setBillingButtonsDisabled(false);
+    }
+  }
+
+  async function confirmDocumentCheckoutSession(sessionId) {
+    const id = String(sessionId || '').trim();
+    if (!id) return;
+    const token = getAuthToken();
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers.Authorization = `Bearer ${token}`;
+
+    try {
+      await fetch(getApiEndpoint('/api/stripe/confirm-checkout-session'), {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ sessionId: id })
+      });
+    } catch (_) {
+      // Silent fallback: the status poll will keep trying.
     }
   }
 
@@ -495,7 +518,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!token) return;
 
     try {
-      await fetch('/api/resume/template-state', {
+      await fetch(getApiEndpoint('/api/resume/template-state'), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -549,7 +572,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!token) return;
 
     try {
-      const res = await fetch('/api/resume/template-state', {
+      const res = await fetch(getApiEndpoint('/api/resume/template-state'), {
         method: 'GET',
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -587,7 +610,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     try {
-      const res = await fetch('/api/me', {
+      const res = await fetch(getApiEndpoint('/api/me'), {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (!res.ok) return;
@@ -609,7 +632,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     try {
-      const res = await fetch('/api/learning/latest', {
+      const res = await fetch(getApiEndpoint('/api/learning/latest'), {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (!res.ok) return;
@@ -2091,7 +2114,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const formData = new FormData();
         formData.append('resumeFile', file);
         const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
-        const res = await fetch('/api/resume/upload', { method: 'POST', headers, body: formData });
+        const res = await fetch(getApiEndpoint('/api/resume/upload'), { method: 'POST', headers, body: formData });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Failed to parse uploaded resume.');
         textarea.value = data.content || '';
@@ -2494,7 +2517,7 @@ document.addEventListener('DOMContentLoaded', function () {
       const headers = { 'Content-Type': 'application/json' };
       if (token) headers.Authorization = `Bearer ${token}`;
 
-      const res = await fetch('/api/resume/generate', {
+      const res = await fetch(getApiEndpoint('/api/resume/generate'), {
         method: 'POST',
         headers,
         body: JSON.stringify({ jobDescription, resume: baseResume })
@@ -2751,6 +2774,7 @@ document.addEventListener('DOMContentLoaded', function () {
   if (checkoutResult === 'success') {
     if (checkoutSessionId) {
       sessionStorage.setItem(`rr:doc-checkout:seen:${checkoutSessionId}`, '1');
+      confirmDocumentCheckoutSession(checkoutSessionId);
     }
 
     statusBanner('Payment received! Loading your credits...', true, { autoDismissMs: 5000 });
