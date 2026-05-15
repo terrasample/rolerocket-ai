@@ -172,6 +172,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           { name: 'ATS Optimizer', desc: 'Identify keyword gaps, structure issues, and weak phrasing before you apply.', url: 'optimizer.html' },
           { name: 'Job Market Radar', desc: 'See trending roles, in-demand skills, and market insights tailored to your profile.', url: 'job-market-radar.html' },
           { name: 'Resume Optimizer', desc: 'Instantly improve your resume with AI-driven analysis and personalized suggestions.', url: 'resume-optimizer.html' },
+          { name: 'Email Assistant', desc: 'Write and rewrite emails in different tones for job hunting scenarios and outreach follow-ups.', url: 'email-generator.html' },
         ],
       },
       {
@@ -1000,6 +1001,7 @@ const PLAN_GUIDE_CONTENT = {
     bullets: [
       'Resume Generator creates role-targeted versions faster.',
       'Cover Letter Generator removes blank-page friction for each cover letter.',
+      'Email Assistant helps you write follow-ups, outreach, and negotiation emails faster.',
       'Fit Score Analysis helps decide which roles deserve your time first.'
     ],
     signals: ['Application Speed', 'Tailored Output', 'Priority Focus'],
