@@ -11044,6 +11044,7 @@ app.get('/api/admin/document-credits', authenticateToken, requireAdminAccess, as
       plan: target.plan || 'free',
       paidCredits: Number(target.documentGeneration?.paidCredits || 0),
       totalCreditsPurchased: Number(target.documentGeneration?.totalCreditsPurchased || 0),
+      usedCredits: Math.max(0, Number(target.documentGeneration?.totalCreditsPurchased || 0) - Number(target.documentGeneration?.paidCredits || 0)),
       resumeFirstFreeUsed: Boolean(target.documentGeneration?.resumeFirstFreeUsed),
       coverLetterFirstFreeUsed: Boolean(target.documentGeneration?.coverLetterFirstFreeUsed),
       purchases: target.documentGeneration?.purchases || []

@@ -647,12 +647,16 @@
       showGcMsg('gcLookupMsg', '', '');
       const el = document.getElementById('gcLookupResult');
       el.style.display = '';
+      const remainingCredits = Number(data.paidCredits || 0);
+      const purchasedCredits = Number(data.totalCreditsPurchased || 0);
+      const usedCredits = Number(data.usedCredits || Math.max(0, purchasedCredits - remainingCredits));
       el.innerHTML = [
         '<strong>' + escHtml(data.name || data.email) + '</strong>',
         '<div style="margin-top:8px;display:flex;gap:16px;flex-wrap:wrap;">',
         '  <span>Plan: <strong>' + escHtml(data.plan) + '</strong></span>',
-        '  <span>Paid Credits: <strong style="color:' + (data.paidCredits > 0 ? '#86efac' : '#fca5a5') + '">' + data.paidCredits + '</strong></span>',
-        '  <span>Total Purchased: <strong>' + data.totalCreditsPurchased + '</strong></span>',
+        '  <span>Remaining Credits: <strong style="color:' + (remainingCredits > 0 ? '#86efac' : '#fca5a5') + '">' + remainingCredits + '</strong></span>',
+        '  <span>Purchased: <strong>' + purchasedCredits + '</strong></span>',
+        '  <span>Used: <strong>' + usedCredits + '</strong></span>',
         '  <span>Free Resume Used: <strong>' + (data.resumeFirstFreeUsed ? 'Yes' : 'No') + '</strong></span>',
         '</div>',
         data.purchases && data.purchases.length ? '<div style="margin-top:10px;font-size:.8rem;color:#94a3b8;">Last purchase: ' + new Date(data.purchases[data.purchases.length-1].purchasedAt).toLocaleString() + ' — ' + data.purchases[data.purchases.length-1].credits + ' credit(s) via ' + escHtml(data.purchases[data.purchases.length-1].bundleId) + '</div>' : ''

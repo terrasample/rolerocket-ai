@@ -221,8 +221,14 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     const freeLabel = status.freeRemaining > 0 ? '1 free generation remaining' : 'Free generation already used';
-    const creditLabel = `${Number(status.paidCredits || 0)} paid credit${Number(status.paidCredits || 0) === 1 ? '' : 's'} available`;
-    billingStatus.textContent = `${freeLabel}. ${creditLabel}.`;
+    const remainingCredits = Number(status.paidCredits || 0);
+    const purchasedCredits = Number(status.totalCreditsPurchased || 0);
+    const usedCredits = Number(status.usedCredits || Math.max(0, purchasedCredits - remainingCredits));
+    const creditLabel = `${remainingCredits} paid credit${remainingCredits === 1 ? '' : 's'} available`;
+    const activityLabel = purchasedCredits > 0
+      ? `Purchased ${purchasedCredits} total, ${usedCredits} used`
+      : 'No paid purchases yet';
+    billingStatus.textContent = `${freeLabel}. ${creditLabel}. ${activityLabel}.`;
     setBillingButtonsDisabled(false);
   }
 

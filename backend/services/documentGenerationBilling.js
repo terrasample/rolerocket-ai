@@ -106,6 +106,8 @@ function getDocumentGenerationStatus(user, feature) {
       requiresPayment: false,
       freeRemaining: null,
       paidCredits: null,
+      usedCredits: null,
+      totalCreditsPurchased: null,
       nextChargeUsd: null
     };
   }
@@ -114,6 +116,8 @@ function getDocumentGenerationStatus(user, feature) {
   const today = getUtcDayStamp();
   const freeUsedToday = String(user.documentGeneration[dailyKey] || '') === today;
   const paidCredits = Math.max(0, Number(user.documentGeneration.paidCredits || 0));
+  const totalCreditsPurchased = Math.max(0, Number(user.documentGeneration.totalCreditsPurchased || 0));
+  const usedCredits = Math.max(0, totalCreditsPurchased - paidCredits);
   const freeRemaining = freeUsedToday ? 0 : 1;
   const canGenerate = freeRemaining > 0 || paidCredits > 0;
 
@@ -124,6 +128,8 @@ function getDocumentGenerationStatus(user, feature) {
     requiresPayment: !canGenerate,
     freeRemaining,
     paidCredits,
+    usedCredits,
+    totalCreditsPurchased,
     nextChargeUsd: 1.99
   };
 }
