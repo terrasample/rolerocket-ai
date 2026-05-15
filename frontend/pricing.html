@@ -135,7 +135,7 @@
               <li>Lifetime access</li>
               <li>Exclusive updates</li>
             </ul>
-            <div id="lifetimePricingOfferNote" style="color:#facc15;font-size:1em;margin-bottom:8px;">Limited offer: $299 for the first 50 customers. 50 spots left.</div>
+            <div id="lifetimePricingOfferNote" style="color:#facc15;font-size:1em;margin-bottom:8px;">$499 one-time for lifetime access.</div>
             <button class="checkout-btn" data-checkout="founders_lifetime" onclick="handleCheckout('founders_lifetime')">Get Founders Deal</button>
           </article>
         </div>
@@ -421,13 +421,13 @@
         if (!amountEl || !pillEl || !noteEl) return;
 
         if (data.offerActive) {
-          amountEl.innerHTML = '<span class="price-original">$350</span> $299<span> one-time</span>';
+          amountEl.innerHTML = '$499<span> one-time</span>';
           pillEl.textContent = 'LIFETIME LIMITED';
-          noteEl.textContent = `Limited offer: $299 for the first 50 customers. ${data.remaining} spots left.`;
+          noteEl.textContent = `$499 one-time for lifetime access.`;
         } else {
-          amountEl.innerHTML = '$350<span> one-time</span>';
+          amountEl.innerHTML = '$499<span> one-time</span>';
           pillEl.textContent = 'LIFETIME ACCESS';
-          noteEl.textContent = 'Limited offer sold out. Lifetime is now $350 one-time.';
+          noteEl.textContent = '$499 one-time for lifetime access.';
         }
       } catch (_err) {
         // Keep default pricing UI if offer status API is not reachable.
