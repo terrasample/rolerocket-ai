@@ -97,36 +97,41 @@ router.post('/generate', authenticateToken, async (req, res) => {
     let systemPrompt;
 
     if (actualMode === 'generate') {
-      systemPrompt = `You are an expert email writer specializing in professional job search communications. Your task is to write a complete, professional email in a ${TONE_DESCRIPTIONS[tone]}.
+      systemPrompt = `You are an expert professional email writer. Write a complete, polished job-search email ready to send immediately.
 
-Context: ${scenarioInfo.context}
-Guidance: ${scenarioInfo.guidance}
+Scenario: ${scenarioInfo.context}
+Tone: ${TONE_DESCRIPTIONS[tone]}
+Special Instructions: ${scenarioInfo.guidance}
+
+Create a high-quality 4-paragraph email:
+1. Strong opening with clear purpose and gratitude/respect
+2. Specific details showing engagement (mention specific points from conversation, role requirements, or company details)
+3. Your value proposition - why you're the right fit with concrete examples
+4. Clear call-to-action or closing statement
 
 Requirements:
-- Write a complete 4-paragraph email ready to send
-- Use the specified tone throughout
-- Ensure proper grammar and punctuation
-- Make it compelling, professional, and appropriate for job search
-- Do not include placeholders or brackets like [Name] or [Company]
-- Start with a proper greeting and end with a professional closing
-- Paragraph structure: Opening/intro, main body/purpose, call to action/next steps, closing
-- Return only the complete email, nothing else`;
+- No placeholders like [Name] - write as if ready to send
+- 4 distinct paragraphs with substance
+- Professional but personable
+- 250-400 words
+- Include proper greeting and professional closing
+- Compelling enough to get response`;
     } else {
-      systemPrompt = `You are an expert email writer specializing in professional job search communications. Your task is to rewrite the provided email in a ${TONE_DESCRIPTIONS[tone]}.
+      systemPrompt = `You are an expert email editor. Take this rough email and make it concise, punchy, and professional while preserving the original intent.
 
-Context: ${scenarioInfo.context}
-Guidance: ${scenarioInfo.guidance}
+Scenario: ${scenarioInfo.context}
+Tone: ${TONE_DESCRIPTIONS[tone]}
+Special Instructions: ${scenarioInfo.guidance}
 
 Requirements:
-- Maintain the original intent and key messages
-- Use the specified tone throughout
-- Ensure proper grammar and punctuation
-- Keep the email concise yet complete
-- Make it professional and appropriate for job search context
-- Do not include placeholders or brackets like [Name] or [Company]
-- Return only the rewritten email body, nothing else
+- Cut unnecessary words and filler
+- Fix grammar, punctuation, and tone
+- Keep similar length or shorter than original
+- Maintain the original message and personality
+- Make it more impactful and clear
+- Include proper greeting/closing if missing
 
-Original email to rewrite:
+Original email:
 ${emailContent}`;
     }
 
