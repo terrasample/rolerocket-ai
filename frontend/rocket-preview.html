@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Realistic Rocket Preview</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(135deg, #020617 0%, #0f1729 50%, #1a2849 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: sans-serif;
+    }
+
+    .preview-container {
+      position: relative;
+      width: 100%;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .rocket-wrapper {
+      position: relative;
+      width: 300px;
+      height: 500px;
+      animation: rocketLaunch 5200ms cubic-bezier(0.18, 0.76, 0.16, 1) forwards 4000ms;
+    }
+
+    @keyframes rocketLaunch {
+      0% {
+        transform: translateY(0) rotateZ(-18deg) scale(1);
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(-500px) rotateZ(-35deg) scale(0.72);
+        opacity: 0;
+      }
+    }
+
+    /* Flame animations */
+    .flame {
+      position: absolute;
+      left: 50%;
+      bottom: 0px;
+      transform: translateX(-50%);
+      filter: drop-shadow(0 0 50px rgba(255, 150, 30, 1)) 
+              drop-shadow(0 0 35px rgba(255, 100, 10, 0.95))
+              drop-shadow(0 0 20px rgba(255, 80, 0, 0.9));
+      animation: flameFlicker 100ms ease-in-out infinite;
+      z-index: 1;
+    }
+
+    @keyframes flameFlicker {
+      0%, 100% {
+        filter: drop-shadow(0 0 20px rgba(255, 100, 0, 0.8));
+        transform: translateX(-50%) scaleY(1);
+      }
+      50% {
+        filter: drop-shadow(0 0 30px rgba(255, 150, 0, 0.9));
+        transform: translateX(-50%) scaleY(1.1);
+      }
+    }
+
+    .smoke {
+      position: absolute;
+      left: 50%;
+      bottom: -120px;
+      width: 180px;
+      height: 180px;
+      filter: blur(30px);
+      opacity: 0.5;
+      transform: translateX(-50%);
+      animation: smokeRise 3800ms ease-out forwards;
+    }
+
+    @keyframes smokeRise {
+      0% {
+        transform: translateX(-50%) translateY(0) scale(1);
+        opacity: 0.6;
+      }
+      100% {
+        transform: translateX(-50%) translateY(-200px) scale(1.3);
+        opacity: 0;
+      }
+    }
+
+    .text-overlay {
+      position: absolute;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+      color: #fff;
+      z-index: 10;
+    }
+
+    .text-overlay h1 {
+      font-size: 3.5rem;
+      margin: 0;
+      font-weight: 900;
+      background: linear-gradient(180deg, #fef3b8 0%, #facc15 38%, #f59e0b 74%, #b45309 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      text-shadow: 0 0 18px rgba(250, 204, 21, 0.22);
+    }
+
+    .text-overlay p {
+      font-size: 1.2rem;
+      margin: 10px 0 0 0;
+      color: #cbd5e1;
+    }
+  </style>
+</head>
+<body>
+  <div class="preview-container">
+    <div class="rocket-wrapper" id="rocketWrapper">
+      <!-- Smoke clouds - less bright, more realistic -->
+      <svg class="smoke" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="smokeGrad1" cx="30%" cy="25%">
+            <stop offset="0%" style="stop-color:#ff8833;stop-opacity:0.35" />
+            <stop offset="35%" style="stop-color:#ff7722;stop-opacity:0.2" />
+            <stop offset="70%" style="stop-color:#ff6611;stop-opacity:0.08" />
+            <stop offset="100%" style="stop-color:#ff6611;stop-opacity:0" />
+          </radialGradient>
+          <radialGradient id="smokeGrad2" cx="65%" cy="55%">
+            <stop offset="0%" style="stop-color:#ff7722;stop-opacity:0.3" />
+            <stop offset="50%" style="stop-color:#ff5511;stop-opacity:0.12" />
+            <stop offset="100%" style="stop-color:#ff5511;stop-opacity:0" />
+          </radialGradient>
+          <radialGradient id="smokeGrad3" cx="50%" cy="50%">
+            <stop offset="0%" style="stop-color:#ff9944;stop-opacity:0.25" />
+            <stop offset="60%" style="stop-color:#ff8833;stop-opacity:0.08" />
+            <stop offset="100%" style="stop-color:#ff8833;stop-opacity:0" />
+          </radialGradient>
+          <radialGradient id="smokeGrad4" cx="45%" cy="45%">
+            <stop offset="0%" style="stop-color:#ff8844;stop-opacity:0.2" />
+            <stop offset="100%" style="stop-color:#ff8844;stop-opacity:0" />
+          </radialGradient>
+        </defs>
+        <circle cx="45" cy="50" r="110" fill="url(#smokeGrad1)" />
+        <circle cx="155" cy="95" r="105" fill="url(#smokeGrad2)" />
+        <circle cx="100" cy="150" r="95" fill="url(#smokeGrad3)" />
+        <circle cx="100" cy="80" r="75" fill="url(#smokeGrad4)" />
+      </svg>
+
+      <!-- Main flame - realistic, attached to engines -->
+      <svg class="flame" viewBox="0 0 80 160" xmlns="http://www.w3.org/2000/svg" width="110" height="200">
+        <defs>
+          <!-- Outer flame gradient - deep orange/red -->
+          <linearGradient id="flameGradOuter" x1="50%" y1="0%" x2="50%" y2="100%">
+            <stop offset="0%" style="stop-color:#ffdd88;stop-opacity:0.9" />
+            <stop offset="8%" style="stop-color:#ffcc66;stop-opacity:0.95" />
+            <stop offset="18%" style="stop-color:#ffaa44;stop-opacity:0.9" />
+            <stop offset="32%" style="stop-color:#ff8833;stop-opacity:0.8" />
+            <stop offset="50%" style="stop-color:#ff6622;stop-opacity:0.65" />
+            <stop offset="68%" style="stop-color:#ff4411;stop-opacity:0.4" />
+            <stop offset="88%" style="stop-color:#cc2200;stop-opacity:0.15" />
+            <stop offset="100%" style="stop-color:#660000;stop-opacity:0" />
+          </linearGradient>
+          
+          <!-- Middle flame - bright orange/yellow -->
+          <linearGradient id="flameGradMiddle" x1="50%" y1="0%" x2="50%" y2="100%">
+            <stop offset="0%" style="stop-color:#ffff99;stop-opacity:1" />
+            <stop offset="8%" style="stop-color:#ffff77;stop-opacity:1" />
+            <stop offset="18%" style="stop-color:#ffee55;stop-opacity:0.98" />
+            <stop offset="30%" style="stop-color:#ffdd44;stop-opacity:0.95" />
+            <stop offset="48%" style="stop-color:#ffcc33;stop-opacity:0.85" />
+            <stop offset="68%" style="stop-color:#ffaa22;stop-opacity:0.6" />
+            <stop offset="88%" style="stop-color:#ff7700;stop-opacity:0.2" />
+            <stop offset="100%" style="stop-color:#ff4400;stop-opacity:0" />
+          </linearGradient>
+          
+          <!-- Inner core - bright white/yellow -->
+          <linearGradient id="flameGradCore" x1="50%" y1="0%" x2="50%" y2="100%">
+            <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+            <stop offset="6%" style="stop-color:#fffff0;stop-opacity:1" />
+            <stop offset="14%" style="stop-color:#ffffc0;stop-opacity:0.98" />
+            <stop offset="28%" style="stop-color:#ffff88;stop-opacity:0.95" />
+            <stop offset="50%" style="stop-color:#ffff66;stop-opacity:0.85" />
+            <stop offset="75%" style="stop-color:#ffdd44;stop-opacity:0.4" />
+            <stop offset="100%" style="stop-color:#ffaa00;stop-opacity:0" />
+          </linearGradient>
+          
+          <filter id="flameShadow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="2.2" />
+            <feComponentTransfer>
+              <feFuncA type="linear" slope="0.75" />
+            </feComponentTransfer>
+          </filter>
+          
+          <filter id="flameBurn">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="1.4" />
+          </filter>
+        </defs>
+        
+        <!-- Outer flame edges - deep red/orange -->
+        <path d="M 10 2 Q -3 32, 2 68 Q -6 105, 12 145 Q 18 158, 40 163 L 72 163 Q 78 158, 82 145 Q 90 105, 82 68 Q 88 32, 74 2 Z" 
+              fill="url(#flameGradOuter)" filter="url(#flameShadow)" opacity="0.92" />
+        
+        <!-- Middle flame - bright orange/yellow -->
+        <path d="M 20 12 Q 12 38, 18 80 Q 12 115, 30 152 L 58 152 Q 72 115, 68 80 Q 72 38, 64 12 Z" 
+              fill="url(#flameGradMiddle)" filter="url(#flameBurn)" opacity="0.88" />
+        
+        <!-- Inner core - bright yellow -->
+        <path d="M 30 22 Q 25 45, 28 92 Q 25 130, 40 148 L 52 148 Q 70 130, 66 92 Q 70 45, 60 22 Z" 
+              fill="url(#flameGradCore)" opacity="0.8" />
+      </svg>
+
+      <!-- Realistic Rocket SVG -->
+      <svg viewBox="0 0 100 300" xmlns="http://www.w3.org/2000/svg" width="100" height="300" style="position: absolute; top: 0; left: 50%; transform: translateX(-50%); z-index: 2;">
+        <defs>
+          <!-- Metallic silver body gradient - realistic aerospace finish -->
+          <linearGradient id="rocketBody" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" style="stop-color:#8b92a8;stop-opacity:1" />
+            <stop offset="10%" style="stop-color:#a0a7be;stop-opacity:1" />
+            <stop offset="18%" style="stop-color:#b8bfd4;stop-opacity:1" />
+            <stop offset="28%" style="stop-color:#d0d7e8;stop-opacity:1" />
+            <stop offset="38%" style="stop-color:#e8eef5;stop-opacity:1" />
+            <stop offset="48%" style="stop-color:#f5f7fb;stop-opacity:1" />
+            <stop offset="50%" style="stop-color:#ffffff;stop-opacity:1" />
+            <stop offset="52%" style="stop-color:#f5f7fb;stop-opacity:1" />
+            <stop offset="62%" style="stop-color:#e8eef5;stop-opacity:1" />
+            <stop offset="72%" style="stop-color:#d0d7e8;stop-opacity:1" />
+            <stop offset="82%" style="stop-color:#b8bfd4;stop-opacity:1" />
+            <stop offset="90%" style="stop-color:#a0a7be;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#8b92a8;stop-opacity:1" />
+          </linearGradient>
+
+          <!-- Bright professional red nose cone -->
+          <linearGradient id="noseCone" x1="50%" y1="0%" x2="50%" y2="100%">
+            <stop offset="0%" style="stop-color:#ff3333;stop-opacity:1" />
+            <stop offset="15%" style="stop-color:#ff2222;stop-opacity:1" />
+            <stop offset="35%" style="stop-color:#ee1111;stop-opacity:1" />
+            <stop offset="60%" style="stop-color:#cc0000;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#bb0000;stop-opacity:1" />
+          </linearGradient>
+
+          <!-- Realistic glass window -->
+          <radialGradient id="window" cx="30%" cy="30%">
+            <stop offset="0%" style="stop-color:#4a90e2;stop-opacity:0.95" />
+            <stop offset="35%" style="stop-color:#1e3a8a;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#0c1a47;stop-opacity:1" />
+          </radialGradient>
+
+          <!-- Deep black engine -->
+          <radialGradient id="engineGrad" cx="25%" cy="25%">
+            <stop offset="0%" style="stop-color:#0a0a0a;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#000000;stop-opacity:1" />
+          </radialGradient>
+
+          <!-- Glow filter -->
+          <filter id="metalGlow">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="0.7" result="coloredBlur" />
+            <feMerge>
+              <feMergeNode in="coloredBlur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+
+          <!-- Shadow filter -->
+          <filter id="bodyShadow">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="2" />
+          </filter>
+        </defs>
+
+        <!-- Body shadow (cast shadow on left for depth) -->
+        <path d="M 19 52 L 19 208 Q 20 214, 24 214 L 24 52 Z" fill="#000000" opacity="0.45" filter="url(#bodyShadow)" />
+        
+        <!-- Rocket body - complex gradient -->
+        <rect x="20" y="50" width="60" height="160" rx="14" fill="url(#rocketBody)" stroke="#6b7a99" stroke-width="1.5" filter="url(#metalGlow)" />
+        
+        <!-- Left side shadow (adds 3D depth) -->
+        <rect x="20" y="50" width="2.5" height="160" rx="14" fill="#000000" opacity="0.2" />
+        
+        <!-- Right side highlight (bright reflection) -->
+        <rect x="76" y="65" width="3" height="125" rx="1.5" fill="#ffffff" opacity="0.25" />
+        
+        <!-- Secondary highlight (inner light) -->
+        <rect x="73" y="75" width="2" height="100" rx="1" fill="#ffffff" opacity="0.12" />
+
+        <!-- Nose cone - pointed, deep matte red -->
+        <path d="M 50 0 L 28 62 L 72 62 Z" fill="url(#noseCone)" stroke="#2a0a0a" stroke-width="2" />
+        
+        <!-- Nose cone highlight -->
+        <path d="M 42 8 L 50 60 L 48 60 Z" fill="#ffffff" opacity="0.12" />
+        
+        <!-- Nose cone shadow -->
+        <path d="M 58 8 L 64 60 L 66 60 Z" fill="#000000" opacity="0.25" />
+
+        <!-- Main viewport window - realistic glass -->
+        <circle cx="50" cy="88" r="14" fill="url(#window)" stroke="#0a0f1f" stroke-width="2.8" />
+        <circle cx="50" cy="88" r="12" fill="none" stroke="#1e40af" stroke-width="0.8" opacity="0.5" />
+        <!-- Window highlight reflection -->
+        <circle cx="42" cy="80" r="4.5" fill="#ffffff" opacity="0.2" />
+        <!-- Window inner ring (depth) -->
+        <circle cx="50" cy="90" r="11" fill="none" stroke="#000000" stroke-width="0.5" opacity="0.4" />
+        
+        <!-- Secondary viewport -->
+        <circle cx="50" cy="142" r="5.5" fill="#0a1f4a" stroke="#000000" stroke-width="1.2" opacity="0.95" />
+        <circle cx="50" cy="142" r="4" fill="none" stroke="#1e40af" stroke-width="0.5" opacity="0.3" />
+
+        <!-- Body paneling lines (horizontal strips) -->
+        <rect x="20" y="110" width="60" height="1.8" fill="#000000" opacity="0.3" />
+        <rect x="20" y="142" width="60" height="1.5" fill="#000000" opacity="0.22" />
+        <rect x="20" y="172" width="60" height="1.8" fill="#000000" opacity="0.28" />
+
+        <!-- Rivet/panel lines (vertical) -->
+        <line x1="30" y1="62" x2="30" y2="208" stroke="#6b7a8f" stroke-width="0.35" opacity="0.2" />
+        <line x1="70" y1="62" x2="70" y2="208" stroke="#9aa8bd" stroke-width="0.4" opacity="0.12" />
+
+        <!-- Left fin - bright red, 3D -->
+        <path d="M 20 165 L -6 192 L 4 212 L 20 198 Z" fill="#ff3333" stroke="#cc0000" stroke-width="1.2" />
+        <path d="M 20 165 L 4 178 L 4 212 Z" fill="#ff5555" stroke="none" opacity="0.7" />
+        <!-- Fin shadow -->
+        <path d="M 20 165 L -6 192 L 4 192 Z" fill="#000000" opacity="0.15" />
+        
+        <!-- Right fin - bright red, 3D -->
+        <path d="M 80 165 L 106 192 L 96 212 L 80 198 Z" fill="#ff3333" stroke="#cc0000" stroke-width="1.2" />
+        <path d="M 80 165 L 96 178 L 96 212 Z" fill="#ff5555" stroke="none" opacity="0.7" />
+        <!-- Fin shadow -->
+        <path d="M 80 165 L 106 192 L 96 192 Z" fill="#000000" opacity="0.15" />
+
+        <!-- Engine nozzles - deep black, large -->
+        <ellipse cx="34" cy="210" rx="11" ry="24" fill="url(#engineGrad)" stroke="#000000" stroke-width="2.2" />
+        <ellipse cx="66" cy="210" rx="11" ry="24" fill="url(#engineGrad)" stroke="#000000" stroke-width="2.2" />
+        
+        <!-- Engine inner heat glow -->
+        <ellipse cx="34" cy="210" rx="7" ry="18" fill="none" stroke="#ff5533" stroke-width="1.3" opacity="0.55" />
+        <ellipse cx="66" cy="210" rx="7" ry="18" fill="none" stroke="#ff5533" stroke-width="1.3" opacity="0.55" />
+        
+        <!-- Engine inner glow (hint of fire inside) -->
+        <ellipse cx="34" cy="223" rx="4.5" ry="10" fill="#ff7733" opacity="0.35" />
+        <ellipse cx="66" cy="223" rx="4.5" ry="10" fill="#ff7733" opacity="0.35" />
+
+        <!-- Branding text -->
+        <text x="50" y="131" font-family="Arial, sans-serif" font-size="8.5" fill="#2d3a48" text-anchor="middle" font-weight="bold" opacity="0.4">RoleRocket</text>
+      </svg>
+      </svg>
+    </div>
+
+    <div class="text-overlay">
+      <h1>3</h1>
+      <p>Launching in...</p>
+    </div>
+  </div>
+
+  <script>
+    // Restart animation on click for testing
+    document.addEventListener('click', () => {
+      const wrapper = document.getElementById('rocketWrapper');
+      wrapper.style.animation = 'none';
+      setTimeout(() => {
+        wrapper.style.animation = 'rocketLaunch 5200ms cubic-bezier(0.18, 0.76, 0.16, 1) forwards';
+      }, 10);
+    });
+  </script>
+</body>
+</html>
