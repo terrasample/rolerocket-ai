@@ -186,23 +186,15 @@
       if (!response.ok) return defaultContext();
       var data = await response.json();
       
-      // IMPORTANT: Only update localStorage if user hasn't set an explicit preference
-      // User preference is immutable once set - don't override with API context
-      var userPreference = getSavedLocalCountry();
-      if (!userPreference) {
-        // User has NO preference; OK to use server context
-        if (data && data.effectiveCountry) {
-          setSavedLocalCountry(data.effectiveCountry);
-        }
+      // CRITICAL FIX: Server is the source of truth
+      // Always trust the API response's effectiveCountry and update localStorage
+      // to keep them in sync. LocalStorage should never override the server state.
+      if (data && data.effectiveCountry) {
+        var serverCountry = normalizeCountryCode(data.effectiveCountry);
+        setSavedLocalCountry(serverCountry);
       }
-      // If user HAS set a preference (US, JM, GLOBAL, etc.), DO NOT override it with server response
       
       var merged = Object.assign(defaultContext(), data || {});
-      // CRITICAL FIX: Don't allow API effectiveCountry to override user preference
-      // If user has an explicit localStorage preference, preserve it in the merged object
-      if (userPreference) {
-        merged.effectiveCountry = userPreference;
-      }
       publishPersonalizationContext(merged);
       return merged;
     } catch (_) {
