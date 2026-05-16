@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const followedBar = document.getElementById('followedEmployersBar');
 
   const FOLLOWED_EMPLOYERS_KEY = 'rr_followed_employers_v1';
+  const DASHBOARD_TOP_MATCHES_KEY = 'rr_dashboard_top_matches_v1';
 
   function safeHtml(value) {
     return String(value || '')
@@ -15,6 +16,24 @@ document.addEventListener('DOMContentLoaded', function () {
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
+  }
+
+  const JOB_TEXT_NOISE_REGEX = /(skip to main content|this button displays|jobs people learning|clear text|join or sign in|privacy policy|cookie policy|forgot password|email or phone|already on linkedin)/i;
+
+  function isValidDashboardMatch(job) {
+    const title = String(job && job.title || '').trim();
+    const company = String(job && job.company || '').trim();
+    const location = String(job && job.location || '').trim();
+    const link = String(job && job.link || '').trim();
+    const combined = [title, company, location].join(' ');
+
+    if (!title || !company || !location) return false;
+    if (title.length > 140 || company.length > 90) return false;
+    if (JOB_TEXT_NOISE_REGEX.test(combined)) return false;
+    if (String(job && job.source || '').toLowerCase().includes('state market fallback')) return false;
+    if (!/^https?:\/\//i.test(link)) return false;
+
+    return true;
   }
 
   function readFollowedEmployers() {
@@ -273,6 +292,148 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
+  function renderDashboardTopMatches(payload) {
+    const jobs = Array.isArray(payload && payload.jobs) ? payload.jobs.filter(isValidDashboardMatch) : [];
+    const query = String((payload && payload.query) || '').trim();
+    const location = String((payload && payload.location) || '').trim();
+
+    if (queryInput && query) {
+      queryInput.value = query;
+    }
+
+    if (!jobs.length) {
+      results.innerHTML = '<div style="color:#475569;">No top matches were available from dashboard. Run a search to refresh matches.</div>';
+      return;
+    }
+
+    const header = [
+      '<div style="margin-bottom:10px;color:#334155;font-size:.95rem;">',
+      'Showing <strong>' + safeHtml(String(jobs.length)) + '</strong> dashboard matches',
+      (query ? ' for <strong>' + safeHtml(query) + '</strong>' : ''),
+      (location ? ' in <strong>' + safeHtml(location) + '</strong>' : ''),
+      '.</div>'
+    ].join('');
+
+    const cards = jobs.map(function (job) {
+      const fit = Number(job.fitScore || 0);
+      const fitText = Number.isFinite(fit) ? Math.max(0, Math.min(96, Math.round(fit))) : 0;
+      const externalLink = String(job.link || '').trim();
+      const safeLink = /^https?:\/\//i.test(externalLink) ? externalLink : '#';
+
+      return (
+        '<div class="mini-job-card" style="margin-bottom:12px;">' +
+          '<strong>' + safeHtml(job.title || 'Untitled Job') + '</strong><br>' +
+          '<span style="font-size:.92rem;color:#334155;">' + safeHtml(job.company || 'Unknown Company') + '</span><br>' +
+          '<small>📍 ' + safeHtml(job.location || 'Unknown Location') + '</small><br>' +
+          '<small style="display:inline-block;margin-top:6px;border:1px solid rgba(16,185,129,.45);background:rgba(6,95,70,.22);color:#065f46;border-radius:999px;padding:2px 8px;font-weight:700;">Fit ' + safeHtml(String(fitText)) + '%</small><br>' +
+          '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">' +
+            '<a href="' + safeHtml(safeLink) + '" target="_blank" rel="noopener noreferrer">View & Apply</a>' +
+          '</div>' +
+        '</div>'
+      );
+    }).join('');
+
+    results.innerHTML = header + cards;
+  }
+
+  async function hydrateDashboardTopMatches(initialQuery, initialLocation) {
+    const normalizedQuery = String(initialQuery || '').trim().toLowerCase();
+    const normalizedLocation = String(initialLocation || '').trim().toLowerCase();
+    const payloadMatchesRequest = function (candidate) {
+      if (!candidate || typeof candidate !== 'object') return false;
+      const candidateQuery = String(candidate.query || '').trim().toLowerCase();
+      const candidateLocation = String(candidate.location || '').trim().toLowerCase();
+      if (normalizedQuery && candidateQuery !== normalizedQuery) return false;
+      if (normalizedLocation && candidateLocation !== normalizedLocation) return false;
+      return true;
+    };
+
+    let payload = null;
+    try {
+      payload = JSON.parse(sessionStorage.getItem(DASHBOARD_TOP_MATCHES_KEY) || 'null');
+    } catch (_) {
+      payload = null;
+    }
+
+    if (!payload) {
+      try {
+        payload = JSON.parse(localStorage.getItem(DASHBOARD_TOP_MATCHES_KEY) || 'null');
+      } catch (_) {
+        payload = null;
+      }
+    }
+
+    if (payload && Array.isArray(payload.jobs)) {
+      payload.jobs = payload.jobs.filter(isValidDashboardMatch);
+    }
+
+    if (payload && !payloadMatchesRequest(payload)) {
+      payload = null;
+      try {
+        sessionStorage.removeItem(DASHBOARD_TOP_MATCHES_KEY);
+      } catch (_) {
+        // ignore
+      }
+      try {
+        localStorage.removeItem(DASHBOARD_TOP_MATCHES_KEY);
+      } catch (_) {
+        // ignore
+      }
+    }
+
+    if (payload && Array.isArray(payload.jobs) && payload.jobs.length) {
+      renderDashboardTopMatches(payload);
+      return true;
+    }
+
+    const q = String(initialQuery || '').trim();
+    const location = String(initialLocation || '').trim();
+    if (!q) return false;
+
+    try {
+      const params = new URLSearchParams({ title: q, limit: '20' });
+      if (location) params.set('location', location);
+
+      const res = await fetch('/api/jobs/scout?' + params.toString());
+      if (!res.ok) return false;
+
+      const data = await res.json();
+      const jobs = Array.isArray(data && data.jobs) ? data.jobs : [];
+      if (!jobs.length) return false;
+
+      const projected = {
+        query: q,
+        location: location,
+        jobs: jobs.map(function (job) {
+          return {
+            title: job && job.title,
+            company: job && job.company,
+            location: job && job.location,
+            fitScore: Number((job && job.matchScore) || 0),
+            link: job && (job.applyLink || job.applyUrl || job.url || job.jobUrl || job.link || ''),
+            source: job && job.source
+          };
+        }).filter(function (job) {
+          return /^https?:\/\//i.test(String(job.link || '').trim());
+        })
+      };
+
+      if (!projected.jobs.length) return false;
+
+      try {
+        sessionStorage.setItem(DASHBOARD_TOP_MATCHES_KEY, JSON.stringify(projected));
+        localStorage.setItem(DASHBOARD_TOP_MATCHES_KEY, JSON.stringify(projected));
+      } catch (_) {
+        // ignore
+      }
+
+      renderDashboardTopMatches(projected);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   async function runSearch(explicitQuery, options) {
     const opts = options || {};
     const raw = String(explicitQuery || queryInput?.value || '').trim();
@@ -335,5 +496,13 @@ document.addEventListener('DOMContentLoaded', function () {
   const params = new URLSearchParams(window.location.search);
   const initialQuery = params.get('q') || params.get('query') || params.get('employer') || '';
   const source = String(params.get('source') || '').trim().toLowerCase();
+  if (source === 'dashboard-top-matches') {
+    const initialLocation = params.get('location') || '';
+    hydrateDashboardTopMatches(initialQuery, initialLocation).then(function (ok) {
+      if (!ok && initialQuery) runSearch(initialQuery, { fromMarket: false });
+    });
+    return;
+  }
+
   if (initialQuery) runSearch(initialQuery, { fromMarket: source === 'market' });
 });

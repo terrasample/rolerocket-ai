@@ -393,7 +393,7 @@
     </aside>
     <div class="sidebar-overlay" id="sidebarOverlay" tabindex="-1" aria-hidden="true"></div>
     <main class="main marketing-main" id="dashboardMain" tabindex="-1">
-      <button onclick="window.history.back()" class="back-arrow-btn" aria-label="Go back" style="margin:12px 0 0 12px;background:none;border:none;cursor:pointer;font-size:1.6em;color:#2563eb;"><span aria-hidden="true">&#8592;</span> Back</button>
+      <button onclick="window.history.back()" class="back-arrow-btn" aria-label="Go back" style="margin:12px 0 0 12px;background:none;border:none;cursor:pointer;font-size:1.6em;color:#ffffff;"><span aria-hidden="true">&#8592;</span> Back</button>
       <section class="rr-shot-shell marketing-card" aria-label="Modern dashboard shell">
         <header class="rr-shot-header">
           <div class="rr-shot-badge" id="rrShotBadge" style="display:none;"></div>
@@ -1233,13 +1233,14 @@
                 }
 
                 if (panelLink && !forcedJamaicaMode) {
-                  panelLink.href = 'job-search.html?query=' + encodeURIComponent(primaryScoutTitle) + '&location=' + encodeURIComponent(panelLocationQuery) + '&source=market';
+                  panelLink.href = 'job-search.html?query=' + encodeURIComponent(primaryScoutTitle) + '&location=' + encodeURIComponent(panelLocationQuery) + '&source=dashboard-top-matches';
                 }
               };
 
               setPanelHeadingAndLink();
 
-              if (isUSExperience) {
+              var inferredUSPreference = parseUSLocationPreference(scoutLocation);
+              if (isUSExperience || (inferredUSPreference && inferredUSPreference.stateCode)) {
                 var scopeFromProfile = String(jad.locationScope || '').toLowerCase().trim();
                 var scopeFromQuery = String(params.get('locationScope') || '').toLowerCase().trim();
                 var normalizedScope = explicitScoutLocation ? 'statewide-preview' : (scopeFromProfile || scopeFromQuery);
@@ -1247,7 +1248,7 @@
                 if (normalizedScope === 'nationwide' || normalizedScope === 'nationwide-us') usLocationScope = 'nationwide-us';
                 if (normalizedScope === 'statewide-preview') usLocationScope = 'statewide-preview';
 
-                usPrefLocation = parseUSLocationPreference(scoutLocation);
+                usPrefLocation = inferredUSPreference;
                 isUSLocalityMatch = function(job) {
                   if (usLocationScope === 'nationwide-us') return true;
                   if (!usPrefLocation) return true;
@@ -1347,8 +1348,13 @@
 
                   // NYC borough normalization: Bronx users should still see NYC borough roles.
                   if (usLocationScope === 'strict-local' && usPrefLocation.stateCode === 'ny') {
-                    var nycSignal = /\b(new\s*york\s*city|nyc|new\s*york|manhattan|brooklyn|queens|bronx|staten\s*island)\b/i;
-                    return nycSignal.test(locationHaystack) || (citySignal ? citySignal.test(locationHaystack) : true);
+                    var preferredCityToken = String(usPrefLocation.city || '').toLowerCase().trim();
+                    var preferredIsNyc = /^(new\s*york|new\s*york\s*city|nyc|manhattan|brooklyn|queens|bronx|staten\s*island)$/.test(preferredCityToken);
+                    if (preferredIsNyc) {
+                      var nycSignal = /\b(new\s*york\s*city|nyc|new\s*york|manhattan|brooklyn|queens|bronx|staten\s*island)\b/i;
+                      return nycSignal.test(locationHaystack) || (citySignal ? citySignal.test(locationHaystack) : true);
+                    }
+                    return citySignal ? citySignal.test(locationHaystack) : stateMatch;
                   }
 
                   return true;
@@ -1459,9 +1465,27 @@
                 });
               }
 
+              var dashboardJobNoisePattern = /(skip to main content|this button displays|jobs people learning|clear text|join or sign in|privacy policy|cookie policy|forgot password|email or phone|already on linkedin)/i;
+              var isRenderableTopMatchJob = function(job) {
+                var titleText = String(job && job.title || '').trim();
+                var companyText = String(job && job.company || '').trim();
+                var locationText = String(job && job.location || '').trim();
+                var sourceText = String(job && job.source || '').trim().toLowerCase();
+                var combinedText = [titleText, companyText, locationText].join(' ');
+
+                if (!titleText || !companyText) return false;
+                if (titleText.length > 140 || companyText.length > 90) return false;
+                if (dashboardJobNoisePattern.test(combinedText)) return false;
+                if (sourceText.indexOf('state market fallback') !== -1) return false;
+                return true;
+              };
+
+              scoutJobs = scoutJobs.filter(isRenderableTopMatchJob);
+
               if (isUSExperience) {
-                scoutJobs = scoutJobs.filter(isUSCompatibleJob);
-                scoutJobs = scoutJobs.filter(isUSLocalityMatch);
+                var usCompatibleScoutJobs = scoutJobs.filter(isUSCompatibleJob);
+                var usLocalScoutJobs = usCompatibleScoutJobs.filter(isUSLocalityMatch);
+                scoutJobs = usLocalScoutJobs.length ? usLocalScoutJobs : usCompatibleScoutJobs;
               } else if (isJamaicaExperience) {
                 scoutJobs = scoutJobs.filter(isJamaicaCompatibleJob);
               }
@@ -1480,6 +1504,147 @@
               }
 
               var scopedJobs = [];
+
+              var buildTopMatchesLink = function() {
+                var linkParams = new URLSearchParams({ source: 'dashboard-top-matches' });
+                if (primaryScoutTitle) linkParams.set('query', primaryScoutTitle);
+                if (panelLocationQuery) linkParams.set('location', panelLocationQuery);
+                return 'job-search.html?' + linkParams.toString();
+              };
+
+              var rankJobsForDashboard = function(jobList) {
+                return jobList.map(function(job) {
+                  var haystack = [job.title, job.company, job.description, job.location].join(' ').toLowerCase();
+                  var locationHaystack = [job && job.location, job && job.city, job && job.region, job && job.state, job && job.country].join(' ').toLowerCase();
+                  var sourceScore = Math.max(0, Math.min(100, Number(job.matchScore || 0)));
+                  var score = sourceScore * 0.45;
+                  var reasons = [];
+                  var salaryFloorMet = jobMeetsSalaryFloor(job);
+
+                  var remoteSignal = /\bremote\b|work\s*from\s*home|distributed/.test(haystack);
+                  var hasLocalitySignal = false;
+                  if (isUSExperience && usPrefLocation) {
+                    if (usPrefLocation.stateCode && new RegExp('\\b' + usPrefLocation.stateCode + '\\b', 'i').test(locationHaystack)) {
+                      hasLocalitySignal = true;
+                    }
+                    if (!hasLocalitySignal && usPrefLocation.stateName && new RegExp('\\b' + usPrefLocation.stateName.replace(/\s+/g, '\\s*') + '\\b', 'i').test(locationHaystack)) {
+                      hasLocalitySignal = true;
+                    }
+                    if (!hasLocalitySignal && usPrefLocation.city) {
+                      var citySignal = new RegExp('\\b' + usPrefLocation.city.replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, '\\s*') + '\\b', 'i');
+                      hasLocalitySignal = citySignal.test(locationHaystack);
+                    }
+                  }
+
+                  if (isUSExperience) {
+                    if (hasLocalitySignal) {
+                      score += 20;
+                      reasons.push('Location fit');
+                    } else if (remoteSignal) {
+                      score += 10;
+                      reasons.push('Remote eligible');
+                    }
+                  }
+
+                  if (prefKeywords.length) {
+                    var titleHit = prefKeywords.some(function(k) {
+                      var kw = String(k || '').toLowerCase().trim();
+                      return kw && haystack.indexOf(kw) !== -1;
+                    });
+                    if (titleHit) {
+                      score += 18;
+                      reasons.push('Keyword match');
+                    }
+                  }
+
+                  if (prefIndustries.length) {
+                    var industryHit = prefIndustries.some(function(ind) { return ind && haystack.indexOf(ind) !== -1; });
+                    if (industryHit) {
+                      score += 14;
+                      reasons.push('Industry fit');
+                    }
+                  }
+
+                  if (prefEmploymentTypes.length) {
+                    var jobType = normEmployment(job.employmentType || job.type || job.jobType || '');
+                    var typeHit = prefEmploymentTypes.some(function(t) { return normEmployment(t) === jobType; });
+                    if (typeHit) {
+                      score += 12;
+                      reasons.push('Employment type match');
+                    }
+                  }
+
+                  if (prefWorkModes.length) {
+                    var modeHaystack = [job.workMode, job.remoteType, job.location, job.description].join(' ').toLowerCase();
+                    var modeHit = prefWorkModes.some(function(mode) {
+                      var m = String(mode || '').toLowerCase();
+                      if (!m) return false;
+                      if (m.indexOf('remote') !== -1) return modeHaystack.indexOf('remote') !== -1;
+                      if (m.indexOf('hybrid') !== -1) return modeHaystack.indexOf('hybrid') !== -1;
+                      if (m.indexOf('onsite') !== -1 || m.indexOf('on-site') !== -1 || m.indexOf('in-office') !== -1) {
+                        return modeHaystack.indexOf('onsite') !== -1 || modeHaystack.indexOf('on-site') !== -1 || modeHaystack.indexOf('in office') !== -1;
+                      }
+                      return modeHaystack.indexOf(m) !== -1;
+                    });
+                    if (modeHit) {
+                      score += 8;
+                      reasons.push('Work mode match');
+                    }
+                  }
+
+                  if (prefSeniorityLevels.length) {
+                    var seniorityHaystack = [job.seniority, job.experienceLevel, job.title, job.description].join(' ').toLowerCase();
+                    var seniorityHit = prefSeniorityLevels.some(function(level) {
+                      var lv = String(level || '').toLowerCase();
+                      return lv && seniorityHaystack.indexOf(lv) !== -1;
+                    });
+                    if (seniorityHit) {
+                      score += 8;
+                      reasons.push('Seniority match');
+                    }
+                  }
+
+                  if (prefSalaryMin > 0) {
+                    var matchedFloorMin = Number((job.salaryRange && job.salaryRange.min) || 0);
+                    if (matchedFloorMin >= prefSalaryMin) {
+                      score += 8;
+                      reasons.push('Salary meets target');
+                    }
+                  }
+
+                  if (prefSalaryMin > 0) {
+                    var salaryKnown = Number((job.salaryRange && job.salaryRange.max) || job.salaryMax || 0) > 0 || Number((job.salaryRange && job.salaryRange.min) || job.salaryMin || 0) > 0;
+                    if (!salaryKnown) {
+                      score -= 4;
+                    } else if (!salaryFloorMet) {
+                      score -= 12;
+                      reasons.push('Below salary target');
+                    }
+                  }
+
+                  if (isUSExperience && usLocationScope === 'nearby-radius' && hasLocalitySignal) {
+                    reasons.push('Nearby radius');
+                  }
+
+                  if (!reasons.length && isUSExperience && remoteSignal) {
+                    reasons.push('US market compatible');
+                  }
+
+                  if (!reasons.length) {
+                    reasons.push('Role relevance');
+                  }
+
+                  var computedFitScore = Math.max(0, Math.min(96, Math.round(score)));
+                  job.__rrFitScore = computedFitScore;
+                  job.__rrSalaryFloorMet = salaryFloorMet;
+                  if (!job.matchScore || Number(job.matchScore) < computedFitScore) {
+                    job.matchScore = computedFitScore;
+                  }
+                  job.__rrReasons = reasons.slice(0, 3);
+
+                  return { job: job, score: score, salaryFloorMet: salaryFloorMet };
+                }).filter(Boolean).sort(function(a, b) { return b.score - a.score; });
+              };
 
               if (scoutJobs.length) {
 
@@ -1523,157 +1688,30 @@
                   return Math.max(jobSalaryMax, jobSalaryMin) >= prefSalaryMin;
                 };
 
-                var ranked = scoutJobs.map(function(job) {
-                  if (!jobMeetsSalaryFloor(job)) return null;
+                var ranked = rankJobsForDashboard(scoutJobs);
 
-                  var haystack = [job.title, job.company, job.description, job.location].join(' ').toLowerCase();
-                  var locationHaystack = [job && job.location, job && job.city, job && job.region, job && job.state, job && job.country].join(' ').toLowerCase();
-                  var score = Number(job.matchScore || 0);
-                  var reasons = [];
-
-                  var remoteSignal = /\bremote\b|work\s*from\s*home|distributed/.test(haystack);
-                  var hasLocalitySignal = false;
-                  if (isUSExperience && usPrefLocation) {
-                    if (usPrefLocation.stateCode && new RegExp('\\b' + usPrefLocation.stateCode + '\\b', 'i').test(locationHaystack)) {
-                      hasLocalitySignal = true;
-                    }
-                    if (!hasLocalitySignal && usPrefLocation.stateName && new RegExp('\\b' + usPrefLocation.stateName.replace(/\s+/g, '\\s*') + '\\b', 'i').test(locationHaystack)) {
-                      hasLocalitySignal = true;
-                    }
-                    if (!hasLocalitySignal && usPrefLocation.city) {
-                      var citySignal = new RegExp('\\b' + usPrefLocation.city.replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, '\\s*') + '\\b', 'i');
-                      hasLocalitySignal = citySignal.test(locationHaystack);
-                    }
-                  }
-
-                  if (isUSExperience) {
-                    if (hasLocalitySignal) {
-                      score += 24;
-                      reasons.push('Location fit');
-                    } else if (remoteSignal) {
-                      score += 12;
-                      reasons.push('Remote eligible');
-                    }
-                  }
-
-                  if (prefKeywords.length) {
-                    var titleHit = prefKeywords.some(function(k) {
-                      var kw = String(k || '').toLowerCase().trim();
-                      return kw && haystack.indexOf(kw) !== -1;
-                    });
-                    if (titleHit) {
-                      score += 30;
-                      reasons.push('Keyword match');
-                    }
-                  }
-
-                  if (prefIndustries.length) {
-                    var industryHit = prefIndustries.some(function(ind) { return ind && haystack.indexOf(ind) !== -1; });
-                    if (industryHit) {
-                      score += 25;
-                      reasons.push('Industry fit');
-                    }
-                  }
-
-                  if (prefEmploymentTypes.length) {
-                    var jobType = normEmployment(job.employmentType || job.type || job.jobType || '');
-                    var typeHit = prefEmploymentTypes.some(function(t) { return normEmployment(t) === jobType; });
-                    if (typeHit) {
-                      score += 20;
-                      reasons.push('Employment type match');
-                    }
-                  }
-
-                  if (prefWorkModes.length) {
-                    var modeHaystack = [job.workMode, job.remoteType, job.location, job.description].join(' ').toLowerCase();
-                    var modeHit = prefWorkModes.some(function(mode) {
-                      var m = String(mode || '').toLowerCase();
-                      if (!m) return false;
-                      if (m.indexOf('remote') !== -1) return modeHaystack.indexOf('remote') !== -1;
-                      if (m.indexOf('hybrid') !== -1) return modeHaystack.indexOf('hybrid') !== -1;
-                      if (m.indexOf('onsite') !== -1 || m.indexOf('on-site') !== -1 || m.indexOf('in-office') !== -1) {
-                        return modeHaystack.indexOf('onsite') !== -1 || modeHaystack.indexOf('on-site') !== -1 || modeHaystack.indexOf('in office') !== -1;
-                      }
-                      return modeHaystack.indexOf(m) !== -1;
-                    });
-                    if (modeHit) {
-                      score += 12;
-                      reasons.push('Work mode match');
-                    }
-                  }
-
-                  if (prefSeniorityLevels.length) {
-                    var seniorityHaystack = [job.seniority, job.experienceLevel, job.title, job.description].join(' ').toLowerCase();
-                    var seniorityHit = prefSeniorityLevels.some(function(level) {
-                      var lv = String(level || '').toLowerCase();
-                      return lv && seniorityHaystack.indexOf(lv) !== -1;
-                    });
-                    if (seniorityHit) {
-                      score += 12;
-                      reasons.push('Seniority match');
-                    }
-                  }
-
-                  if (prefSalaryMin > 0) {
-                    var matchedFloorMin = Number((job.salaryRange && job.salaryRange.min) || 0);
-                    if (matchedFloorMin >= prefSalaryMin) {
-                      score += 15; // bonus for confirmed salary-meets-target
-                      reasons.push('Salary meets target');
-                    }
-                  }
-
-                  if (prefSalaryMin > 0) {
-                    var salaryKnown = Number((job.salaryRange && job.salaryRange.max) || job.salaryMax || 0) > 0 || Number((job.salaryRange && job.salaryRange.min) || job.salaryMin || 0) > 0;
-                    if (!salaryKnown) score -= 6;
-                  }
-
-                  if (isUSExperience && usLocationScope === 'nearby-radius' && hasLocalitySignal) {
-                    reasons.push('Nearby radius');
-                  }
-
-                  if (!reasons.length && isUSExperience && remoteSignal) {
-                    reasons.push('US market compatible');
-                  }
-
-                  if (!reasons.length) {
-                    reasons.push('Role relevance');
-                  }
-
-                  var computedFitScore = Math.max(0, Math.min(99, Math.round(score)));
-                  job.__rrFitScore = computedFitScore;
-                  if (!job.matchScore || Number(job.matchScore) < computedFitScore) {
-                    job.matchScore = computedFitScore;
-                  }
-                  job.__rrReasons = reasons.slice(0, 3);
-
-                  return { job: job, score: score };
-                }).filter(Boolean).sort(function(a, b) { return b.score - a.score; });
-
-                scopedJobs = ranked.slice(0, 6).map(function(item) { return item.job; });
+                var salaryMatchedRanked = ranked.filter(function(item) { return item.salaryFloorMet; });
+                var preferredRanked = salaryMatchedRanked.length ? salaryMatchedRanked : ranked;
+                scopedJobs = preferredRanked.slice(0, 6).map(function(item) { return item.job; });
               }
 
               if (!scopedJobs.length) {
-                scopedJobs = jobs.filter(jobMeetsSalaryFloor);
-                if (isUSExperience) {
-                  scopedJobs = scopedJobs.filter(isUSCompatibleJob).filter(isUSLocalityMatch);
+                scopedJobs = jobs.filter(isRenderableTopMatchJob).filter(jobMeetsSalaryFloor);
+                if ((usPrefLocation && usPrefLocation.stateCode) || isUSExperience) {
+                  var usCompatibleScopedJobs = scopedJobs.filter(isUSCompatibleJob);
+                  var usLocalScopedJobs = usCompatibleScopedJobs.filter(isUSLocalityMatch);
+                  scopedJobs = usLocalScopedJobs.length ? usLocalScopedJobs : usCompatibleScopedJobs;
                 } else if (isJamaicaExperience) {
                   scopedJobs = scopedJobs.filter(isJamaicaCompatibleJob);
                 }
-                scopedJobs = scopedJobs.slice(0, 6);
+                var fallbackRanked = rankJobsForDashboard(scopedJobs);
+                var fallbackSalaryMatchedRanked = fallbackRanked.filter(function(item) { return item.salaryFloorMet; });
+                var fallbackPreferredRanked = fallbackSalaryMatchedRanked.length ? fallbackSalaryMatchedRanked : fallbackRanked;
+                scopedJobs = fallbackPreferredRanked.slice(0, 6).map(function(item) { return item.job; });
               }
 
               if (scopedJobs.length) {
-                var topScopedJob = scopedJobs[0] || null;
-                if (topScopedJob) {
-                  var topTitle = String(topScopedJob.title || '').trim();
-                  var topLocation = String(topScopedJob.location || '').trim();
-                  if (topTitle) primaryScoutTitle = topTitle;
-                  if (topLocation) {
-                    panelLocationLabel = topLocation;
-                    panelLocationQuery = topLocation;
-                  }
-                  setPanelHeadingAndLink();
-                }
+                setPanelHeadingAndLink();
 
                 var directScopedJobs = scopedJobs.map(function(j) {
                   return {
@@ -1681,6 +1719,80 @@
                     applyLink: pickDirectJobLink(j)
                   };
                 }).filter(function(entry) { return !!entry.applyLink; });
+
+                // Persist the exact populated jobs so "View all" can show this same set.
+                try {
+                  var toSafeText = function(v, fallback) {
+                    var text = String(v == null ? '' : v).trim();
+                    return text || String(fallback || '');
+                  };
+                  var pickAnyHttpLink = function(item) {
+                    var candidates = [
+                      item && item.applyLink,
+                      item && item.applyUrl,
+                      item && item.url,
+                      item && item.jobUrl,
+                      item && item.link,
+                      item && item.redirectUrl
+                    ];
+                    for (var ci = 0; ci < candidates.length; ci += 1) {
+                      var linkCandidate = String(candidates[ci] || '').trim();
+                      if (/^https?:\/\//i.test(linkCandidate)) return linkCandidate;
+                    }
+                    return '';
+                  };
+
+                  var topMatchesPayload = {
+                    source: 'dashboard',
+                    createdAt: Date.now(),
+                    query: primaryScoutTitle,
+                    location: panelLocationQuery,
+                    jobs: scopedJobs.map(function(jobItem) {
+                      var directLink = pickAnyHttpLink(jobItem);
+                      return {
+                        title: toSafeText(jobItem && jobItem.title, 'Role'),
+                        company: toSafeText(jobItem && jobItem.company, 'Company'),
+                        location: toSafeText(jobItem && jobItem.location, ''),
+                        fitScore: Number(jobItem.__rrFitScore || jobItem.matchScore || 0),
+                        link: toSafeText(directLink || (jobItem && (jobItem.link || jobItem.url)), ''),
+                        source: toSafeText(jobItem && jobItem.source, 'Market scout')
+                      };
+                    })
+                  };
+                  sessionStorage.setItem('rr_dashboard_top_matches_v1', JSON.stringify(topMatchesPayload));
+                  localStorage.setItem('rr_dashboard_top_matches_v1', JSON.stringify(topMatchesPayload));
+                  if (panelLink) panelLink.href = buildTopMatchesLink();
+                } catch (_topStoreErr) {
+                  // Ignore storage failure and keep fallback link behavior.
+                }
+
+                // Fallback persistence from the direct-link list in case the broader payload build fails.
+                try {
+                  var hasTopPayload = !!sessionStorage.getItem('rr_dashboard_top_matches_v1');
+                  if (!hasTopPayload && directScopedJobs.length) {
+                    var fallbackPayload = {
+                      source: 'dashboard',
+                      createdAt: Date.now(),
+                      query: primaryScoutTitle,
+                      location: panelLocationQuery,
+                      jobs: directScopedJobs.map(function(entry) {
+                        var jobRef = entry && entry.job ? entry.job : {};
+                        return {
+                          title: String(jobRef.title || 'Role'),
+                          company: String(jobRef.company || 'Company'),
+                          location: String(jobRef.location || ''),
+                          fitScore: Number(jobRef.__rrFitScore || jobRef.matchScore || 0),
+                          link: String(entry.applyLink || ''),
+                          source: String(jobRef.source || 'Market scout')
+                        };
+                      })
+                    };
+                    sessionStorage.setItem('rr_dashboard_top_matches_v1', JSON.stringify(fallbackPayload));
+                    localStorage.setItem('rr_dashboard_top_matches_v1', JSON.stringify(fallbackPayload));
+                  }
+                } catch (_topFallbackStoreErr) {
+                  // Keep navigation working even when browser storage is unavailable.
+                }
 
                 if (!directScopedJobs.length) {
                   list.innerHTML = '<div class="rr-shot-row"><div><div class="title">No direct job links available right now</div><div class="meta">We found matches for this location, but direct apply links were unavailable. Please check again shortly.</div></div></div>';
@@ -1713,20 +1825,23 @@
                   }).join('');
                 }
               } else if (prefSalaryMin > 0) {
-                list.innerHTML = '<div class="rr-shot-row"><div><div class="title">No current matches meet your minimum salary</div><div class="meta">We checked your preferred market plus nearby metros. Try lowering your salary floor or widening role keywords to surface more matches.</div></div></div>';
+                list.innerHTML = '<div class="rr-shot-row"><div><div class="title">No current matches are available right now</div><div class="meta">We checked your preferred market plus nearby metros. Try lowering your salary floor or widening role keywords to surface more matches.</div></div></div>';
               } else {
                 list.innerHTML = '<div class="rr-shot-row"><div><div class="title">No top matches yet</div><div class="meta">Update your profile preferences to improve match quality, then refresh this page.</div></div></div>';
               }
             } catch (_scoutErr) {
-              var fallback = jobs.filter(function(job) {
+              var fallbackSalaryQualified = jobs.filter(function(job) {
                 if (!(prefSalaryMin > 0)) return true;
                 var max = Number((job.salaryRange && job.salaryRange.max) || job.salaryMax || 0);
                 var min = Number((job.salaryRange && job.salaryRange.min) || job.salaryMin || 0);
                 if (max <= 0 && min <= 0) return true;
                 return Math.max(max, min) >= prefSalaryMin;
-              });
-              if (isUSExperience) {
-                fallback = fallback.filter(isUSCompatibleJob).filter(isUSLocalityMatch);
+              }).filter(isRenderableTopMatchJob);
+              var fallback = fallbackSalaryQualified.length ? fallbackSalaryQualified : jobs.filter(isRenderableTopMatchJob);
+              if ((usPrefLocation && usPrefLocation.stateCode) || isUSExperience) {
+                var usCompatibleFallback = fallback.filter(isUSCompatibleJob);
+                var usLocalFallback = usCompatibleFallback.filter(isUSLocalityMatch);
+                fallback = usLocalFallback.length ? usLocalFallback : usCompatibleFallback;
               } else if (isJamaicaExperience) {
                 fallback = fallback.filter(isJamaicaCompatibleJob);
               }
@@ -1738,6 +1853,35 @@
                     applyLink: pickDirectJobLink(j)
                   };
                 }).filter(function(entry) { return !!entry.applyLink; });
+
+                try {
+                  if (panelLink) {
+                    panelLink.href = buildTopMatchesLink();
+                  }
+                  if (directFallback.length) {
+                    var fallbackTopPayload = {
+                      source: 'dashboard',
+                      createdAt: Date.now(),
+                      query: primaryScoutTitle,
+                      location: panelLocationQuery,
+                      jobs: directFallback.map(function(entry) {
+                        var jobRef = entry && entry.job ? entry.job : {};
+                        return {
+                          title: String(jobRef.title || 'Role'),
+                          company: String(jobRef.company || 'Company'),
+                          location: String(jobRef.location || ''),
+                          fitScore: Number(jobRef.__rrFitScore || jobRef.matchScore || 0),
+                          link: String(entry.applyLink || ''),
+                          source: String(jobRef.source || 'Market scout')
+                        };
+                      })
+                    };
+                    sessionStorage.setItem('rr_dashboard_top_matches_v1', JSON.stringify(fallbackTopPayload));
+                    localStorage.setItem('rr_dashboard_top_matches_v1', JSON.stringify(fallbackTopPayload));
+                  }
+                } catch (_fallbackPersistErr) {
+                  // Keep rendering resilient.
+                }
 
                 if (!directFallback.length) {
                   list.innerHTML = '<div class="rr-shot-row"><div><div class="title">No direct job links available right now</div><div class="meta">We found location matches, but direct apply links were unavailable. Please check again shortly.</div></div></div>';
@@ -1763,7 +1907,7 @@
                   }).join('');
                 }
               } else if (prefSalaryMin > 0) {
-                list.innerHTML = '<div class="rr-shot-row"><div><div class="title">No current matches meet your minimum salary</div><div class="meta">We checked your preferred market plus nearby metros. Try lowering your salary floor or widening role keywords to surface more matches.</div></div></div>';
+                list.innerHTML = '<div class="rr-shot-row"><div><div class="title">No current matches are available right now</div><div class="meta">We checked your preferred market plus nearby metros. Try lowering your salary floor or widening role keywords to surface more matches.</div></div></div>';
               } else {
                 list.innerHTML = '<div class="rr-shot-row"><div><div class="title">No top matches yet</div><div class="meta">Update your profile preferences to improve match quality, then refresh this page.</div></div></div>';
               }
