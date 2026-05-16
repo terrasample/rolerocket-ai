@@ -66,6 +66,51 @@ document.addEventListener('DOMContentLoaded', function () {
       .trim();
   }
 
+  function normalizeText(value) {
+    return String(value || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function locationTokens(value) {
+    return normalizeText(value)
+      .split(' ')
+      .filter(function (t) { return t.length >= 3; });
+  }
+
+  function isRemoteLocation(value) {
+    return /\bremote\b/i.test(String(value || ''));
+  }
+
+  function filterJobsByLocation(jobs, locationQuery) {
+    const query = String(locationQuery || '').trim();
+    if (!query) return Array.isArray(jobs) ? jobs : [];
+
+    const list = Array.isArray(jobs) ? jobs : [];
+    const normalizedQuery = normalizeText(query);
+    if (!normalizedQuery) return list;
+
+    if (isRemoteLocation(query)) {
+      return list.filter(function (job) {
+        return isRemoteLocation(job && job.location);
+      });
+    }
+
+    const primary = normalizeText(query.split(',')[0] || query);
+    const primaryTokens = locationTokens(primary);
+
+    return list.filter(function (job) {
+      const loc = normalizeText(job && job.location);
+      if (!loc) return false;
+      if (primary && loc.includes(primary)) return true;
+
+      // Require at least one meaningful token hit to avoid broad nearby-city bleed.
+      return primaryTokens.some(function (token) { return loc.includes(token); });
+    });
+  }
+
   function canonicalCompanyKey(name) {
     return normalizeCompanyName(name).replace(/\s+/g, '');
   }
@@ -399,6 +444,15 @@ document.addEventListener('DOMContentLoaded', function () {
     const employerQuery = parsedQuery.employerQuery;
     const keywordQuery = parsedQuery.keywordQuery;
     const searchSeed = keywordQuery || employerQuery || parsedQuery.raw;
+    const sourceLabel = String(options.source || '').trim().toLowerCase() || 'direct';
+
+    const filterSummary = [
+      '<div style="margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap;">',
+      '<span style="border:1px solid #cbd5e1;background:#f8fafc;color:#0f172a;border-radius:999px;padding:3px 10px;font-size:.8rem;font-weight:700;">Source: ' + safeHtml(sourceLabel) + '</span>',
+      locationQuery ? '<span style="border:1px solid #cbd5e1;background:#f8fafc;color:#0f172a;border-radius:999px;padding:3px 10px;font-size:.8rem;font-weight:700;">Location: ' + safeHtml(locationQuery) + '</span>' : '',
+      (salaryMeta && salaryMeta.minSalary > 0) ? '<span style="border:1px solid #cbd5e1;background:#f8fafc;color:#0f172a;border-radius:999px;padding:3px 10px;font-size:.8rem;font-weight:700;">Salary floor: $' + safeHtml(String(Math.round(salaryMeta.minSalary)).replace(/\B(?=(\d{3})+(?!\d))/g, ',')) + '+</span>' : '',
+      '</div>'
+    ].join('');
 
     if (Array.isArray(jobs) && jobs.length > 0) {
       const normalizedJobs = jobs.map(normalizeJob);
@@ -422,6 +476,7 @@ document.addEventListener('DOMContentLoaded', function () {
         : '';
 
       results.innerHTML =
+        filterSummary +
         salaryBanner +
         (employerQuery
           ? '<div style="margin-bottom:10px;color:#334155;font-size:.95rem;">Showing employer-focused results for <strong>' + safeHtml(employerQuery) + '</strong>.</div>'
@@ -473,6 +528,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const googleUrl = `https://www.google.com/search?q=${encodeURIComponent(googleTerms)}`;
 
     results.innerHTML = `
+      ${filterSummary}
       <div style="margin-bottom:8px;font-weight:700;">${fromMarket ? `Find <strong>${safeHtml(searchSeed)}</strong> jobs now:` : `${searchSeed ? `<strong>${safeHtml(searchSeed)}</strong>` : 'This search'} has no current match in the internal partner board.`}</div>
       <div style="color:#475569;font-size:.95rem;line-height:1.6;margin-bottom:10px;">Choose a platform below to search live listings - links open the search pre-filled:</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;">
@@ -645,44 +701,28 @@ document.addEventListener('DOMContentLoaded', function () {
     if (location) activeLocation = location;
     if (salaryMin > 0) activeSalaryMin = salaryMin;
 
-    // Legacy market links should jump directly to a live source listing.
-    if (opts.fromMarket) {
-      try {
-        const title = parsed.keywordQuery || parsed.employerQuery || raw;
-        const params = new URLSearchParams({ title: title, location: location || 'remote', limit: '1' });
-        const res = await fetch(`/api/jobs/scout?${params.toString()}`);
-        if (res.ok) {
-          const payload = await res.json();
-          const first = Array.isArray(payload?.jobs) ? payload.jobs[0] : null;
-          const sourceLink = String(first?.link || '').trim();
-          if (/^https?:\/\//i.test(sourceLink)) {
-            window.location.href = sourceLink;
-            return;
-          }
-        }
-      } catch (_err) {
-        // Fall back below if live source lookup fails.
-      }
-
-      const internalQuery = encodeURIComponent(parsed.keywordQuery || parsed.employerQuery || raw);
-      window.location.href = `job-search.html?query=${internalQuery}&source=market`;
-      return;
-    }
-
     results.innerHTML = location ? `Searching live jobs in ${safeHtml(location)}...` : 'Searching live jobs...';
 
     try {
       const boardQuery = parsed.keywordQuery || parsed.employerQuery || raw;
-      const useScout = opts.forceScout === true || !!location;
+      const useScout = opts.forceScout === true || !!location || opts.fromMarket === true;
       const endpoint = useScout
         ? `/api/jobs/scout?${new URLSearchParams({ title: boardQuery, location: location || 'remote', limit: '200' }).toString()}`
         : `/api/jobs/board?q=${encodeURIComponent(boardQuery)}&limit=20`;
       const res = await fetch(endpoint);
+      if (!res.ok) throw new Error('Search endpoint returned non-OK status');
       const data = await res.json();
-      const salaryMeta = applySalaryFilter(Array.isArray(data.jobs) ? data.jobs : [], salaryMin);
-      renderJobs(salaryMeta.jobs, parsed, { ...opts, location: location, salaryMeta: salaryMeta });
+      const baseJobs = Array.isArray(data.jobs) ? data.jobs : [];
+      const scopedJobs = filterJobsByLocation(baseJobs, location);
+      const salaryMeta = applySalaryFilter(scopedJobs, salaryMin);
+      renderJobs(salaryMeta.jobs, parsed, {
+        ...opts,
+        location: location,
+        salaryMeta: salaryMeta,
+        source: opts.source || (opts.fromMarket ? 'market' : (opts.forceScout ? 'scout' : 'board'))
+      });
     } catch (_err) {
-      results.innerHTML = '<div style="color:#dc2626;">Error searching for jobs.</div>';
+      results.innerHTML = '<div style="color:#dc2626;">Error searching for jobs. Please try again in a moment.</div>';
     }
   }
 
@@ -715,15 +755,16 @@ document.addEventListener('DOMContentLoaded', function () {
         fromMarket: false,
         location: initialLocation,
         salaryMin: activeSalaryMin,
-        forceScout: true
+        forceScout: true,
+        source: 'dashboard-top-matches'
       });
     } else {
       hydrateDashboardTopMatches(initialQuery, initialLocation).then(function (ok) {
-        if (!ok && initialQuery) runSearch(initialQuery, { fromMarket: false, location: initialLocation, salaryMin: activeSalaryMin, forceScout: true });
+        if (!ok && initialQuery) runSearch(initialQuery, { fromMarket: false, location: initialLocation, salaryMin: activeSalaryMin, forceScout: true, source: 'dashboard-top-matches' });
       });
     }
     return;
   }
 
-  if (initialQuery) runSearch(initialQuery, { fromMarket: source === 'market', location: activeLocation, salaryMin: activeSalaryMin });
+  if (initialQuery) runSearch(initialQuery, { fromMarket: source === 'market', location: activeLocation, salaryMin: activeSalaryMin, source: source || 'direct' });
 });
