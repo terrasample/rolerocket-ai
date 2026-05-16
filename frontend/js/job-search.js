@@ -5,6 +5,8 @@ document.addEventListener('DOMContentLoaded', function () {
   const results = document.getElementById('searchResults');
   const queryInput = document.getElementById('searchQuery');
   const followedBar = document.getElementById('followedEmployersBar');
+  const heroTitle = document.querySelector('.hero h1');
+  const heroSubtitle = document.querySelector('.hero p');
   let activeLocation = '';
   let activeSalaryMin = 0;
 
@@ -671,8 +673,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     try {
       const boardQuery = parsed.keywordQuery || parsed.employerQuery || raw;
-      const endpoint = location
-        ? `/api/jobs/scout?${new URLSearchParams({ title: boardQuery, location: location, limit: '20' }).toString()}`
+      const useScout = opts.forceScout === true || !!location;
+      const endpoint = useScout
+        ? `/api/jobs/scout?${new URLSearchParams({ title: boardQuery, location: location || 'remote', limit: '200' }).toString()}`
         : `/api/jobs/board?q=${encodeURIComponent(boardQuery)}&limit=20`;
       const res = await fetch(endpoint);
       const data = await res.json();
@@ -698,11 +701,27 @@ document.addEventListener('DOMContentLoaded', function () {
   activeLocation = String(params.get('location') || '').trim();
   activeSalaryMin = resolveActiveSalaryMin(params);
   const source = String(params.get('source') || '').trim().toLowerCase();
+
+  if (source === 'dashboard-top-matches') {
+    if (heroTitle) heroTitle.textContent = 'View All Matches';
+    if (heroSubtitle) heroSubtitle.textContent = 'Review every live role tied to your dashboard match criteria and apply in one place.';
+    document.title = 'View All Matches | RoleRocket AI';
+  }
+
   if (source === 'dashboard-top-matches') {
     const initialLocation = activeLocation;
-    hydrateDashboardTopMatches(initialQuery, initialLocation).then(function (ok) {
-      if (!ok && initialQuery) runSearch(initialQuery, { fromMarket: false, location: initialLocation, salaryMin: activeSalaryMin });
-    });
+    if (initialQuery) {
+      runSearch(initialQuery, {
+        fromMarket: false,
+        location: initialLocation,
+        salaryMin: activeSalaryMin,
+        forceScout: true
+      });
+    } else {
+      hydrateDashboardTopMatches(initialQuery, initialLocation).then(function (ok) {
+        if (!ok && initialQuery) runSearch(initialQuery, { fromMarket: false, location: initialLocation, salaryMin: activeSalaryMin, forceScout: true });
+      });
+    }
     return;
   }
 
