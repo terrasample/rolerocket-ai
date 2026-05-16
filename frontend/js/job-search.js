@@ -85,42 +85,109 @@ document.addEventListener('DOMContentLoaded', function () {
     return { keywordQuery: text, employerQuery: '' };
   }
 
-  function parseSalaryNumber(value) {
-    if (typeof value === 'number' && Number.isFinite(value) && value > 0) return value;
+  function toFiniteNumber(value) {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  function pickFirstString() {
+    for (let i = 0; i < arguments.length; i += 1) {
+      const v = arguments[i];
+      if (typeof v === 'string' && v.trim()) return v.trim();
+    }
+    return '';
+  }
+
+  function annualizeIfHourly(amount, text) {
+    const value = toFiniteNumber(amount);
+    if (!(value > 0)) return 0;
+    const token = String(text || '').toLowerCase();
+    const hourlyHint = /\/\s*hr|per\s*hour|hourly|\bhr\b/.test(token);
+    if (hourlyHint) return Math.round(value * 2080);
+    return value;
+  }
+
+  function parseSalaryNumber(value, contextText) {
+    if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+      return annualizeIfHourly(value, contextText);
+    }
     if (typeof value !== 'string') return 0;
-    const numbers = value.replace(/,/g, '').match(/\d+(?:\.\d+)?/g);
-    if (!numbers || !numbers.length) return 0;
-    const parsed = numbers.map(function (n) { return Number(n); }).filter(function (n) {
+    const text = value.trim();
+    if (!text) return 0;
+
+    const kMatches = text.match(/\b\d+(?:\.\d+)?\s*k\b/gi) || [];
+    const expandedK = kMatches.map(function (entry) {
+      const raw = Number(String(entry).replace(/k/gi, '').trim());
+      return Number.isFinite(raw) ? raw * 1000 : 0;
+    }).filter(function (n) { return n > 0; });
+
+    const plainNums = text.replace(/,/g, '').match(/\d+(?:\.\d+)?/g) || [];
+    const parsedNums = plainNums.map(function (n) { return Number(n); }).filter(function (n) {
       return Number.isFinite(n) && n > 0;
     });
+
+    const parsed = expandedK.concat(parsedNums);
     if (!parsed.length) return 0;
-    return Math.max.apply(null, parsed);
+
+    const max = Math.max.apply(null, parsed);
+    return annualizeIfHourly(max, text + ' ' + String(contextText || ''));
+  }
+
+  function normalizeSalaryRange(job) {
+    const salaryRange = job && job.salaryRange;
+    const rawMin = toFiniteNumber(salaryRange && salaryRange.min)
+      || toFiniteNumber(job && (job.salaryMin || job.salary_min));
+    const rawMax = toFiniteNumber(salaryRange && salaryRange.max)
+      || toFiniteNumber(job && (job.salaryMax || job.salary_max));
+    const rawEstimated = toFiniteNumber(salaryRange && salaryRange.estimated);
+    const text = pickFirstString(
+      job && job.salary,
+      job && job.compensation,
+      job && job.pay,
+      job && job.salaryText,
+      job && job.description
+    );
+
+    const parsedTextSalary = parseSalaryNumber(text, text);
+    const min = annualizeIfHourly(rawMin, text);
+    const max = annualizeIfHourly(rawMax, text);
+    const estimated = annualizeIfHourly(rawEstimated, text);
+    const best = Math.max(min, max, estimated, parsedTextSalary);
+
+    if (!(best > 0)) return null;
+
+    return {
+      min: min > 0 ? min : Math.max(0, best),
+      max: max > 0 ? max : Math.max(0, best),
+      estimated: estimated > 0 ? estimated : Math.max(0, best),
+      currency: pickFirstString(salaryRange && salaryRange.currency, job && job.currency) || 'USD'
+    };
+  }
+
+  function normalizeJob(job) {
+    const base = (job && typeof job === 'object') ? job : {};
+    const salaryRange = normalizeSalaryRange(base);
+    return {
+      ...base,
+      title: pickFirstString(base.title, base.jobTitle, base.position, base.roleTitle) || 'Untitled Job',
+      company: pickFirstString(base.company, base.employer, base.companyName, base.organization) || 'Unknown Company',
+      location: pickFirstString(base.location, base.cityState, base.region, base.place) || 'Unknown Location',
+      link: pickFirstString(base.link, base.applyLink, base.applyUrl, base.url, base.jobUrl, base.sourceUrl) || '#',
+      employmentType: pickFirstString(base.employmentType, base.jobType, base.type),
+      experienceLevel: pickFirstString(base.experienceLevel, base.seniority, base.level),
+      source: pickFirstString(base.source, base.provider, base.board),
+      postedAt: pickFirstString(base.postedAt, base.publishedAt, base.datePosted),
+      salaryRange: salaryRange || base.salaryRange || null
+    };
   }
 
   function extractJobSalaryMax(job) {
-    if (!job || typeof job !== 'object') return 0;
-
-    const salaryRange = job.salaryRange;
-    const rangeMin = Number(salaryRange && salaryRange.min) || 0;
-    const rangeMax = Number(salaryRange && salaryRange.max) || 0;
-    const rangeEstimated = Number(salaryRange && salaryRange.estimated) || 0;
-
-    let maxSalary = Math.max(rangeMax, rangeMin, rangeEstimated);
-
-    if (!(maxSalary > 0)) {
-      const directMax = Number(job.salaryMax || job.salary_max || 0);
-      const directMin = Number(job.salaryMin || job.salary_min || 0);
-      maxSalary = Math.max(directMax, directMin);
-    }
-
-    if (!(maxSalary > 0)) {
-      maxSalary = Math.max(
-        parseSalaryNumber(job.salary),
-        parseSalaryNumber(job.compensation),
-        parseSalaryNumber(job.pay)
-      );
-    }
-
+    const normalized = normalizeJob(job);
+    const salaryRange = normalized.salaryRange || {};
+    const rangeMin = toFiniteNumber(salaryRange.min);
+    const rangeMax = toFiniteNumber(salaryRange.max);
+    const rangeEstimated = toFiniteNumber(salaryRange.estimated);
+    const maxSalary = Math.max(rangeMax, rangeMin, rangeEstimated);
     return maxSalary > 0 ? maxSalary : 0;
   }
 
@@ -153,7 +220,7 @@ document.addEventListener('DOMContentLoaded', function () {
       };
     }
 
-    const base = Array.isArray(jobs) ? jobs : [];
+    const base = (Array.isArray(jobs) ? jobs : []).map(normalizeJob);
     const known = [];
     const matched = [];
 
@@ -332,7 +399,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const searchSeed = keywordQuery || employerQuery || parsedQuery.raw;
 
     if (Array.isArray(jobs) && jobs.length > 0) {
-      const sorted = sortJobsByEmployerMatch(jobs, employerQuery);
+      const normalizedJobs = jobs.map(normalizeJob);
+      const sorted = sortJobsByEmployerMatch(normalizedJobs, employerQuery);
       const filtered = employerQuery
         ? sorted.filter(function (job) {
             const company = normalizeCompanyName(job && job.company);
