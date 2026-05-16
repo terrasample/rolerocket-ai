@@ -1256,8 +1256,11 @@
 
       const params = new URLSearchParams(window.location.search);
       const demoMode = params.get('demo') === 'true';
+      const isRelogin = params.get('relogin') === '1';
+      const isSessionExpired = params.get('session-expired') === '1';
       const forceCinematic = params.get('cinematic') === '1' || demoMode;
       const seenKey = 'rr_login_cinematic_seen';
+      const hasSeenCinematic = sessionStorage.getItem(seenKey) === '1' || localStorage.getItem(seenKey) === '1';
 
       const timers = [];
       const clearTimers = () => {
@@ -1298,6 +1301,12 @@
         if (passEl) passEl.autocomplete = 'current-password';
       };
 
+      const skipCinematic = () => {
+        clearTimers();
+        replayBtn.hidden = true;
+        hideOverlay();
+      };
+
       const runSequence = () => {
         clearTimers();
         overlay.hidden = false;
@@ -1330,9 +1339,15 @@
 
       window.playRoleRocketCinematic = runSequence;
 
+      if (!forceCinematic && (isRelogin || isSessionExpired || hasSeenCinematic)) {
+        skipCinematic();
+        return;
+      }
+
       // A slight delay improves reliability on some browsers/dev tools refresh flows.
       setTimeout(runSequence, 250);
-      sessionStorage.setItem(seenKey, '1');
+      try { sessionStorage.setItem(seenKey, '1'); } catch (_e) {}
+      try { localStorage.setItem(seenKey, '1'); } catch (_e) {}
     })();
   </script>
 

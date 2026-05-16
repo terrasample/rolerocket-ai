@@ -282,7 +282,7 @@ document.getElementById('logoutBtn')?.addEventListener('click', () => {
   } else {
     localStorage.removeItem('token');
   }
-  window.location.href = 'index.html';
+  window.location.href = 'login.html?relogin=1';
 });
 
 loadAnalytics();
