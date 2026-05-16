@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const queryInput = document.getElementById('searchQuery');
   const followedBar = document.getElementById('followedEmployersBar');
   let activeLocation = '';
+  let activeSalaryMin = 0;
 
   const FOLLOWED_EMPLOYERS_KEY = 'rr_followed_employers_v1';
   const DASHBOARD_TOP_MATCHES_KEY = 'rr_dashboard_top_matches_v1';
@@ -82,6 +83,109 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     return { keywordQuery: text, employerQuery: '' };
+  }
+
+  function parseSalaryNumber(value) {
+    if (typeof value === 'number' && Number.isFinite(value) && value > 0) return value;
+    if (typeof value !== 'string') return 0;
+    const numbers = value.replace(/,/g, '').match(/\d+(?:\.\d+)?/g);
+    if (!numbers || !numbers.length) return 0;
+    const parsed = numbers.map(function (n) { return Number(n); }).filter(function (n) {
+      return Number.isFinite(n) && n > 0;
+    });
+    if (!parsed.length) return 0;
+    return Math.max.apply(null, parsed);
+  }
+
+  function extractJobSalaryMax(job) {
+    if (!job || typeof job !== 'object') return 0;
+
+    const salaryRange = job.salaryRange;
+    const rangeMin = Number(salaryRange && salaryRange.min) || 0;
+    const rangeMax = Number(salaryRange && salaryRange.max) || 0;
+    const rangeEstimated = Number(salaryRange && salaryRange.estimated) || 0;
+
+    let maxSalary = Math.max(rangeMax, rangeMin, rangeEstimated);
+
+    if (!(maxSalary > 0)) {
+      const directMax = Number(job.salaryMax || job.salary_max || 0);
+      const directMin = Number(job.salaryMin || job.salary_min || 0);
+      maxSalary = Math.max(directMax, directMin);
+    }
+
+    if (!(maxSalary > 0)) {
+      maxSalary = Math.max(
+        parseSalaryNumber(job.salary),
+        parseSalaryNumber(job.compensation),
+        parseSalaryNumber(job.pay)
+      );
+    }
+
+    return maxSalary > 0 ? maxSalary : 0;
+  }
+
+  function resolveActiveSalaryMin(params) {
+    const fromUrl = Number(params.get('salaryMin') || params.get('minSalary') || 0) || 0;
+    if (fromUrl > 0) return Math.round(fromUrl);
+
+    try {
+      const draft = JSON.parse(localStorage.getItem('rr_profile_draft_v1') || 'null');
+      const fromDraft = Number(draft && draft.salaryMin) || 0;
+      if (fromDraft > 0) return Math.round(fromDraft);
+    } catch (_) {
+      // ignore malformed local storage
+    }
+
+    return 0;
+  }
+
+  function applySalaryFilter(jobs, salaryMin) {
+    const min = Number(salaryMin || 0) || 0;
+    if (!(min > 0)) {
+      return {
+        jobs: Array.isArray(jobs) ? jobs : [],
+        minSalary: 0,
+        matchedKnownCount: 0,
+        knownSalaryCount: 0,
+        unknownSalaryCount: 0,
+        filterApplied: false,
+        filterBypassed: false
+      };
+    }
+
+    const base = Array.isArray(jobs) ? jobs : [];
+    const known = [];
+    const matched = [];
+
+    base.forEach(function (job) {
+      const maxSalary = extractJobSalaryMax(job);
+      if (maxSalary > 0) {
+        known.push(job);
+        if (maxSalary >= min) matched.push(job);
+      }
+    });
+
+    if (!known.length) {
+      return {
+        jobs: base,
+        minSalary: min,
+        matchedKnownCount: 0,
+        knownSalaryCount: 0,
+        unknownSalaryCount: base.length,
+        filterApplied: false,
+        filterBypassed: true
+      };
+    }
+
+    return {
+      jobs: matched,
+      minSalary: min,
+      matchedKnownCount: matched.length,
+      knownSalaryCount: known.length,
+      unknownSalaryCount: Math.max(0, base.length - known.length),
+      filterApplied: true,
+      filterBypassed: false
+    };
   }
 
   function renderFollowedEmployersBar() {
@@ -222,6 +326,7 @@ document.addEventListener('DOMContentLoaded', function () {
   function renderJobs(jobs, parsedQuery, options) {
     const fromMarket = options.fromMarket === true;
     const locationQuery = String(options.location || activeLocation || '').trim();
+    const salaryMeta = options.salaryMeta || null;
     const employerQuery = parsedQuery.employerQuery;
     const keywordQuery = parsedQuery.keywordQuery;
     const searchSeed = keywordQuery || employerQuery || parsedQuery.raw;
@@ -238,7 +343,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
       const finalList = filtered.length ? filtered : sorted;
 
+      const salaryBanner = salaryMeta && salaryMeta.minSalary > 0
+        ? '<div style="margin-bottom:10px;color:#334155;font-size:.95rem;">' +
+            (salaryMeta.filterBypassed
+              ? 'Salary filter set to <strong>$' + safeHtml(String(Math.round(salaryMeta.minSalary)).replace(/\B(?=(\d{3})+(?!\d))/g, ',')) + '+</strong>, but salary data is unavailable for these listings, so all results are shown.'
+              : 'Salary filter: <strong>$' + safeHtml(String(Math.round(salaryMeta.minSalary)).replace(/\B(?=(\d{3})+(?!\d))/g, ',')) + '+</strong> (' + safeHtml(String(salaryMeta.matchedKnownCount)) + ' matches with salary data, ' + safeHtml(String(salaryMeta.unknownSalaryCount)) + ' with unknown salary).') +
+          '</div>'
+        : '';
+
       results.innerHTML =
+        salaryBanner +
         (employerQuery
           ? '<div style="margin-bottom:10px;color:#334155;font-size:.95rem;">Showing employer-focused results for <strong>' + safeHtml(employerQuery) + '</strong>.</div>'
           : '') +
@@ -273,6 +387,12 @@ document.addEventListener('DOMContentLoaded', function () {
         });
       });
 
+      return;
+    }
+
+    if (salaryMeta && salaryMeta.minSalary > 0 && salaryMeta.filterApplied && salaryMeta.knownSalaryCount > 0) {
+      results.innerHTML = '<div style="margin-bottom:8px;font-weight:700;">No current jobs match a salary floor of <strong>$' + safeHtml(String(Math.round(salaryMeta.minSalary)).replace(/\B(?=(\d{3})+(?!\d))/g, ',')) + '+</strong>.</div>' +
+        '<div style="color:#475569;font-size:.95rem;line-height:1.6;">We found <strong>' + safeHtml(String(salaryMeta.knownSalaryCount)) + '</strong> jobs with salary data, but none met that minimum. Try lowering the salary floor or broadening the role title.</div>';
       return;
     }
 
@@ -442,6 +562,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const opts = options || {};
     const raw = String(explicitQuery || queryInput?.value || '').trim();
     const location = String(opts.location || activeLocation || '').trim();
+    const salaryMin = Number(opts.salaryMin || activeSalaryMin || 0) || 0;
     if (!raw) {
       results.innerHTML = '<div style="color:#dc2626;">Please enter a search term.</div>';
       return;
@@ -452,6 +573,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (queryInput) queryInput.value = raw;
     if (location) activeLocation = location;
+    if (salaryMin > 0) activeSalaryMin = salaryMin;
 
     // Legacy market links should jump directly to a live source listing.
     if (opts.fromMarket) {
@@ -486,7 +608,8 @@ document.addEventListener('DOMContentLoaded', function () {
         : `/api/jobs/board?q=${encodeURIComponent(boardQuery)}&limit=20`;
       const res = await fetch(endpoint);
       const data = await res.json();
-      renderJobs(Array.isArray(data.jobs) ? data.jobs : [], parsed, { ...opts, location: location });
+      const salaryMeta = applySalaryFilter(Array.isArray(data.jobs) ? data.jobs : [], salaryMin);
+      renderJobs(salaryMeta.jobs, parsed, { ...opts, location: location, salaryMeta: salaryMeta });
     } catch (_err) {
       results.innerHTML = '<div style="color:#dc2626;">Error searching for jobs.</div>';
     }
@@ -505,14 +628,15 @@ document.addEventListener('DOMContentLoaded', function () {
   const params = new URLSearchParams(window.location.search);
   const initialQuery = params.get('q') || params.get('query') || params.get('employer') || '';
   activeLocation = String(params.get('location') || '').trim();
+  activeSalaryMin = resolveActiveSalaryMin(params);
   const source = String(params.get('source') || '').trim().toLowerCase();
   if (source === 'dashboard-top-matches') {
     const initialLocation = activeLocation;
     hydrateDashboardTopMatches(initialQuery, initialLocation).then(function (ok) {
-      if (!ok && initialQuery) runSearch(initialQuery, { fromMarket: false, location: initialLocation });
+      if (!ok && initialQuery) runSearch(initialQuery, { fromMarket: false, location: initialLocation, salaryMin: activeSalaryMin });
     });
     return;
   }
 
-  if (initialQuery) runSearch(initialQuery, { fromMarket: source === 'market', location: activeLocation });
+  if (initialQuery) runSearch(initialQuery, { fromMarket: source === 'market', location: activeLocation, salaryMin: activeSalaryMin });
 });
