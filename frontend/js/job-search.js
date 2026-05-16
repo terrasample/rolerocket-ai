@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const results = document.getElementById('searchResults');
   const queryInput = document.getElementById('searchQuery');
   const followedBar = document.getElementById('followedEmployersBar');
+  let activeLocation = '';
 
   const FOLLOWED_EMPLOYERS_KEY = 'rr_followed_employers_v1';
   const DASHBOARD_TOP_MATCHES_KEY = 'rr_dashboard_top_matches_v1';
@@ -220,6 +221,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function renderJobs(jobs, parsedQuery, options) {
     const fromMarket = options.fromMarket === true;
+    const locationQuery = String(options.location || activeLocation || '').trim();
     const employerQuery = parsedQuery.employerQuery;
     const keywordQuery = parsedQuery.keywordQuery;
     const searchSeed = keywordQuery || employerQuery || parsedQuery.raw;
@@ -274,9 +276,11 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
 
-    const encoded = encodeURIComponent(String(searchSeed || '').trim());
-    const linkedInUrl = `https://www.linkedin.com/jobs/search/?keywords=${encoded}`;
-    const googleUrl = `https://www.google.com/search?q=${encoded}+jobs+Jamaica`;
+    const linkedInParams = new URLSearchParams({ keywords: String(searchSeed || '').trim() });
+    if (locationQuery) linkedInParams.set('location', locationQuery);
+    const linkedInUrl = `https://www.linkedin.com/jobs/search/?${linkedInParams.toString()}`;
+    const googleTerms = [String(searchSeed || '').trim(), 'jobs', locationQuery].filter(Boolean).join(' ');
+    const googleUrl = `https://www.google.com/search?q=${encodeURIComponent(googleTerms)}`;
 
     results.innerHTML = `
       <div style="margin-bottom:8px;font-weight:700;">${fromMarket ? `Find <strong>${safeHtml(searchSeed)}</strong> jobs now:` : `${searchSeed ? `<strong>${safeHtml(searchSeed)}</strong>` : 'This search'} has no current match in the internal partner board.`}</div>
@@ -437,6 +441,7 @@ document.addEventListener('DOMContentLoaded', function () {
   async function runSearch(explicitQuery, options) {
     const opts = options || {};
     const raw = String(explicitQuery || queryInput?.value || '').trim();
+    const location = String(opts.location || activeLocation || '').trim();
     if (!raw) {
       results.innerHTML = '<div style="color:#dc2626;">Please enter a search term.</div>';
       return;
@@ -446,12 +451,13 @@ document.addEventListener('DOMContentLoaded', function () {
     parsed.raw = raw;
 
     if (queryInput) queryInput.value = raw;
+    if (location) activeLocation = location;
 
     // Legacy market links should jump directly to a live source listing.
     if (opts.fromMarket) {
       try {
         const title = parsed.keywordQuery || parsed.employerQuery || raw;
-        const params = new URLSearchParams({ title: title, location: 'Jamaica', limit: '1' });
+        const params = new URLSearchParams({ title: title, location: location || 'remote', limit: '1' });
         const res = await fetch(`/api/jobs/scout?${params.toString()}`);
         if (res.ok) {
           const payload = await res.json();
@@ -471,13 +477,16 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
 
-    results.innerHTML = 'Searching live jobs...';
+    results.innerHTML = location ? `Searching live jobs in ${safeHtml(location)}...` : 'Searching live jobs...';
 
     try {
       const boardQuery = parsed.keywordQuery || parsed.employerQuery || raw;
-      const res = await fetch(`/api/jobs/board?q=${encodeURIComponent(boardQuery)}&limit=20`);
+      const endpoint = location
+        ? `/api/jobs/scout?${new URLSearchParams({ title: boardQuery, location: location, limit: '20' }).toString()}`
+        : `/api/jobs/board?q=${encodeURIComponent(boardQuery)}&limit=20`;
+      const res = await fetch(endpoint);
       const data = await res.json();
-      renderJobs(Array.isArray(data.jobs) ? data.jobs : [], parsed, opts);
+      renderJobs(Array.isArray(data.jobs) ? data.jobs : [], parsed, { ...opts, location: location });
     } catch (_err) {
       results.innerHTML = '<div style="color:#dc2626;">Error searching for jobs.</div>';
     }
@@ -495,14 +504,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
   const params = new URLSearchParams(window.location.search);
   const initialQuery = params.get('q') || params.get('query') || params.get('employer') || '';
+  activeLocation = String(params.get('location') || '').trim();
   const source = String(params.get('source') || '').trim().toLowerCase();
   if (source === 'dashboard-top-matches') {
-    const initialLocation = params.get('location') || '';
+    const initialLocation = activeLocation;
     hydrateDashboardTopMatches(initialQuery, initialLocation).then(function (ok) {
-      if (!ok && initialQuery) runSearch(initialQuery, { fromMarket: false });
+      if (!ok && initialQuery) runSearch(initialQuery, { fromMarket: false, location: initialLocation });
     });
     return;
   }
 
-  if (initialQuery) runSearch(initialQuery, { fromMarket: source === 'market' });
+  if (initialQuery) runSearch(initialQuery, { fromMarket: source === 'market', location: activeLocation });
 });
