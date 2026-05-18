@@ -1397,6 +1397,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
       (experience.bullets || []).forEach((bullet) => {
         const normalizedBullet = normalizeBulletText(bullet);
+        if (/^(skills?|core skills?|key skills?)\b/i.test(normalizedBullet)) return;
+
         if (isLikelyStandaloneSkillBullet(normalizedBullet)) {
           relocatedSkills.push(...filterAndCleanSkills([normalizedBullet]));
           return;
@@ -1433,6 +1435,50 @@ document.addEventListener('DOMContentLoaded', function () {
       ...model,
       experiences: nextExperiences,
       skills: mergedSkills
+    };
+  }
+
+  function cleanSectionBleed(structured) {
+    const model = structured || {};
+    const relocatedSkills = [];
+
+    const nextEducation = [];
+    let educationInSkillsBlock = false;
+
+    (model.education || []).forEach((line) => {
+      const normalized = normalizeBulletText(line);
+      if (!normalized) return;
+
+      if (/^(skills?|core skills?|key skills?)\b/i.test(normalized)) {
+        educationInSkillsBlock = true;
+        return;
+      }
+
+      if (educationInSkillsBlock) {
+        const extracted = filterAndCleanSkills([normalized]);
+        if (extracted.length) {
+          relocatedSkills.push(...extracted);
+          return;
+        }
+      }
+
+      nextEducation.push(normalized);
+    });
+
+    const nextExperiences = (model.experiences || []).map((experience) => ({
+      ...experience,
+      bullets: (experience.bullets || [])
+        .map((bullet) => normalizeBulletText(bullet))
+        .filter((bullet) => bullet && !/^(skills?|core skills?|key skills?)\b/i.test(bullet))
+    }));
+
+    const nextSkills = filterAndCleanSkills([...(model.skills || []), ...relocatedSkills]);
+
+    return {
+      ...model,
+      experiences: nextExperiences,
+      education: nextEducation,
+      skills: nextSkills
     };
   }
 
@@ -2677,7 +2723,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
       structured.education = formatEducationEntries(structured.education);
       structured.profile = sanitizeProfileText(structured.profile);
-      const normalizedStructured = relocateSkillStatementsFromExperience(structured);
+      const normalizedStructured = cleanSectionBleed(relocateSkillStatementsFromExperience(structured));
 
       lastStructuredResume = buildResumeModel(normalizedStructured, jobTitle);
       output.innerHTML = renderResumeTemplate(lastStructuredResume);
