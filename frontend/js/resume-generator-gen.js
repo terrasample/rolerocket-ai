@@ -803,7 +803,14 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function isLikelyRoleTitle(value) {
-    return /^(project|program|product|operations|construction|mechanical|software|systems)?\s*(manager|engineer|director|analyst|consultant|specialist|coordinator|supervisor|lead)\b/i.test(String(value || '').trim());
+    const normalized = String(value || '').trim();
+    if (!normalized || normalized.length > 80) return false;
+    if (/[|,@\d]/.test(normalized)) return false;
+    if (/\b(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec|present|current|now)\b/i.test(normalized)) {
+      return false;
+    }
+
+    return /\b(manager|engineer|director|analyst|consultant|specialist|coordinator|supervisor|lead|administrator|assistant|associate|intern|technician|developer|designer|representative|officer|executive)\b/i.test(normalized);
   }
 
   function isLikelyNameLine(line) {
@@ -1317,10 +1324,15 @@ document.addEventListener('DOMContentLoaded', function () {
       return text;
     };
 
+    const rawTitle = normalizeBulletText(experience.title || '');
+    const fallbackCompany = !normalizeBulletText(experience.company || '') && isLikelyExperienceHeaderLine(rawTitle)
+      ? normalizeCompanyDateLine(rawTitle)
+      : '';
+
     return {
       ...experience,
-      title: capitalizeJobTitle(experience.title || ''),
-      company: normalizeCompanyDateLine(experience.company || ''),
+      title: fallbackCompany ? '' : capitalizeJobTitle(rawTitle),
+      company: normalizeCompanyDateLine(experience.company || fallbackCompany || ''),
       bullets: (experience.bullets || [])
         .map((bullet) => normalizeBulletText(bullet))
         .filter((bullet) => bullet && !isResumeSpilloverLine(bullet))
@@ -1487,6 +1499,39 @@ document.addEventListener('DOMContentLoaded', function () {
       experiences: nextExperiences,
       education: nextEducation,
       skills: nextSkills
+    };
+  }
+
+  function repairExperienceBoundaries(structured) {
+    const model = structured || {};
+    const experiences = (model.experiences || []).map((experience) => ({
+      ...experience,
+      bullets: Array.isArray(experience.bullets) ? [...experience.bullets] : []
+    }));
+
+    for (let index = 0; index < experiences.length - 1; index += 1) {
+      const current = experiences[index];
+      const next = experiences[index + 1];
+      const lastBullet = normalizeBulletText((current.bullets || []).slice(-1)[0]);
+
+      if (!lastBullet || !next || normalizeBulletText(next.company)) continue;
+      if (!isLikelyExperienceHeaderLine(next.title || '')) continue;
+
+      const titleMatch = lastBullet.match(/\b([A-Z][A-Za-z&/\-]*(?:\s+[A-Z][A-Za-z&/\-]*){0,4})$/);
+      const trailingTitle = normalizeBulletText(titleMatch ? titleMatch[1] : '');
+      if (!trailingTitle || !isLikelyRoleTitle(trailingTitle)) continue;
+
+      const trimmedBullet = normalizeBulletText(lastBullet.slice(0, lastBullet.length - trailingTitle.length));
+      if (!trimmedBullet) continue;
+
+      current.bullets[current.bullets.length - 1] = trimmedBullet;
+      next.company = normalizeBulletText(next.title || '');
+      next.title = trailingTitle;
+    }
+
+    return {
+      ...model,
+      experiences
     };
   }
 
@@ -2744,7 +2789,7 @@ document.addEventListener('DOMContentLoaded', function () {
       structured.education = formatEducationEntries(structured.education);
       structured.profile = sanitizeProfileText(structured.profile);
       const normalizedStructured = normalizeStateAbbreviationsInStructured(
-        cleanSectionBleed(relocateSkillStatementsFromExperience(structured))
+        repairExperienceBoundaries(cleanSectionBleed(relocateSkillStatementsFromExperience(structured)))
       );
 
       lastStructuredResume = buildResumeModel(normalizedStructured, jobTitle);
