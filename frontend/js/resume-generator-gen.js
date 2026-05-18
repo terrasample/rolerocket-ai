@@ -1311,8 +1311,9 @@ document.addEventListener('DOMContentLoaded', function () {
       text = text.replace(/\b((?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*\s+\d{4})\s+((?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*\s+\d{4}|\d{4}|present|current|now)\b/gi, '$1 - $2');
       text = text.replace(/\b(\d{4})\s+(\d{4}|present|current|now)\b/gi, '$1 - $2');
       text = normalizeStateAbbreviations(text);
-      // Direct fix: ensure any two-letter code after comma+city is uppercase (e.g. "Newark, Nj" -> "Newark, NJ")
-      text = text.replace(/,\s+([A-Za-z]+),\s+([A-Za-z]{2})\b/g, (match, city, state) => `, ${city}, ${state.toUpperCase()}`);
+      // Brute force: ensure all state abbreviations are uppercase before pipes and spaces
+      // Catches patterns like ", ny", ", Ny", ", NY", etc.
+      text = text.replace(/,\s*([A-Za-z]{2})(?=\s*[\|,]|$)/g, (match, state) => `, ${state.toUpperCase()}`);
       return text;
     };
 
