@@ -12,7 +12,7 @@
     "mobile:ios:open": "npx cap open ios"
   },
   "engines": {
-    "node": "18"
+    "node": ">=20 <21"
   },
   "dependencies": {
     "@capacitor/core": "^8.3.0",

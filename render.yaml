@@ -9,6 +9,8 @@ services:
       # ── Runtime ────────────────────────────────────────────────────────────
       - key: NODE_ENV
         value: production
+      - key: NODE_VERSION
+        value: 20.18.0
       - key: CLIENT_URL
         value: https://www.rolerocketai.com
 
