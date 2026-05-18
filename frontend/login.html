@@ -527,10 +527,6 @@
           <h2 class="login-chooser-title">Welcome to RoleRocket</h2>
           <p class="login-chooser-subtitle">Choose how you want to continue.</p>
         </div>
-        <div class="login-chooser-theme-switch" role="tablist" aria-label="Chooser theme preview">
-          <button type="button" class="login-theme-btn active" id="themeGoldBtn" role="tab" aria-selected="true">Luxury Dark + Gold</button>
-          <button type="button" class="login-theme-btn" id="themePlatinumBtn" role="tab" aria-selected="false">Clean Light + Platinum</button>
-        </div>
         <div class="login-chooser-actions">
           <button type="button" id="newCustomerBtn" class="login-choice-btn">
             <strong>I'm New Here</strong>
@@ -1245,12 +1241,10 @@
       const replayBtn = document.getElementById('loginCinematicReplay');
       const chooser = document.getElementById('loginCustomerChooser');
       const chooserCard = document.getElementById('loginChooserCard');
-      const themeGoldBtn = document.getElementById('themeGoldBtn');
-      const themePlatinumBtn = document.getElementById('themePlatinumBtn');
       const newCustomerBtn = document.getElementById('newCustomerBtn');
       const existingCustomerBtn = document.getElementById('existingCustomerBtn');
       const skipChooserBtn = document.getElementById('skipChooserBtn');
-      if (!overlay || !countEl || !replayBtn || !chooser || !chooserCard || !themeGoldBtn || !themePlatinumBtn || !newCustomerBtn || !existingCustomerBtn || !skipChooserBtn) return;
+      if (!overlay || !countEl || !replayBtn || !chooser || !chooserCard || !newCustomerBtn || !existingCustomerBtn || !skipChooserBtn) return;
 
       const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -1267,15 +1261,6 @@
         while (timers.length) {
           clearTimeout(timers.pop());
         }
-      };
-
-      const setChooserTheme = (theme) => {
-        const usePlatinum = theme === 'platinum';
-        chooserCard.setAttribute('data-theme', usePlatinum ? 'platinum' : 'gold');
-        themeGoldBtn.classList.toggle('active', !usePlatinum);
-        themePlatinumBtn.classList.toggle('active', usePlatinum);
-        themeGoldBtn.setAttribute('aria-selected', usePlatinum ? 'false' : 'true');
-        themePlatinumBtn.setAttribute('aria-selected', usePlatinum ? 'true' : 'false');
       };
 
       const showChooser = () => {
@@ -1312,7 +1297,7 @@
         overlay.hidden = false;
         overlay.classList.remove('launch', 'reveal', 'choose');
         resetChooser();
-        setChooserTheme('gold');
+        chooserCard.setAttribute('data-theme', 'gold');
         countEl.textContent = '3';
 
         timers.push(setTimeout(() => { countEl.textContent = '2'; }, 1200));
@@ -1320,8 +1305,6 @@
         timers.push(setTimeout(() => { showChooser(); }, prefersReducedMotion ? 3200 : 3600));
       };
 
-      themeGoldBtn.addEventListener('click', () => setChooserTheme('gold'));
-      themePlatinumBtn.addEventListener('click', () => setChooserTheme('platinum'));
       skipChooserBtn.addEventListener('click', hideOverlay);
       newCustomerBtn.addEventListener('click', () => {
         window.location.href = 'signup.html';
