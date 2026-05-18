@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', function () {
   let lastCover = '';
   let lastCoverMeta = { name: '', phone: '', email: '' };
   let coverCreditStatus = null;
+  let userPlan = 'free';
 
   function escapeHtml(value) {
     return String(value || '')
@@ -74,6 +75,59 @@ document.addEventListener('DOMContentLoaded', function () {
     const creditLabel = `${Number(status.paidCredits || 0)} paid credit${Number(status.paidCredits || 0) === 1 ? '' : 's'} available`;
     billingStatus.textContent = `${freeLabel}. ${creditLabel}.`;
     setBillingButtonsDisabled(false);
+  }
+
+  function toUserFriendlyNetworkMessage(message, fallback) {
+    const raw = String(message || '').trim();
+    if (/failed to fetch|networkerror|load failed|network request failed/i.test(raw)) {
+      return 'Cannot reach billing server right now. Please retry in a moment.';
+    }
+    if (/no token|unauthorized|forbidden|auth/i.test(raw)) {
+      return 'Please log in to load your credit balance.';
+    }
+    return raw || fallback;
+  }
+
+  function normalizePlan(plan) {
+    const normalized = String(plan || 'free').toLowerCase();
+    const validPlans = { free: 1, pro: 1, premium: 1, elite: 1, lifetime: 1 };
+    return validPlans[normalized] ? normalized : 'free';
+  }
+
+  function updateCoverTierTitle() {
+    const tierTitleEl = document.getElementById('coverTierTitle');
+    if (!tierTitleEl) return;
+
+    const normalized = normalizePlan(userPlan);
+    const tierLabels = {
+      free: 'Free Tier: First cover letter is free',
+      pro: 'Pro Tier: Unlimited cover letters available',
+      premium: 'Premium Tier: Unlimited cover letters available',
+      elite: 'Elite Tier: Unlimited cover letters available',
+      lifetime: 'Lifetime Tier: Unlimited cover letters available'
+    };
+
+    tierTitleEl.textContent = tierLabels[normalized] || tierLabels.free;
+  }
+
+  async function loadCurrentPlan() {
+    const token = getAuthToken();
+    if (!token) {
+      userPlan = 'free';
+      return;
+    }
+
+    try {
+      const res = await fetch(getApiEndpoint('/api/me'), {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      userPlan = normalizePlan(data?.user?.plan || 'free');
+      updateCoverTierTitle();
+    } catch (err) {
+      userPlan = 'free';
+    }
   }
 
   function toUserFriendlyNetworkMessage(message, fallback) {
@@ -667,7 +721,7 @@ document.addEventListener('DOMContentLoaded', function () {
     startCreditCheckout('ten');
   });
 
-  loadCoverCreditStatus().catch((error) => {
+  loadCurrentPlan().then(() => loadCoverCreditStatus()).catch((error) => {
     if (billingStatus) {
       billingStatus.textContent = toUserFriendlyNetworkMessage(
         error && error.message,

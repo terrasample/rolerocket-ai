@@ -349,6 +349,22 @@ document.addEventListener('DOMContentLoaded', function () {
     return 'Elite unlocks all 9 layouts plus unlimited dynamic refreshes.';
   }
 
+  function updateResumeTierTitle(plan) {
+    const tierTitleEl = document.getElementById('resumeTierTitle');
+    if (!tierTitleEl) return;
+    
+    const normalized = normalizePlan(plan);
+    const tierLabels = {
+      free: 'Free Tier: First daily resume is free',
+      pro: 'Pro Tier: Unlimited resumes available',
+      premium: 'Premium Tier: Unlimited resumes available',
+      elite: 'Elite Tier: Unlimited resumes available',
+      lifetime: 'Lifetime Tier: Unlimited resumes available'
+    };
+    
+    tierTitleEl.textContent = tierLabels[normalized] || tierLabels.free;
+  }
+
   function loadSelectedLayoutId() {
     try {
       return sessionStorage.getItem(layoutSelectionKey) || '';
@@ -744,6 +760,7 @@ document.addEventListener('DOMContentLoaded', function () {
     loadTemplateState();
     await loadTemplateStateFromServer();
     await loadCurrentPlan();
+    updateResumeTierTitle(userPlan);
     await loadLatestLearningRoadmap();
     learningRoadmapAppliedFromSession = loadSelectedLearningRoadmapFromSession();
     selectedLayoutId = getDefaultLayoutId();
