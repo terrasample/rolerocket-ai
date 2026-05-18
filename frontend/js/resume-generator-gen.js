@@ -1397,6 +1397,12 @@ document.addEventListener('DOMContentLoaded', function () {
     return true;
   }
 
+  function isExplicitSkillDeclarationLine(value) {
+    const normalized = normalizeBulletText(value).replace(/^[.\-\s]+/, '');
+    if (!normalized) return false;
+    return shouldRelocateSkillSentence(normalized) || /^skill(?:ed)?\s+in\b/i.test(normalized);
+  }
+
   function isLikelyStandaloneSkillBullet(bullet) {
     const normalized = normalizeBulletText(bullet);
     if (!normalized) return false;
@@ -1993,7 +1999,7 @@ document.addEventListener('DOMContentLoaded', function () {
   function sentenceBullets(text) {
     return String(text || '')
       .split(/(?<=[.!?])\s+/)
-      .map((line) => normalizeBulletText(line))
+        .filter((bullet) => bullet && !isResumeSpilloverLine(bullet) && !isExplicitSkillDeclarationLine(bullet))
       .filter(Boolean);
   }
 
@@ -2051,7 +2057,7 @@ document.addEventListener('DOMContentLoaded', function () {
               return `
               <div style="margin-bottom:16px;">
                 <div style="font-size:15px;font-weight:700;color:#111827;margin-bottom:2px;">${escapeHtml(processed.title || processed.heading || '')}</div>
-                ${processed.company ? `<div style="font-size:13px;font-weight:400;color:#6b7280;margin-bottom:4px;">${escapeHtml(processed.company)}</div>` : ''}
+                ${processed.company ? `<div style="font-size:15px;font-weight:400;color:#6b7280;margin-bottom:4px;">${escapeHtml(processed.company)}</div>` : ''}
                 ${renderBulletListHtml(processed.bullets || [], '12pt', '#374151', '6px')}
               </div>
             `;
@@ -2093,7 +2099,7 @@ document.addEventListener('DOMContentLoaded', function () {
               return `
               <div style="margin-bottom:16px;">
                 <div style="font-size:15px;font-weight:700;color:#111827;margin-bottom:2px;">${escapeHtml(processed.title || processed.heading || '')}</div>
-                ${processed.company ? `<div style="font-size:13px;font-weight:400;color:#6b7280;margin-bottom:4px;">${escapeHtml(processed.company)}</div>` : ''}
+                ${processed.company ? `<div style="font-size:15px;font-weight:400;color:#6b7280;margin-bottom:4px;">${escapeHtml(processed.company)}</div>` : ''}
                 ${renderBulletListHtml(processed.bullets || [], '12pt', '#374151', '6px')}
               </div>
             `;
@@ -2136,7 +2142,7 @@ document.addEventListener('DOMContentLoaded', function () {
               return `
               <div style="margin-bottom:16px;">
                 <div style="font-size:15px;font-weight:700;color:#111827;margin-bottom:2px;">${escapeHtml(processed.title || processed.heading || '')}</div>
-                ${processed.company ? `<div style="font-size:13px;font-weight:400;color:#6b7280;margin-bottom:4px;">${escapeHtml(processed.company)}</div>` : ''}
+                ${processed.company ? `<div style="font-size:15px;font-weight:400;color:#6b7280;margin-bottom:4px;">${escapeHtml(processed.company)}</div>` : ''}
                 ${renderBulletListHtml(processed.bullets || [], '12pt', '#374151', '6px')}
               </div>
             `;
@@ -2173,7 +2179,7 @@ document.addEventListener('DOMContentLoaded', function () {
             return `
             <div style="margin-bottom:12px;">
               <div style="font-weight:600;">${escapeHtml(processed.title || '')}</div>
-              ${processed.company ? `<div style="font-size:13px; color:#555;">${escapeHtml(processed.company)}</div>` : ''}
+              ${processed.company ? `<div style="font-size:15px; color:#555;">${escapeHtml(processed.company)}</div>` : ''}
               ${renderBulletList((processed.bullets || []).slice(0, 3))}
             </div>
           `;
@@ -2484,7 +2490,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
       if (processed.company) {
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(9);
+        doc.setFontSize(12);
         doc.setTextColor(107, 114, 128);
         wrapped = doc.splitTextToSize(processed.company, rightW);
         doc.text(wrapped, rightX, rightY);
