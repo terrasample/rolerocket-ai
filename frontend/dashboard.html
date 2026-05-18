@@ -1504,6 +1504,7 @@
               }
 
               var scopedJobs = [];
+              var persistedScopedJobs = [];
 
               var buildTopMatchesLink = function() {
                 var linkParams = new URLSearchParams({ source: 'dashboard-top-matches' });
@@ -1515,11 +1516,26 @@
               var rankJobsForDashboard = function(jobList) {
                 return jobList.map(function(job) {
                   var haystack = [job.title, job.company, job.description, job.location].join(' ').toLowerCase();
+                  var titleHaystack = String(job && job.title || '').toLowerCase();
                   var locationHaystack = [job && job.location, job && job.city, job && job.region, job && job.state, job && job.country].join(' ').toLowerCase();
                   var sourceScore = Math.max(0, Math.min(100, Number(job.matchScore || 0)));
-                  var score = sourceScore * 0.45;
+                  var score = sourceScore * 0.35;
                   var reasons = [];
                   var salaryFloorMet = jobMeetsSalaryFloor(job);
+
+                  var targetTitle = String(primaryScoutTitle || '').toLowerCase().trim();
+                  var targetTokens = targetTitle.split(/[^a-z0-9]+/).filter(function(token) { return token.length > 2; });
+                  if (targetTokens.length) {
+                    var tokenHits = targetTokens.filter(function(token) { return titleHaystack.indexOf(token) !== -1; }).length;
+                    var titleCoverage = tokenHits / targetTokens.length;
+                    if (titleCoverage > 0) {
+                      score += Math.round(titleCoverage * 16);
+                      reasons.push(titleCoverage >= 0.8 ? 'Title alignment' : 'Partial title alignment');
+                    }
+                    if (targetTitle && titleHaystack.indexOf(targetTitle) !== -1) {
+                      score += 6;
+                    }
+                  }
 
                   var remoteSignal = /\bremote\b|work\s*from\s*home|distributed/.test(haystack);
                   var hasLocalitySignal = false;
@@ -1692,7 +1708,8 @@
 
                 var salaryMatchedRanked = ranked.filter(function(item) { return item.salaryFloorMet; });
                 var preferredRanked = salaryMatchedRanked.length ? salaryMatchedRanked : ranked;
-                scopedJobs = preferredRanked.slice(0, 6).map(function(item) { return item.job; });
+                persistedScopedJobs = preferredRanked.map(function(item) { return item.job; });
+                scopedJobs = persistedScopedJobs.slice(0, 6);
               }
 
               if (!scopedJobs.length) {
@@ -1707,7 +1724,8 @@
                 var fallbackRanked = rankJobsForDashboard(scopedJobs);
                 var fallbackSalaryMatchedRanked = fallbackRanked.filter(function(item) { return item.salaryFloorMet; });
                 var fallbackPreferredRanked = fallbackSalaryMatchedRanked.length ? fallbackSalaryMatchedRanked : fallbackRanked;
-                scopedJobs = fallbackPreferredRanked.slice(0, 6).map(function(item) { return item.job; });
+                persistedScopedJobs = fallbackPreferredRanked.map(function(item) { return item.job; });
+                scopedJobs = persistedScopedJobs.slice(0, 6);
               }
 
               if (scopedJobs.length) {
@@ -1742,12 +1760,16 @@
                     return '';
                   };
 
+                  var payloadJobs = (Array.isArray(persistedScopedJobs) && persistedScopedJobs.length)
+                    ? persistedScopedJobs
+                    : scopedJobs;
+
                   var topMatchesPayload = {
                     source: 'dashboard',
                     createdAt: Date.now(),
                     query: primaryScoutTitle,
                     location: panelLocationQuery,
-                    jobs: scopedJobs.map(function(jobItem) {
+                    jobs: payloadJobs.map(function(jobItem) {
                       var directLink = pickAnyHttpLink(jobItem);
                       return {
                         title: toSafeText(jobItem && jobItem.title, 'Role'),
@@ -1845,6 +1867,7 @@
               } else if (isJamaicaExperience) {
                 fallback = fallback.filter(isJamaicaCompatibleJob);
               }
+              persistedScopedJobs = fallback.slice();
               fallback = fallback.slice(0, 6);
               if (fallback.length) {
                 var directFallback = fallback.map(function(j) {

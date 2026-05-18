@@ -566,7 +566,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const cards = jobs.map(function (job) {
       const fit = Number(job.fitScore || 0);
-      const fitText = Number.isFinite(fit) ? Math.max(0, Math.min(96, Math.round(fit))) : 0;
+      const fitText = Number.isFinite(fit) ? Math.max(0, Math.min(100, Math.round(fit))) : 0;
       const externalLink = String(job.link || '').trim();
       const safeLink = /^https?:\/\//i.test(externalLink) ? externalLink : '#';
 
@@ -750,19 +750,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
   if (source === 'dashboard-top-matches') {
     const initialLocation = activeLocation;
-    if (initialQuery) {
-      runSearch(initialQuery, {
-        fromMarket: false,
-        location: initialLocation,
-        salaryMin: activeSalaryMin,
-        forceScout: true,
-        source: 'dashboard-top-matches'
-      });
-    } else {
-      hydrateDashboardTopMatches(initialQuery, initialLocation).then(function (ok) {
-        if (!ok && initialQuery) runSearch(initialQuery, { fromMarket: false, location: initialLocation, salaryMin: activeSalaryMin, forceScout: true, source: 'dashboard-top-matches' });
-      });
-    }
+    hydrateDashboardTopMatches(initialQuery, initialLocation).then(function (ok) {
+      if (!ok && initialQuery) {
+        runSearch(initialQuery, {
+          fromMarket: false,
+          location: initialLocation,
+          salaryMin: activeSalaryMin,
+          forceScout: true,
+          source: 'dashboard-top-matches'
+        });
+      }
+    });
     return;
   }
 
