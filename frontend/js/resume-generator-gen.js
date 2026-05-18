@@ -1491,12 +1491,27 @@ document.addEventListener('DOMContentLoaded', function () {
       nextEducation.push(normalized);
     });
 
-    const nextExperiences = (model.experiences || []).map((experience) => ({
-      ...experience,
-      bullets: (experience.bullets || [])
-        .map((bullet) => normalizeBulletText(bullet))
-        .filter((bullet) => bullet && !/^(skills?|core skills?|key skills?)\b/i.test(bullet))
-    }));
+    const nextExperiences = (model.experiences || [])
+      .map((experience) => {
+        const normalizedTitle = normalizeBulletText(experience.title || '');
+        const normalizedCompany = normalizeBulletText(experience.company || '');
+        const nextBullets = (experience.bullets || [])
+          .map((bullet) => normalizeBulletText(bullet))
+          .filter((bullet) => bullet && !/^(skills?|core skills?|key skills?)\b/i.test(bullet));
+
+        if (isExplicitSkillDeclarationLine(normalizedTitle)) {
+          relocatedSkills.push(...filterAndCleanSkills([normalizedTitle]));
+          if (!normalizedCompany && !nextBullets.length) return null;
+        }
+
+        return {
+          ...experience,
+          title: isExplicitSkillDeclarationLine(normalizedTitle) ? '' : normalizedTitle,
+          company: normalizedCompany,
+          bullets: nextBullets
+        };
+      })
+      .filter((experience) => experience && (experience.title || experience.company || (experience.bullets || []).length));
 
     const nextSkills = filterAndCleanSkills([...(model.skills || []), ...relocatedSkills]);
 
