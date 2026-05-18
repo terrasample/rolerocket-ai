@@ -1165,7 +1165,7 @@ document.addEventListener('DOMContentLoaded', function () {
           .replace(/^(proficient|skill(?:ed)?|experience|experienced|knowledge(?:able)?|expertise|familiar)\s+in\s+/i, '')
           .trim();
 
-        return cleanedSegment.split(/[,;]|\s+and\s+/i);
+        return cleanedSegment.split(/[,;]/);
       })
       .map((item) => normalizeBulletText(item))
       .map((item) => item.replace(/^\b(in|with|using|on|for)\b\s+/i, '').trim())
@@ -1543,18 +1543,17 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function alignSkillsToJobDescription(structured, jobDescription, sourceResumeText = '') {
-    const targetSkills = extractSkillsFromJobDescription(jobDescription);
-    const matchedSkills = extractMatchedSkillsFromSource(jobDescription, sourceResumeText);
-    const existingSkills = (structured.skills || []).map((skill) => normalizeBulletText(skill)).filter(Boolean);
-    const specificExistingSkills = existingSkills.filter((skill) => !isGenericSkill(skill));
-    const combinedSkills = [...matchedSkills, ...targetSkills, ...specificExistingSkills];
+    const existingSkills = filterAndCleanSkills((structured.skills || []).map((skill) => normalizeBulletText(skill)).filter(Boolean));
+    const sourceSkills = filterAndCleanSkills(extractInlineSkillsFromResumeText(sourceResumeText));
+    const combinedSkills = [...sourceSkills, ...existingSkills].map((skill) => normalizeBulletText(skill)).filter(Boolean);
 
     if (combinedSkills.length) {
       structured.skills = [...new Set(combinedSkills)].slice(0, 12);
       return structured;
     }
 
-    structured.skills = ['Project Management', 'Cross-Functional Coordination', 'Customer-Facing Implementation'];
+    // Resume Generator should only show evidence-based skills from the candidate's resume.
+    structured.skills = [];
     return structured;
   }
 
@@ -1610,18 +1609,23 @@ document.addEventListener('DOMContentLoaded', function () {
       IMPROVEMENTS: -1
     };
 
-    lines.forEach((line, idx) => {
-      let key = line.replace(/[:\-]/g, '').trim().toUpperCase();
-      // Strip common prefixes from section headers (e.g., "CORE SKILLS" → "SKILLS")
-      key = key.replace(/^(CORE|PROFESSIONAL|MY|PRIMARY|ADDITIONAL|KEY)\s+/, '');
-      // Strip trailing inline dates from section headers (1+ spaces before date)
-      // Handles: "SUMMARY  11/2023-Present", "SUMMARY 2015-2022", "EXPERIENCE 01/2020"
+    const canonicalSectionKey = (rawLine) => {
+      let key = String(rawLine || '').replace(/[:\-]/g, ' ').trim().toUpperCase();
+      key = key.replace(/\s+/g, ' ');
+      key = key.replace(/^(CORE|PROFESSIONAL|MY|PRIMARY|ADDITIONAL|KEY|TECHNICAL|RELEVANT|OTHER|HARD|SOFT|STRENGTHS?)\s+/, '');
+      key = key.replace(/\s+(SECTIONS?|AREA|SUMMARY|LIST)$/g, '').trim();
       key = key.replace(/\s+((?:\d{1,2}\/|\d{4})\S*).*$/, '').trim();
-      // Alias SUMMARY → PROFILE (some resumes use "Summary" instead of "Profile")
-      if (key === 'SUMMARY') key = 'PROFILE';
-      // Alias WORK → EXPERIENCE for "WORK HISTORY"/"WORK EXPERIENCE" variants
-      if (key === 'WORK') key = 'EXPERIENCE';
-      if (key === 'HISTORY') key = 'EXPERIENCE';
+
+      if (key === 'SUMMARY') return 'PROFILE';
+      if (key === 'WORK' || key === 'HISTORY') return 'EXPERIENCE';
+      if (/SKILLS?|COMPETENC(Y|IES)|CORE COMPETENC(Y|IES)|TECHNICAL SKILLS?/.test(key)) return 'SKILLS';
+      if (/CERTIFICATIONS?|LICENSES?/.test(key)) return 'CERTIFICATIONS';
+
+      return key;
+    };
+
+    lines.forEach((line, idx) => {
+      const key = canonicalSectionKey(line);
       if (Object.prototype.hasOwnProperty.call(sectionIndex, key)) sectionIndex[key] = idx;
     });
 
@@ -1649,8 +1653,11 @@ document.addEventListener('DOMContentLoaded', function () {
       : findNameInLines(lines);
 
     const fallbackName = cleanCandidateName(fallbackFromBase.fullName);
-    if (!fallbackName && cleanCandidateName(parsedName)) {
-      structured.fullName = cleanCandidateName(parsedName);
+    const normalizedParsedName = cleanCandidateName(parsedName);
+    if (normalizedParsedName) {
+      structured.fullName = normalizedParsedName;
+    } else if (fallbackName) {
+      structured.fullName = fallbackName;
     }
 
     // Matches lines like: "Company  1/2021-11/2023", "Company  2015-2022", "Company  Jan 2020 – Present"
