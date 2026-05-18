@@ -1227,12 +1227,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function normalizeStateAbbreviations(value) {
     let result = String(value || '');
-    // First pass: Match comma-separated states with word boundary
-    result = result.replace(/,\s*([A-Za-z]{2})(?=\b)/g, (_, abbr) => `, ${String(abbr).toUpperCase()}`);
-    // Second pass: Catch any remaining two-letter sequences after commas (fallback)
-    result = result.replace(/,\s*([a-z]{2})\s/g, (match, abbr) => `, ${String(abbr).toUpperCase()} `);
-    // Third pass: Handle end-of-string cases like ", nj|" 
-    result = result.replace(/,\s*([a-z]{2})(?=[|,\s]|$)/g, (match, abbr) => `, ${String(abbr).toUpperCase()}`);
+    // Match any two-letter sequence that could be a state abbreviation
+    // Capture it and ensure both letters are uppercase
+    result = result.replace(/\b([A-Za-z]{2})\b(?=[|\s,]|$)/g, (match, abbr) => String(abbr).toUpperCase());
     return result;
   }
 
@@ -1313,7 +1310,10 @@ document.addEventListener('DOMContentLoaded', function () {
       text = text.replace(/\s*\|\s*(?=((?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*\s+\d{4}|\d{4}|present|current|now))/gi, ' | ');
       text = text.replace(/\b((?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*\s+\d{4})\s+((?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*\s+\d{4}|\d{4}|present|current|now)\b/gi, '$1 - $2');
       text = text.replace(/\b(\d{4})\s+(\d{4}|present|current|now)\b/gi, '$1 - $2');
-      return normalizeStateAbbreviations(text);
+      text = normalizeStateAbbreviations(text);
+      // Direct fix: ensure any two-letter code after comma+city is uppercase (e.g. "Newark, Nj" -> "Newark, NJ")
+      text = text.replace(/,\s+([A-Za-z]+),\s+([A-Za-z]{2})\b/g, (match, city, state) => `, ${city}, ${state.toUpperCase()}`);
+      return text;
     };
 
     return {
