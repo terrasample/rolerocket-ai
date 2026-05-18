@@ -146,6 +146,29 @@ router.post('/upload', authenticateToken, upload.single('resumeFile'), async (re
 // ----------------------
 // Generate AI Resume
 // ----------------------
+
+function normalizeResumeText(text) {
+  if (!text) return '';
+  
+  // Normalize line endings
+  text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  
+  // Fix incomplete date ranges: "January 2023 - December" → "January 2023 - December 2023"
+  text = text.replace(/(\b(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4})\s*[-–]\s*(January|February|March|April|May|June|July|August|September|October|November|December)\b(?!\s+\d{4})/gi, 
+    (match, startDate, endMonth) => {
+      const year = startDate.split(/\s+/).pop();
+      return `${startDate} - ${endMonth} ${year}`;
+    });
+  
+  // Consolidate multiple empty lines
+  text = text.replace(/\n\n\n+/g, '\n\n');
+  
+  // Trim whitespace
+  text = text.trim();
+  
+  return text;
+}
+
 router.post('/generate', authenticateToken, async (req, res) => {
   const { jobDescription, resume } = req.body;
 
@@ -169,6 +192,9 @@ router.post('/generate', authenticateToken, async (req, res) => {
 
     await consumeDocumentGeneration(user, 'resume');
 
+    // Normalize resume text for better parsing
+    const normalizedResume = resume ? normalizeResumeText(resume) : '';
+
     // Call OpenAI to generate improved resume
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
@@ -178,14 +204,16 @@ router.post('/generate', authenticateToken, async (req, res) => {
         {
           role: 'system',
           content: `
-You are a senior resume writer and ATS specialist.
+You are a senior resume writer and ATS specialist. Your goal is to produce precise, fact-based, recruiter-friendly resumes.
 
-${resume ? `Your task:
+${normalizedResume ? `Your task:
 1) Rewrite the candidate's base resume so it is tailored to the target role.
 2) Keep every claim strictly fact-based from the provided resume; do not invent, add, or assume any employers, job titles, dates, tools, certifications, or skills that are not explicitly stated in the resume.
 3) Only list skills that appear in the resume OR are directly stated as requirements in the job description — never infer tools or credentials.
 4) Remove placeholders and generic filler text.
-5) Preserve the candidate's real full name exactly as it appears in the source resume.` : `Your task:
+5) Preserve the candidate's real full name exactly as it appears in the source resume.
+6) Ensure all date ranges are complete (e.g., "January 2023 - December 2023", not "January 2023 - December").
+7) Validate that experience entries have both start and end dates or "Present".` : `Your task:
 1) Create a resume TEMPLATE tailored to the target role using only the job description provided.
 2) CRITICAL: Do NOT invent any real employers, company names, job titles held, dates, schools, certifications, or tools. Every experience and education entry must be a clearly labelled placeholder the user will fill in.
 3) Only list skills that are explicitly stated in the job description.
@@ -196,18 +224,25 @@ Output requirements:
 - Never use placeholder names such as "Candidate Name" or "Your Name" unless no resume was provided.
 - Use this exact section order when available:
   NAME
-  CONTACT (email | phone | city/state | links if provided)
-  PROFILE
-  EXPERIENCE
-  EDUCATION
-  SKILLS
+  CONTACT (email | phone | city, state | LinkedIn/portfolio if provided)
+  PROFILE (2-3 lines max)
+  EXPERIENCE (each with complete date range: Month Year - Month Year or Month Year - Present)
+  EDUCATION (degree, institution, graduation date)
+  SKILLS (comma-separated, grouped by category if relevant)
+  CERTIFICATIONS (if applicable)
   AWARDS (only if provided)
-- EXPERIENCE must use measurable bullets where possible.${resume ? '' : '\n- When no resume is provided, EXPERIENCE entries must use obvious placeholders like "[Job Title] | [Company Name] | [City, State] | [Month Year – Month Year]" so the user knows exactly what to replace.'}
-- Keep lines concise and recruiter-friendly.
-- Do not include markdown code fences.
+- EXPERIENCE section critical requirements:
+  * Each entry MUST have: [Job Title], [Company Name], [City, State] | [Month Year – Month Year]
+  * Use 3-5 achievement-focused bullets per role
+  * Bullets must contain specific metrics, outcomes, or technologies
+  * No generic filler text like "Responsible for" or "Worked on"
+  * Date ranges must be complete and consistent
+- Remove duplicate contact information or embedded phone/email in job descriptions
+- Keep lines concise and ATS-optimized
+- Do not include markdown code fences or special formatting
 - After the resume, append:
   IMPROVEMENTS:
-  - 3 to 6 short bullets explaining what was improved${resume ? '.' : ' or what the user should fill in.'}
+  - 3 to 6 short bullets explaining what was improved${normalizedResume ? ' and any discrepancies noticed.' : ' or what the user should fill in.'}
           `,
         },
         {
@@ -216,7 +251,7 @@ Output requirements:
 Job Description:
 ${jobDescription}
 
-${resume ? `Resume:\n${resume}` : 'No resume provided. Generate a resume template as instructed — use only placeholder entries for experience and education, and only include skills explicitly listed in the job description above.'}
+${normalizedResume ? `Provided Resume:\n${normalizedResume}` : 'No resume provided. Generate a resume template as instructed — use only placeholder entries for experience and education, and only include skills explicitly listed in the job description above.'}
           `,
         },
       ],
