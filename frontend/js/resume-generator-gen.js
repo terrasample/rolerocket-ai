@@ -1226,7 +1226,14 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function normalizeStateAbbreviations(value) {
-    return String(value || '').replace(/,\s*([A-Za-z]{2})(?=\b)/g, (_, abbr) => `, ${String(abbr).toUpperCase()}`);
+    let result = String(value || '');
+    // First pass: Match comma-separated states with word boundary
+    result = result.replace(/,\s*([A-Za-z]{2})(?=\b)/g, (_, abbr) => `, ${String(abbr).toUpperCase()}`);
+    // Second pass: Catch any remaining two-letter sequences after commas (fallback)
+    result = result.replace(/,\s*([a-z]{2})\s/g, (match, abbr) => `, ${String(abbr).toUpperCase()} `);
+    // Third pass: Handle end-of-string cases like ", nj|" 
+    result = result.replace(/,\s*([a-z]{2})(?=[|,\s]|$)/g, (match, abbr) => `, ${String(abbr).toUpperCase()}`);
+    return result;
   }
 
   function capitalizeJobTitle(title) {
@@ -1479,6 +1486,18 @@ document.addEventListener('DOMContentLoaded', function () {
       experiences: nextExperiences,
       education: nextEducation,
       skills: nextSkills
+    };
+  }
+
+  function normalizeStateAbbreviationsInStructured(structured) {
+    const model = structured || {};
+    return {
+      ...model,
+      experiences: (model.experiences || []).map((exp) => ({
+        ...exp,
+        company: normalizeStateAbbreviations(exp.company || '')
+      })),
+      education: (model.education || []).map((edu) => normalizeStateAbbreviations(edu || ''))
     };
   }
 
@@ -2723,7 +2742,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
       structured.education = formatEducationEntries(structured.education);
       structured.profile = sanitizeProfileText(structured.profile);
-      const normalizedStructured = cleanSectionBleed(relocateSkillStatementsFromExperience(structured));
+      const normalizedStructured = normalizeStateAbbreviationsInStructured(
+        cleanSectionBleed(relocateSkillStatementsFromExperience(structured))
+      );
 
       lastStructuredResume = buildResumeModel(normalizedStructured, jobTitle);
       output.innerHTML = renderResumeTemplate(lastStructuredResume);
