@@ -1119,13 +1119,9 @@ document.addEventListener('DOMContentLoaded', function () {
     return [
       /^team player$/i,
       /^collaborator$/i,
-      /^communication$/i,
-      /^oral and written communication$/i,
-      /^excellent oral and written communication$/i,
       /^creative thinking$/i,
       /^leadership$/i,
       /^strong work ethic$/i,
-      /^problem solving$/i,
       /^interpersonal$/i,
       /^organizational development$/i,
       /^good at/i,
@@ -1211,7 +1207,7 @@ document.addEventListener('DOMContentLoaded', function () {
       // Certifications & Credentials
       /\b(pmp|cissp|ccna|aws certified|gcp certified|azure certified|six sigma|scrum|agile|lean|prince2|itil|cia|cpa|cfa|six sigma|black belt|comptia)\b/i,
       // Soft Skills (legitimate ones)
-      /\b(project management|team leadership|stakeholder management|strategic planning|business analysis|consulting|negotiation|public speaking|presentation|writing|editing|translation)\b/i,
+      /\b(project management|team leadership|stakeholder management|strategic planning|business analysis|consulting|negotiation|public speaking|presentation|writing|editing|translation|collaboration|communication|oral communication|written communication|oral and written communication|critical thinking|problem solving|coordination|customer service|scheduling and planning|deadline management|meeting project deadlines)\b/i,
       // Domain Skills
       /\b(autocad|revit|solidworks|catia|matlab|mathematica|sas|spss|minitab|sap|oracle|salesforce|workday|servicenow|jira|confluence|slack|zoom|salesforce|hubspot)\b/i,
       // Finance & Accounting
@@ -1377,6 +1373,16 @@ document.addEventListener('DOMContentLoaded', function () {
     return true;
   }
 
+  function isLikelyStandaloneSkillBullet(bullet) {
+    const normalized = normalizeBulletText(bullet);
+    if (!normalized) return false;
+    if (normalized.split(/\s+/).length > 6) return false;
+    if (/\b(managed|manage|coordinated|coordinate|created|create|established|establish|interview|onboard|approve|approved|performed|perform|execute|executed)\b/i.test(normalized)) {
+      return false;
+    }
+    return isLikelySkill(normalized);
+  }
+
   function relocateSkillStatementsFromExperience(structured) {
     const model = structured || {};
     const relocatedSkills = [];
@@ -1385,6 +1391,12 @@ document.addEventListener('DOMContentLoaded', function () {
       const nextBullets = [];
 
       (experience.bullets || []).forEach((bullet) => {
+        const normalizedBullet = normalizeBulletText(bullet);
+        if (isLikelyStandaloneSkillBullet(normalizedBullet)) {
+          relocatedSkills.push(...filterAndCleanSkills([normalizedBullet]));
+          return;
+        }
+
         const sentences = String(bullet || '')
           .split(/(?<=[.!?])\s+/)
           .map((item) => normalizeBulletText(item))
