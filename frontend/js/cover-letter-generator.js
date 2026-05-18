@@ -56,6 +56,14 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  function updateCoverBillingActionVisibility(plan) {
+    const actions = document.getElementById('coverBillingActions');
+    if (!actions) return;
+
+    const normalized = normalizePlan(plan);
+    actions.style.display = normalized === 'free' ? 'flex' : 'none';
+  }
+
   function renderCoverCreditStatus(status) {
     coverCreditStatus = status || null;
     if (!billingStatus) return;
@@ -108,6 +116,7 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     tierTitleEl.textContent = tierLabels[normalized] || tierLabels.free;
+    updateCoverBillingActionVisibility(normalized);
   }
 
   async function loadCurrentPlan() {

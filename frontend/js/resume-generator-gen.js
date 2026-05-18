@@ -210,6 +210,15 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  function updateResumeBillingActionVisibility(plan) {
+    if (!billingPanel) return;
+    const actions = document.getElementById('resumeBillingActions');
+    if (!actions) return;
+
+    const normalized = normalizePlan(plan);
+    actions.style.display = normalized === 'free' ? 'flex' : 'none';
+  }
+
   function renderResumeCreditStatus(status) {
     if (!billingPanel || !billingStatus) return;
     resumeCreditStatus = status || null;
@@ -363,6 +372,7 @@ document.addEventListener('DOMContentLoaded', function () {
     };
     
     tierTitleEl.textContent = tierLabels[normalized] || tierLabels.free;
+    updateResumeBillingActionVisibility(normalized);
   }
 
   function loadSelectedLayoutId() {
