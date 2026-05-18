@@ -854,6 +854,21 @@ document.addEventListener('DOMContentLoaded', function () {
     return true;
   }
 
+  function isResumeSpilloverLine(value) {
+    const line = normalizeBulletText(value);
+    if (!line) return true;
+
+    if (/^(contact|key skills|skills|education|certifications?|awards|profile|summary|experience)\b/i.test(line)) {
+      return true;
+    }
+
+    if (/(contact|key skills|city:|state:|zip|email@example\.com|phone|email)/i.test(line) && /[A-Za-z]/.test(line)) {
+      return true;
+    }
+
+    return false;
+  }
+
   function isLikelyExperienceHeaderLine(value) {
     const line = normalizeBulletText(value);
     if (!line) return false;
@@ -873,6 +888,14 @@ document.addEventListener('DOMContentLoaded', function () {
     for (const rawLine of (lines || [])) {
       const line = String(rawLine || '').trim();
       if (!line) continue;
+
+      if (isResumeSpilloverLine(line)) {
+        if (currentBullet) {
+          result.push(currentBullet);
+          currentBullet = '';
+        }
+        continue;
+      }
 
       // Check if this line starts a new bullet or is a header/section
       const startsNewBullet = /^(•|[-*]|\d+[\.\)])\s/.test(line) || isLikelyExperienceHeaderLine(line);
@@ -913,6 +936,8 @@ document.addEventListener('DOMContentLoaded', function () {
     for (const rawLine of (lines || [])) {
       const line = rawLine.trim();
       if (!line) continue;
+
+      if (isResumeSpilloverLine(line)) continue;
 
       if (sectionBoundaryRx.test(line)) break;
 
@@ -963,6 +988,8 @@ document.addEventListener('DOMContentLoaded', function () {
     for (const rawLine of (joinedLines || [])) {
       const line = normalizeBulletText(rawLine);
       if (!line) continue;
+
+      if (isResumeSpilloverLine(line)) continue;
 
       if (isLikelyExperienceHeaderLine(line)) {
         if (current) entries.push(current);
@@ -1272,10 +1299,24 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function processExperienceForRender(experience) {
+    const normalizeCompanyDateLine = (value) => {
+      let text = normalizeBulletText(value);
+      if (!text) return '';
+
+      text = text.replace(/\s*\|\s*(?=((?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*\s+\d{4}|\d{4}|present|current|now))/gi, ' | ');
+      text = text.replace(/\b((?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*\s+\d{4})\s+((?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*\s+\d{4}|\d{4}|present|current|now)\b/gi, '$1 - $2');
+      text = text.replace(/\b(\d{4})\s+(\d{4}|present|current|now)\b/gi, '$1 - $2');
+      return text;
+    };
+
     return {
       ...experience,
       title: capitalizeJobTitle(experience.title || ''),
-      bullets: (experience.bullets || []).map(bullet => convertTenseToPast(bullet, experience.company || ''))
+      company: normalizeCompanyDateLine(experience.company || ''),
+      bullets: (experience.bullets || [])
+        .map((bullet) => normalizeBulletText(bullet))
+        .filter((bullet) => bullet && !isResumeSpilloverLine(bullet))
+        .map((bullet) => convertTenseToPast(bullet, experience.company || ''))
     };
   }
 
