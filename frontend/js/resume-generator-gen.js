@@ -210,13 +210,11 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  function updateResumeBillingActionVisibility(plan) {
-    if (!billingPanel) return;
-    const actions = document.getElementById('resumeBillingActions');
-    if (!actions) return;
-
-    const normalized = normalizePlan(plan);
-    actions.style.display = normalized === 'free' ? 'flex' : 'none';
+  function setBillingButtonsVisible(visible) {
+    [buySingleBtn, buyFiveBtn, buyTenBtn].forEach((btn) => {
+      if (!btn) return;
+      btn.style.display = visible ? '' : 'none';
+    });
   }
 
   function renderResumeCreditStatus(status) {
@@ -231,6 +229,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (status.unlimited) {
       billingStatus.textContent = 'Your current plan includes unlimited resume generations.';
       setBillingButtonsDisabled(true);
+      setBillingButtonsVisible(false);
       return;
     }
 
@@ -244,6 +243,7 @@ document.addEventListener('DOMContentLoaded', function () {
       : 'No paid purchases yet';
     billingStatus.textContent = `${freeLabel}. ${creditLabel}. ${activityLabel}.`;
     setBillingButtonsDisabled(false);
+    setBillingButtonsVisible(true);
   }
 
   async function loadResumeCreditStatus() {
@@ -372,7 +372,6 @@ document.addEventListener('DOMContentLoaded', function () {
     };
     
     tierTitleEl.textContent = tierLabels[normalized] || tierLabels.free;
-    updateResumeBillingActionVisibility(normalized);
   }
 
   function loadSelectedLayoutId() {

@@ -56,12 +56,11 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  function updateCoverBillingActionVisibility(plan) {
-    const actions = document.getElementById('coverBillingActions');
-    if (!actions) return;
-
-    const normalized = normalizePlan(plan);
-    actions.style.display = normalized === 'free' ? 'flex' : 'none';
+  function setBillingButtonsVisible(visible) {
+    [buySingleBtn, buyFiveBtn, buyTenBtn].forEach((btn) => {
+      if (!btn) return;
+      btn.style.display = visible ? '' : 'none';
+    });
   }
 
   function renderCoverCreditStatus(status) {
@@ -76,6 +75,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (status.unlimited) {
       billingStatus.textContent = 'Your current plan includes unlimited cover letter generations.';
       setBillingButtonsDisabled(true);
+      setBillingButtonsVisible(false);
       return;
     }
 
@@ -83,6 +83,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const creditLabel = `${Number(status.paidCredits || 0)} paid credit${Number(status.paidCredits || 0) === 1 ? '' : 's'} available`;
     billingStatus.textContent = `${freeLabel}. ${creditLabel}.`;
     setBillingButtonsDisabled(false);
+    setBillingButtonsVisible(true);
   }
 
   function toUserFriendlyNetworkMessage(message, fallback) {
@@ -116,7 +117,6 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     tierTitleEl.textContent = tierLabels[normalized] || tierLabels.free;
-    updateCoverBillingActionVisibility(normalized);
   }
 
   async function loadCurrentPlan() {
