@@ -1207,7 +1207,7 @@ document.addEventListener('DOMContentLoaded', function () {
       // Certifications & Credentials
       /\b(pmp|cissp|ccna|aws certified|gcp certified|azure certified|six sigma|scrum|agile|lean|prince2|itil|cia|cpa|cfa|six sigma|black belt|comptia)\b/i,
       // Soft Skills (legitimate ones)
-      /\b(project management|team leadership|stakeholder management|strategic planning|business analysis|consulting|negotiation|public speaking|presentation|writing|editing|translation|collaboration|communication|oral communication|written communication|oral and written communication|critical thinking|problem solving|coordination|customer service|scheduling and planning|deadline management|meeting project deadlines)\b/i,
+      /\b(project management|team leadership|stakeholder management|strategic planning|business analysis|consulting|negotiation|public speaking|presentation|writing|editing|translation|collaboration|communication|oral communication|written communication|oral and written communication|critical thinking|problem solving|coordination|customer service|scheduling and planning|deadline management|meeting project deadlines|workflow optimization)\b/i,
       // Domain Skills
       /\b(autocad|revit|solidworks|catia|matlab|mathematica|sas|spss|minitab|sap|oracle|salesforce|workday|servicenow|jira|confluence|slack|zoom|salesforce|hubspot)\b/i,
       // Finance & Accounting
@@ -1223,6 +1223,10 @@ document.addEventListener('DOMContentLoaded', function () {
     ];
     
     return skillPatterns.some(pattern => pattern.test(normalized));
+  }
+
+  function normalizeStateAbbreviations(value) {
+    return String(value || '').replace(/,\s*([A-Za-z]{2})(?=\b)/g, (_, abbr) => `, ${String(abbr).toUpperCase()}`);
   }
 
   function capitalizeJobTitle(title) {
@@ -1302,7 +1306,7 @@ document.addEventListener('DOMContentLoaded', function () {
       text = text.replace(/\s*\|\s*(?=((?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*\s+\d{4}|\d{4}|present|current|now))/gi, ' | ');
       text = text.replace(/\b((?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*\s+\d{4})\s+((?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*\s+\d{4}|\d{4}|present|current|now)\b/gi, '$1 - $2');
       text = text.replace(/\b(\d{4})\s+(\d{4}|present|current|now)\b/gi, '$1 - $2');
-      return text;
+      return normalizeStateAbbreviations(text);
     };
 
     return {
@@ -1377,6 +1381,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const normalized = normalizeBulletText(bullet);
     if (!normalized) return false;
     if (normalized.split(/\s+/).length > 6) return false;
+    if (/^[.\-\s]*skill(?:ed)?\s+in\b/i.test(normalized)) return true;
     if (/\b(managed|manage|coordinated|coordinate|created|create|established|establish|interview|onboard|approve|approved|performed|perform|execute|executed)\b/i.test(normalized)) {
       return false;
     }
@@ -1610,7 +1615,7 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     const canonicalSectionKey = (rawLine) => {
-      let key = String(rawLine || '').replace(/[:\-]/g, ' ').trim().toUpperCase();
+      let key = normalizeBulletText(String(rawLine || '')).replace(/[:\-]/g, ' ').trim().toUpperCase();
       key = key.replace(/\s+/g, ' ');
       key = key.replace(/^(CORE|PROFESSIONAL|MY|PRIMARY|ADDITIONAL|KEY|TECHNICAL|RELEVANT|OTHER|HARD|SOFT|STRENGTHS?)\s+/, '');
       key = key.replace(/\s+(SECTIONS?|AREA|SUMMARY|LIST)$/g, '').trim();
@@ -1840,7 +1845,7 @@ document.addEventListener('DOMContentLoaded', function () {
       i = j - 1;
     }
 
-    return mergeUniqueLines(formatted, []);
+    return mergeUniqueLines(formatted, []).map((line) => normalizeStateAbbreviations(line));
   }
 
   function sanitizeProfileText(profile) {
@@ -1890,6 +1895,14 @@ document.addEventListener('DOMContentLoaded', function () {
     `).join('');
   }
 
+  function renderLineListHtml(items, fontSize, color, marginBottom) {
+    return (items || []).map((item) => normalizeBulletText(item)).filter(Boolean).map((item) => `
+      <div style="font-size:${fontSize};line-height:1.6;color:${color};margin-bottom:${marginBottom};font-weight:400;">
+        <span style="font-weight:400;">${escapeHtml(item)}</span>
+      </div>
+    `).join('');
+  }
+
   function renderSectionHeading(label, theme, fontSize, extraStyles) {
     return `<div style="font-size:${fontSize};font-weight:800;letter-spacing:0.04em;color:${theme.headingText};margin-bottom:10px;${extraStyles || ''}">${label}</div>`;
   }
@@ -1933,7 +1946,7 @@ document.addEventListener('DOMContentLoaded', function () {
             `;
             }).join('')}
             ${renderSectionHeading('EDUCATION', theme, '16px', 'margin-top:14px;')}
-            ${renderBulletListHtml(model.education || [], '12pt', '#374151', '6px')}
+            ${renderLineListHtml(model.education || [], '12pt', '#374151', '6px')}
           </section>
         </div>
       </div>
@@ -1955,7 +1968,7 @@ document.addEventListener('DOMContentLoaded', function () {
             ${renderSectionHeading('SKILLS', { ...theme, headingText: '#ffffff' }, '15px', 'margin-top:22px;')}
             ${renderBulletListHtml((model.skills || []).slice(0, 8), '12pt', '#ffffff', '6px')}
             ${renderSectionHeading('EDUCATION', { ...theme, headingText: '#ffffff' }, '15px', 'margin-top:22px;')}
-            ${renderBulletListHtml(model.education || [], '12pt', '#ffffff', '6px')}
+            ${renderLineListHtml(model.education || [], '12pt', '#ffffff', '6px')}
           </aside>
           <section style="padding:26px 28px;">
             <div style="font-size:38px;line-height:1.05;font-weight:800;color:#111827;">${escapeHtml(name.first)}<span style="font-weight:500;">${escapeHtml(name.rest ? ' ' + name.rest : '')}</span></div>
@@ -2018,7 +2031,7 @@ document.addEventListener('DOMContentLoaded', function () {
             `;
             }).join('')}
             ${renderSectionHeading('EDUCATION', theme, '16px', 'margin:18px 0 8px 0;')}
-            ${renderBulletListHtml(model.education || [], '12pt', '#374151', '6px')}
+            ${renderLineListHtml(model.education || [], '12pt', '#374151', '6px')}
             ${renderSectionHeading('AWARDS', theme, '16px', 'margin:18px 0 8px 0;')}
             ${renderBulletListHtml(model.awards.length ? model.awards : ['N/A'], '12pt', '#374151', '6px')}
           </section>
@@ -2030,6 +2043,7 @@ document.addEventListener('DOMContentLoaded', function () {
   function renderTemplateBlank(model) {
     const escapeHtml = (v) => String(v || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     const renderBulletList = (items) => (items || []).map((item) => `<div style="margin-bottom:6px;font-size:12pt;">• ${escapeHtml(item)}</div>`).join('');
+    const renderLineList = (items) => (items || []).map((item) => `<div style="margin-bottom:6px;font-size:12pt;">${escapeHtml(item)}</div>`).join('');
     
     return `
       <div style="font-family:Arial, sans-serif; max-width:850px; margin:0 auto; padding:40px; background:#fff; color:#000; line-height:1.6;">
@@ -2057,7 +2071,7 @@ document.addEventListener('DOMContentLoaded', function () {
         
         ${model.education && model.education.length ? `<div style="margin-bottom:20px;">
           <div style="font-weight:bold; margin-bottom:8px; border-bottom:1px solid #ccc; padding-bottom:4px;">EDUCATION</div>
-          ${renderBulletList((model.education || []).slice(0, 5))}
+          ${renderLineList((model.education || []).slice(0, 5))}
         </div>` : ''}
         
         ${model.skills && model.skills.length ? `<div style="margin-bottom:20px;">
@@ -2343,11 +2357,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
     drawTitle('PROFESSIONAL EXPERIENCE');
     model.experiences.forEach((exp) => {
+      const processed = processExperienceForRender(exp);
       if (rightY > 272) {
         doc.addPage();
         rightY = 16;
       }
-      const expTitle = exp.title || exp.heading || '';
+      const expTitle = processed.title || processed.heading || '';
       if (expTitle) {
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(9.5);
@@ -2356,18 +2371,18 @@ document.addEventListener('DOMContentLoaded', function () {
         doc.text(wrapped, rightX, rightY);
         rightY += wrapped.length * 4.2;
       }
-      if (exp.company) {
+      if (processed.company) {
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(9);
         doc.setTextColor(107, 114, 128);
-        wrapped = doc.splitTextToSize(exp.company, rightW);
+        wrapped = doc.splitTextToSize(processed.company, rightW);
         doc.text(wrapped, rightX, rightY);
         rightY += wrapped.length * 4.2;
         doc.setTextColor(31, 41, 55);
       }
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(12);
-      (exp.bullets || []).forEach((bullet) => {
+      (processed.bullets || []).forEach((bullet) => {
         const cleanBullet = normalizeBulletText(bullet);
         if (!cleanBullet) return;
         const bulletWrapped = doc.splitTextToSize(`• ${cleanBullet}`, rightW);
@@ -2383,7 +2398,7 @@ document.addEventListener('DOMContentLoaded', function () {
     (model.education || []).forEach((line) => {
       const cleanLine = normalizeBulletText(line);
       if (!cleanLine) return;
-      wrapped = doc.splitTextToSize(`• ${cleanLine}`, rightW);
+      wrapped = doc.splitTextToSize(cleanLine, rightW);
       doc.text(wrapped, rightX, rightY);
       rightY += wrapped.length * 4.2;
     });
