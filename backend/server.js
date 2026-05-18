@@ -6865,7 +6865,7 @@ function hasRequiredPlan(user, requiredPlan) {
 
 function hasOneClickApplyAccess(user) {
   if (!user) return false;
-  return hasRequiredPlan(user, 'premium') || user.isSubscribed === true;
+  return hasRequiredPlan(user, 'premium');
 }
 
 function makeLinkedInSearchUrl(title = '', location = '') {

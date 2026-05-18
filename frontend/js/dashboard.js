@@ -300,7 +300,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         isRecruiter = userPlan && String(userPlan).toLowerCase().includes('recruiter');
       } catch {}
 
-      const fullyUnlocked = isAdmin || isLifetime || isSubscribed;
+      const fullyUnlocked = isAdmin || isLifetime;
       let maxTierIdx = fullyUnlocked ? getTierOrder('elite') : getTierOrder(userPlan);
       if (maxTierIdx === -1) maxTierIdx = 0;
 
@@ -601,14 +601,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   await loadDashboardIdentity();
 
-    // --- PATCH: Always show all feature sections for admin/lifetime/subscribed users ---
+    // --- PATCH: Always show all feature sections for admin/lifetime users ---
     try {
       const res = await fetch(apiPath('/api/me'), { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
       const isAdmin = isAdminUser(data.user);
       const isLifetime = data.user && data.user.plan === 'lifetime';
-      const isSubscribed = data.user && data.user.isSubscribed === true;
-      if (isAdmin || isLifetime || isSubscribed) {
+      if (isAdmin || isLifetime) {
         // Show all feature cards/sections if hidden
         document.querySelectorAll('.card, .feature-content, .pro-feature, .premium-feature, .elite-feature').forEach(el => {
           el.style.display = '';
@@ -629,7 +628,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
         // Optionally update any banners/messages
         const unlockMsg = document.getElementById('unlockStatusMsg');
-        if (unlockMsg) unlockMsg.textContent = 'All features unlocked (admin/lifetime/subscribed)';
+        if (unlockMsg) unlockMsg.textContent = 'All features unlocked (admin/lifetime)';
       }
     } catch (e) { /* ignore errors */ }
 
@@ -776,12 +775,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       const data = await res.json();
       const plan = (data.user && data.user.plan) || 'free';
       let tips = '';
-      // --- PATCH: Always unlock features for admin/lifetime/subscribed users ---
+      // --- PATCH: Always unlock features for admin/lifetime users ---
       const isAdmin = isAdminUser(data.user);
       const isLifetime = data.user && data.user.plan === 'lifetime';
-      const isSubscribed = data.user && data.user.isSubscribed === true;
-      if (isAdmin || isLifetime || isSubscribed) {
-        console.log('[DEBUG] Features forcibly unlocked for admin/lifetime/subscribed:', { email: data.user && data.user.email, plan: data.user && data.user.plan, isSubscribed: data.user && data.user.isSubscribed });
+      if (isAdmin || isLifetime) {
+        console.log('[DEBUG] Features forcibly unlocked for admin/lifetime:', { email: data.user && data.user.email, plan: data.user && data.user.plan, isSubscribed: data.user && data.user.isSubscribed });
         // Remove all feature locks, overlays, and enable all premium/pro/elite UI
         document.querySelectorAll('.feature-locked, .locked-overlay, .paywall, .upgrade-btn, .pro-lock, .premium-lock, .elite-lock').forEach(el => {
           el.classList.remove('feature-locked', 'locked-overlay', 'paywall', 'upgrade-btn', 'pro-lock', 'premium-lock', 'elite-lock');
@@ -802,8 +800,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
         // Optionally update any banners/messages
         const unlockMsg = document.getElementById('unlockStatusMsg');
-        if (unlockMsg) unlockMsg.textContent = 'All features unlocked (admin/lifetime/subscribed)';
-        tips = '<ul><li>All features unlocked (admin/lifetime/subscribed).</li></ul>';
+        if (unlockMsg) unlockMsg.textContent = 'All features unlocked (admin/lifetime)';
+        tips = '<ul><li>All features unlocked (admin/lifetime).</li></ul>';
       } else if (plan === 'pro') {
         tips = '<ul><li>Use Resume Generator to create tailored resumes.</li><li>Try Cover Letter Generator for each cover letter.</li></ul>';
       } else if (plan === 'premium') {
@@ -2158,8 +2156,8 @@ function planLevel(plan) {
 }
 
 function hasPlan(requiredPlan) {
-  // Always unlock for admin/lifetime/isSubscribed
-  if (currentUserPlan === 'lifetime' || window.currentUserIsSubscribed || window.currentUserIsAdmin) return true;
+  // Always unlock only for admin/lifetime.
+  if (currentUserPlan === 'lifetime' || window.currentUserIsAdmin) return true;
   return planLevel(currentUserPlan) >= planLevel(requiredPlan);
 }
 
@@ -2173,8 +2171,8 @@ function applyLocks() {
 
   lockableCards.forEach((card) => {
     const requiredPlan = card.dataset.plan;
-    // Always unlock for admin/lifetime/isSubscribed
-    if (currentUserPlan === 'lifetime' || window.currentUserIsSubscribed || window.currentUserIsAdmin) {
+    // Always unlock only for admin/lifetime.
+    if (currentUserPlan === 'lifetime' || window.currentUserIsAdmin) {
       card.classList.remove('locked-card');
       // Remove any overlay or disable state
       const overlay = card.querySelector('.locked-overlay');
@@ -2382,8 +2380,8 @@ async function loadUserPlan() {
       updateTodayRail();
       track('user_plan_loaded', 'activation', { plan: currentUserPlan });
 
-      // Hide all upgrade/paywall/stripe buttons for lifetime plan, admin, or any isSubscribed user
-      if (currentUserPlan === 'lifetime' || window.currentUserIsSubscribed || window.currentUserIsAdmin) {
+      // Hide all upgrade/paywall/stripe buttons for lifetime plan or admin.
+      if (currentUserPlan === 'lifetime' || window.currentUserIsAdmin) {
         const upgradeBtns = document.querySelectorAll('[id*="UpgradeCta"], .upgrade-btn, .paywall-btn, .stripe-btn, .unlock-btn');
         upgradeBtns.forEach(btn => btn.style.display = 'none');
         // Optionally hide any banners or messages
@@ -2394,7 +2392,7 @@ async function loadUserPlan() {
       }
 
       // If just upgraded, force reload or redirect to dashboard to show unlocked state
-      if (window.location.search.includes('upgraded=1') && (currentUserPlan === 'lifetime' || window.currentUserIsSubscribed || window.currentUserIsAdmin)) {
+      if (window.location.search.includes('upgraded=1') && (currentUserPlan === 'lifetime' || window.currentUserIsAdmin)) {
         window.location.href = 'dashboard.html';
       }
 
@@ -3656,8 +3654,7 @@ window.upgrade = async function upgrade(plan, triggerBtn) {
   // Block Stripe redirect for lifetime/admin users
   if (
     (typeof currentUserPlan !== 'undefined' && currentUserPlan === 'lifetime') ||
-    window.currentUserIsAdmin === true ||
-    window.currentUserIsSubscribed === true
+    window.currentUserIsAdmin === true
   ) {
     showToast('You already have full access. No payment required.', 'info');
     if (btn) clearButtonLoading(btn);
@@ -3706,8 +3703,7 @@ window.lifetime = async function lifetime(triggerBtn) {
   // Block Stripe redirect for lifetime/admin users
   if (
     (typeof currentUserPlan !== 'undefined' && currentUserPlan === 'lifetime') ||
-    window.currentUserIsAdmin === true ||
-    window.currentUserIsSubscribed === true
+    window.currentUserIsAdmin === true
   ) {
     showToast('You already have full access. No payment required.', 'info');
     if (btn) clearButtonLoading(btn);
