@@ -7,6 +7,14 @@ if (!token) {
   window.location.href = 'login.html';
 }
 
+function isIosNativeApp() {
+  return !!(
+    window.Capacitor &&
+    typeof window.Capacitor.getPlatform === 'function' &&
+    window.Capacitor.getPlatform() === 'ios'
+  );
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   const billingStatus = document.getElementById('billingStatus');
   const openPortalBtn = document.getElementById('openPortalBtn');
@@ -52,6 +60,11 @@ document.addEventListener('DOMContentLoaded', async () => {
           billingMsg.textContent = 'You already have full access. No payment required.';
           billingMsg.style.color = '#16a34a';
           openPortalBtn.disabled = true;
+          return;
+        }
+        if (isIosNativeApp()) {
+          billingMsg.textContent = 'Billing portal access is not available in the iOS app build. Please use the web version.';
+          billingMsg.style.color = '#64748b';
           return;
         }
       } catch {}

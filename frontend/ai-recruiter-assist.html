@@ -165,6 +165,14 @@
     </main>
   </div>
   <script>
+    function isIosNativeApp() {
+      return !!(
+        window.Capacitor &&
+        typeof window.Capacitor.getPlatform === 'function' &&
+        window.Capacitor.getPlatform() === 'ios'
+      );
+    }
+
     (async function syncRecruiterAccessState() {
       const token = typeof getStoredToken === 'function' ? getStoredToken() : localStorage.getItem('token');
       const planBadge = document.getElementById('planBadge');
@@ -187,6 +195,12 @@
       const screeningBtn = document.getElementById('runRecruiterScreeningBtn');
       const messagingBtn = document.getElementById('generateRecruiterMessageBtn');
       if (!planPill || !titleEl || !priceEl || !messageEl || !subscribeActions || !dashboardBtn || !recruiterDashboardSection) return;
+
+      if (isIosNativeApp()) {
+        subscribeActions.style.display = 'none';
+        messageEl.style.display = 'block';
+        messageEl.textContent = 'Purchases are disabled in this iOS app build. Use the web version for recruiter subscriptions.';
+      }
 
       const recruiterData = {
         project_manager: [

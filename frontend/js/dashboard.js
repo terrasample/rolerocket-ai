@@ -3649,8 +3649,21 @@ const priceIdToPlanMap = {
   price_1THMraKtQrGDcYVPytIyvklx: 'elite'
 };
 
+function isIosNativeAppRuntime() {
+  return !!(
+    window.Capacitor &&
+    typeof window.Capacitor.getPlatform === 'function' &&
+    window.Capacitor.getPlatform() === 'ios'
+  );
+}
+
 window.upgrade = async function upgrade(plan, triggerBtn) {
   const btn = triggerBtn || null;
+  if (isIosNativeAppRuntime()) {
+    showToast('Purchases are not available in the iOS app build. Please use the web version.', 'info');
+    if (btn) clearButtonLoading(btn);
+    return;
+  }
   // Block Stripe redirect for lifetime/admin users
   if (
     (typeof currentUserPlan !== 'undefined' && currentUserPlan === 'lifetime') ||
@@ -3700,6 +3713,11 @@ window.upgrade = async function upgrade(plan, triggerBtn) {
 
 window.lifetime = async function lifetime(triggerBtn) {
   const btn = triggerBtn || null;
+  if (isIosNativeAppRuntime()) {
+    showToast('Purchases are not available in the iOS app build. Please use the web version.', 'info');
+    if (btn) clearButtonLoading(btn);
+    return;
+  }
   // Block Stripe redirect for lifetime/admin users
   if (
     (typeof currentUserPlan !== 'undefined' && currentUserPlan === 'lifetime') ||
@@ -3780,6 +3798,10 @@ if (dashboardBillingBtn && !document.getElementById('dashboardBillingRefundNote'
 }
 
 document.getElementById('billingBtn')?.addEventListener('click', async () => {
+  if (isIosNativeAppRuntime()) {
+    showToast('Billing portal access is not available in the iOS app build. Please use the web version.', 'info');
+    return;
+  }
   const btn = document.getElementById('billingBtn');
   btn.disabled = true;
   btn.textContent = 'Loading...';

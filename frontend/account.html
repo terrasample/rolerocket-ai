@@ -151,6 +151,14 @@
     const copyReferralBtn = document.getElementById('copyReferralBtn');
     const copyReferralMessage = document.getElementById('copyReferralMessage');
 
+    function isIosNativeApp() {
+      return !!(
+        window.Capacitor &&
+        typeof window.Capacitor.getPlatform === 'function' &&
+        window.Capacitor.getPlatform() === 'ios'
+      );
+    }
+
     async function api(url, opts = {}) {
       if (!IS_AUTHENTICATED) {
         throw new Error('Authentication required. Please log in again.');
@@ -281,6 +289,11 @@
 
     // Billing portal
     async function openBillingPortal() {
+      if (isIosNativeApp()) {
+        portalMessage.textContent = 'Billing portal access is not available in the iOS app build. Please use the web version.';
+        setBillingButtonState(false);
+        return;
+      }
       // Block Stripe for admin/lifetime/subscribed
       try {
         const me = await api('/api/me', { method: 'GET' });

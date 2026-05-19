@@ -262,6 +262,16 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   async function startCreditCheckout(bundle) {
+    const isIosNativeApp = !!(
+      window.Capacitor &&
+      typeof window.Capacitor.getPlatform === 'function' &&
+      window.Capacitor.getPlatform() === 'ios'
+    );
+    if (isIosNativeApp) {
+      statusBanner('Document credit purchases are not available in the iOS app build. Please use the web version.', false);
+      setBillingButtonsDisabled(false);
+      return;
+    }
     const token = getAuthToken();
     const headers = { 'Content-Type': 'application/json' };
     if (token) headers.Authorization = `Bearer ${token}`;

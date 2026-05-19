@@ -10,9 +10,7 @@
     "cleartext": false,
     "allowNavigation": [
       "www.rolerocketai.com",
-      "rolerocketai.com",
-      "checkout.stripe.com",
-      "billing.stripe.com"
+      "rolerocketai.com"
     ]
   },
   "plugins": {

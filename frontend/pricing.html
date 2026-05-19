@@ -241,6 +241,14 @@
   <script src="js/experience-country.js?v=20260514-sync4"></script>
   <script src="js/nav-plan-sync.js?v=20260514-sync4"></script>
   <script>
+    function isIosNativeApp() {
+      return !!(
+        window.Capacitor &&
+        typeof window.Capacitor.getPlatform === 'function' &&
+        window.Capacitor.getPlatform() === 'ios'
+      );
+    }
+
     let selectedBillingCycle = 'monthly';
 
     function resolveCyclePlan(planBase) {
@@ -296,6 +304,10 @@
     });
 
     async function handleCheckout(plan) {
+      if (isIosNativeApp()) {
+        alert('Purchases are not available in the iOS app build. Please use the web version.');
+        return;
+      }
       const token = localStorage.getItem('token');
       const urlParams = new URLSearchParams(window.location.search);
       const referral = urlParams.get('referral') || '';

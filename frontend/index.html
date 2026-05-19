@@ -647,6 +647,14 @@
         }
       }
 
+      function isIosNativeApp() {
+        return !!(
+          window.Capacitor &&
+          typeof window.Capacitor.getPlatform === 'function' &&
+          window.Capacitor.getPlatform() === 'ios'
+        );
+      }
+
       async function syncHomepageUpgradeCta() {
         const titleEl = document.getElementById('nextPlanTitle');
         const descriptionEl = document.getElementById('nextPlanDescription');
@@ -654,6 +662,12 @@
         const buttonEl = document.getElementById('unlockProBtn');
         const cardEl = document.getElementById('nextPlanCta');
         if (!titleEl || !descriptionEl || !noteEl || !buttonEl || !cardEl) return;
+
+        if (isIosNativeApp()) {
+          cardEl.style.display = 'none';
+          currentUpgradeConfig = { plan: null, endpoint: null };
+          return;
+        }
 
         const context = await loadHomepageUserContext();
         const planKey = context.plan || 'free';
@@ -667,6 +681,10 @@
       }
 
       document.getElementById('unlockProBtn')?.addEventListener('click', async function() {
+        if (isIosNativeApp()) {
+          alert('Purchases are not available in the iOS app build. Please use the web version.');
+          return;
+        }
         const token = localStorage.getItem('token');
         const btn = this;
         if (!currentUpgradeConfig.plan) {
