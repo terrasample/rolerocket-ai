@@ -1002,6 +1002,7 @@ document.addEventListener('DOMContentLoaded', function () {
           // First line after company header = role title
           current.title = normalizeBulletText(line);
         } else {
+          if (/^(linkedin(?:\.com)?|linked in)$/i.test(line)) continue;
           current.bullets.push(normalizeBulletText(line));
         }
       }
@@ -1014,7 +1015,7 @@ document.addEventListener('DOMContentLoaded', function () {
         ...e,
         title: normalizeBulletText(e.title),
         company: normalizeBulletText(e.company),
-        bullets: (e.bullets || []).map((b) => normalizeBulletText(b)).filter(Boolean)
+        bullets: (e.bullets || []).map((b) => normalizeBulletText(b)).filter((b) => b && !/^(linkedin(?:\.com)?|linked in)$/i.test(b))
       }))
       .filter((e) => e.title);
   }
@@ -1055,6 +1056,7 @@ document.addEventListener('DOMContentLoaded', function () {
       if (isSectionBoundary) break;
 
       if (pendingDateLine && line === pendingDateLine) continue;
+      if (/^(linkedin(?:\.com)?|linked in)$/i.test(line)) continue;
       current.bullets.push(line);
     }
 
@@ -1065,7 +1067,7 @@ document.addEventListener('DOMContentLoaded', function () {
         ...entry,
         title: normalizeBulletText(entry.title),
         company: normalizeBulletText(entry.company),
-        bullets: (entry.bullets || []).map((b) => normalizeBulletText(b)).filter(Boolean)
+        bullets: (entry.bullets || []).map((b) => normalizeBulletText(b)).filter((b) => b && !/^(linkedin(?:\.com)?|linked in)$/i.test(b))
       }))
       .filter((entry) => entry.title);
   }
@@ -2254,6 +2256,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const escapeHtml = (v) => String(v || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     const renderBulletList = (items) => (items || []).map((item) => `<div style="margin-bottom:6px;font-size:12pt;">• ${escapeHtml(item)}</div>`).join('');
     const renderLineList = (items) => (items || []).map((item) => `<div style="margin-bottom:6px;font-size:12pt;">${escapeHtml(item)}</div>`).join('');
+    const contactHeaderLines = (model.contactLines || []).filter(Boolean);
     
     // Clean up ABOUT ME: remove non-skill phrases
     let cleanedAbout = model.profile || '';
@@ -2282,13 +2285,9 @@ document.addEventListener('DOMContentLoaded', function () {
       <div style="font-family:Arial, sans-serif; max-width:850px; margin:0 auto; padding:40px; background:#fff; color:#000; line-height:1.6;">
         <div style="text-align:center; margin-bottom:24px; border-bottom:2px solid #000; padding-bottom:16px;">
           <div style="font-size:28px; font-weight:bold; margin-bottom:4px;">${escapeHtml(model.displayName || 'Professional')}</div>
+          ${contactHeaderLines.length ? `<div style="font-size:12px; margin-top:4px; margin-bottom:6px;">${escapeHtml(contactHeaderLines.join(' • '))}</div>` : ''}
           ${model.targetRole ? `<div style="font-size:16px; font-weight:600; margin-top:8px;">${escapeHtml(model.targetRole)}</div>` : ''}
         </div>
-        
-        ${(model.contactLines || []).length ? `<div style="margin-bottom:20px;">
-          <div style="font-weight:bold; margin-bottom:8px; border-bottom:1px solid #ccc; padding-bottom:4px;">CONTACT</div>
-          ${renderLineList(model.contactLines || [])}
-        </div>` : ''}
 
         ${cleanedAbout ? `<div style="margin-bottom:20px;"><div style="font-weight:bold; margin-bottom:8px; border-bottom:1px solid #ccc; padding-bottom:4px;">ABOUT ME</div><div style="font-size:14px;">${escapeHtml(cleanedAbout)}</div></div>` : ''}
 
