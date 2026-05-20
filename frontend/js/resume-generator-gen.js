@@ -1377,6 +1377,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function filterAndCleanSkills(skillLines) {
     const skills = [];
+    const seenLowercase = new Set();
     
     for (const line of (skillLines || [])) {
       const candidates = expandSkillCandidates(line);
@@ -1402,7 +1403,9 @@ document.addEventListener('DOMContentLoaded', function () {
         cleanedSkill = cleanedSkill.replace(/\s*\(\d{4}[-–]\d{4}\).*$/i, '').trim();
 
         if (cleanedSkill && cleanedSkill.length > 2 && cleanedSkill.length < 80) {
-          if (!skills.includes(cleanedSkill)) {
+          const lowerSkill = cleanedSkill.toLowerCase();
+          if (!seenLowercase.has(lowerSkill)) {
+            seenLowercase.add(lowerSkill);
             skills.push(cleanedSkill);
           }
         }
@@ -2216,6 +2219,29 @@ document.addEventListener('DOMContentLoaded', function () {
     const renderBulletList = (items) => (items || []).map((item) => `<div style="margin-bottom:6px;font-size:12pt;">• ${escapeHtml(item)}</div>`).join('');
     const renderLineList = (items) => (items || []).map((item) => `<div style="margin-bottom:6px;font-size:12pt;">${escapeHtml(item)}</div>`).join('');
     
+    // Clean up ABOUT ME: remove non-skill phrases
+    let cleanedAbout = model.profile || '';
+    cleanedAbout = cleanedAbout.replace(/\s*,?\s*and meeting[\w\s]*deadlines\.?/gi, '').trim();
+    
+    // Group Microsoft Office skills into one line
+    const skills = (model.skills || []).slice(0, 12);
+    const msOfficeSkills = [];
+    const otherSkills = [];
+    
+    for (const skill of skills) {
+      const lower = skill.toLowerCase();
+      if (/\b(excel|word|outlook|access|powerpoint)\b/i.test(skill)) {
+        msOfficeSkills.push(skill);
+      } else {
+        otherSkills.push(skill);
+      }
+    }
+    
+    let groupedSkills = otherSkills;
+    if (msOfficeSkills.length > 0) {
+      groupedSkills.push(`Microsoft Office (${msOfficeSkills.join(', ')})`);
+    }
+    
     return `
       <div style="font-family:Arial, sans-serif; max-width:850px; margin:0 auto; padding:40px; background:#fff; color:#000; line-height:1.6;">
         <div style="text-align:center; margin-bottom:24px; border-bottom:2px solid #000; padding-bottom:16px;">
@@ -2223,23 +2249,13 @@ document.addEventListener('DOMContentLoaded', function () {
           ${model.targetRole ? `<div style="font-size:16px; font-weight:600; margin-top:8px;">${escapeHtml(model.targetRole)}</div>` : ''}
         </div>
         
-        ${model.profile ? `<div style="margin-bottom:20px;"><div style="font-weight:bold; margin-bottom:8px; border-bottom:1px solid #ccc; padding-bottom:4px;">ABOUT ME</div><div style="font-size:14px;">${escapeHtml(model.profile)}</div></div>` : ''}
-
         ${(model.contactLines || []).length ? `<div style="margin-bottom:20px;">
           <div style="font-weight:bold; margin-bottom:8px; border-bottom:1px solid #ccc; padding-bottom:4px;">CONTACT</div>
           ${renderLineList(model.contactLines || [])}
         </div>` : ''}
 
-        ${model.skills && model.skills.length ? `<div style="margin-bottom:20px;">
-          <div style="font-weight:bold; margin-bottom:8px; border-bottom:1px solid #ccc; padding-bottom:4px;">KEY SKILLS</div>
-          ${renderBulletList((model.skills || []).slice(0, 12))}
-        </div>` : ''}
+        ${cleanedAbout ? `<div style="margin-bottom:20px;"><div style="font-weight:bold; margin-bottom:8px; border-bottom:1px solid #ccc; padding-bottom:4px;">ABOUT ME</div><div style="font-size:14px;">${escapeHtml(cleanedAbout)}</div></div>` : ''}
 
-        ${(model.awards && model.awards.length) || (model.certifications && model.certifications.length) ? `<div style="margin-bottom:20px;">
-          <div style="font-weight:bold; margin-bottom:8px; border-bottom:1px solid #ccc; padding-bottom:4px;">CERTIFICATIONS</div>
-          ${renderBulletList((model.awards && model.awards.length ? model.awards : model.certifications || []).slice(0, 6))}
-        </div>` : ''}
-        
         ${model.experiences && model.experiences.length ? `<div style="margin-bottom:20px;">
           <div style="font-weight:bold; margin-bottom:8px; border-bottom:1px solid #ccc; padding-bottom:4px;">PROFESSIONAL EXPERIENCE</div>
           ${model.experiences.map((exp) => {
@@ -2253,10 +2269,20 @@ document.addEventListener('DOMContentLoaded', function () {
           `;
           }).join('')}
         </div>` : ''}
+
+        ${(model.awards && model.awards.length) || (model.certifications && model.certifications.length) ? `<div style="margin-bottom:20px;">
+          <div style="font-weight:bold; margin-bottom:8px; border-bottom:1px solid #ccc; padding-bottom:4px;">CERTIFICATIONS</div>
+          ${renderBulletList((model.awards && model.awards.length ? model.awards : model.certifications || []).slice(0, 6))}
+        </div>` : ''}
         
         ${model.education && model.education.length ? `<div style="margin-bottom:20px;">
           <div style="font-weight:bold; margin-bottom:8px; border-bottom:1px solid #ccc; padding-bottom:4px;">EDUCATION</div>
           ${renderLineList((model.education || []).slice(0, 5))}
+        </div>` : ''}
+
+        ${groupedSkills.length ? `<div style="margin-bottom:20px;">
+          <div style="font-weight:bold; margin-bottom:8px; border-bottom:1px solid #ccc; padding-bottom:4px;">KEY SKILLS</div>
+          ${renderBulletList(groupedSkills)}
         </div>` : ''}
         
       </div>
