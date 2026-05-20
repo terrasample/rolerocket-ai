@@ -30,9 +30,31 @@
   <link rel="stylesheet" href="styles.css" />
   <script src="js/api-base.js"></script>
   <script>
+    // Global error handler for startup failures
+    window.addEventListener('error', (event) => {
+      console.error('Startup error:', event.error);
+      if (document.body.innerHTML.trim() === '' || document.body.children.length === 0) {
+        document.body.innerHTML = '<div style="padding: 40px; font-family: sans-serif; color: #e74c3c; background: #fef5f5; border: 1px solid #ffcccc; border-radius: 4px; margin: 20px;"><h2>Startup Error</h2><p>An error occurred while loading the app. Please try refreshing the page.</p><pre style="background: #fff; padding: 10px; border-radius: 3px; overflow: auto; max-height: 200px; font-size: 12px;">' + (event.error ? event.error.toString() : 'Unknown error') + '</pre></div>';
+      }
+    }, true);
+  </script>
+  <script>
     // Guard the homepage: if there is no valid auth token, send user to login.
     (function enforceHomepageAuth() {
-      const token = localStorage.getItem('token') || sessionStorage.getItem('token') || '';
+      let token = '';
+      try {
+        token = localStorage.getItem('token') || '';
+      } catch (e) {
+        // localStorage disabled (e.g., iPad private browsing)
+        console.warn('localStorage unavailable:', e);
+      }
+      if (!token) {
+        try {
+          token = sessionStorage.getItem('token') || '';
+        } catch (e) {
+          console.warn('sessionStorage unavailable:', e);
+        }
+      }
       if (!token) {
         window.location.replace('login.html');
         return;
@@ -43,8 +65,16 @@
         headers: { Authorization: `Bearer ${token}` }
       }).then((res) => {
         if (res.status === 401 || res.status === 403) {
-          localStorage.removeItem('token');
-          sessionStorage.removeItem('token');
+          try {
+            localStorage.removeItem('token');
+          } catch (e) {
+            console.debug('Could not clear localStorage:', e);
+          }
+          try {
+            sessionStorage.removeItem('token');
+          } catch (e) {
+            console.debug('Could not clear sessionStorage:', e);
+          }
           window.location.replace('login.html');
           return;
         }
@@ -52,10 +82,18 @@
         // For transient server/network issues, keep the session and continue.
         const script = document.createElement('script');
         script.src = 'js/dashboard.js';
+        script.onerror = () => {
+          document.body.innerHTML = '<div style="padding: 40px; font-family: sans-serif; color: #999; text-align: center;"><h2>Loading Error</h2><p>Failed to load dashboard. Please try refreshing the page or clearing your browser cache.</p></div>';
+        };
         document.body.appendChild(script);
-      }).catch(() => {
+      }).catch((error) => {
+        console.error('Auth check failed:', error);
+        // Still attempt to load dashboard on network errors (allows offline fallback)
         const script = document.createElement('script');
         script.src = 'js/dashboard.js';
+        script.onerror = () => {
+          document.body.innerHTML = '<div style="padding: 40px; font-family: sans-serif; color: #999; text-align: center;"><h2>Connection Error</h2><p>Unable to connect to the service. Please check your internet connection.</p></div>';
+        };
         document.body.appendChild(script);
       });
     })();

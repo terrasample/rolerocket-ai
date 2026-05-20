@@ -6,7 +6,30 @@ if (typeof apiUrl !== 'function') {
 // Allow demo mode to bypass auth
 const params = new URLSearchParams(window.location.search);
 const demoMode = params.get('demo') === 'true';
-const token = typeof getStoredToken === 'function' ? getStoredToken() : localStorage.getItem('token');
+
+// Safely retrieve token with fallback
+let token = '';
+if (typeof getStoredToken === 'function') {
+  try {
+    token = getStoredToken();
+  } catch (e) {
+    console.debug('getStoredToken failed:', e);
+  }
+}
+if (!token) {
+  try {
+    token = localStorage.getItem('token') || '';
+  } catch (e) {
+    console.debug('localStorage.getItem("token") failed:', e);
+  }
+}
+if (!token) {
+  try {
+    token = sessionStorage.getItem('token') || '';
+  } catch (e) {
+    console.debug('sessionStorage.getItem("token") failed:', e);
+  }
+}
 
 if (!token && !demoMode) {
   window.location.href = 'login.html';

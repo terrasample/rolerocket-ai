@@ -6,15 +6,16 @@
       const params = new URLSearchParams(global.location.search || '');
       const fromQuery = params.get('apiBase');
       if (fromQuery) return String(fromQuery).trim().replace(/\/$/, '');
-    } catch {
-      // ignore
+    } catch (e) {
+      console.debug('Failed to read apiBase from query params:', e);
     }
 
     try {
       const fromStorage = global.localStorage.getItem('rr_api_base');
       if (fromStorage) return String(fromStorage).trim().replace(/\/$/, '');
-    } catch {
-      // ignore
+    } catch (e) {
+      // localStorage disabled (e.g., iPad private browsing mode)
+      console.debug('localStorage unavailable for rr_api_base:', e);
     }
 
     if (typeof global.__API_BASE__ === 'string' && global.__API_BASE__.trim()) {
