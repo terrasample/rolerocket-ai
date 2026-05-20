@@ -852,6 +852,28 @@ document.addEventListener('DOMContentLoaded', function () {
     return '';
   }
 
+  function findRoleTitleInLines(lines, fullName) {
+    const safeLines = (lines || []).map((line) => String(line || '').trim()).filter(Boolean);
+    const normalizedName = normalizeNameCandidate(fullName).toLowerCase();
+
+    for (let idx = 0; idx < Math.min(safeLines.length, 16); idx += 1) {
+      const line = normalizeBulletText(safeLines[idx]);
+      if (!line) continue;
+
+      if (normalizedName && normalizeNameCandidate(line).toLowerCase() === normalizedName) continue;
+      if (/^(name|contact|about me|profile|summary|experience|professional experience|education|skills|key skills|certification|certifications|awards|projects)\b/i.test(line)) continue;
+      if (/https?:\/\/|www\.|@|\b(linkedin|github)\b/i.test(line)) continue;
+      if (/^\(?\+?\d[\d\s().-]{6,}\d$/.test(line)) continue;
+      if (isLikelyContactLocationLine(line)) continue;
+
+      if (isLikelyRoleTitle(line) || /\b(entry[-\s]?level|project manager|coordinator|assistant|specialist|analyst|intern)\b/i.test(line)) {
+        return capitalizeJobTitle(line);
+      }
+    }
+
+    return '';
+  }
+
   function hasDateRangeToken(value) {
     const text = String(value || '');
     // Matches: 1/2023, 11/2023, 2015, 2015-2022, 2015 – Present, Jan 2021 – Nov 2023, Present/Current/Now
@@ -874,6 +896,9 @@ document.addEventListener('DOMContentLoaded', function () {
   function isResumeSpilloverLine(value) {
     const line = normalizeBulletText(value);
     if (!line) return true;
+
+    if (/^\(?\+?\d[\d\s().-]{6,}\d$/.test(line)) return true;
+    if (/\b(linkedin(?:\.com)?|github(?:\.com)?)\b/i.test(line)) return true;
 
     if (/^(contact|key skills|skills|education|certifications?|awards|profile|summary|experience)\b/i.test(line)) {
       return true;
@@ -1734,6 +1759,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const structured = {
       fullName: cleanCandidateName(fallbackFromBase.fullName) || cleanCandidateName(accountName) || 'Professional Candidate',
+      targetRole: '',
       contactLines: [fallbackFromBase.phone, fallbackFromBase.email, fallbackFromBase.location, fallbackFromBase.linkedin].filter(Boolean),
       profile: '',
       experiences: [],
@@ -1764,6 +1790,7 @@ document.addEventListener('DOMContentLoaded', function () {
       key = key.replace(/\s+((?:\d{1,2}\/|\d{4})\S*).*$/, '').trim();
 
       if (key === 'SUMMARY') return 'PROFILE';
+      if (key === 'ABOUT ME' || key === 'OBJECTIVE') return 'PROFILE';
       if (key === 'WORK' || key === 'HISTORY') return 'EXPERIENCE';
       if (/SKILLS?|COMPETENC(Y|IES)|CORE COMPETENC(Y|IES)|TECHNICAL SKILLS?/.test(key)) return 'SKILLS';
       if (/CERTIFICATIONS?|LICENSES?/.test(key)) return 'CERTIFICATIONS';
@@ -1806,6 +1833,8 @@ document.addEventListener('DOMContentLoaded', function () {
     } else if (fallbackName) {
       structured.fullName = fallbackName;
     }
+
+    structured.targetRole = findRoleTitleInLines(lines, structured.fullName);
 
     // Matches lines like: "Company  1/2021-11/2023", "Company  2015-2022", "Company  Jan 2020 – Present"
     const companyDateLineRx = /^(.+?)\s{2,}((?:\d{1,2}\/\d{2,4}|\d{4}|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*\s+\d{4})\s*(?:[-–to]+\s*(?:\d{1,2}\/\d{2,4}|\d{4}|present|current|now))?)$/i;
@@ -2191,21 +2220,35 @@ document.addEventListener('DOMContentLoaded', function () {
       <div style="font-family:Arial, sans-serif; max-width:850px; margin:0 auto; padding:40px; background:#fff; color:#000; line-height:1.6;">
         <div style="text-align:center; margin-bottom:24px; border-bottom:2px solid #000; padding-bottom:16px;">
           <div style="font-size:28px; font-weight:bold; margin-bottom:4px;">${escapeHtml(model.displayName || 'Professional')}</div>
-          <div style="font-size:14px; color:#333;">${(model.contactLines || []).join(' • ')}</div>
           ${model.targetRole ? `<div style="font-size:16px; font-weight:600; margin-top:8px;">${escapeHtml(model.targetRole)}</div>` : ''}
         </div>
         
-        ${model.profile ? `<div style="margin-bottom:20px;"><div style="font-weight:bold; margin-bottom:8px;">PROFILE</div><div style="font-size:14px;">${escapeHtml(model.profile)}</div></div>` : ''}
+        ${model.profile ? `<div style="margin-bottom:20px;"><div style="font-weight:bold; margin-bottom:8px; border-bottom:1px solid #ccc; padding-bottom:4px;">ABOUT ME</div><div style="font-size:14px;">${escapeHtml(model.profile)}</div></div>` : ''}
+
+        ${(model.contactLines || []).length ? `<div style="margin-bottom:20px;">
+          <div style="font-weight:bold; margin-bottom:8px; border-bottom:1px solid #ccc; padding-bottom:4px;">CONTACT</div>
+          ${renderLineList(model.contactLines || [])}
+        </div>` : ''}
+
+        ${model.skills && model.skills.length ? `<div style="margin-bottom:20px;">
+          <div style="font-weight:bold; margin-bottom:8px; border-bottom:1px solid #ccc; padding-bottom:4px;">KEY SKILLS</div>
+          ${renderBulletList((model.skills || []).slice(0, 12))}
+        </div>` : ''}
+
+        ${(model.awards && model.awards.length) || (model.certifications && model.certifications.length) ? `<div style="margin-bottom:20px;">
+          <div style="font-weight:bold; margin-bottom:8px; border-bottom:1px solid #ccc; padding-bottom:4px;">CERTIFICATIONS</div>
+          ${renderBulletList((model.awards && model.awards.length ? model.awards : model.certifications || []).slice(0, 6))}
+        </div>` : ''}
         
         ${model.experiences && model.experiences.length ? `<div style="margin-bottom:20px;">
-          <div style="font-weight:bold; margin-bottom:8px; border-bottom:1px solid #ccc; padding-bottom:4px;">EXPERIENCE</div>
+          <div style="font-weight:bold; margin-bottom:8px; border-bottom:1px solid #ccc; padding-bottom:4px;">PROFESSIONAL EXPERIENCE</div>
           ${model.experiences.map((exp) => {
             const processed = processExperienceForRender(exp);
             return `
             <div style="margin-bottom:12px;">
               <div style="font-weight:600;">${escapeHtml(processed.title || '')}</div>
               ${processed.company ? `<div style="font-size:15px; color:#555;">${escapeHtml(processed.company)}</div>` : ''}
-              ${renderBulletList((processed.bullets || []).slice(0, 3))}
+              ${renderBulletList((processed.bullets || []).slice(0, 4))}
             </div>
           `;
           }).join('')}
@@ -2216,10 +2259,6 @@ document.addEventListener('DOMContentLoaded', function () {
           ${renderLineList((model.education || []).slice(0, 5))}
         </div>` : ''}
         
-        ${model.skills && model.skills.length ? `<div style="margin-bottom:20px;">
-          <div style="font-weight:bold; margin-bottom:8px; border-bottom:1px solid #ccc; padding-bottom:4px;">SKILLS</div>
-          <div style="font-size:14px;">${escapeHtml((model.skills || []).join(' • '))}</div>
-        </div>` : ''}
       </div>
     `;
   }
@@ -2392,7 +2431,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function buildResumeModel(structured, targetRole) {
     const displayName = toTitleCaseName(structured?.fullName) || 'Professional Candidate';
-    const normalizedTargetRole = capitalizeJobTitle(targetRole || '');
+    const normalizedTargetRole = capitalizeJobTitle(targetRole || structured?.targetRole || '');
     return {
       ...structured,
       fullName: displayName,
@@ -2484,7 +2523,7 @@ document.addEventListener('DOMContentLoaded', function () {
       doc.setTextColor(31, 41, 55);
     }
 
-    drawTitle('PROFILE');
+    drawTitle('ABOUT ME');
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(12);
     let wrapped = [];
