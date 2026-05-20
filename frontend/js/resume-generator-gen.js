@@ -1121,6 +1121,13 @@ document.addEventListener('DOMContentLoaded', function () {
     return false;
   }
 
+  function formatEducationLine(line) {
+    const normalized = normalizeBulletText(line);
+    if (!normalized) return '';
+    if (isDegreeLine(normalized)) return capitalizeJobTitle(normalized);
+    return normalizeStateAbbreviations(normalized);
+  }
+
   function isGenericSkill(skill) {
     const normalized = normalizeBulletText(skill).toLowerCase();
     if (!normalized) return true;
@@ -1154,6 +1161,14 @@ document.addEventListener('DOMContentLoaded', function () {
     
     // Filter out very short generic words
     if (/^(a|an|the|is|are|be|good|bad|ok|yes|no|team|member|person|guy|gal|staff|people|human|work|job|role)$/i.test(normalized)) {
+      return true;
+    }
+
+    if (/^(linkedin(?:\.com)?|linked in)$/i.test(normalized)) {
+      return true;
+    }
+
+    if (/^(and\s+)?meeting project deadlines\.?$/i.test(normalized)) {
       return true;
     }
     
@@ -1219,6 +1234,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const value = String(skill || '').trim();
     if (!value) return true;
     if (value.split(/\s+/).length > 6) return true;
+    if (/^(and\s+)?meeting project deadlines\.?$/i.test(value)) return true;
     if (/\b(teaching|mentoring|perform|execute|maintain|managed|manage|coordinate|build|working|works|collaborate|interview|approve|onboard|establish)\b/i.test(value)) return true;
     if (/\b(i|we|they|he|she|our|their|my)\b/i.test(value)) return true;
     return false;
@@ -1269,9 +1285,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function normalizeStateAbbreviations(value) {
     let result = String(value || '');
-    // Match any two-letter sequence that could be a state abbreviation
-    // Capture it and ensure both letters are uppercase
-    result = result.replace(/\b([A-Za-z]{2})\b(?=[|\s,]|$)/g, (match, abbr) => String(abbr).toUpperCase());
+    const stateAbbreviations = new Set(['AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY', 'DC']);
+    // Only uppercase real state abbreviations, not common words like "of".
+    result = result.replace(/\b([A-Za-z]{2})\b(?=[|\s,]|$)/g, (match, abbr) => {
+      const upper = String(abbr).toUpperCase();
+      return stateAbbreviations.has(upper) ? upper : abbr;
+    });
     return result;
   }
 
@@ -1398,9 +1417,24 @@ document.addEventListener('DOMContentLoaded', function () {
         .replace(/^expertise in\s+/i, '')
         .trim();
 
+        if (/^(linkedin(?:\.com)?|linked in)$/i.test(cleanedSkill)) continue;
+
         // Remove trailing dates or qualifiers
         cleanedSkill = cleanedSkill.replace(/\s*\d{1,2}\/\d{3,4}.*$/i, '').trim();
         cleanedSkill = cleanedSkill.replace(/\s*\(\d{4}[-–]\d{4}\).*$/i, '').trim();
+
+        cleanedSkill = capitalizeJobTitle(cleanedSkill);
+
+        if (/^Microsoft Office\b/i.test(cleanedSkill)) {
+          cleanedSkill = cleanedSkill.replace(/\(\s*([^)]*)\s*\)/, (match, officeTools) => {
+            const formattedTools = officeTools
+              .split(',')
+              .map((tool) => capitalizeJobTitle(tool.trim()))
+              .filter(Boolean)
+              .join(', ');
+            return `(${formattedTools})`;
+          });
+        }
 
         if (cleanedSkill && cleanedSkill.length > 2 && cleanedSkill.length < 80) {
           const lowerSkill = cleanedSkill.toLowerCase();
@@ -1418,6 +1452,8 @@ document.addEventListener('DOMContentLoaded', function () {
   function shouldRelocateSkillSentence(sentence) {
     const normalized = normalizeBulletText(sentence);
     if (!normalized) return false;
+
+    if (/^(linkedin(?:\.com)?|linked in)$/i.test(normalized)) return false;
 
     // Relocate only explicit skill-declaration sentences.
     if (!/\b(skill(?:ed)?|proficient|experience|familiar|knowledge(?:able)?|expertise)\b/i.test(normalized)) {
@@ -2277,7 +2313,7 @@ document.addEventListener('DOMContentLoaded', function () {
         
         ${model.education && model.education.length ? `<div style="margin-bottom:20px;">
           <div style="font-weight:bold; margin-bottom:8px; border-bottom:1px solid #ccc; padding-bottom:4px;">EDUCATION</div>
-          ${renderLineList((model.education || []).slice(0, 5))}
+          ${renderLineList((model.education || []).slice(0, 5).map((line) => formatEducationLine(line)).filter(Boolean))}
         </div>` : ''}
 
         ${groupedSkills.length ? `<div style="margin-bottom:20px;">
