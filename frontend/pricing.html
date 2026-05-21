@@ -301,6 +301,23 @@
         updateBillingCycleUi();
       });
       updateBillingCycleUi();
+
+      if (isIosNativeApp()) {
+        document.querySelectorAll('.checkout-btn, .pricing-cycle-btn, [data-checkout]').forEach((button) => {
+          button.style.display = 'none';
+          button.disabled = true;
+        });
+        const toggleRow = document.querySelector('.billing-toggle-row');
+        if (toggleRow) toggleRow.style.display = 'none';
+        const hero = document.querySelector('.hero') || document.querySelector('.main');
+        if (hero && !document.getElementById('iosPricingNotice')) {
+          const note = document.createElement('div');
+          note.id = 'iosPricingNotice';
+          note.style.cssText = 'margin-top:10px;padding:10px 12px;border:1px solid #cbd5e1;border-radius:10px;background:#f8fafc;color:#334155;font-size:.95rem;';
+          note.textContent = 'Plan upgrades are not available in this iOS app build. Please use the web version.';
+          hero.appendChild(note);
+        }
+      }
     });
 
     async function handleCheckout(plan) {

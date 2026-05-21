@@ -25,6 +25,47 @@
     'login.html': '🚪 Logout'
   };
 
+  function isIosNativeApp() {
+    try {
+      return !!(
+        window.Capacitor &&
+        typeof window.Capacitor.getPlatform === 'function' &&
+        window.Capacitor.getPlatform() === 'ios'
+      );
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function applyIosAppStoreCompliance() {
+    if (!isIosNativeApp()) return;
+
+    // Hide nav links that route to purchase/billing entry points.
+    document.querySelectorAll('.sidebar-link-btn').forEach((link) => {
+      const href = normalizePath(link.getAttribute('href') || '');
+      if (href === 'pricing.html' || href === 'billing.html') {
+        link.style.display = 'none';
+      }
+    });
+
+    // Remove purchase and billing CTAs in iOS build to satisfy App Store policy.
+    document.querySelectorAll('.checkout-btn, .upgrade-btn, .stripe-btn, [data-checkout], #portalBtn, #openPortalBtn, #unlockProBtn').forEach((el) => {
+      el.style.display = 'none';
+      if ('disabled' in el) {
+        el.disabled = true;
+      }
+    });
+
+    if (!document.getElementById('iosPurchaseNotice')) {
+      const host = document.querySelector('#nextPlanCta, #billingMain, #accountMain, .main, .hero') || document.body;
+      const notice = document.createElement('div');
+      notice.id = 'iosPurchaseNotice';
+      notice.style.cssText = 'margin:12px 0;padding:10px 12px;border-radius:10px;border:1px solid #334155;background:#0f172a;color:#cbd5e1;font-size:0.92rem;';
+      notice.textContent = 'Purchases and billing changes are not available in this iOS app build. Use the web version for plan upgrades and billing management.';
+      host.insertBefore(notice, host.firstChild || null);
+    }
+  }
+
   function normalizePath(href) {
     try {
       const url = new URL(href, window.location.href);
@@ -176,6 +217,7 @@
       ':root[data-exp-country] .marketing-hero-card h2{color:#ffffff !important;}',
       ':root[data-exp-country] .marketing-card h3{color:#f5f5f5 !important;}',
       ':root[data-exp-country] .back-arrow-btn{color:var(--rr-exp-primary) !important;}',
+      ':root[data-exp-country] .hero .back-arrow-btn,:root[data-exp-country] .marketing-main > .back-arrow-btn{color:#ffffff !important;}',
       ':root[data-exp-country] .sidebar-link-btn.active{box-shadow:0 0 0 1px var(--rr-exp-border) inset, 0 10px 20px var(--rr-exp-bg) !important;}'
     ].join('');
     document.head.appendChild(style);
@@ -999,6 +1041,7 @@
 
   function bootstrapNav() {
     decorateSidebarNav();
+    applyIosAppStoreCompliance();
     const fallbackCountry = readCachedExperienceCountry();
     const fallback = publishPersonalizationContext({
       effectiveCountry: resolveThemeCountry(fallbackCountry),

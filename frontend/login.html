@@ -1161,6 +1161,23 @@
           if (card) card.classList.remove('plan-focus');
         });
       });
+
+      if (isIosNativeApp()) {
+        document.querySelectorAll('.checkout-btn, .pricing-cycle-btn, [data-checkout]').forEach((button) => {
+          button.style.display = 'none';
+          button.disabled = true;
+        });
+        const toggleRow = document.querySelector('.billing-toggle-row');
+        if (toggleRow) toggleRow.style.display = 'none';
+        const pricingPanel = document.querySelector('.premium-features-card') || document.querySelector('.auth-card');
+        if (pricingPanel && !document.getElementById('iosLoginPricingNotice')) {
+          const note = document.createElement('div');
+          note.id = 'iosLoginPricingNotice';
+          note.style.cssText = 'margin-top:10px;padding:10px 12px;border:1px solid #cbd5e1;border-radius:10px;background:#f8fafc;color:#334155;font-size:.95rem;';
+          note.textContent = 'Subscriptions are not available in this iOS app build. Please use the web version.';
+          pricingPanel.appendChild(note);
+        }
+      }
     });
 
     function handleCheckout(plan) {
