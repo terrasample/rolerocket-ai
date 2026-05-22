@@ -289,7 +289,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const badge = document.createElement('button');
         badge.textContent = (tierUpgradeLabels[tier] || 'Upgrade') + ' →';
         badge.style.cssText = 'font-size:0.78rem;font-weight:700;padding:5px 14px;border-radius:999px;background:#1e293b;color:#94a3b8;border:1px solid #334155;cursor:pointer;white-space:nowrap;';
-        badge.onclick = () => { window.location.href = 'pricing.html'; };
+        badge.onclick = () => { if (isIosNativeAppRuntime()) { return; } window.location.href = 'pricing.html'; };
         inner.append(badge);
       }
 
@@ -355,8 +355,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (locked) {
         card.tabIndex = 0;
         card.style.cssText = 'cursor:pointer;opacity:0.48;filter:grayscale(0.6);position:relative;';
-        card.onclick = () => { window.location.href = 'pricing.html'; };
-        card.onkeypress = (e) => { if (e.key === 'Enter' || e.key === ' ') window.location.href = 'pricing.html'; };
+        card.onclick = () => { if (isIosNativeAppRuntime()) return; window.location.href = 'pricing.html'; };
+        card.onkeypress = (e) => { if ((e.key === 'Enter' || e.key === ' ') && !isIosNativeAppRuntime()) window.location.href = 'pricing.html'; };
         card.innerHTML = `
           <div style="position:absolute;top:12px;right:12px;font-size:0.75rem;font-weight:700;padding:2px 9px;border-radius:999px;background:#f1f5f9;color:#64748b;border:1px solid #cbd5e1;">🔒 Locked</div>
           <h3 class="feature-title" style="color:#94a3b8;">${feature.name}</h3>
@@ -3818,6 +3818,11 @@ if (dashboardBillingBtn && !document.getElementById('dashboardBillingRefundNote'
   refundNote.style.lineHeight = '1.5';
   refundNote.innerHTML = 'The billing portal handles cancellations and payment updates. Refunds are reviewed manually under the <a href="refund-policy.html">Refund Policy</a>.';
   dashboardBillingBtn.insertAdjacentElement('afterend', refundNote);
+}
+if (dashboardBillingBtn && isIosNativeAppRuntime()) {
+  dashboardBillingBtn.style.display = 'none';
+  const existingNote = document.getElementById('dashboardBillingRefundNote');
+  if (existingNote) existingNote.style.display = 'none';
 }
 
 document.getElementById('billingBtn')?.addEventListener('click', async () => {

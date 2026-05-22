@@ -109,8 +109,8 @@
         </div>
 
         <!-- Subscription -->
-        <div class="card">
-          <h3 style="margin-top:0;">💳 Subscription</h3>
+         <div id="subscriptionCard" class="card">
+           <h3 style="margin-top:0;">💳 Subscription</h3>
           <p>Manage your subscription, update payment methods, or cancel your plan through the Stripe billing portal.</p>
           <p style="margin-top:-4px;color:#64748b;font-size:0.95rem;line-height:1.6;">Refunds are reviewed manually and are not issued from the billing portal. Read the <a href="refund-policy.html">Refund Policy</a> or contact <a href="contact-us.html?topic=refund">billing support</a> if you need a review.</p>
           <button id="portalBtn" class="auth-submit-btn" style="max-width:220px;padding:12px 20px;">Open Billing Portal</button>
@@ -157,6 +157,15 @@
         typeof window.Capacitor.getPlatform === 'function' &&
         window.Capacitor.getPlatform() === 'ios'
       );
+    }
+
+    function showIosBillingNotice(targetEl) {
+      if (!targetEl || document.getElementById('iosAccountBillingNotice')) return;
+      const note = document.createElement('div');
+      note.id = 'iosAccountBillingNotice';
+      note.style.cssText = 'margin:12px 0 0;padding:10px 12px;border:1px solid #cbd5e1;border-radius:10px;background:#f8fafc;color:#334155;font-size:.95rem;line-height:1.5;';
+      note.textContent = 'Billing portal access is not available in this iOS app build. Use the web version to manage subscriptions or payment methods.';
+      targetEl.insertAdjacentElement('afterend', note);
     }
 
     async function api(url, opts = {}) {
@@ -290,6 +299,9 @@
     // Billing portal
     async function openBillingPortal() {
       if (isIosNativeApp()) {
+        if (portalBtn) {
+          portalBtn.style.display = 'none';
+        }
         portalMessage.textContent = 'Billing portal access is not available in the iOS app build. Please use the web version.';
         setBillingButtonState(false);
         return;
@@ -330,6 +342,16 @@
     if (copyReferralBtn) {
       copyReferralBtn.addEventListener('click', copyReferralCode);
     }
+
+    if (isIosNativeApp()) {
+      if (portalBtn) {
+        portalBtn.style.display = 'none';
+      }
+      showIosBillingNotice(portalMessage || portalBtn || document.getElementById('accountMain'));
+        // Hide the entire Subscription card on iOS — not just the button
+        const subscriptionCard = document.getElementById('subscriptionCard');
+        if (subscriptionCard) subscriptionCard.style.display = 'none';
+      }
 
     window.addEventListener('pageshow', () => {
       setBillingButtonState(false);

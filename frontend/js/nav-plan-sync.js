@@ -56,6 +56,23 @@
       }
     });
 
+      // Hide billing-related sections/text that can still reference external web payments.
+      document.querySelectorAll(
+        '#subscriptionCard, #termsSubscriptionSection, #faqCancelSubscription, #faqUpgradeDowngrade, #contactBillingCard, #contactStripeRefundText, #dashboardBillingRefundNote, #billingBtn'
+      ).forEach((el) => {
+        if (!el) return;
+        if (el.id === 'contactStripeRefundText' && el.parentElement) {
+          el.parentElement.style.display = 'none';
+          return;
+        }
+        el.style.display = 'none';
+      });
+
+      document.querySelectorAll('a[href="billing.html"]').forEach((link) => {
+        link.style.display = 'none';
+        link.removeAttribute('href');
+      });
+
     if (!document.getElementById('iosPurchaseNotice')) {
       const host = document.querySelector('#nextPlanCta, #billingMain, #accountMain, .main, .hero') || document.body;
       const notice = document.createElement('div');

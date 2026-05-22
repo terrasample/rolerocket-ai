@@ -40,7 +40,7 @@
       <p>You must create an account to use most features. You are responsible for maintaining the confidentiality of your credentials and for all activity under your account. You must provide accurate information during registration.</p>
 
       <h2>4. Subscriptions and Payments</h2>
-      <p>Paid plans are billed through Stripe. Subscriptions automatically renew unless cancelled before the renewal date. Lifetime access is a one-time payment with no recurring charges. Refund review standards are described in our <a href="refund-policy.html">Refund Policy</a>. All sales are final unless otherwise required by law.</p>
+      <div id="termsSubscriptionSection"><p>Paid plans are billed through Stripe. Subscriptions automatically renew unless cancelled before the renewal date. Lifetime access is a one-time payment with no recurring charges. Refund review standards are described in our <a href="refund-policy.html">Refund Policy</a>. All sales are final unless otherwise required by law.</p></div>
 
       <h2>5. Acceptable Use</h2>
       <p>You agree not to:</p>
@@ -83,5 +83,18 @@
   </footer>
   <script src="js/return-navigation.js"></script>
   <script src="js/nav-plan-sync.js?v=20260514-sync4"></script>
+     <script>
+     (function() {
+       try {
+         if (window.Capacitor && typeof window.Capacitor.getPlatform === 'function' && window.Capacitor.getPlatform() === 'ios') {
+           var sec = document.getElementById('termsSubscriptionSection');
+           if (sec) { sec.style.display = 'none'; }
+           // Also hide the h2 heading for section 4
+           var headings = document.querySelectorAll('h2');
+           headings.forEach(function(h) { if (h.textContent.trim().startsWith('4.')) h.style.display = 'none'; });
+         }
+       } catch(e) {}
+     })();
+     </script>
 </body>
 </html>

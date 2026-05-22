@@ -168,9 +168,9 @@
         <button type="submit">Send Message</button>
         <div class="contact-success" id="contactSuccess" style="display:none;"></div>
       </form>
-      <div class="marketing-card" style="max-width:none;width:min(1120px, calc(100vw - 64px));margin:0 auto 24px auto;background:#0f172a;color:#e2e8f0;border:1px solid var(--rr-exp-border,#334155);">
+      <div id="contactBillingCard" class="marketing-card" style="max-width:none;width:min(1120px, calc(100vw - 64px));margin:0 auto 24px auto;background:#0f172a;color:#e2e8f0;border:1px solid var(--rr-exp-border,#334155);">
         <h3 style="margin-top:0;color:var(--rr-exp-accent,#facc15);">Billing and Refund Help</h3>
-        <p style="margin-bottom:10px;line-height:1.7;">Refunds are reviewed manually. For the fastest review, include your account email, the charge date, and your Stripe receipt or invoice details.</p>
+         <p id="contactStripeRefundText" style="margin-bottom:10px;line-height:1.7;">Refunds are reviewed manually. For the fastest review, include your account email, the charge date, and your Stripe receipt or invoice details.</p>
         <p style="margin:0;"><a href="refund-policy.html" style="color:color-mix(in srgb, var(--rr-exp-accent,#93c5fd) 45%, #93c5fd 55%);font-weight:700;">Read the refund policy</a></p>
       </div>
       <div class="contact-social">
@@ -228,5 +228,15 @@
   <script src="js/experience-country.js?v=20260514-sync4"></script>
   <script src="js/nav-plan-sync.js?v=20260514-sync4"></script>
   <script src="js/return-navigation.js"></script>
+     <script>
+     (function() {
+       try {
+         if (window.Capacitor && typeof window.Capacitor.getPlatform === 'function' && window.Capacitor.getPlatform() === 'ios') {
+           var stripeText = document.getElementById('contactStripeRefundText');
+           if (stripeText && stripeText.parentElement) stripeText.parentElement.style.display = 'none';
+         }
+       } catch(e) {}
+     })();
+     </script>
 </body>
 </html>
