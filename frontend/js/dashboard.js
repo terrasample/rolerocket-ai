@@ -1,6 +1,6 @@
-// Ensure API utilities are available
-if (typeof apiUrl !== 'function') {
-  throw new Error('apiUrl is not defined. Make sure api-base.js is loaded before dashboard.js');
+// Gracefully handle startup even if api-base.js has not initialized yet.
+function apiPath(path) {
+  return typeof apiUrl === 'function' ? apiUrl(path) : path;
 }
 
 // Allow demo mode to bypass auth
@@ -119,10 +119,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     await ensureGlobalThemeClass();
-
-    function apiPath(path) {
-      return typeof apiUrl === 'function' ? apiUrl(path) : path;
-    }
 
     function enforceDashboardTopCardStretch() {
       const dashboardMain = document.getElementById('dashboardMain');
