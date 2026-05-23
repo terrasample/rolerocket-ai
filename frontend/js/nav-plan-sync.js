@@ -73,6 +73,38 @@
         link.removeAttribute('href');
       });
 
+    // Remove external purchase-entry links and billing/pricing destinations.
+    document.querySelectorAll('a[href], [data-href], [onclick]').forEach((el) => {
+      const hrefAttr = String(el.getAttribute('href') || el.getAttribute('data-href') || '').trim();
+      const onClickAttr = String(el.getAttribute('onclick') || '').trim();
+      const lowerHref = hrefAttr.toLowerCase();
+      const lowerOnClick = onClickAttr.toLowerCase();
+      const isExternalRoleRocket = /^https?:\/\/(www\.)?rolerocketai\.com\/?/i.test(hrefAttr);
+      const isPurchasePath = /(pricing|billing|checkout|stripe|subscribe|subscription|portal|upgrade)/i.test(lowerHref)
+        || /(pricing|billing|checkout|stripe|subscribe|subscription|portal|upgrade)/i.test(lowerOnClick);
+
+      if (isExternalRoleRocket || isPurchasePath) {
+        if (el.tagName === 'A') {
+          el.removeAttribute('href');
+        }
+        el.removeAttribute('data-href');
+        el.removeAttribute('onclick');
+        el.style.pointerEvents = 'none';
+        el.style.opacity = '0.55';
+      }
+    });
+
+    // Replace direct domain mentions that can be interpreted as external purchase CTA.
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null);
+    let node = walker.nextNode();
+    while (node) {
+      const original = String(node.nodeValue || '');
+      if (/rolerocketai\.com/i.test(original)) {
+        node.nodeValue = original.replace(/\b(?:www\.)?rolerocketai\.com\b/gi, 'RoleRocket support');
+      }
+      node = walker.nextNode();
+    }
+
     if (!document.getElementById('iosPurchaseNotice')) {
       const host = document.querySelector('#nextPlanCta, #billingMain, #accountMain, .main, .hero') || document.body;
       const notice = document.createElement('div');
