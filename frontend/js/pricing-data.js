@@ -33,9 +33,6 @@ window.RoleRocketPricingData = {
         'Career Path Simulator',
         'Offer Negotiation Coach',
         'Video Interview Practice',
-        'Calendar & Task AI',
-        'AI Application Tracker',
-        'AI Job Agent',
         'Outcome Command Center'
       ]
     }
