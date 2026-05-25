@@ -188,7 +188,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       {
         tier: 'pro',
         features: [
-          { name: 'Application Quality Score', desc: 'Score your application package and spot weak points before submitting.', url: 'application-quality-score.html' },
           { name: 'Resume Optimizer', desc: 'Instantly improve your resume with AI-driven analysis and personalized suggestions.', url: 'resume-optimizer.html' },
           { name: 'Email Assistant', desc: 'Write and rewrite emails in different tones for job hunting scenarios and outreach follow-ups.', url: 'email-generator.html' },
         ],

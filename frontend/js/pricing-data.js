@@ -11,7 +11,7 @@ window.RoleRocketPricingData = {
       features: [
         'Everything in Free',
         'Resume Optimizer',
-        'Application Quality Score'
+        'Email Assistant'
       ]
     },
     premium: {

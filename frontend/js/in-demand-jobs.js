@@ -5,8 +5,8 @@ document.addEventListener('DOMContentLoaded', async function () {
 
   const homepageTierHighlights = {
     pro: [
-      'Application Quality Score',
-      'Resume Optimizer'
+      'Resume Optimizer',
+      'Email Assistant'
     ],
     premium: [
       'Applicant Tracking System (ATS) Optimizer',
