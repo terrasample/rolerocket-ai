@@ -5,16 +5,14 @@ document.addEventListener('DOMContentLoaded', async function () {
 
   const homepageTierHighlights = {
     pro: [
-      'ATS Optimizer',
-      'Job Market Radar',
       'Application Quality Score',
       'Resume Optimizer'
     ],
     premium: [
+      'Applicant Tracking System (ATS) Optimizer',
       'Interview Prep',
       '1-Click Apply Queue',
-      'AI Portfolio Builder',
-      'AI Reference Generator'
+      'AI Career Brand Kit (Portfolio + References)'
     ],
     elite: [
       'Career Coach',

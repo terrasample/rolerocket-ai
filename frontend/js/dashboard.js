@@ -188,8 +188,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       {
         tier: 'pro',
         features: [
-          { name: 'ATS Optimizer', desc: 'Identify keyword gaps, structure issues, and weak phrasing before you apply.', url: 'optimizer.html' },
-          { name: 'Job Market Radar', desc: 'See trending roles, in-demand skills, and market insights tailored to your profile.', url: 'job-market-radar.html' },
+          { name: 'Application Quality Score', desc: 'Score your application package and spot weak points before submitting.', url: 'application-quality-score.html' },
           { name: 'Resume Optimizer', desc: 'Instantly improve your resume with AI-driven analysis and personalized suggestions.', url: 'resume-optimizer.html' },
           { name: 'Email Assistant', desc: 'Write and rewrite emails in different tones for job hunting scenarios and outreach follow-ups.', url: 'email-generator.html' },
         ],
@@ -197,12 +196,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       {
         tier: 'premium',
         features: [
+          { name: 'Applicant Tracking System (ATS) Optimizer', desc: 'Identify keyword gaps, structure issues, and weak phrasing before you apply.', url: 'optimizer.html' },
           { name: 'Interview Prep', desc: 'Generate realistic interview prompts and stronger response frameworks quickly.', url: 'interview-prep-ai.html' },
           { name: 'Executive Presence Builder', desc: 'Build executive-level communication, camera presence, and body-language control with AI coaching and live landmark analytics.', url: 'executive-presence-builder.html' },
           { name: '1-Click Apply Queue', desc: 'AI tailors your resume, writes your cover letter, and launches your application in one shot.', url: 'one-click-apply-queue.html' },
-          { name: 'AI Portfolio Builder', desc: 'Build a professional portfolio with AI-generated content and design suggestions.', url: 'ai-portfolio-builder.html' },
+          { name: 'AI Career Brand Kit (Portfolio + References)', desc: 'Create a polished portfolio and reference-ready materials in one guided workflow.', url: 'ai-portfolio-builder.html' },
           { name: 'Networking AI', desc: 'Get AI-powered networking tips and introductions to relevant professionals.', url: 'networking-ai.html' },
-          { name: 'AI Reference Generator', desc: 'Generate professional references and recommendation letters with AI assistance.', url: 'ai-reference-generator.html' },
         ],
       },
       {

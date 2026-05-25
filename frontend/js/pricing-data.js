@@ -10,19 +10,18 @@ window.RoleRocketPricingData = {
     pro: {
       features: [
         'Everything in Free',
-        'ATS Optimizer',
         'Resume Optimizer',
-        'Job Market Radar'
+        'Application Quality Score'
       ]
     },
     premium: {
       features: [
         'Everything in Pro',
+        'Applicant Tracking System (ATS) Optimizer',
         'Interview Prep',
         '1-Click Apply Queue',
-        'AI Portfolio Builder',
+        'AI Career Brand Kit (Portfolio + References)',
         'Networking AI',
-        'AI Reference Generator'
       ]
     },
     elite: {
