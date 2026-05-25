@@ -15,6 +15,7 @@ const OpenAI = require('openai');
 const Stripe = require('stripe');
 const rateLimit = require('express-rate-limit');
 const nodemailer = require('nodemailer');
+const { getDay3NudgeHtml, getDay7ReengagementHtml, getDay30WinbackHtml } = require('./services/engagement-email-templates');
 const multer = require('multer');
 const PDFDocument = require('pdfkit');
 const { extractTextFromPDF, extractTextFromDocx } = require('./pdfWordUtils');
@@ -5452,6 +5453,7 @@ const Job = require('./models/Job');
 const Employer = require('./models/Employer');
 const EmployerJob = require('./models/EmployerJob');
 const JobAlert = require('./models/JobAlert');
+const EngagementEmailLog = require('./models/EngagementEmailLog');
 const Application = require('./models/Application');
 const Telemetry = require('./models/Telemetry');
 const RoleProfile = require('./models/RoleProfile');
@@ -7205,7 +7207,7 @@ function locationHintMatches(haystack = '', hint = '') {
 function isLocationCompatible(job = {}, queryLocation = '') {
   const query = String(queryLocation || '').trim().toLowerCase();
   if (!query) return true;
-  const usStateInfo = getUSStateInfo(query, { exactOnly: true });
+  const usStateInfo = getUSStateInfo(query);
 
   if (usStateInfo) {
     const jobText = `${String(job?.location || '')} ${String(job?.description || '')}`.toLowerCase();
@@ -8618,7 +8620,6 @@ function buildSourceTasks({ title, location, resume, radiusMiles = 100 }) {
   const q = String(location || '').trim().toLowerCase();
   const isJamaica = /\bjamaica\b/.test(q);
   const isCaribbean = /caribbean|trinidad|tobago|barbados|bahamas|aruba|antigua|st\.?\s*martin|saint\s*martin|sint\s*maarten|guyana|st\s*lucia|grenada|dominica|st\s*kitts|nevis|belize|suriname|cayman|bermuda|martinique|guadeloupe/.test(q);
-  const usStateInfo = getUSStateInfo(location);
 
   const tasks = [
     timeoutPromise(fetchAdzunaJobs(title, location, resume, radiusMiles), 7000),
@@ -8646,10 +8647,6 @@ function buildSourceTasks({ title, location, resume, radiusMiles = 100 }) {
     tasks.push(timeoutPromise(fetchCaribbeanJobsHtmlDirect(title, location, resume), 3500));
     tasks.push(timeoutPromise(fetchIndeedJamaicaJobs(title, location, resume), 3500));
     tasks.push(Promise.resolve(getBPOCompanyJobs(title, 'Jamaica', resume)));
-  }
-
-  if (usStateInfo) {
-    tasks.push(Promise.resolve(getMockUSStateJobs(title, location, resume)));
   }
 
   return tasks;
@@ -8714,7 +8711,8 @@ async function searchJobsFast({ title, location, resume, radiusMiles = 100 }) {
     }
   }
 
-  const ranked = rankJobs(dedupeJobs(combined), { title, location });
+  const cleaned = dedupeJobs(combined).filter((job) => isEligibleTopMatchJob(job));
+  const ranked = rankJobs(cleaned, { title, location });
   const locationMatched = ranked.filter((job) => isLocationCompatible(job, location));
   console.log(`[SEARCH] after locationCompatible filter: ${locationMatched.length} jobs passed`);
   
@@ -8814,6 +8812,7 @@ const JOB_ALERT_SCHEDULE_INTERVAL_MS = 1000 * 60 * 5;
 const WHATSAPP_STATUS_NUDGE_INTERVAL_MS = 1000 * 60 * 10;
 const WHATSAPP_STATUS_NUDGE_DELAY_MS = 1000 * 60 * 60 * 24;
 const CREDIT_INTEGRITY_AUDIT_INTERVAL_MS = Math.max(1000 * 60 * 30, Number(process.env.CREDIT_INTEGRITY_AUDIT_INTERVAL_MS || 1000 * 60 * 60 * 24));
+const ENGAGEMENT_EMAIL_SCHEDULER_INTERVAL_MS = 1000 * 60 * 60 * 6; // run every 6 hours
 const JOB_ALERT_FREQUENCY_MS = {
   instant: 1000 * 60 * 60 * 2,
   daily: 1000 * 60 * 60 * 24,
@@ -8825,6 +8824,8 @@ let whatsappStatusNudgeTimer = null;
 let whatsappStatusNudgeRunning = false;
 let creditIntegrityAuditTimer = null;
 let creditIntegrityAuditRunning = false;
+let engagementEmailTimer = null;
+let engagementEmailRunning = false;
 
 function cleanAlertString(value, maxLen = 160) {
   return String(value || '').replace(/\s+/g, ' ').trim().slice(0, maxLen);
@@ -9453,6 +9454,187 @@ function startCreditIntegrityAuditScheduler() {
   });
 }
 
+function startCreditIntegrityAuditScheduler() {
+  if (process.env.NODE_ENV === 'test' || creditIntegrityAuditTimer) return;
+
+  creditIntegrityAuditTimer = setInterval(() => {
+    runCreditIntegrityAudit().catch((err) => {
+      console.error('[CREDIT AUDIT] Loop failed:', err.message);
+    });
+  }, CREDIT_INTEGRITY_AUDIT_INTERVAL_MS);
+
+  runCreditIntegrityAudit().catch((err) => {
+    console.error('[CREDIT AUDIT] Initial run failed:', err.message);
+  });
+}
+
+// ─── ENGAGEMENT EMAIL SCHEDULER ──────────────────────────────────────────────
+//
+// Sends 3 automated engagement emails per user lifecycle:
+//   day3_nudge        — 3–5 days after signup with no activity
+//   day7_reengagement — 7–45 days since last activity
+//   day30_winback     — 30+ days since last activity
+//
+// Cooldowns prevent repeat sends: day3 once only; day7 once per 60 days;
+// day30 once per 120 days. Respects emailEngagementOptOut on the User model.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function buildUnsubscribeUrl(userId) {
+  const crypto = require('crypto');
+  const secret = process.env.JWT_SECRET || 'fallback-secret';
+  const token = crypto.createHmac('sha256', secret).update(String(userId)).digest('hex').slice(0, 24);
+  const base = (process.env.CLIENT_URL || 'https://www.rolerocketai.com').replace(/\/$/, '');
+  return `${base}/api/engagement/unsubscribe?uid=${userId}&token=${token}`;
+}
+
+async function runEngagementEmails() {
+  if (engagementEmailRunning || mongoose.connection.readyState !== 1) return;
+  engagementEmailRunning = true;
+
+  try {
+    const now = Date.now();
+    const MS = {
+      day: 1000 * 60 * 60 * 24,
+      day3: 3 * 1000 * 60 * 60 * 24,
+      day5: 5 * 1000 * 60 * 60 * 24,
+      day7: 7 * 1000 * 60 * 60 * 24,
+      day30: 30 * 1000 * 60 * 60 * 24,
+      day45: 45 * 1000 * 60 * 60 * 24,
+      day60: 60 * 1000 * 60 * 60 * 24,
+      day120: 120 * 1000 * 60 * 60 * 24
+    };
+
+    // Fetch candidate users in three buckets — limit each to 100 for SMTP safety
+    const [day3Candidates, day7Candidates, day30Candidates] = await Promise.all([
+      // day3_nudge: signed up 3-5 days ago, never meaningfully active
+      User.find({
+        email: { $exists: true, $ne: '' },
+        emailEngagementOptOut: { $ne: true },
+        createdAt: {
+          $lte: new Date(now - MS.day3),
+          $gte: new Date(now - MS.day5)
+        }
+      }).select('_id name email createdAt updatedAt').lean().limit(100),
+
+      // day7_reengagement: last updated 7-45 days ago
+      User.find({
+        email: { $exists: true, $ne: '' },
+        emailEngagementOptOut: { $ne: true },
+        updatedAt: {
+          $lte: new Date(now - MS.day7),
+          $gte: new Date(now - MS.day45)
+        }
+      }).select('_id name email createdAt updatedAt').lean().limit(100),
+
+      // day30_winback: last updated 30+ days ago
+      User.find({
+        email: { $exists: true, $ne: '' },
+        emailEngagementOptOut: { $ne: true },
+        updatedAt: { $lte: new Date(now - MS.day30) }
+      }).select('_id name email createdAt updatedAt').lean().limit(100)
+    ]);
+
+    // Helper: get sent-email logs for a set of userIds + emailType
+    async function getRecentlySentSet(userIds, emailType, cooldownMs) {
+      if (!userIds.length) return new Set();
+      const cutoff = new Date(now - cooldownMs);
+      const logs = await EngagementEmailLog.find({
+        userId: { $in: userIds },
+        emailType,
+        sentAt: { $gte: cutoff }
+      }).select('userId').lean();
+      return new Set(logs.map((l) => String(l.userId)));
+    }
+
+    const allDay3Ids = day3Candidates.map((u) => u._id);
+    const allDay7Ids = day7Candidates.map((u) => u._id);
+    const allDay30Ids = day30Candidates.map((u) => u._id);
+
+    // day3: once-only (use a very long lookback — 999 days effectively never re-sends)
+    const [sentDay3, sentDay7, sentDay30] = await Promise.all([
+      getRecentlySentSet(allDay3Ids, 'day3_nudge', MS.day * 999),
+      getRecentlySentSet(allDay7Ids, 'day7_reengagement', MS.day60),
+      getRecentlySentSet(allDay30Ids, 'day30_winback', MS.day120)
+    ]);
+
+    // Filter day3: also exclude users where updatedAt is >24h after createdAt
+    // (they came back on their own — don't nag)
+    const day3Targets = day3Candidates.filter((u) => {
+      if (sentDay3.has(String(u._id))) return false;
+      const created = new Date(u.createdAt).getTime();
+      const updated = new Date(u.updatedAt).getTime();
+      return (updated - created) < MS.day; // less than 1 day of activity
+    });
+
+    const day7Targets = day7Candidates.filter((u) => !sentDay7.has(String(u._id)));
+    const day30Targets = day30Candidates.filter((u) => !sentDay30.has(String(u._id)));
+
+    async function sendEngagementEmail(user, emailType, htmlFn, subject) {
+      const to = String(user.email || '').trim().toLowerCase();
+      if (!to || !/^\S+@\S+\.\S+$/.test(to)) return;
+
+      const unsubUrl = buildUnsubscribeUrl(user._id);
+      const html = htmlFn(user.name, unsubUrl);
+
+      try {
+        await sendEmail({ to, subject, html });
+        await EngagementEmailLog.create({
+          userId: user._id,
+          email: to,
+          emailType
+        });
+        console.log(`[ENGAGEMENT EMAIL] sent ${emailType} → ${to}`);
+      } catch (err) {
+        console.error(`[ENGAGEMENT EMAIL] failed ${emailType} → ${to}: ${err.message}`);
+      }
+    }
+
+    // Send with a small delay between sends to avoid SMTP throttling
+    const delay = (ms) => new Promise((res) => setTimeout(res, ms));
+
+    for (const user of day3Targets) {
+      await sendEngagementEmail(user, 'day3_nudge', getDay3NudgeHtml, 'Still figuring out where to start?');
+      await delay(300);
+    }
+
+    for (const user of day7Targets) {
+      await sendEngagementEmail(user, 'day7_reengagement', getDay7ReengagementHtml, 'A few things you haven\'t tried yet');
+      await delay(300);
+    }
+
+    for (const user of day30Targets) {
+      await sendEngagementEmail(user, 'day30_winback', getDay30WinbackHtml, 'Your dashboard is still waiting');
+      await delay(300);
+    }
+
+    const total = day3Targets.length + day7Targets.length + day30Targets.length;
+    if (total > 0) {
+      console.log(`[ENGAGEMENT EMAIL] Run complete: day3=${day3Targets.length}, day7=${day7Targets.length}, day30=${day30Targets.length}`);
+    }
+  } catch (err) {
+    console.error('[ENGAGEMENT EMAIL] Scheduler failed:', err.message);
+  } finally {
+    engagementEmailRunning = false;
+  }
+}
+
+function startEngagementEmailScheduler() {
+  if (process.env.NODE_ENV === 'test' || engagementEmailTimer) return;
+
+  engagementEmailTimer = setInterval(() => {
+    runEngagementEmails().catch((err) => {
+      console.error('[ENGAGEMENT EMAIL] Loop failed:', err.message);
+    });
+  }, ENGAGEMENT_EMAIL_SCHEDULER_INTERVAL_MS);
+
+  // Delay initial run by 30s to let the server settle after startup
+  setTimeout(() => {
+    runEngagementEmails().catch((err) => {
+      console.error('[ENGAGEMENT EMAIL] Initial run failed:', err.message);
+    });
+  }, 30000);
+}
+
 function buildJobAlertEmailHtml(alert, results) {
   const top = (results || []).slice(0, 5);
   const items = top
@@ -9933,7 +10115,7 @@ function buildOfferNegotiationReport({ offerText, targetComp, priorities }) {
 
 function buildJobScoutReport({ title, location, preferences, jobs }) {
   const lines = [
-    `AI Job Agent Report for ${title} in ${location}`,
+    `Job Scout Report for ${title} in ${location}`,
     ''
   ];
 
@@ -14917,112 +15099,6 @@ app.post('/api/career-coach', authenticateToken, async (req, res) => {
   }
 });
 
-app.post('/api/ai-application-tracker/analyze', authenticateToken, async (req, res) => {
-  try {
-    const entries = Array.isArray(req.body?.entries) ? req.body.entries : [];
-    const focus = String(req.body?.focus || '').trim();
-
-    if (!entries.length) {
-      return res.status(400).json({ error: 'At least one application entry is required.' });
-    }
-
-    const user = await User.findById(req.user.userId);
-    if (!hasRequiredPlan(user, 'elite')) {
-      return res.status(403).json({ error: 'Upgrade to Elite to use AI Application Tracker.' });
-    }
-
-    const normalizedEntries = entries
-      .map((entry) => ({
-        company: String(entry?.company || '').trim(),
-        role: String(entry?.role || '').trim(),
-        stage: String(entry?.stage || '').trim() || 'Applied',
-        appliedDate: String(entry?.appliedDate || '').trim(),
-        notes: String(entry?.notes || '').trim(),
-        jobLink: String(entry?.jobLink || '').trim()
-      }))
-      .filter((entry) => entry.company && entry.role)
-      .slice(0, 50);
-
-    if (!normalizedEntries.length) {
-      return res.status(400).json({ error: 'Entries must include company and role.' });
-    }
-
-    const stageSummary = normalizedEntries.reduce((acc, entry) => {
-      const stage = entry.stage.toLowerCase();
-      if (stage.includes('offer')) acc.offer += 1;
-      else if (stage.includes('interview') || stage.includes('phone') || stage.includes('final')) acc.interview += 1;
-      else if (stage.includes('reject')) acc.rejected += 1;
-      else acc.waiting += 1;
-      return acc;
-    }, { interview: 0, offer: 0, waiting: 0, rejected: 0 });
-
-    const compactEntries = normalizedEntries
-      .map((entry, idx) => `${idx + 1}. ${entry.company} | ${entry.role} | ${entry.stage}${entry.appliedDate ? ` | ${entry.appliedDate}` : ''}${entry.notes ? ` | ${entry.notes}` : ''}`)
-      .join('\n');
-
-    if (E2E_MOCK_MODE) {
-      return res.json({
-        report: [
-          'AI Application Tracker Summary',
-          '',
-          `Active applications logged: ${normalizedEntries.length}`,
-          `Interviews in motion: ${stageSummary.interview}`,
-          `Offers pending or received: ${stageSummary.offer}`,
-          `Waiting for response: ${stageSummary.waiting}`,
-          `Closed or rejected: ${stageSummary.rejected}`,
-          '',
-          `Current focus: ${focus || 'Improve conversion from applied to interview.'}`,
-          '',
-          'Recommended next actions:',
-          '- Prioritize follow-ups for applications older than 7 business days.',
-          '- Prepare role-specific interview stories for your top active roles.',
-          '- Increase tailored applications in the role family with the highest response rate.'
-        ].join('\n')
-      });
-    }
-
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      max_tokens: 1200,
-      temperature: 0.5,
-      messages: [
-        {
-          role: 'system',
-          content: 'You are an expert job search operations coach. Produce a concise, actionable tracker summary in plain text with headings and bullet points. Focus on pipeline health, bottlenecks, and concrete next steps for the next 7 days.'
-        },
-        {
-          role: 'user',
-          content: [
-            `Current focus: ${focus || 'Not provided'}`,
-            '',
-            'Application entries:',
-            compactEntries,
-            '',
-            `Stage summary: interviews=${stageSummary.interview}, offers=${stageSummary.offer}, waiting=${stageSummary.waiting}, rejected=${stageSummary.rejected}`,
-            '',
-            'Return sections in this order:',
-            '1) AI Application Tracker Summary',
-            '2) Pipeline Snapshot',
-            '3) Bottlenecks',
-            '4) Recommended Next Actions (numbered)',
-            '5) One-week execution plan'
-          ].join('\n')
-        }
-      ]
-    });
-
-    const report = String(completion.choices?.[0]?.message?.content || '').trim();
-    if (!report) {
-      return res.status(500).json({ error: 'Could not generate tracker summary.' });
-    }
-
-    return res.json({ report });
-  } catch (err) {
-    console.error('AI application tracker analyze error:', err);
-    return res.status(500).json({ error: 'Failed to generate AI tracker summary.' });
-  }
-});
-
 // ─── Interview Assist ────────────────────────────────────────────────────────
 app.post('/api/interview-assist/transcribe', authenticateToken, upload.single('audio'), async (req, res) => {
   try {
@@ -17244,6 +17320,35 @@ app.get('/{*path}', (req, res) => {
   return res.sendFile(path.join(__dirname, '../frontend/index.html'));
 });
 
+// ─── ENGAGEMENT EMAIL UNSUBSCRIBE ───────────────────────────────────────────
+app.get('/api/engagement/unsubscribe', async (req, res) => {
+  const { uid, token } = req.query;
+  if (!uid || !token) return res.status(400).send('Invalid unsubscribe link.');
+
+  const crypto = require('crypto');
+  const secret = process.env.JWT_SECRET || 'fallback-secret';
+  const expected = crypto.createHmac('sha256', secret).update(String(uid)).digest('hex').slice(0, 24);
+  if (token !== expected) return res.status(400).send('Invalid unsubscribe token.');
+
+  try {
+    await User.findByIdAndUpdate(uid, { emailEngagementOptOut: true });
+    return res.send(`
+      <!DOCTYPE html><html><head><meta charset="utf-8"><title>Unsubscribed</title></head>
+      <body style="font-family:Segoe UI,Arial,sans-serif;background:#F0F9FF;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;">
+        <div style="background:#fff;border:1px solid #BFDBFE;border-radius:20px;padding:40px 48px;text-align:center;max-width:420px;">
+          <div style="font-size:36px;margin-bottom:12px;">&#x2705;</div>
+          <h2 style="margin:0 0 10px;color:#0F172A;">You've been unsubscribed</h2>
+          <p style="margin:0;color:#475569;font-size:15px;">You won't receive engagement emails from RoleRocket AI anymore.</p>
+          <a href="https://www.rolerocketai.com" style="display:inline-block;margin-top:24px;background:#0C4A6E;color:#fff;text-decoration:none;padding:12px 28px;border-radius:12px;font-weight:700;">Go to dashboard</a>
+        </div>
+      </body></html>
+    `);
+  } catch (err) {
+    console.error('[ENGAGEMENT UNSUBSCRIBE] Failed:', err.message);
+    return res.status(500).send('Something went wrong. Please try again.');
+  }
+});
+
 
 if (process.env.NODE_ENV !== 'test') {
   const server = app.listen(PORT, () => {
@@ -17251,6 +17356,8 @@ if (process.env.NODE_ENV !== 'test') {
     startJobAlertScheduler();
     startWhatsAppStatusNudgeScheduler();
     startCreditIntegrityAuditScheduler();
+    startEngagementEmailScheduler();
+    startEngagementEmailScheduler();
     setTimeout(() => {
       prewarmJobSearches().catch((err) => {
         console.warn('Job prewarm failed:', err.message);

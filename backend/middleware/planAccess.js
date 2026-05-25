@@ -22,9 +22,6 @@ const featurePlanMap = {
   'career-path-simulator': 'elite',
   'offer-negotiation-coach': 'elite',
   'video-interview-practice': 'elite',
-  'calendar-task-ai': 'elite',
-  'ai-application-tracker': 'elite',
-  'ai-job-agent': 'elite',
   'learning': 'elite',
   'interview-assist': 'elite',
   'outcome-command-center': 'elite'

@@ -59,19 +59,5 @@ router.post('/offer-negotiation-coach', planAccess('offer-negotiation-coach'), (
 router.post('/video-interview-practice', planAccess('video-interview-practice'), (req, res) => {
   res.json({ result: 'Video Interview Practice result (stub)' });
 });
-router.post('/calendar-task-ai', planAccess('calendar-task-ai'), (req, res) => {
-  res.json({ result: 'Calendar & Task AI result (stub)' });
-});
-router.post('/ai-application-tracker', planAccess('ai-application-tracker'), (req, res) => {
-  const isAdmin = req.user && (req.user.isAdmin || String(req.user.plan) === 'lifetime');
-  if (isAdmin) {
-    return res.json({
-      report: `AI Application Tracker Demo\n\nYou have 5 active applications, 2 interviews scheduled, and 1 offer pending.\n\nKeep up the great work!\n\n- RoleRocket AI Demo` });
-  }
-  res.json({ result: 'AI Application Tracker result (stub)' });
-});
-router.post('/ai-job-agent', planAccess('ai-job-agent'), (req, res) => {
-  res.json({ result: 'AI Job Agent result (stub)' });
-});
 
 module.exports = router;
