@@ -2232,13 +2232,30 @@ document.addEventListener('DOMContentLoaded', function () {
       const parts = String(line).split(/\s+-\s+/);
       if (parts.length < 2) return { school: line, degree: '', date: '' };
       const school = parts.shift().trim();
-      const remaining = parts.join(' - ').trim();
+      let remaining = parts.join(' - ').trim();
       let degree = remaining;
       let date = '';
-      const dateMatch = remaining.match(/(?:\((\d{4}|present|expected)\)|(\d{4}|present|expected))$/i);
-      if (dateMatch) {
-        date = dateMatch[1] || dateMatch[2];
-        degree = remaining.substring(0, remaining.lastIndexOf(dateMatch[0])).trim();
+      // Extract date: look for (YYYY/Expected/Present) or - YYYY/Expected/Present at end
+      // Try multiple date patterns: (YYYY), (Expected YYYY), - YYYY, - Expected YYYY
+      const datePatterns = [
+        /\\((\\d{4})\\)\\s*$/,
+        /\\(([Ee]xpected|[Pp]resent)\\s*(\\d{4})?\\)\\s*$/,
+        /[-\\s]+(Expected|Present|[Ee]xpected|[Pp]resent)\\s+(\\d{4})\\s*$/,
+        /[-\\s]+(\\d{4})\\s*$/
+      ];
+      for (const pattern of datePatterns) {
+        const match = remaining.match(pattern);
+        if (match) {
+          if (match[1] && match[2]) {
+            date = match[1] + ' ' + match[2];
+          } else if (match[1]) {
+            date = match[1];
+          } else if (match[2]) {
+            date = match[2];
+          }
+          degree = remaining.substring(0, remaining.length - match[0].length).trim();
+          break;
+        }
       }
       return { school, degree, date };
     });
