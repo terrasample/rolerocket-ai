@@ -1,4 +1,8 @@
 let latestAtsAnalysis = null;
+const ATS_STANDARD_DEFAULT_LAYOUT = 'forest-ribbon';
+const ATS_STANDARD_TARGET_SCORE = 85;
+const ATS_STANDARD_MAX_ITERATIONS = 4;
+const ATS_STANDARD_MAX_MISSING_TERMS_PER_PASS = 8;
 const ATS_TEMPLATE_FALLBACK_LAYOUTS = [
   { id: 'blank-template', name: 'Blank Template' },
   { id: 'forest-ribbon', name: 'Forest Ribbon' },
@@ -18,7 +22,7 @@ function getAtsTemplateLayoutEl() {
 }
 
 function getAtsSelectedLayoutId() {
-  return getAtsTemplateLayoutEl()?.value || 'forest-ribbon';
+  return getAtsTemplateLayoutEl()?.value || ATS_STANDARD_DEFAULT_LAYOUT;
 }
 
 function isAtsOnePageModeEnabled() {
@@ -76,6 +80,103 @@ async function runFullAiAnalysis(jobDescription, resume) {
   return data;
 }
 
+async function analyzeResumeAgainstJob(jobDescription, resume, mode = 'true-like') {
+  const res = await fetch(apiUrl('/api/ats/analyze'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ jobDescription, resume, mode })
+  });
+  let data;
+  try {
+    data = await res.json();
+  } catch (_) {
+    throw new Error('Invalid server response. Please try again.');
+  }
+  if (!res.ok || !data?.analysis) {
+    throw new Error(data?.error || 'Failed to run ATS analysis.');
+  }
+  return data.analysis;
+}
+
+function normalizeMissingTerm(item) {
+  const raw = typeof item === 'string' ? item : (item?.keyword || '');
+  return String(raw || '').replace(/\s*\(must-have\)$/i, '').trim();
+}
+
+function appendMissingTermsToResume(resumeText, missingKeywords) {
+  const current = String(resumeText || '').trim();
+  if (!current) return current;
+
+  const currentLower = current.toLowerCase();
+  const uniqueTerms = [];
+  const seen = new Set();
+
+  for (const item of (missingKeywords || [])) {
+    const term = normalizeMissingTerm(item);
+    const key = term.toLowerCase();
+    if (!term || seen.has(key)) continue;
+    seen.add(key);
+    if (currentLower.includes(key)) continue;
+    uniqueTerms.push(term);
+  }
+
+  const selectedTerms = uniqueTerms.slice(0, ATS_STANDARD_MAX_MISSING_TERMS_PER_PASS);
+  if (!selectedTerms.length) return current;
+
+  return `${current}\n\nKEYWORD ALIGNMENT\n${selectedTerms.join('; ')}.`;
+}
+
+async function runAtsStandardPipeline(jobDescription, resume) {
+  const mode = document.getElementById('atsMode')?.value || 'true-like';
+  const fullData = await runFullAiAnalysis(jobDescription, resume);
+
+  let standardizedResume = String(fullData?.rewrittenResume || resume || '').trim();
+  if (!standardizedResume) {
+    throw new Error('No rewritten resume was generated.');
+  }
+
+  let finalAnalysis = await analyzeResumeAgainstJob(jobDescription, standardizedResume, mode);
+  let iterations = 0;
+
+  while ((finalAnalysis?.atsScore || 0) < ATS_STANDARD_TARGET_SCORE && iterations < ATS_STANDARD_MAX_ITERATIONS) {
+    const nextResume = appendMissingTermsToResume(standardizedResume, finalAnalysis?.missingKeywords || []);
+    if (!nextResume || nextResume === standardizedResume) break;
+    standardizedResume = nextResume;
+    finalAnalysis = await analyzeResumeAgainstJob(jobDescription, standardizedResume, mode);
+    iterations += 1;
+  }
+
+  latestAtsAnalysis = finalAnalysis;
+
+  document.getElementById('atsScore').textContent = finalAnalysis?.atsScore || 0;
+  renderScoreBreakdown(finalAnalysis);
+
+  if (Array.isArray(finalAnalysis?.matchedPairs) && finalAnalysis.matchedPairs.length) {
+    renderMatchedTable(finalAnalysis.matchedPairs);
+  } else {
+    renderTags('matchedKeywords', finalAnalysis?.matchedKeywords, 'No matched keywords yet.');
+  }
+  renderMissingWithReasons(finalAnalysis?.missingKeywords || []);
+  renderAnalysisWarnings(finalAnalysis?.redFlags, finalAnalysis?.formattingWarnings, finalAnalysis?.quickFixes);
+  renderBulletScores(finalAnalysis?.bulletScores);
+
+  const resumeEl = document.getElementById('atsResume');
+  if (resumeEl) resumeEl.value = standardizedResume;
+  const rewriteEl = document.getElementById('rewriteOutput');
+  if (rewriteEl) rewriteEl.textContent = standardizedResume;
+
+  if (Array.isArray(fullData?.keyChanges)) {
+    renderKeyChanges(fullData.keyChanges);
+  }
+
+  return {
+    standardizedResume,
+    finalAnalysis,
+    iterations,
+    targetReached: (finalAnalysis?.atsScore || 0) >= ATS_STANDARD_TARGET_SCORE
+  };
+}
+
 function populateAtsTemplateLayouts() {
   const layoutEl = getAtsTemplateLayoutEl();
   if (!layoutEl) return;
@@ -97,12 +198,40 @@ function populateAtsTemplateLayouts() {
     .map((layout) => `<option value="${escapeHtml(layout.id)}">${escapeHtml(layout.name)}</option>`)
     .join('');
 
-  if (!layoutEl.value && uniqueLayouts.length) {
+  const defaultLayout = uniqueLayouts.find((layout) => layout.id === ATS_STANDARD_DEFAULT_LAYOUT)?.id;
+  if (defaultLayout) {
+    layoutEl.value = defaultLayout;
+  } else if (!layoutEl.value && uniqueLayouts.length) {
     layoutEl.value = uniqueLayouts[0].id;
   }
 }
 
+function applyAtsStandardDefaults() {
+  const layoutEl = getAtsTemplateLayoutEl();
+  if (layoutEl) {
+    layoutEl.value = ATS_STANDARD_DEFAULT_LAYOUT;
+    if (!layoutEl.value && layoutEl.options.length) {
+      layoutEl.value = layoutEl.options[0].value;
+    }
+  }
+
+  const modeEl = document.getElementById('atsMode');
+  if (modeEl?.querySelector('option[value="true-like"]')) {
+    modeEl.value = 'true-like';
+  }
+
+  const onePageEl = document.getElementById('atsOnePageMode');
+  if (onePageEl) {
+    onePageEl.checked = true;
+  }
+}
+
 populateAtsTemplateLayouts();
+applyAtsStandardDefaults();
+window.setTimeout(applyAtsStandardDefaults, 0);
+window.addEventListener('load', () => {
+  window.setTimeout(applyAtsStandardDefaults, 120);
+});
 
 function showLoadingSpinner(show) {
   let spinner = document.getElementById('atsLoadingSpinner');
@@ -272,16 +401,20 @@ document.getElementById('fullAnalysisBtn')?.addEventListener('click', async () =
     return;
   }
 
-  setOptimizerStatus('Running full AI analysis…');
+  setOptimizerStatus('Running ATS standard flow…');
   showLoadingSpinner(true);
 
   try {
-    await runFullAiAnalysis(jobDescription, resume);
-
-    setOptimizerStatus('Full AI analysis complete. Rewritten resume applied — click "Save as PDF" or "Export Template PDF" to download.');
+    const result = await runAtsStandardPipeline(jobDescription, resume);
+    const score = result.finalAnalysis?.atsScore || 0;
+    if (result.targetReached) {
+      setOptimizerStatus(`ATS standard complete. Score ${score}. Rewritten resume applied and optimized for export.`);
+    } else {
+      setOptimizerStatus(`ATS standard complete. Score ${score}. Rewritten resume applied; consider refining role-specific terms for ${ATS_STANDARD_TARGET_SCORE}+.`);
+    }
   } catch (err) {
     console.error(err);
-    setOptimizerStatus(err.message || 'Full AI analysis failed.', true);
+    setOptimizerStatus(err.message || 'ATS standard flow failed.', true);
   } finally {
     showLoadingSpinner(false);
   }
@@ -302,29 +435,25 @@ document.getElementById('oneClickTemplateExportBtn')?.addEventListener('click', 
     return;
   }
 
-  setOptimizerStatus('Running one-click flow: analyzing, applying rewrite, and exporting template PDF...');
+  setOptimizerStatus('Running ATS standard flow and exporting template PDF...');
   showLoadingSpinner(true);
 
   try {
-    const data = await runFullAiAnalysis(jobDescription, resume);
-    const rewrittenResume = String(data?.rewrittenResume || '').trim();
-    if (!rewrittenResume) {
-      throw new Error('No rewritten resume was generated.');
-    }
-
-    document.getElementById('atsResume').value = rewrittenResume;
+    const result = await runAtsStandardPipeline(jobDescription, resume);
+    const standardizedResume = result.standardizedResume;
 
     await bridge.exportTemplatePdfFromRawResume(
-      rewrittenResume,
-      data?.jobTitle || getRoleFromJobDescription(jobDescription),
-      getAtsSelectedLayoutId(),
+      standardizedResume,
+      getRoleFromJobDescription(jobDescription),
+      getAtsSelectedLayoutId() || ATS_STANDARD_DEFAULT_LAYOUT,
       { onePage: isAtsOnePageModeEnabled() }
     );
 
-    setOptimizerStatus('One-click flow complete. Rewritten resume applied and template PDF downloaded.');
+    const score = result.finalAnalysis?.atsScore || 0;
+    setOptimizerStatus(`ATS standard export complete. Score ${score}. Template PDF downloaded.`);
   } catch (err) {
     console.error(err);
-    setOptimizerStatus(err.message || 'One-click template export failed.', true);
+    setOptimizerStatus(err.message || 'ATS standard export failed.', true);
   } finally {
     showLoadingSpinner(false);
   }

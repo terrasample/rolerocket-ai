@@ -60,7 +60,7 @@
   <div class="hero">
     <h1>ATS Optimizer</h1>
     <p class="home-brand-subtitle" style="color:#6d28d9;font-size:0.95rem;font-weight:600;margin-top:4px;">Resume Studio</p>
-    <p>Analyze your resume, rewrite it with AI, and fix ATS issues instantly.</p>
+    <p>Analyze your resume, rewrite it with AI, and fix ATS (Applicant Tracking System) issues instantly.</p>
     <button onclick="window.history.back()" class="back-arrow-btn" aria-label="Go back" style="margin:12px 0 0 12px;background:none;border:none;cursor:pointer;font-size:1.6em;color:#2563eb;"><span aria-hidden="true">&#8592;</span> Back</button>
   </div>
 
@@ -68,7 +68,7 @@
 
     <div class="card" style="margin-bottom:14px;">
       <div style="color:#334155;font-size:0.93rem;line-height:1.55;">
-        ATS Optimizer mode: this workflow checks keyword match, identifies gaps, and rewrites your resume to improve ATS pass likelihood for the selected job description.
+        ATS Optimizer standard: this workflow runs full AI analysis, applies rewrite improvements, fills critical keyword gaps, and prepares a one-page export for stronger ATS pass likelihood.
       </div>
     </div>
 
@@ -96,14 +96,42 @@
 
     <div class="card premium">
       <h3>⚡ ATS Actions</h3>
+
+      <!-- Button legend -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px;margin-bottom:16px;padding:12px;background:#f1f5f9;border-radius:10px;border:1px solid #e2e8f0;">
+        <div style="font-size:0.82rem;color:#334155;line-height:1.5;"><strong style="color:#0f172a;">Analyze Resume</strong> — keyword match + ATS score only; fast, no rewrite.</div>
+        <div style="font-size:0.82rem;color:#334155;line-height:1.5;"><strong style="color:#16a34a;">🤖 Full AI Analysis</strong> — scores, red flags, missing keywords <em>and</em> rewrites the resume to the JD. Result auto-applies to the resume field.</div>
+        <div style="font-size:0.82rem;color:#334155;line-height:1.5;"><strong style="color:#0f172a;">Clear Fields</strong> — resets all inputs and results on the page.</div>
+        <div style="font-size:0.82rem;color:#334155;line-height:1.5;"><strong style="color:#b45309;">Download ATS Report</strong> — exports a .txt file with score, matched/missing keywords, and red flags.</div>
+        <div style="font-size:0.82rem;color:#334155;line-height:1.5;"><strong style="color:#0369a1;">Save as PDF</strong> — exports resume using the selected layout template (see Resume Layout below).</div>
+        <div style="font-size:0.82rem;color:#334155;line-height:1.5;"><strong style="color:#4338ca;">Save as Word</strong> — exports resume as a .docx file ready to upload to job portals.</div>
+        <div style="font-size:0.82rem;color:#334155;line-height:1.5;"><strong style="color:#0f766e;">Send to Email</strong> — emails the current resume content to your account email address.</div>
+      </div>
+
       <div class="ats-actions">
-        <button id="analyzeResumeBtn">Analyze Resume</button>
-        <button id="fullAnalysisBtn" style="background:#16a34a;color:#fff;">🤖 Full AI Analysis</button>
-        <button id="clearAtsFieldsBtn">Clear Fields</button>
-        <button id="downloadAtsReportBtn" style="background:#f59e42;color:#1e293b;">Download ATS Report</button>
-          <button id="saveAtsResumePdfBtn" style="background:#38bdf8;color:#1e293b;">Save as PDF</button>
-          <button id="saveAtsResumeWordBtn" style="background:#6366f1;color:#fff;">Save as Word</button>
-          <button id="sendAtsResumeEmailBtn" style="background:#0f766e;color:#fff;">Send to Email</button>
+        <button id="analyzeResumeBtn" title="Keyword match + ATS score — no rewrite">Analyze Resume</button>
+        <button id="fullAnalysisBtn" style="background:#16a34a;color:#fff;" title="Full rewrite + score + red flags. Result auto-applied to resume field.">🤖 Full AI Analysis</button>
+        <button id="clearAtsFieldsBtn" title="Reset all inputs and results">Clear Fields</button>
+        <button id="downloadAtsReportBtn" style="background:#f59e42;color:#1e293b;" title="Download score, keywords, and red flags as a .txt report">Download ATS Report</button>
+        <button id="saveAtsResumePdfBtn" style="background:#38bdf8;color:#1e293b;" title="Export resume as PDF using the selected layout template">Save as PDF</button>
+        <button id="saveAtsResumeWordBtn" style="background:#6366f1;color:#fff;" title="Export resume as a .docx Word file">Save as Word</button>
+        <button id="sendAtsResumeEmailBtn" style="background:#0f766e;color:#fff;" title="Email the current resume content to your account">Send to Email</button>
+      </div>
+      <div style="margin-top:14px;padding:12px;border:1px solid #dbe3ea;border-radius:10px;background:#f8fafc;">
+        <div style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;">
+          <div style="min-width:220px;flex:1;">
+            <label for="atsTemplateLayout" style="display:block;font-weight:700;color:#1e293b;margin-bottom:6px;">Resume Layout</label>
+            <select id="atsTemplateLayout" style="width:100%;padding:8px 10px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#0f172a;"></select>
+          </div>
+          <label style="display:flex;align-items:center;gap:8px;color:#334155;font-size:0.92rem;padding-bottom:4px;">
+            <input id="atsOnePageMode" type="checkbox" checked />
+            Keep to one page
+          </label>
+          <button id="oneClickTemplateExportBtn" style="background:#7c3aed;color:#fff;" title="Run the ATS standard flow (analysis, rewrite, optimization) and download a template-styled PDF">Run ATS Standard → Export Template PDF</button>
+        </div>
+        <div style="margin-top:8px;font-size:0.88rem;color:#64748b;line-height:1.45;">
+          <strong>Tip:</strong> The standard flow targets 85+ ATS when possible, defaults to Forest Ribbon, and keeps one-page export enabled. Use <em>Run ATS Standard → Export Template PDF</em> for the full automatic workflow.
+        </div>
       </div>
       <div id="optimizerStatus" class="section-subtitle"></div>
     </div>
@@ -175,7 +203,9 @@
   <script src="js/auth-storage.js"></script>
   <script src="js/idle-timeout.js"></script>
   <script src="js/send-document-email.js"></script>
-  <script src="js/optimizer.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="js/resume-generator-gen.js?v=20260527-letter1"></script>
+  <script src="js/optimizer.js?v=20260527-standard1"></script>
   <script src="js/page-assistant.js"></script>
   <script src="js/return-navigation.js"></script>
   <script src="js/nav-plan-sync.js?v=20260514-sync4"></script>
