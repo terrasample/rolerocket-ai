@@ -2,17 +2,29 @@ const express = require('express');
 const router = express.Router();
 const authenticateToken = require('../middleware/auth');
 const openai = require('openai');
+const User = require('../models/User');
 
 const client = new openai.OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-// Helper: Check if user has PRO+ tier
-function hasProTier(user) {
+// Helper: Check if user has PRO+ tier (async — fetches DB record to get live isAdmin/plan)
+async function hasProTier(user) {
   if (!user) return false;
+  // Fast path: JWT already carries isAdmin flag (new tokens)
   if (user.isAdmin === true) return true;
   const plan = String(user.plan || 'free').toLowerCase();
-  return ['pro', 'premium', 'elite', 'lifetime'].includes(plan);
+  if (['pro', 'premium', 'elite', 'lifetime'].includes(plan)) return true;
+  // Fallback: check DB for isAdmin (handles older JWTs that lack the flag)
+  try {
+    const dbUser = await User.findById(user.userId).select('isAdmin plan').lean();
+    if (!dbUser) return false;
+    if (dbUser.isAdmin === true) return true;
+    const dbPlan = String(dbUser.plan || 'free').toLowerCase();
+    return ['pro', 'premium', 'elite', 'lifetime'].includes(dbPlan);
+  } catch {
+    return false;
+  }
 }
 
 // Email tone descriptions for the system prompt
@@ -64,7 +76,7 @@ router.post('/generate', authenticateToken, async (req, res) => {
     const user = req.user;
 
     // Tier check: Email Assistant is a PRO+ feature
-    if (!hasProTier(user)) {
+    if (!await hasProTier(user)) {
       return res.status(403).json({
         error: 'Email Assistant is a PRO feature. Please upgrade your plan to access this feature.',
         code: 'FEATURE_REQUIRES_PRO',

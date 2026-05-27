@@ -1,4 +1,108 @@
 let latestAtsAnalysis = null;
+const ATS_TEMPLATE_FALLBACK_LAYOUTS = [
+  { id: 'blank-template', name: 'Blank Template' },
+  { id: 'forest-ribbon', name: 'Forest Ribbon' },
+  { id: 'gold-sidebar', name: 'Golden Sidebar' },
+  { id: 'slate-modern', name: 'Slate Modern' },
+  { id: 'copper-clean', name: 'Copper Clean' },
+  { id: 'midnight-column', name: 'Midnight Column' },
+  { id: 'sage-editorial', name: 'Sage Editorial' },
+  { id: 'berry-executive', name: 'Berry Executive' },
+  { id: 'onyx-portfolio', name: 'Onyx Portfolio' },
+  { id: 'ocean-balance', name: 'Ocean Balance' },
+  { id: 'elite-dynamic', name: 'Elite Dynamic' }
+];
+
+function getAtsTemplateLayoutEl() {
+  return document.getElementById('atsTemplateLayout');
+}
+
+function getAtsSelectedLayoutId() {
+  return getAtsTemplateLayoutEl()?.value || 'forest-ribbon';
+}
+
+function isAtsOnePageModeEnabled() {
+  return document.getElementById('atsOnePageMode')?.checked !== false;
+}
+
+function getRoleFromJobDescription(jobDescription) {
+  const lines = String(jobDescription || '').split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  if (!lines.length) return 'Target Role';
+  const titledLine = lines.find((line) => /^job\s*title\s*:/i.test(line));
+  if (titledLine) return titledLine.replace(/^job\s*title\s*:/i, '').trim().slice(0, 100) || 'Target Role';
+  return lines[0].slice(0, 100) || 'Target Role';
+}
+
+function applyFullAnalysisResult(data) {
+  const banner = document.getElementById('atsAnalysisBanner');
+  if (banner && data.jobTitle) {
+    banner.textContent = `ATS Analysis: ${data.jobTitle}`;
+    banner.style.display = 'block';
+  }
+
+  document.getElementById('atsScore').textContent = data.atsScore || 0;
+  renderScoreBreakdown({ scoreBreakdown: data.scoreBreakdown, analysisMode: data.analysisMode });
+  renderMatchedTable(data.matchedPairs || []);
+  renderMissingWithReasons(data.missingKeywords || []);
+
+  const rewriteEl = document.getElementById('rewriteOutput');
+  if (rewriteEl) rewriteEl.textContent = data.rewrittenResume || '';
+
+  // Auto-apply rewrite to the resume field so Save as PDF/Word always exports the rewritten version
+  if (data.rewrittenResume) {
+    const atsResumeEl = document.getElementById('atsResume');
+    if (atsResumeEl) atsResumeEl.value = data.rewrittenResume;
+  }
+
+  renderKeyChanges(data.keyChanges || []);
+  if (data.redFlags) renderAnalysisWarnings(data.redFlags, [], []);
+  if (data.bulletScores) renderBulletScores(data.bulletScores);
+}
+
+async function runFullAiAnalysis(jobDescription, resume) {
+  const res = await fetch(apiUrl('/api/ats/full-analysis'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ jobDescription, resume })
+  });
+  let data;
+  try {
+    data = await res.json();
+  } catch (_) {
+    throw new Error('Invalid server response. Please try again.');
+  }
+  if (!res.ok) throw new Error(data.error || 'Full AI analysis failed.');
+  applyFullAnalysisResult(data);
+  return data;
+}
+
+function populateAtsTemplateLayouts() {
+  const layoutEl = getAtsTemplateLayoutEl();
+  if (!layoutEl) return;
+
+  const fromBridge = window.RoleRocketResumeTemplateBridge?.listAvailableLayouts?.();
+  const layouts = Array.isArray(fromBridge) && fromBridge.length ? fromBridge : ATS_TEMPLATE_FALLBACK_LAYOUTS;
+  const uniqueLayouts = [];
+  const ids = new Set();
+
+  layouts.forEach((layout) => {
+    const id = String(layout?.id || '').trim();
+    const name = String(layout?.name || id).trim();
+    if (!id || ids.has(id)) return;
+    ids.add(id);
+    uniqueLayouts.push({ id, name });
+  });
+
+  layoutEl.innerHTML = uniqueLayouts
+    .map((layout) => `<option value="${escapeHtml(layout.id)}">${escapeHtml(layout.name)}</option>`)
+    .join('');
+
+  if (!layoutEl.value && uniqueLayouts.length) {
+    layoutEl.value = uniqueLayouts[0].id;
+  }
+}
+
+populateAtsTemplateLayouts();
 
 function showLoadingSpinner(show) {
   let spinner = document.getElementById('atsLoadingSpinner');
@@ -172,47 +276,55 @@ document.getElementById('fullAnalysisBtn')?.addEventListener('click', async () =
   showLoadingSpinner(true);
 
   try {
-    const res = await fetch(apiUrl('/api/ats/full-analysis'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ jobDescription, resume })
-    });
-    let data;
-    try { data = await res.json(); } catch (_) { throw new Error('Invalid server response. Please try again.'); }
-    if (!res.ok) throw new Error(data.error || 'Full AI analysis failed.');
+    await runFullAiAnalysis(jobDescription, resume);
 
-    // Analysis header banner
-    const banner = document.getElementById('atsAnalysisBanner');
-    if (banner && data.jobTitle) {
-      banner.textContent = `ATS Analysis: ${data.jobTitle}`;
-      banner.style.display = 'block';
-    }
-
-    // Score (from rule-based scorer)
-    document.getElementById('atsScore').textContent = data.atsScore || 0;
-    renderScoreBreakdown({ scoreBreakdown: data.scoreBreakdown, analysisMode: data.analysisMode });
-
-    // Matched Keywords — two-column table
-    renderMatchedTable(data.matchedPairs || []);
-
-    // Missing Keywords — bold keyword + reason
-    renderMissingWithReasons(data.missingKeywords || []);
-
-    // Rewritten Resume
-    const rewriteEl = document.getElementById('rewriteOutput');
-    if (rewriteEl) rewriteEl.textContent = data.rewrittenResume || '';
-
-    // Key Changes Made
-    renderKeyChanges(data.keyChanges || []);
-
-    // Red Flags + Bullet Scores from rule-based scorer
-    if (data.redFlags) renderAnalysisWarnings(data.redFlags, [], []);
-    if (data.bulletScores) renderBulletScores(data.bulletScores);
-
-    setOptimizerStatus('Full AI analysis complete. Review the rewritten resume below, then click "Copy Rewrite to Resume Field" to apply it.');
+    setOptimizerStatus('Full AI analysis complete. Rewritten resume applied — click "Save as PDF" or "Export Template PDF" to download.');
   } catch (err) {
     console.error(err);
     setOptimizerStatus(err.message || 'Full AI analysis failed.', true);
+  } finally {
+    showLoadingSpinner(false);
+  }
+});
+
+document.getElementById('oneClickTemplateExportBtn')?.addEventListener('click', async () => {
+  const jobDescription = document.getElementById('atsJobDescription').value.trim();
+  const resume = document.getElementById('atsResume').value.trim();
+
+  if (!jobDescription || !resume) {
+    alert('Paste both the job description and the resume.');
+    return;
+  }
+
+  const bridge = window.RoleRocketResumeTemplateBridge;
+  if (!bridge || typeof bridge.exportTemplatePdfFromRawResume !== 'function') {
+    setOptimizerStatus('Template renderer is unavailable. Refresh and try again.', true);
+    return;
+  }
+
+  setOptimizerStatus('Running one-click flow: analyzing, applying rewrite, and exporting template PDF...');
+  showLoadingSpinner(true);
+
+  try {
+    const data = await runFullAiAnalysis(jobDescription, resume);
+    const rewrittenResume = String(data?.rewrittenResume || '').trim();
+    if (!rewrittenResume) {
+      throw new Error('No rewritten resume was generated.');
+    }
+
+    document.getElementById('atsResume').value = rewrittenResume;
+
+    await bridge.exportTemplatePdfFromRawResume(
+      rewrittenResume,
+      data?.jobTitle || getRoleFromJobDescription(jobDescription),
+      getAtsSelectedLayoutId(),
+      { onePage: isAtsOnePageModeEnabled() }
+    );
+
+    setOptimizerStatus('One-click flow complete. Rewritten resume applied and template PDF downloaded.');
+  } catch (err) {
+    console.error(err);
+    setOptimizerStatus(err.message || 'One-click template export failed.', true);
   } finally {
     showLoadingSpinner(false);
   }
@@ -730,12 +842,30 @@ document.getElementById('copyRewriteToResumeBtn')?.addEventListener('click', () 
   setOptimizerStatus('Rewritten resume copied to Resume field. You can now download it as PDF or Word.');
 });
 
-document.getElementById('saveAtsResumePdfBtn')?.addEventListener('click', () => {
+document.getElementById('saveAtsResumePdfBtn')?.addEventListener('click', async () => {
   const resume = document.getElementById('atsResume').value.trim();
   if (!resume) {
     setOptimizerStatus('No resume content to save.', true);
     return;
   }
+
+  const bridge = window.RoleRocketResumeTemplateBridge;
+  if (bridge && typeof bridge.exportTemplatePdfFromRawResume === 'function') {
+    try {
+      await bridge.exportTemplatePdfFromRawResume(
+        resume,
+        getRoleFromJobDescription(document.getElementById('atsJobDescription').value.trim()),
+        getAtsSelectedLayoutId(),
+        { onePage: isAtsOnePageModeEnabled() }
+      );
+      setOptimizerStatus('Template PDF downloaded.');
+      return;
+    } catch (err) {
+      console.error(err);
+      setOptimizerStatus('Template PDF export failed. Falling back to plain PDF...', true);
+    }
+  }
+
   if (!window.jspdf) {
     setOptimizerStatus('PDF library not loaded.', true);
     return;

@@ -89,8 +89,12 @@ router.post('/login', loginLimiter, async (req, res) => {
       return res.status(400).json({ error: 'Invalid credentials' });
     }
 
-    // Generate token
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    // Generate token (include isAdmin + plan so feature gates work without extra DB lookups)
+    const token = jwt.sign(
+      { userId: user._id, isAdmin: user.isAdmin === true, plan: user.plan || 'free' },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
 
     // Return user info including plan/subscription
     console.log(`✅ Login successful: ${email}`);
