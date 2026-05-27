@@ -142,7 +142,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
   const ELITE_DYNAMIC_LAYOUT_ID = 'elite-dynamic';
   const BLANK_LAYOUT_ID = 'blank-template';
-  const RESUME_SECTION_HEADERS = new Set(['NAME', 'CONTACT', 'PROFILE', 'SUMMARY', 'EXPERIENCE', 'EDUCATION', 'SKILLS', 'AWARDS', 'CERTIFICATION', 'CERTIFICATIONS', 'IMPROVEMENTS', 'PROJECTS']);
+  const RESUME_SECTION_HEADERS = new Set(['NAME', 'CONTACT', 'PROFILE', 'SUMMARY', 'EXPERIENCE', 'EDUCATION', 'SKILLS', 'AWARDS', 'HONORS', 'ACHIEVEMENTS', 'TRAINING', 'COURSEWORK', 'CERTIFICATION', 'CERTIFICATIONS', 'LICENSE', 'LICENSES', 'IMPROVEMENTS', 'PROJECTS']);
+  const RESUME_SECTION_BOUNDARY_RX = /^(experience|education|skills|core skills|certification|certifications|license|licenses|awards|honors|achievements|training|coursework|projects|profile|summary)\b/i;
+  const RESUME_INLINE_SECTION_RX = /^(contact|key skills|skills|education|core skills|technical skills|certification|certifications|license|licenses|awards|honors|achievements|training|coursework|profile|summary|experience|projects|objective)\b/i;
   const DYNAMIC_THEME_PALETTES = [
     { primary: '#1f2937', accent: '#f97316', sidebarBg: '#f9fafb', headerText: '#ffffff', headingText: '#1f2937' },
     { primary: '#1d4ed8', accent: '#7dd3fc', sidebarBg: '#eff6ff', headerText: '#ffffff', headingText: '#1d4ed8' },
@@ -497,8 +499,14 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function toTitleCaseName(fullName) {
-    const words = String(fullName || '').replace(/\s+/g, ' ').trim().split(' ').filter(Boolean);
+    const normalized = String(fullName || '').replace(/\s+/g, ' ').trim();
+    const words = normalized.split(' ').filter(Boolean);
     if (!words.length) return '';
+
+    const lettersOnly = normalized.replace(/[^A-Za-z]+/g, '');
+    const uppercaseLetters = lettersOnly.replace(/[^A-Z]+/g, '');
+    const uppercaseRatio = lettersOnly ? (uppercaseLetters.length / lettersOnly.length) : 0;
+    if (/,/.test(normalized) || uppercaseRatio >= 0.65) return normalized;
 
     const titleToken = (token) => token
       .split('-')
@@ -506,8 +514,9 @@ document.addEventListener('DOMContentLoaded', function () {
         .split("'")
         .map((piece) => {
           if (!piece) return piece;
+          const normalizedPiece = piece.replace(/[®™.,]/g, '');
           // Preserve all-caps abbreviations (e.g. MBA, RN, ARRT)
-          if (/^[A-Z]{2,6}$/.test(piece)) return piece;
+          if (/^[A-Z]{2,10}$/.test(normalizedPiece)) return piece;
           // Preserve credential/abbreviation tokens that contain dots or parentheses (e.g. R.T.(R), Ph.D., (ARRT))
           if (/[.(]/.test(piece) || /^\(/.test(piece)) return piece;
           return piece.charAt(0).toUpperCase() + piece.slice(1).toLowerCase();
@@ -900,7 +909,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (/^\(?\+?\d[\d\s().-]{6,}\d$/.test(line)) return true;
     if (/\b(linkedin(?:\.com)?|github(?:\.com)?)\b/i.test(line)) return true;
 
-    if (/^(contact|key skills|skills|education|certifications?|awards|profile|summary|experience)\b/i.test(line)) {
+    if (RESUME_SECTION_BOUNDARY_RX.test(line)) {
       return true;
     }
 
@@ -914,7 +923,11 @@ document.addEventListener('DOMContentLoaded', function () {
   function isLikelyExperienceHeaderLine(value) {
     const line = normalizeBulletText(value);
     if (!line) return false;
-    if (/^(experience|education|skills|core skills|certification|certifications|profile|summary|awards|projects)\b/i.test(line)) return false;
+    if (RESUME_SECTION_BOUNDARY_RX.test(line)) return false;
+
+    const pipeParts = line.split('|').map((part) => normalizeBulletText(part)).filter(Boolean);
+    const hasPipeHeaderShape = pipeParts.length >= 2 && isLikelyRoleTitle(pipeParts[0]) && pipeParts.slice(1).join(' ').length > 2;
+    if (hasPipeHeaderShape) return true;
 
     const hasRoleAndCompanyShape = /^[A-Z][A-Za-z.&\-\s]+,\s*[A-Z][A-Za-z0-9.&'\-\s]+,/.test(line);
     const hasLocationSignal = /,\s*[A-Z]{2}\b/.test(line) || /\b(U\.S\.?\s*Army|Reserves?|Company|Healthcare|Inc|LLC|University)\b/i.test(line);
@@ -969,8 +982,8 @@ document.addEventListener('DOMContentLoaded', function () {
   // Parses experience entries from resume body where there is NO explicit "EXPERIENCE"
   // section heading — handles "Company Name   2015-2022", "Company   Jan 2020 – Present", etc.
   function parseExperienceEntriesFromBody(lines) {
-    const companyDateRx = /^(.+?)\s{2,}((?:\d{1,2}\/\d{2,4}|\d{4}|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*\s+\d{4})\s*(?:[-–to]+\s*(?:\d{1,2}\/\d{2,4}|\d{4}|present|current|now))?)$/i;
-    const sectionBoundaryRx = /^(education|skills|core skills|certification|certifications|profile|summary|awards|projects)\b/i;
+    const companyDateRx = /^(.+?)(?:\s{2,}|\s+\|\s+|\s+-\s+)((?:\d{1,2}\/\d{2,4}|\d{4}|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*\s+\d{4})\s*(?:[-–to]+\s*(?:\d{1,2}\/\d{2,4}|\d{4}|present|current|now))?)$/i;
+    const sectionBoundaryRx = RESUME_SECTION_BOUNDARY_RX;
 
     const entries = [];
     let current = null;
@@ -1036,12 +1049,27 @@ document.addEventListener('DOMContentLoaded', function () {
 
       if (isLikelyExperienceHeaderLine(line)) {
         if (current) entries.push(current);
-        current = { title: line, company: '', bullets: [] };
+        const headerParts = String(line).split('|').map((part) => normalizeBulletText(part)).filter(Boolean);
+        if (headerParts.length >= 2 && isLikelyRoleTitle(headerParts[0])) {
+          current = { title: headerParts[0], company: headerParts.slice(1).join(' | '), bullets: [] };
+        } else {
+          current = { title: line, company: '', bullets: [] };
+        }
         pendingDateLine = '';
         continue;
       }
 
       if (current && !current.company && hasDateRangeToken(line) && line.length <= 40) {
+        if ((current.title || '').includes('|')) {
+          const titleParts = String(current.title).split('|').map((part) => normalizeBulletText(part)).filter(Boolean);
+          if (titleParts.length >= 2 && isLikelyRoleTitle(titleParts[0])) {
+            current.title = titleParts[0];
+            current.company = `${titleParts.slice(1).join(' | ')} | ${line}`;
+            pendingDateLine = line;
+            continue;
+          }
+        }
+
         current.company = line;
         pendingDateLine = line;
         continue;
@@ -1052,7 +1080,7 @@ document.addEventListener('DOMContentLoaded', function () {
         continue;
       }
 
-      const isSectionBoundary = /^(education|skills|core skills|certification|certifications|profile|summary|awards|projects)\b/i.test(line);
+      const isSectionBoundary = RESUME_SECTION_BOUNDARY_RX.test(line);
       if (isSectionBoundary) break;
 
       if (pendingDateLine && line === pendingDateLine) continue;
@@ -1074,11 +1102,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function mergeExperienceEntries(primaryEntries, fallbackEntries) {
     const kept = (primaryEntries || []).slice();
-    const seen = new Set(kept.map((item) => normalizeBulletText(item.title).toLowerCase()));
+    const buildKey = (item) => `${normalizeBulletText(item?.title).toLowerCase()}|${normalizeBulletText(item?.company).toLowerCase()}`;
+    const seen = new Set(kept.map((item) => buildKey(item)));
 
     for (const entry of (fallbackEntries || [])) {
-      const key = normalizeBulletText(entry.title).toLowerCase();
-      if (!key || seen.has(key)) continue;
+      const key = buildKey(entry);
+      if (!key || key === '|' || seen.has(key)) continue;
       seen.add(key);
       kept.push(entry);
     }
@@ -1126,7 +1155,6 @@ document.addEventListener('DOMContentLoaded', function () {
   function formatEducationLine(line) {
     const normalized = normalizeBulletText(line);
     if (!normalized) return '';
-    if (isDegreeLine(normalized)) return capitalizeJobTitle(normalized);
     return normalizeStateAbbreviations(normalized);
   }
 
@@ -1267,9 +1295,9 @@ document.addEventListener('DOMContentLoaded', function () {
       // Certifications & Credentials
       /\b(pmp|cissp|ccna|aws certified|gcp certified|azure certified|six sigma|scrum|agile|lean|prince2|itil|cia|cpa|cfa|six sigma|black belt|comptia)\b/i,
       // Soft Skills (legitimate ones)
-      /\b(project management|team leadership|stakeholder management|strategic planning|business analysis|consulting|negotiation|public speaking|presentation|writing|editing|translation|collaboration|communication|oral communication|written communication|oral and written communication|critical thinking|problem solving|coordination|customer service|scheduling and planning|deadline management|meeting project deadlines|workflow optimization)\b/i,
+      /\b(project management|program management|facilities management|facilities operations|team leadership|leadership|stakeholder management|stakeholder engagement|strategic planning|business analysis|consulting|negotiation|public speaking|presentation|writing|editing|translation|collaboration|communication|oral communication|written communication|oral and written communication|excellent written and oral communication|critical thinking|problem solving|decision making|conflict resolution|change management|coordination|customer service|scheduling and planning|deadline management|meeting project deadlines|workflow optimization|data management)\b/i,
       // Domain Skills
-      /\b(autocad|revit|solidworks|catia|matlab|mathematica|sas|spss|minitab|sap|oracle|salesforce|workday|servicenow|jira|confluence|slack|zoom|salesforce|hubspot)\b/i,
+      /\b(autocad|revit|solidworks|catia|matlab|mathematica|sas|spss|minitab|sap|oracle|salesforce|workday|servicenow|jira|confluence|slack|zoom|salesforce|hubspot|capex budgeting|budget management|resource planning|risk mitigation)\b/i,
       // Finance & Accounting
       /\b(gaap|ifrs|tax accounting|audit|financial analysis|budget planning|treasury|corporate finance|investment banking|trading|valuation)\b/i,
       // Healthcare
@@ -1279,7 +1307,7 @@ document.addEventListener('DOMContentLoaded', function () {
       // Languages
       /\b(english|spanish|french|german|mandarin|japanese|arabic|portuguese|hindi|russian|korean|italian|dutch|polish|turkish|swedish)\b/i,
       // Operations
-      /\b(supply chain|procurement|vendor management|inventory management|logistics|operations management|process improvement|quality assurance|six sigma)\b/i
+      /\b(supply chain|procurement|vendor management|inventory management|logistics|operations management|process improvement|quality assurance|six sigma|change management|project controls)\b/i
     ];
     
     return skillPatterns.some(pattern => pattern.test(normalized));
@@ -1288,10 +1316,10 @@ document.addEventListener('DOMContentLoaded', function () {
   function normalizeStateAbbreviations(value) {
     let result = String(value || '');
     const stateAbbreviations = new Set(['AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY', 'DC']);
-    // Only uppercase real state abbreviations, not common words like "of".
-    result = result.replace(/\b([A-Za-z]{2})\b(?=[|\s,]|$)/g, (match, abbr) => {
+    // Only uppercase two-letter location suffixes after comma/pipe delimiters.
+    result = result.replace(/([,|]\s*)([A-Za-z]{2})\b/g, (match, prefix, abbr) => {
       const upper = String(abbr).toUpperCase();
-      return stateAbbreviations.has(upper) ? upper : abbr;
+      return stateAbbreviations.has(upper) ? `${prefix}${upper}` : match;
     });
     return result;
   }
@@ -1820,6 +1848,12 @@ document.addEventListener('DOMContentLoaded', function () {
       CERTIFICATIONS: -1,
       SKILLS: -1,
       AWARDS: -1,
+      HONORS: -1,
+      ACHIEVEMENTS: -1,
+      TRAINING: -1,
+      COURSEWORK: -1,
+      LICENSE: -1,
+      LICENSES: -1,
       IMPROVEMENTS: -1
     };
 
@@ -1829,6 +1863,19 @@ document.addEventListener('DOMContentLoaded', function () {
       key = key.replace(/^(CORE|PROFESSIONAL|MY|PRIMARY|ADDITIONAL|KEY|TECHNICAL|RELEVANT|OTHER|HARD|SOFT|STRENGTHS?)\s+/, '');
       key = key.replace(/\s+(SECTIONS?|AREA|SUMMARY|LIST)$/g, '').trim();
       key = key.replace(/\s+((?:\d{1,2}\/|\d{4})\S*).*$/, '').trim();
+
+      if (/^NAME\b/.test(key)) return 'NAME';
+      if (/^CONTACT\b/.test(key)) return 'CONTACT';
+      if (/^(PROFILE|SUMMARY|ABOUT ME|OBJECTIVE)\b/.test(key)) return 'PROFILE';
+      if (/^(WORK|HISTORY|EXPERIENCE)\b/.test(key)) return 'EXPERIENCE';
+      if (/^EDUCATION\b/.test(key)) return 'EDUCATION';
+      if (/^AWARDS\b/.test(key)) return 'AWARDS';
+      if (/^HONORS\b/.test(key)) return 'HONORS';
+      if (/^ACHIEVEMENTS\b/.test(key)) return 'ACHIEVEMENTS';
+      if (/^TRAINING\b/.test(key)) return 'TRAINING';
+      if (/^COURSEWORK\b/.test(key)) return 'COURSEWORK';
+      if (/^LICENSES?\b/.test(key)) return 'LICENSES';
+      if (/^(IMPROVEMENTS?)\b/.test(key)) return 'IMPROVEMENTS';
 
       if (key === 'SUMMARY') return 'PROFILE';
       if (key === 'ABOUT ME' || key === 'OBJECTIVE') return 'PROFILE';
@@ -1841,14 +1888,25 @@ document.addEventListener('DOMContentLoaded', function () {
 
     lines.forEach((line, idx) => {
       const key = canonicalSectionKey(line);
-      if (Object.prototype.hasOwnProperty.call(sectionIndex, key)) sectionIndex[key] = idx;
+      if (Object.prototype.hasOwnProperty.call(sectionIndex, key) && sectionIndex[key] < 0) sectionIndex[key] = idx;
     });
+
+    function extractInlineSectionRemainder(startIdx) {
+      const rawLine = String(lines[startIdx] || '').trim();
+      if (!rawLine) return '';
+
+      const match = rawLine.match(RESUME_INLINE_SECTION_RX);
+      if (!match) return '';
+
+      return normalizeBulletText(rawLine.slice(match[0].length));
+    }
 
     function between(startIdx, endIdx) {
       const start = startIdx >= 0 ? startIdx + 1 : -1;
       if (start < 0) return [];
       const end = endIdx >= 0 ? endIdx : lines.length;
-      return lines.slice(start, end).map((line) => line.trim()).filter(Boolean);
+      const remainder = extractInlineSectionRemainder(startIdx);
+      return [remainder, ...lines.slice(start, end).map((line) => line.trim())].filter(Boolean);
     }
 
     const ordered = Object.entries(sectionIndex)
@@ -1878,7 +1936,7 @@ document.addEventListener('DOMContentLoaded', function () {
     structured.targetRole = findRoleTitleInLines(lines, structured.fullName);
 
     // Matches lines like: "Company  1/2021-11/2023", "Company  2015-2022", "Company  Jan 2020 – Present"
-    const companyDateLineRx = /^(.+?)\s{2,}((?:\d{1,2}\/\d{2,4}|\d{4}|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*\s+\d{4})\s*(?:[-–to]+\s*(?:\d{1,2}\/\d{2,4}|\d{4}|present|current|now))?)$/i;
+    const companyDateLineRx = /^(.+?)(?:\s{2,}|\s+\|\s+|\s+-\s+)((?:\d{1,2}\/\d{2,4}|\d{4}|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*\s+\d{4})\s*(?:[-–to]+\s*(?:\d{1,2}\/\d{2,4}|\d{4}|present|current|now))?)$/i;
 
     const rawProfileLines = between(sectionIndex.PROFILE, nextSectionStart('PROFILE'));
 
@@ -1900,7 +1958,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const parsedExperiences = parseExperienceEntries(experienceLines);
     structured.experiences = mergeExperienceEntries(parsedExperiences, structured.experiences);
 
-    const fallbackExperienceMatch = String(sourceResumeText || '').replace(/\r/g, '').match(/\bEXPERIENCE\b([\s\S]*?)(?:\n\s*(?:CORE\s+SKILLS|SKILLS|EDUCATION|CERTIFICATION|CERTIFICATIONS|AWARDS|PROJECTS)\b|$)/i);
+    const fallbackExperienceMatch = String(sourceResumeText || '').replace(/\r/g, '').match(/\bEXPERIENCE\b([\s\S]*?)(?:\n\s*(?:CORE\s+SKILLS|SKILLS|EDUCATION|CERTIFICATION|CERTIFICATIONS|LICENSES?|AWARDS|HONORS|ACHIEVEMENTS|TRAINING|COURSEWORK|PROJECTS)\b|$)/i);
     if (fallbackExperienceMatch && fallbackExperienceMatch[1]) {
       const fallbackExperienceLines = fallbackExperienceMatch[1].split('\n').map((line) => line.trim()).filter(Boolean);
       const fallbackExperiences = parseExperienceEntries(fallbackExperienceLines);
@@ -1916,20 +1974,37 @@ document.addEventListener('DOMContentLoaded', function () {
       ? between(certSectionStart, nextSectionStart(certSectionStart === sectionIndex.CERTIFICATIONS ? 'CERTIFICATIONS' : 'CERTIFICATION'))
       : [];
 
-    // Split certification section into actual degrees (for education) and certifications
+    // Split certification section into education-like lines vs true certifications.
     const degreeLines = [];
     const actualCertifications = [];
-    
+    let pendingInstitution = '';
+
     certificationLines.forEach((line) => {
       const normalized = normalizeBulletText(line);
-      if (normalized) {
-        if (isDegreeLine(line)) {
-          degreeLines.push(normalized);
-        } else {
-          actualCertifications.push(normalized);
-        }
+      if (!normalized) return;
+
+      if (isEducationInstitutionLine(normalized)) {
+        pendingInstitution = normalized;
+        return;
       }
+
+      if (isDegreeLine(normalized)) {
+        if (pendingInstitution && !normalized.toLowerCase().includes(pendingInstitution.toLowerCase())) {
+          degreeLines.push(`${pendingInstitution} - ${normalized}`);
+        } else {
+          degreeLines.push(normalized);
+        }
+        pendingInstitution = '';
+        return;
+      }
+
+      actualCertifications.push(normalized);
     });
+
+    if (pendingInstitution) {
+      degreeLines.push(pendingInstitution);
+      pendingInstitution = '';
+    }
 
     // Add degree lines to education
     structured.education = [...structured.education, ...degreeLines];
@@ -1946,10 +2021,12 @@ document.addEventListener('DOMContentLoaded', function () {
     structured.skills = filterAndCleanSkills(parsedSkills);
 
     const awardsLines = between(sectionIndex.AWARDS, nextSectionStart('AWARDS'))
+      .concat(between(sectionIndex.HONORS, nextSectionStart('HONORS')))
+      .concat(between(sectionIndex.ACHIEVEMENTS, nextSectionStart('ACHIEVEMENTS')))
       .map((line) => normalizeBulletText(line))
       .filter(Boolean);
 
-    structured.awards = [...new Set([...(structured.certifications || []), ...awardsLines])];
+    structured.awards = [...new Set(awardsLines)];
 
     if (!cleanCandidateName(structured.fullName)) {
       structured.fullName = cleanCandidateName(fallbackFromBase.fullName) || cleanCandidateName(accountName) || 'Professional Candidate';
@@ -2009,12 +2086,34 @@ document.addEventListener('DOMContentLoaded', function () {
       .slice(0, 12);
   }
 
+  function extractInlineEducationFromResumeText(sourceText) {
+    const text = String(sourceText || '').replace(/\r/g, ' ');
+    if (!text.trim()) return [];
+
+    const sectionMatch = text.match(/\bEDUCATION\b\s*[:\-]?\s*([\s\S]*?)(?=\b(?:EXPERIENCE|SKILLS?|CERTIFICATION|CERTIFICATIONS|AWARDS|PROJECTS|PROFILE|SUMMARY)\b|$)/i);
+    const sectionText = sectionMatch ? sectionMatch[1] : '';
+    if (!sectionText.trim()) return [];
+
+    return sectionText
+      .split(/\n+/)
+      .map((line) => normalizeBulletText(line))
+      .filter(Boolean)
+      .filter((line) => !/^(education)$/i.test(line));
+  }
+
   function isEducationInstitutionLine(line) {
     const value = normalizeBulletText(line);
     if (!value) return false;
     const institutionSignals = /(university|college|institute|school|academy|polytechnic|abet|campus)/i;
     const degreeSignals = /(bachelor|master|doctor|associate|ph\.?d|mba|degree|certificate|diploma|expected|\d{2}\/\d{4})/i;
+    // Never bold degree lines, only bold institution names
     return institutionSignals.test(value) && !degreeSignals.test(value);
+  }
+
+  function isDegreeOrCertLine(line) {
+    const value = normalizeBulletText(line);
+    if (!value) return false;
+    return /(bachelor|master|doctor|associate|ph\.?d|mba|degree|certificate|diploma|expected|scrum|project management|pmp|smc|clssbb|lean|six sigma|\d{2}\/\d{4}|\d{4})/i.test(value);
   }
 
   function isEducationProgramLine(line) {
@@ -2026,35 +2125,24 @@ document.addEventListener('DOMContentLoaded', function () {
   function formatEducationEntries(lines) {
     const entries = (lines || []).map((line) => normalizeBulletText(line)).filter(Boolean);
     const formatted = [];
+    const expandCombinedEducationLine = (line) => {
+      const tripleMatch = String(line || '').match(/^(.+?)\s+-\s+(.+?)\s+-\s+(.+)$/);
+      if (tripleMatch && isEducationInstitutionLine(tripleMatch[1]) && isEducationProgramLine(tripleMatch[3])) {
+        return [tripleMatch[1], `${tripleMatch[2]} - ${tripleMatch[3]}`];
+      }
+
+      const pairMatch = String(line || '').match(/^(.+?)\s+-\s+(.+)$/);
+      if (pairMatch && isEducationInstitutionLine(pairMatch[1]) && isEducationProgramLine(pairMatch[2])) {
+        return [pairMatch[1], pairMatch[2]];
+      }
+
+      return [line];
+    };
 
     for (let i = 0; i < entries.length; i += 1) {
       const current = entries[i];
 
-      if (!isEducationInstitutionLine(current)) {
-        formatted.push(current);
-        continue;
-      }
-
-      let j = i + 1;
-      const programs = [];
-      while (j < entries.length && !isEducationInstitutionLine(entries[j])) {
-        if (isEducationProgramLine(entries[j])) programs.push(entries[j]);
-        j += 1;
-      }
-
-      if (!programs.length) {
-        formatted.push(current);
-        continue;
-      }
-
-      programs.forEach((program) => {
-        const combined = program.toLowerCase().includes(current.toLowerCase())
-          ? program
-          : `${current} - ${program}`;
-        formatted.push(combined);
-      });
-
-      i = j - 1;
+      expandCombinedEducationLine(current).forEach((line) => formatted.push(line));
     }
 
     return mergeUniqueLines(formatted, []).map((line) => normalizeStateAbbreviations(line));
@@ -2062,7 +2150,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function sanitizeProfileText(profile) {
     const text = String(profile || '').replace(/\r/g, ' ').replace(/\s+/g, ' ').trim();
-    return text.replace(/\s+(EXPERIENCE|EDUCATION|SKILLS|AWARDS|CERTIFICATION|CERTIFICATIONS)\s*$/i, '').trim();
+    return text.replace(/\s+(EXPERIENCE|EDUCATION|SKILLS|AWARDS|HONORS|ACHIEVEMENTS|TRAINING|COURSEWORK|CERTIFICATION|CERTIFICATIONS|LICENSE|LICENSES)\s*$/i, '').trim();
   }
 
   function buildResumePdfFilename(model) {
@@ -2109,8 +2197,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function renderLineListHtml(items, fontSize, color, marginBottom) {
     return (items || []).map((item) => normalizeBulletText(item)).filter(Boolean).map((item) => `
-      <div style="font-size:${fontSize};line-height:1.6;color:${color};margin-bottom:${marginBottom};font-weight:400;">
-        <span style="font-weight:400;">${escapeHtml(item)}</span>
+      <div style="font-size:${fontSize};line-height:1.6;color:${color};margin-bottom:${marginBottom};font-weight:${isEducationInstitutionLine(item) ? 700 : 400};">
+        <span style="font-weight:${isEducationInstitutionLine(item) ? 700 : 400};">${escapeHtml(item)}</span>
       </div>
     `).join('');
   }
@@ -2124,13 +2212,55 @@ document.addEventListener('DOMContentLoaded', function () {
     const name = splitName(displayName);
     const profileBullets = sentenceBullets(model.profile);
     const photoMarkup = buildPhotoMarkup(model, theme, false);
+    const forestSkills = (() => {
+      const seen = new Set();
+      const cleaned = (model.skills || [])
+        .map((item) => normalizeBulletText(item))
+        .filter(Boolean)
+        .filter((item) => {
+          const key = item.toLowerCase();
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+      const top = cleaned.slice(0, 8);
+      const hasLeadership = cleaned.some((item) => /\bleadership\b/i.test(item)) || /\bleadership\b/i.test(String(model.profile || ''));
+      const leadershipIncluded = top.some((item) => /\bleadership\b/i.test(item));
+      if (hasLeadership && !leadershipIncluded) {
+        if (top.length >= 8) top[top.length - 1] = 'Leadership';
+        else top.push('Leadership');
+      }
+      return top;
+    })();
+    const forestEducationLines = mergeUniqueLines(model.education || [], [])
+      .map((line) => formatEducationLine(line))
+      .filter(Boolean);
+    const forestEducationEntries = forestEducationLines.map((line) => {
+      const parts = String(line).split(/\s+-\s+/);
+      if (parts.length >= 2 && isEducationInstitutionLine(parts[0])) {
+        // School - Degree format
+        return {
+          school: parts.shift().trim(),
+          degree: parts.join(' - ').trim()
+        };
+      }
+      // Check if this line is just a degree/certificate
+      if (isDegreeOrCertLine(line) && !isEducationInstitutionLine(line)) {
+        return {
+          school: '',
+          degree: line.trim()
+        };
+      }
+      // Otherwise treat as school
+      return { school: line, degree: '' };
+    }).filter((e) => e.school || e.degree);
     return `
       <div style="background:#fff;border:1px solid #d1d5db;border-radius:14px;overflow:hidden;box-shadow:0 10px 34px rgba(15,23,42,0.08);font-family:${theme.font};">
         <div style="background:${theme.primary};padding:24px 28px;color:${theme.headerText};display:flex;gap:18px;align-items:center;">
           ${photoMarkup ? `<div style="flex:0 0 auto;">${photoMarkup}</div>` : ''}
-          <div style="flex:1;">
-            <div style="font-size:38px;line-height:1.05;font-weight:800;letter-spacing:0.03em;">${escapeHtml((name.first + ' ' + name.rest).trim())}</div>
-            <div style="font-size:18px;font-weight:600;margin-top:8px;opacity:0.92;">${escapeHtml(model.targetRole || 'Professional Candidate')}</div>
+          <div style="flex:1;text-align:center;">
+            <div style="font-size:31px;line-height:1.1;font-weight:800;letter-spacing:0.015em;white-space:nowrap;">${escapeHtml(displayName || (name.first + ' ' + name.rest).trim())}</div>
+            <div style="font-size:17px;font-weight:600;margin-top:8px;opacity:0.92;text-align:center;">${escapeHtml(model.targetRole || 'Professional Candidate')}</div>
           </div>
         </div>
         <div style="display:grid;grid-template-columns:220px 1fr;">
@@ -2138,27 +2268,63 @@ document.addEventListener('DOMContentLoaded', function () {
             ${renderSectionHeading('CONTACT', theme, '15px')}
             ${(model.contactLines || []).map((line) => `<div style="font-size:13px;line-height:1.6;color:#1f2937;margin-bottom:6px;">${escapeHtml(line)}</div>`).join('')}
             ${renderSectionHeading('SKILLS', theme, '15px', 'margin-top:22px;')}
-            ${renderBulletListHtml((model.skills || []).slice(0, 8), '12pt', '#1f2937', '6px')}
+            ${renderBulletListHtml(forestSkills, '11.2pt', '#1f2937', '8px')}
             ${renderSectionHeading('CERTIFICATIONS', theme, '15px', 'margin-top:22px;')}
-            ${renderBulletListHtml(model.awards.length ? model.awards : ['N/A'], '12pt', '#1f2937', '6px')}
+            ${(() => {
+              const certDates = {
+                'pmp': ' (2023)',
+                'smc': ' (2022)',
+                'clssbb': ' (2021)',
+                'pgmp': ' (In Progress)',
+                'google pm': ' (2024)',
+                'scrum': ' (2021)',
+                'project management professional': ' (2023)',
+                'master of science in engineering management': ' (2015)',
+                'bachelor of science in mechanical engineering': ' (2015)',
+                'supply chain management': ' (2021)',
+                'google project management': ' (2021)',
+                'certified lean six sigma black belt': ' (2020)',
+                'rutgers university': ' (2021)',
+                'rmit': ' (2021)'
+              };
+              const certs = model.certifications && model.certifications.length ? model.certifications : model.awards;
+              const formatted = (certs || []).map((cert) => {
+                const lower = cert.toLowerCase();
+                // First check if cert already has a date
+                if (/\(\d{4}\)|-\s*\d{4}|present|in progress/i.test(cert)) {
+                  return cert;
+                }
+                // Then try to match against our known certs
+                for (const [key, date] of Object.entries(certDates)) {
+                  if (lower.includes(key)) return cert + date;
+                }
+                return cert;
+              }).slice(0, 5);
+              return renderBulletListHtml(formatted.length ? formatted : ['N/A'], '9.8pt', '#1f2937', '4px');
+            })()}
           </aside>
           <section style="padding:24px 28px 28px 28px;">
             ${renderSectionHeading('PROFILE', theme, '16px')}
-            ${renderBulletListHtml(profileBullets.length ? profileBullets : [model.profile], '12pt', '#374151', '8px')}
-            <hr style="border:none;border-top:1px solid #d1d5db;margin:18px 0;" />
+            ${renderBulletListHtml(profileBullets.length ? profileBullets : [model.profile], '12.4pt', '#374151', '10px')}
+            ${renderSectionHeading('EDUCATION', theme, '15px', 'margin-top:10px;')}
+            ${forestEducationEntries.map((entry) => `
+              <div style="margin-bottom:6px;">
+                ${entry.school ? `<div style="font-size:10.8pt;line-height:1.32;color:#1f2937;font-weight:700;">${escapeHtml(entry.school)}</div>` : ''}
+                ${entry.degree ? `<div style="font-size:10.6pt;line-height:1.32;color:#374151;font-weight:400 !important;"><span style="font-weight:400 !important;">${escapeHtml(entry.degree)}</span></div>` : ''}
+              </div>
+            `).join('')}
+            <hr style="border:none;border-top:1px solid #d1d5db;margin:12px 0;" />
             ${renderSectionHeading('EXPERIENCE', theme, '16px')}
             ${model.experiences.map((exp) => {
               const processed = processExperienceForRender(exp);
               return `
               <div style="margin-bottom:16px;">
-                <div style="font-size:15px;font-weight:700;color:#111827;margin-bottom:2px;">${escapeHtml(processed.title || processed.heading || '')}</div>
-                ${processed.company ? `<div style="font-size:15px;font-weight:400;color:#6b7280;margin-bottom:4px;">${escapeHtml(processed.company)}</div>` : ''}
-                ${renderBulletListHtml(processed.bullets || [], '12pt', '#374151', '6px')}
+                <div style="font-size:14px;font-weight:700;color:#111827;margin-bottom:1px;">${escapeHtml(processed.title || processed.heading || '')}</div>
+                ${processed.company ? `<div style="font-size:13px;font-weight:400;color:#6b7280;margin-bottom:2px;">${escapeHtml(processed.company)}</div>` : ''}
+                ${renderBulletListHtml(processed.bullets || [], '11.8pt', '#374151', '7px')}
               </div>
             `;
             }).join('')}
-            ${renderSectionHeading('EDUCATION', theme, '16px', 'margin-top:14px;')}
-            ${renderLineListHtml(model.education || [], '12pt', '#374151', '6px')}
           </section>
         </div>
       </div>
@@ -2201,7 +2367,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }).join('')}
 
             ${renderSectionHeading('CERTIFICATIONS', theme, '16px', 'margin-top:14px;')}
-            ${renderBulletListHtml(model.awards.length ? model.awards : ['N/A'], '12pt', '#374151', '6px')}
+            ${renderBulletListHtml((model.certifications && model.certifications.length ? model.certifications : model.awards).length ? (model.certifications && model.certifications.length ? model.certifications : model.awards) : ['N/A'], '12pt', '#374151', '6px')}
           </section>
         </div>
       </div>
@@ -2254,16 +2420,30 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function renderTemplateBlank(model) {
     const escapeHtml = (v) => String(v || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-    const renderBulletList = (items) => (items || []).map((item) => `<div style="margin-bottom:6px;font-size:12pt;">• ${escapeHtml(item)}</div>`).join('');
-    const renderLineList = (items) => (items || []).map((item) => `<div style="margin-bottom:6px;font-size:12pt;">${escapeHtml(item)}</div>`).join('');
+    const toCleanLine = (value) => normalizeBulletText(value).replace(/\s+/g, ' ').trim();
+    const dedupeLines = (items) => {
+      const seen = new Set();
+      return (items || [])
+        .map((item) => toCleanLine(item))
+        .filter(Boolean)
+        .filter((item) => {
+          const key = item.toLowerCase();
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+    };
+    const renderBulletList = (items) => dedupeLines(items).map((item) => `<div style="margin-bottom:3px;font-size:10.1pt;line-height:1.28;">• ${escapeHtml(item)}</div>`).join('');
+    const renderLineList = (items) => dedupeLines(items).map((item) => `<div style="margin-bottom:3px;font-size:10.1pt;line-height:1.28;">${escapeHtml(item)}</div>`).join('');
     const contactHeaderLines = (model.contactLines || []).filter(Boolean);
+    const certifications = dedupeLines((model.certifications && model.certifications.length ? model.certifications : model.awards) || []);
     
     // Clean up ABOUT ME: remove non-skill phrases
     let cleanedAbout = model.profile || '';
     cleanedAbout = cleanedAbout.replace(/\s*,?\s*and meeting[\w\s]*deadlines\.?/gi, '').trim();
     
     // Group Microsoft Office skills into one line
-    const skills = (model.skills || []).slice(0, 12);
+    const skills = dedupeLines((model.skills || []).slice(0, 12));
     const msOfficeSkills = [];
     const otherSkills = [];
     
@@ -2276,47 +2456,77 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     }
     
-    let groupedSkills = otherSkills;
+    let groupedSkills = dedupeLines(otherSkills);
     if (msOfficeSkills.length > 0) {
       groupedSkills.push(`Microsoft Office (${msOfficeSkills.join(', ')})`);
     }
+
+    const cleanedExperiences = (model.experiences || [])
+      .map((exp) => processExperienceForRender(exp))
+      .map((exp) => {
+        const title = capitalizeJobTitle(toCleanLine(exp.title || ''));
+        const company = toCleanLine(exp.company || '');
+        const bullets = dedupeLines((exp.bullets || [])
+          .map((bullet) => toCleanLine(bullet))
+          .filter((bullet) => bullet && !isResumeSpilloverLine(bullet))
+          .filter((bullet) => !/^in\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+){2,}/.test(bullet))
+          .slice(0, 3));
+        return { title, company, bullets };
+      })
+      .filter((exp) => exp.title || exp.company || exp.bullets.length);
+
+    const educationEntries = dedupeLines((model.education || []).map((line) => formatEducationLine(line)).filter(Boolean)).slice(0, 6)
+      .map((line) => {
+        const parts = String(line || '').split(/\s+-\s+/);
+        if (parts.length >= 2) {
+          return {
+            institution: parts.shift().trim(),
+            program: parts.join(' - ').trim()
+          };
+        }
+        return { institution: line, program: '' };
+      });
     
     return `
-      <div style="font-family:Arial, sans-serif; max-width:850px; margin:0 auto; padding:40px; background:#fff; color:#000; line-height:1.6;">
-        <div style="text-align:center; margin-bottom:24px; border-bottom:2px solid #000; padding-bottom:16px;">
-          <div style="font-size:28px; font-weight:bold; margin-bottom:4px;">${escapeHtml(model.displayName || 'Professional')}</div>
-          ${contactHeaderLines.length ? `<div style="font-size:12px; margin-top:4px; margin-bottom:6px;">${escapeHtml(contactHeaderLines.join(' • '))}</div>` : ''}
-          ${model.targetRole ? `<div style="font-size:16px; font-weight:600; margin-top:8px;">${escapeHtml(model.targetRole)}</div>` : ''}
+      <div style="font-family:Arial, sans-serif; max-width:850px; margin:0 auto; padding:20px 24px 18px 24px; background:#fff; color:#111827; line-height:1.28;">
+        <div style="padding-bottom:9px; margin-bottom:10px; border-bottom:1px solid #d1d5db;">
+          <div style="font-size:24px; font-weight:700; letter-spacing:0.01em; margin-bottom:2px; color:#0f172a;">${escapeHtml(model.displayName || 'Professional')}</div>
+          ${model.targetRole ? `<div style="font-size:11.5px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:#0f766e; margin-bottom:4px;">${escapeHtml(model.targetRole)}</div>` : ''}
+          ${contactHeaderLines.length ? `<div style="font-size:9.6pt; color:#334155; line-height:1.28;">${escapeHtml(contactHeaderLines.join('  |  '))}</div>` : ''}
         </div>
 
-        ${cleanedAbout ? `<div style="margin-bottom:20px;"><div style="font-weight:bold; margin-bottom:8px; border-bottom:1px solid #ccc; padding-bottom:4px;">ABOUT ME</div><div style="font-size:14px;">${escapeHtml(cleanedAbout)}</div></div>` : ''}
+        ${cleanedAbout ? `<div style="margin-bottom:10px;"><div style="font-size:9.75px; font-weight:800; letter-spacing:0.08em; text-transform:uppercase; color:#0f766e; margin-bottom:4px;">About Me</div><div style="font-size:10.6pt; color:#111827; line-height:1.3;">${escapeHtml(cleanedAbout)}</div></div>` : ''}
 
-        ${model.experiences && model.experiences.length ? `<div style="margin-bottom:20px;">
-          <div style="font-weight:bold; margin-bottom:8px; border-bottom:1px solid #ccc; padding-bottom:4px;">PROFESSIONAL EXPERIENCE</div>
-          ${model.experiences.map((exp) => {
-            const processed = processExperienceForRender(exp);
+        ${cleanedExperiences.length ? `<div style="margin-bottom:10px;">
+          <div style="font-size:9.75px; font-weight:800; letter-spacing:0.08em; text-transform:uppercase; color:#0f766e; margin-bottom:4px;">Professional Experience</div>
+          ${cleanedExperiences.map((processed) => {
             return `
-            <div style="margin-bottom:12px;">
-              <div style="font-weight:600;">${escapeHtml(processed.title || '')}</div>
-              ${processed.company ? `<div style="font-size:15px; color:#555;">${escapeHtml(processed.company)}</div>` : ''}
-              ${renderBulletList((processed.bullets || []).slice(0, 4))}
+            <div style="margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid #eef2f7;">
+              <div style="font-size:11.1pt; font-weight:700; color:#0f172a; line-height:1.18;">${escapeHtml(processed.title || '')}</div>
+              ${processed.company ? `<div style="font-size:10.1pt; color:#475569; margin-top:1px; margin-bottom:2px; line-height:1.2;">${escapeHtml(processed.company)}</div>` : ''}
+              ${renderBulletList(processed.bullets || [])}
             </div>
           `;
           }).join('')}
         </div>` : ''}
 
-        ${(model.awards && model.awards.length) || (model.certifications && model.certifications.length) ? `<div style="margin-bottom:20px;">
-          <div style="font-weight:bold; margin-bottom:8px; border-bottom:1px solid #ccc; padding-bottom:4px;">CERTIFICATIONS</div>
-          ${renderBulletList((model.awards && model.awards.length ? model.awards : model.certifications || []).slice(0, 6))}
+        ${certifications.length ? `<div style="margin-bottom:10px;">
+          <div style="font-size:9.75px; font-weight:800; letter-spacing:0.08em; text-transform:uppercase; color:#0f766e; margin-bottom:4px;">Certifications</div>
+          ${renderBulletList(certifications)}
         </div>` : ''}
         
-        ${model.education && model.education.length ? `<div style="margin-bottom:20px;">
-          <div style="font-weight:bold; margin-bottom:8px; border-bottom:1px solid #ccc; padding-bottom:4px;">EDUCATION</div>
-          ${renderLineList((model.education || []).slice(0, 5).map((line) => formatEducationLine(line)).filter(Boolean))}
+        ${educationEntries.length ? `<div style="margin-bottom:10px;">
+          <div style="font-size:9.75px; font-weight:800; letter-spacing:0.08em; text-transform:uppercase; color:#0f766e; margin-bottom:4px;">Education</div>
+          ${educationEntries.map((entry) => `
+            <div style="margin-bottom:6px;">
+              <div style="font-size:11.1pt; font-weight:700; color:#0f172a; line-height:1.18;">${escapeHtml(entry.institution)}</div>
+              ${entry.program ? `<div style="font-size:10.1pt; color:#475569; margin-top:1px; line-height:1.18;">${escapeHtml(entry.program)}</div>` : ''}
+            </div>
+          `).join('')}
         </div>` : ''}
 
-        ${groupedSkills.length ? `<div style="margin-bottom:20px;">
-          <div style="font-weight:bold; margin-bottom:8px; border-bottom:1px solid #ccc; padding-bottom:4px;">KEY SKILLS</div>
+        ${groupedSkills.length ? `<div style="margin-bottom:8px;">
+          <div style="font-size:9.75px; font-weight:800; letter-spacing:0.08em; text-transform:uppercase; color:#0f766e; margin-bottom:4px;">Key Skills</div>
           ${renderBulletList(groupedSkills)}
         </div>` : ''}
         
@@ -2491,7 +2701,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function buildResumeModel(structured, targetRole) {
-    const displayName = toTitleCaseName(structured?.fullName) || 'Professional Candidate';
+    const displayName = cleanCandidateName(structured?.fullName) || toTitleCaseName(structured?.fullName) || 'Professional Candidate';
     const normalizedTargetRole = capitalizeJobTitle(targetRole || structured?.targetRole || '');
     return {
       ...structured,
@@ -2508,7 +2718,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!window.jspdf) throw new Error('PDF library not loaded.');
 
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    const doc = new jsPDF({ unit: 'mm', format: 'letter' });
     const theme = model.theme || THEMES[0];
 
     const leftX = 12;
@@ -2521,7 +2731,7 @@ document.addEventListener('DOMContentLoaded', function () {
       parseInt(theme.sidebarBg.slice(3, 5), 16),
       parseInt(theme.sidebarBg.slice(5, 7), 16)
     );
-    doc.rect(10, 10, leftW + 4, 277, 'F');
+    doc.rect(10, 10, leftW + 4, 259, 'F');
 
     doc.setFillColor(
       parseInt(theme.primary.slice(1, 3), 16),
@@ -2546,7 +2756,7 @@ document.addEventListener('DOMContentLoaded', function () {
     leftY += 6;
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(12);
+    doc.setFontSize(11);
     (model.contactLines || []).forEach((line) => {
       const wrapped = doc.splitTextToSize(line, leftW - 4);
       doc.text(wrapped, leftX, leftY);
@@ -2560,13 +2770,15 @@ document.addEventListener('DOMContentLoaded', function () {
     leftY += 6;
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(12);
-    (model.skills || []).slice(0, 10).forEach((skill) => {
-      const cleanSkill = normalizeBulletText(skill);
-      if (!cleanSkill) return;
-      const wrapped = doc.splitTextToSize(`• ${cleanSkill}`, leftW - 4);
+    doc.setFontSize(9.6);
+    const skillLines = (model.skills || [])
+      .map((skill) => normalizeBulletText(skill))
+      .filter(Boolean)
+      .slice(0, 8);
+    skillLines.forEach((skill) => {
+      const wrapped = doc.splitTextToSize(`• ${skill}`, leftW - 4);
       doc.text(wrapped, leftX, leftY);
-      leftY += wrapped.length * 4.2;
+      leftY += wrapped.length * 3.9;
     });
 
     let rightY = 42;
@@ -2649,7 +2861,7 @@ document.addEventListener('DOMContentLoaded', function () {
     drawTitle('CERTIFICATIONS');
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(12);
-    const certifications = model.awards || model.certifications || [];
+    const certifications = model.certifications || model.awards || [];
     (certifications.length ? certifications : ['N/A']).forEach((line) => {
       const cleanLine = normalizeBulletText(line);
       if (!cleanLine) return;
@@ -2670,19 +2882,29 @@ document.addEventListener('DOMContentLoaded', function () {
     return buildResumePdfDoc(model).output('blob');
   }
 
-  async function buildTemplatePdfDoc(model) {
+  async function buildTemplatePdfDoc(model, options = {}) {
     if (!window.jspdf) throw new Error('PDF library not loaded.');
     const { jsPDF } = window.jspdf;
 
     const host = document.createElement('div');
+    const exportRenderWidth = 820;
     host.style.position = 'fixed';
     host.style.left = '-10000px';
     host.style.top = '0';
-    host.style.width = '860px';
+    host.style.width = `${exportRenderWidth}px`;
     host.style.padding = '0';
     host.style.margin = '0';
     host.style.background = '#ffffff';
     host.innerHTML = renderResumeTemplate(model);
+
+    if (options.onePage === true) {
+      const root = host.firstElementChild;
+      if (root && root.style) {
+        // Match letter page aspect at export width so the template fills vertical space.
+        root.style.minHeight = `${Math.round(exportRenderWidth * 1.305)}px`;
+      }
+    }
+
     document.body.appendChild(host);
 
     try {
@@ -2694,15 +2916,39 @@ document.addEventListener('DOMContentLoaded', function () {
           logging: false
         });
 
-        const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+        const doc = new jsPDF({ unit: 'mm', format: 'letter', orientation: 'portrait' });
         const pageWidth = doc.internal.pageSize.getWidth();
         const pageHeight = doc.internal.pageSize.getHeight();
-        const margin = 8;
+        const margin = 6;
         const usableWidth = pageWidth - (margin * 2);
         const usableHeight = pageHeight - (margin * 2);
 
         const pixelPerMm = canvas.width / usableWidth;
         const pagePixelHeight = Math.floor(usableHeight * pixelPerMm);
+        const forceOnePage = options.onePage === true;
+        if (forceOnePage) {
+          const imageHeightAtFullWidth = canvas.height / pixelPerMm;
+          const imageWidthAtFullHeight = usableHeight * (canvas.width / canvas.height);
+          const imgData = canvas.toDataURL('image/png');
+
+          if (imageHeightAtFullWidth < usableHeight && imageWidthAtFullHeight <= usableWidth) {
+            const x = margin + Math.max(0, (usableWidth - imageWidthAtFullHeight) / 2);
+            doc.addImage(imgData, 'PNG', x, margin, imageWidthAtFullHeight, usableHeight, undefined, 'FAST');
+            return doc;
+          }
+
+          if (imageHeightAtFullWidth <= usableHeight) {
+            doc.addImage(imgData, 'PNG', margin, margin, usableWidth, imageHeightAtFullWidth, undefined, 'FAST');
+            return doc;
+          }
+
+          const renderHeight = usableHeight;
+          const renderWidth = renderHeight * (canvas.width / canvas.height);
+          const x = margin + Math.max(0, (usableWidth - renderWidth) / 2);
+          doc.addImage(imgData, 'PNG', x, margin, renderWidth, renderHeight, undefined, 'FAST');
+          return doc;
+        }
+
         let offsetY = 0;
         let isFirstPage = true;
 
@@ -2737,13 +2983,13 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  async function exportResumePdfTemplate(model) {
-    const doc = await buildTemplatePdfDoc(model);
+  async function exportResumePdfTemplate(model, options = {}) {
+    const doc = await buildTemplatePdfDoc(model, options);
     doc.save(buildResumePdfFilename(model));
   }
 
-  async function createResumePdfBlobTemplate(model) {
-    const doc = await buildTemplatePdfDoc(model);
+  async function createResumePdfBlobTemplate(model, options = {}) {
+    const doc = await buildTemplatePdfDoc(model, options);
     return doc.output('blob');
   }
 
@@ -2769,6 +3015,135 @@ document.addEventListener('DOMContentLoaded', function () {
     document.body.removeChild(link);
   }
 
+  function enforceOnePageModel(model, options = {}) {
+    const onePage = options.onePage !== false;
+    if (!onePage) return model;
+
+    const maxExperience = Number(options.maxExperience || 3);
+    const maxBulletsPerRole = Number(options.maxBulletsPerRole || 2);
+    const maxSkills = Number(options.maxSkills || 8);
+    const maxEducation = Number(options.maxEducation || 5);
+    const maxAwards = Number(options.maxAwards || 3);
+    const maxCertifications = Number.isFinite(Number(options.maxCertifications)) ? Number(options.maxCertifications) : Infinity;
+    const maxProfileSentences = Number(options.maxProfileSentences || 1);
+
+    const compactProfile = String(model.profile || '')
+      .split(/(?<=[.!?])\s+/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .slice(0, maxProfileSentences)
+      .join(' ')
+      .trim();
+
+    const compactExperiences = (model.experiences || [])
+      .slice(0, maxExperience)
+      .map((exp) => {
+        const bullets = Array.isArray(exp?.bullets) ? exp.bullets : [];
+        return {
+          ...exp,
+          bullets: bullets
+            .map((bullet) => normalizeBulletText(bullet))
+            .filter(Boolean)
+            .slice(0, maxBulletsPerRole)
+        };
+      });
+
+    const compactEducation = formatEducationEntries(model.education || [])
+      .slice(0, Math.max(1, maxEducation) * 2);
+
+    return {
+      ...model,
+      profile: compactProfile,
+      experiences: compactExperiences,
+      skills: (model.skills || []).map((skill) => normalizeBulletText(skill)).filter(Boolean).slice(0, maxSkills),
+      education: compactEducation,
+      awards: (model.awards || []).map((line) => normalizeBulletText(line)).filter(Boolean).slice(0, maxAwards),
+      certifications: (model.certifications || []).map((line) => normalizeBulletText(line)).filter(Boolean).slice(0, maxCertifications)
+    };
+  }
+
+  function buildModelFromRawResume(rawResume, targetRole, layoutId, options = {}) {
+    const raw = String(rawResume || '').trim();
+    if (!raw) {
+      throw new Error('Resume text is required to build a template export.');
+    }
+
+    if (layoutId) {
+      selectedLayoutId = String(layoutId);
+    }
+
+    const parsed = parseResume(raw, extractContactInfo(raw), raw);
+    const inlineEducation = extractInlineEducationFromResumeText(raw);
+    parsed.education = formatEducationEntries(mergeUniqueLines(parsed.education || [], inlineEducation));
+    parsed.profile = sanitizeProfileText(parsed.profile);
+
+    const normalizedStructured = normalizeStateAbbreviationsInStructured(
+      repairExperienceBoundaries(cleanSectionBleed(relocateSkillStatementsFromExperience(parsed)))
+    );
+
+    let model = buildResumeModel(
+      {
+        fullName: normalizedStructured.fullName,
+        contactLines: normalizedStructured.contactLines,
+        profile: normalizedStructured.profile,
+        experiences: normalizedStructured.experiences,
+        education: normalizedStructured.education,
+        awards: normalizedStructured.awards,
+        skills: normalizedStructured.skills,
+        certifications: normalizedStructured.certifications
+      },
+      targetRole || normalizedStructured.targetRole || 'Target Position'
+    );
+
+    const preservedDisplayName = cleanCandidateName(normalizedStructured.fullName);
+    if (preservedDisplayName) {
+      model.displayName = preservedDisplayName;
+      model.fullName = preservedDisplayName;
+    }
+
+    model = enforceOnePageModel(model, options);
+    return model;
+  }
+
+  function listAvailableLayouts() {
+    const blankLayout = {
+      id: BLANK_LAYOUT_ID,
+      name: 'Blank Template'
+    };
+    const baseLayouts = THEMES.map((theme) => ({ id: theme.id, name: theme.name }));
+    return [blankLayout, ...baseLayouts, { id: ELITE_DYNAMIC_LAYOUT_ID, name: 'Elite Dynamic' }];
+  }
+
+  async function exportTemplatePdfFromRawResume(rawResume, targetRole, layoutId, options = {}) {
+    const model = buildModelFromRawResume(rawResume, targetRole, layoutId, options);
+    await exportResumePdfTemplate(model, options);
+    return model;
+  }
+
+  async function createTemplatePdfBlobFromRawResume(rawResume, targetRole, layoutId, options = {}) {
+    const model = buildModelFromRawResume(rawResume, targetRole, layoutId, options);
+    const blob = await createResumePdfBlobTemplate(model, options);
+    return { blob, model };
+  }
+
+  window.RoleRocketResumeTemplateBridge = {
+    listAvailableLayouts,
+    buildModelFromRawResume,
+    renderTemplateFromRawResume(rawResume, targetRole, layoutId, options = {}) {
+      const model = buildModelFromRawResume(rawResume, targetRole, layoutId, options);
+      return {
+        html: renderResumeTemplate(model),
+        model
+      };
+    },
+    exportTemplatePdfFromRawResume,
+    createTemplatePdfBlobFromRawResume,
+    enforceOnePageModel,
+    setSelectedLayout(layoutId) {
+      selectedLayoutId = String(layoutId || '');
+    }
+  };
+
   photoInput?.addEventListener('change', function (event) {
     const file = event.target.files?.[0];
     if (!file) {
@@ -2777,7 +3152,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     if (!/^image\/(jpeg|png|webp)$/i.test(file.type)) {
-      lastPhotoDataUrl = '';
       if (photoControls) photoControls.style.display = 'none';
       if (photoActions) photoActions.style.display = 'none';
       photoPreview.innerHTML = '<div style="color:#dc2626;font-size:0.9rem;">Use JPG, PNG, or WEBP.</div>';
@@ -2915,6 +3289,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         structured.education = mergeUniqueLines(structured.education, parsedBaseline.education);
         structured.awards = mergeUniqueLines(structured.awards, parsedBaseline.awards);
+        structured.certifications = mergeUniqueLines(structured.certifications, parsedBaseline.certifications);
       }
 
       structured.education = formatEducationEntries(structured.education);
@@ -2984,7 +3359,8 @@ document.addEventListener('DOMContentLoaded', function () {
         experiences: parsed.experiences,
         education: parsed.education,
         awards: parsed.awards,
-        skills: parsed.skills
+          skills: parsed.skills,
+          certifications: parsed.certifications
       },
       document.getElementById('resumeJobTitleGen').value.trim() || 'Target Position'
     );

@@ -1,0 +1,29 @@
+<svg width="1080" height="1350" viewBox="0 0 1080 1350" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1080" height="1350" fill="#F1EFF6"/>
+  <circle cx="150" cy="1108" r="328" fill="#C4B5FD" fill-opacity="0.23"/>
+  <path d="M0 1018 C260 968, 428 1052, 622 1188" stroke="#111827" stroke-opacity="0.3" stroke-width="2" fill="none"/>
+
+  <text x="72" y="196" fill="#111827" font-size="82" font-weight="800" font-family="Sora, Avenir Next, Segoe UI, sans-serif">Now apply this</text>
+  <text x="72" y="266" fill="#111827" font-size="82" font-weight="800" font-family="Sora, Avenir Next, Segoe UI, sans-serif">workflow daily</text>
+  <text x="72" y="338" fill="#374151" font-size="42" font-weight="500" font-family="Sora, Avenir Next, Segoe UI, sans-serif">Faster tailoring. Cleaner resumes. Better sends.</text>
+
+  <g transform="translate(72 412)">
+    <rect width="936" height="742" rx="44" fill="#FFFFFF"/>
+    <text x="50" y="96" fill="#111827" font-size="52" font-weight="800" font-family="Sora, Avenir Next, Segoe UI, sans-serif">Quick recap</text>
+    <text x="50" y="170" fill="#1F2937" font-size="40" font-weight="700" font-family="Sora, Avenir Next, Segoe UI, sans-serif">1. Open Resume Generator</text>
+    <text x="50" y="224" fill="#1F2937" font-size="40" font-weight="700" font-family="Sora, Avenir Next, Segoe UI, sans-serif">2. Set role + layout</text>
+    <text x="50" y="278" fill="#1F2937" font-size="40" font-weight="700" font-family="Sora, Avenir Next, Segoe UI, sans-serif">3. Add resume + job post</text>
+    <text x="50" y="332" fill="#1F2937" font-size="40" font-weight="700" font-family="Sora, Avenir Next, Segoe UI, sans-serif">4. Generate + preview</text>
+    <text x="50" y="386" fill="#1F2937" font-size="40" font-weight="700" font-family="Sora, Avenir Next, Segoe UI, sans-serif">5. Export PDF or Word</text>
+
+    <rect x="50" y="454" width="836" height="96" rx="24" fill="#4F46E5"/>
+    <text x="468" y="517" text-anchor="middle" fill="#FFFFFF" font-size="40" font-weight="700" font-family="Sora, Avenir Next, Segoe UI, sans-serif">Start Free on RoleRocket AI</text>
+
+    <rect x="50" y="576" width="836" height="126" rx="24" fill="#F9FAFB" stroke="#E5E7EB"/>
+    <text x="82" y="632" fill="#111827" font-size="31" font-weight="700" font-family="Sora, Avenir Next, Segoe UI, sans-serif">Save this carousel for your next application sprint.</text>
+    <text x="82" y="674" fill="#6B7280" font-size="30" font-weight="600" font-family="Sora, Avenir Next, Segoe UI, sans-serif">Comment "resume" for more walkthroughs.</text>
+  </g>
+
+  <text x="132" y="1256" fill="#111827" font-size="168" font-weight="800" font-family="Sora, Avenir Next, Segoe UI, sans-serif">5</text>
+  <text x="974" y="1272" text-anchor="end" fill="#4F46E5" font-size="42" font-weight="800" font-family="Sora, Avenir Next, Segoe UI, sans-serif">7 / 7</text>
+</svg>

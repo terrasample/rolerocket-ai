@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RoleRocket Resume Generator Instagram Carousel</title>
+  <style>
+    :root {
+      --bg: #06101f;
+      --panel: #0f172a;
+      --line: rgba(148, 163, 184, 0.28);
+      --text: #f8fafc;
+      --muted: #cbd5e1;
+      --accent: #8b5cf6;
+      --accent-2: #38bdf8;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Avenir Next", Inter, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(139, 92, 246, 0.22), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(56, 189, 248, 0.18), transparent 30%),
+        var(--bg);
+      color: var(--text);
+    }
+
+    .shell {
+      width: min(1320px, calc(100vw - 48px));
+      margin: 0 auto;
+      padding: 36px 0 64px;
+    }
+
+    h1 {
+      margin: 0 0 12px;
+      font-size: clamp(2rem, 4vw, 3.6rem);
+      line-height: 1;
+    }
+
+    p.lead {
+      margin: 0 0 28px;
+      max-width: 840px;
+      color: var(--muted);
+      font-size: 1.05rem;
+      line-height: 1.6;
+    }
+
+    .meta {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 28px;
+    }
+
+    .pill {
+      border: 1px solid var(--line);
+      background: rgba(15, 23, 42, 0.72);
+      color: var(--text);
+      padding: 10px 14px;
+      border-radius: 999px;
+      font-size: 0.92rem;
+      font-weight: 700;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 22px;
+    }
+
+    .card {
+      background: rgba(15, 23, 42, 0.84);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 16px;
+      box-shadow: 0 24px 60px rgba(2, 6, 23, 0.26);
+    }
+
+    .card h2 {
+      margin: 0 0 12px;
+      font-size: 1rem;
+      color: #e2e8f0;
+    }
+
+    img {
+      display: block;
+      width: 100%;
+      height: auto;
+      border-radius: 18px;
+      background: #fff;
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <h1>RoleRocket Resume Generator Carousel</h1>
+    <p class="lead">Instagram-ready portrait slides based on the actual Resume Generator flow in the app: log in, set the role, upload or paste your resume, add the full job description, generate and preview, then save as PDF or Word.</p>
+    <div class="meta">
+      <div class="pill">1080 × 1350 portrait</div>
+      <div class="pill">RoleRocket theme</div>
+      <div class="pill">Based on actual product steps</div>
+      <div class="pill">Includes PDF + Word export</div>
+    </div>
+    <div class="grid">
+      <div class="card"><h2>Slide 1</h2><img src="resume-generator-instagram/slide-01-cover.svg" alt="RoleRocket Resume Generator carousel cover" /></div>
+      <div class="card"><h2>Slide 2</h2><img src="resume-generator-instagram/slide-02-login-open.svg" alt="Step 1 log in and open Resume Generator" /></div>
+      <div class="card"><h2>Slide 3</h2><img src="resume-generator-instagram/slide-03-role-layout.svg" alt="Step 2 set role and layout" /></div>
+      <div class="card"><h2>Slide 4</h2><img src="resume-generator-instagram/slide-04-upload-details.svg" alt="Step 3 add resume and job description" /></div>
+      <div class="card"><h2>Slide 5</h2><img src="resume-generator-instagram/slide-05-generate-preview.svg" alt="Step 4 generate and preview" /></div>
+      <div class="card"><h2>Slide 6</h2><img src="resume-generator-instagram/slide-06-export.svg" alt="Step 5 export as PDF or Word" /></div>
+      <div class="card"><h2>Slide 7</h2><img src="resume-generator-instagram/slide-07-cta.svg" alt="RoleRocket carousel CTA slide" /></div>
+    </div>
+  </div>
+</body>
+</html>

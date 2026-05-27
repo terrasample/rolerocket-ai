@@ -15,6 +15,25 @@ function isIosNativeApp() {
   );
 }
 
+function showIosBillingNotice(billingMsg, openPortalBtn) {
+  if (!billingMsg || document.getElementById('iosBillingNotice')) return;
+  const note = document.createElement('p');
+  note.id = 'iosBillingNotice';
+  note.style.margin = '12px 0 0';
+  note.style.padding = '10px 12px';
+  note.style.border = '1px solid #cbd5e1';
+  note.style.borderRadius = '10px';
+  note.style.background = '#f8fafc';
+  note.style.color = '#334155';
+  note.style.fontSize = '0.95rem';
+  note.style.lineHeight = '1.6';
+  note.textContent = 'Billing portal access is not available in this iOS app build. Use the web version to manage subscriptions or payment methods.';
+  billingMsg.insertAdjacentElement('beforebegin', note);
+  if (openPortalBtn) {
+    openPortalBtn.style.display = 'none';
+  }
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   const billingStatus = document.getElementById('billingStatus');
   const openPortalBtn = document.getElementById('openPortalBtn');
@@ -29,6 +48,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     note.style.lineHeight = '1.6';
     note.innerHTML = 'Need a refund review instead of a cancellation? Read the <a href="refund-policy.html">Refund Policy</a> or use <a href="contact-us.html?topic=refund">billing support</a>.';
     openPortalBtn.insertAdjacentElement('beforebegin', note);
+  }
+
+  if (isIosNativeApp()) {
+    showIosBillingNotice(billingMsg, openPortalBtn);
   }
 
   async function loadBillingStatus() {
@@ -65,6 +88,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (isIosNativeApp()) {
           billingMsg.textContent = 'Billing portal access is not available in the iOS app build. Please use the web version.';
           billingMsg.style.color = '#64748b';
+          if (openPortalBtn) openPortalBtn.style.display = 'none';
           return;
         }
       } catch {}

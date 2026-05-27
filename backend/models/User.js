@@ -159,7 +159,9 @@ const UserSchema = new mongoose.Schema(
       enum: ['user', 'geo', 'system'],
       default: 'system'
     },
-    experienceCountryUpdatedAt: { type: Date, default: null }
+    experienceCountryUpdatedAt: { type: Date, default: null },
+
+    emailEngagementOptOut: { type: Boolean, default: false }
   },
   { timestamps: true }
 );

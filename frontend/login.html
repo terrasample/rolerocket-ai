@@ -1013,18 +1013,31 @@
         // Clear any stale country experience cookie on login to ensure first-time gate works
         document.cookie = 'rr_exp_country=; Max-Age=0; path=/; SameSite=Lax';
 
-        // Enforce country-experience choice on first authenticated login before general app navigation.
-        // The homepage now shows the blocking picker gate when requiresChoice=true.
-        const expRes = await fetch(apiUrl('/api/experience/context'), {
-          method: 'GET',
-          headers: {
-            Accept: 'application/json',
-            Authorization: `Bearer ${data.token}`
-          },
-          credentials: 'include'
-        });
-        const expData = expRes.ok ? safeJson(await expRes.text()) : null;
-        const requiresChoice = !!(expData && expData.requiresChoice === true);
+        // Enforce country-experience choice when the API is same-origin.
+        // In local static-host testing with a remote API, this call can be blocked by CORS,
+        // so we avoid blocking login on that non-critical follow-up request.
+        let requiresChoice = false;
+        try {
+          const apiBase = typeof getApiBase === 'function' ? getApiBase() : window.location.origin;
+          const apiOrigin = new URL(apiBase).origin;
+          const pageOrigin = window.location.origin;
+          const isCrossOriginApi = apiOrigin !== pageOrigin;
+
+          if (!isCrossOriginApi) {
+            const expRes = await fetch(apiUrl('/api/experience/context'), {
+              method: 'GET',
+              headers: {
+                Accept: 'application/json',
+                Authorization: `Bearer ${data.token}`
+              },
+              credentials: 'include'
+            });
+            const expData = expRes.ok ? safeJson(await expRes.text()) : null;
+            requiresChoice = !!(expData && expData.requiresChoice === true);
+          }
+        } catch (experienceErr) {
+          console.warn('Skipping experience context check after login:', experienceErr);
+        }
 
         // All users (new and returning) land on the home page first
         window.location.replace('index.html');

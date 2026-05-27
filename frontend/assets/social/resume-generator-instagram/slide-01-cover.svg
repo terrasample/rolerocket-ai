@@ -1,0 +1,24 @@
+<svg width="1080" height="1350" viewBox="0 0 1080 1350" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1080" height="1350" fill="#F2F0F7"/>
+  <circle cx="158" cy="1122" r="340" fill="#C4B5FD" fill-opacity="0.23"/>
+  <path d="M0 1026 C256 980, 430 1092, 604 1184" stroke="#1E293B" stroke-opacity="0.35" stroke-width="2" fill="none"/>
+
+  <text x="72" y="186" fill="#111827" font-size="88" font-weight="800" font-family="Sora, Avenir Next, Segoe UI, sans-serif">RoleRocket Resume</text>
+  <text x="72" y="258" fill="#111827" font-size="88" font-weight="800" font-family="Sora, Avenir Next, Segoe UI, sans-serif">Generator Guide</text>
+  <text x="72" y="328" fill="#374151" font-size="42" font-weight="500" font-family="Sora, Avenir Next, Segoe UI, sans-serif">A 5-step carousel to tailor your resume faster.</text>
+
+  <g transform="translate(72 392)">
+    <rect width="936" height="710" rx="42" fill="#FFFFFF"/>
+    <text x="52" y="96" fill="#111827" font-size="56" font-weight="700" font-family="Sora, Avenir Next, Segoe UI, sans-serif">What you will do</text>
+    <text x="52" y="182" fill="#1F2937" font-size="46" font-weight="700" font-family="Sora, Avenir Next, Segoe UI, sans-serif">1. Log in and open Resume Generator</text>
+    <text x="52" y="252" fill="#1F2937" font-size="46" font-weight="700" font-family="Sora, Avenir Next, Segoe UI, sans-serif">2. Set role, company, and layout</text>
+    <text x="52" y="322" fill="#1F2937" font-size="46" font-weight="700" font-family="Sora, Avenir Next, Segoe UI, sans-serif">3. Add your resume + job post</text>
+    <text x="52" y="392" fill="#1F2937" font-size="46" font-weight="700" font-family="Sora, Avenir Next, Segoe UI, sans-serif">4. Generate and preview output</text>
+    <text x="52" y="462" fill="#1F2937" font-size="46" font-weight="700" font-family="Sora, Avenir Next, Segoe UI, sans-serif">5. Export as PDF or Word</text>
+    <rect x="52" y="540" width="832" height="94" rx="24" fill="#4F46E5"/>
+    <text x="468" y="602" text-anchor="middle" fill="#FFFFFF" font-size="40" font-weight="700" font-family="Sora, Avenir Next, Segoe UI, sans-serif">Follow each slide for exact direction</text>
+  </g>
+
+  <text x="132" y="1254" fill="#111827" font-size="172" font-weight="800" font-family="Sora, Avenir Next, Segoe UI, sans-serif">0</text>
+  <text x="974" y="1272" text-anchor="end" fill="#4F46E5" font-size="42" font-weight="800" font-family="Sora, Avenir Next, Segoe UI, sans-serif">1 / 7</text>
+</svg>
