@@ -2228,36 +2228,58 @@ document.addEventListener('DOMContentLoaded', function () {
     const forestEducationLines = mergeUniqueLines(model.education || [], [])
       .map((line) => formatEducationLine(line))
       .filter(Boolean);
-    const forestEducationEntries = forestEducationLines.map((line) => {
-      const parts = String(line).split(/\s+-\s+/);
-      if (parts.length < 2) return { school: line, degree: '', date: '' };
-      const school = parts.shift().trim();
-      let remaining = parts.join(' - ').trim();
-      let degree = remaining;
+    function extractEducationDate(value) {
+      let degree = String(value || '').trim();
       let date = '';
-      // Extract date: look for (YYYY/Expected/Present) or - YYYY/Expected/Present at end
-      // Try multiple date patterns: (YYYY), (Expected YYYY), - YYYY, - Expected YYYY
       const datePatterns = [
-        /\\((\\d{4})\\)\\s*$/,
-        /\\(([Ee]xpected|[Pp]resent)\\s*(\\d{4})?\\)\\s*$/,
-        /[-\\s]+(Expected|Present|[Ee]xpected|[Pp]resent)\\s+(\\d{4})\\s*$/,
-        /[-\\s]+(\\d{4})\\s*$/
+        /\((\d{4})\)\s*$/,
+        /\(([Ee]xpected|[Pp]resent)\s*(\d{4})?\)\s*$/,
+        /[-\s]+(Expected|Present|[Ee]xpected|[Pp]resent)\s+(\d{4})\s*$/,
+        /[-\s]+(\d{4})\s*$/
       ];
       for (const pattern of datePatterns) {
-        const match = remaining.match(pattern);
-        if (match) {
-          if (match[1] && match[2]) {
-            date = match[1] + ' ' + match[2];
-          } else if (match[1]) {
-            date = match[1];
-          } else if (match[2]) {
-            date = match[2];
-          }
-          degree = remaining.substring(0, remaining.length - match[0].length).trim();
-          break;
+        const match = degree.match(pattern);
+        if (!match) continue;
+        if (match[1] && match[2]) {
+          date = `${match[1]} ${match[2]}`;
+        } else if (match[1]) {
+          date = match[1];
+        } else if (match[2]) {
+          date = match[2];
         }
+        degree = degree.substring(0, degree.length - match[0].length).trim();
+        break;
       }
-      return { school, degree, date };
+      return { degree, date };
+    }
+
+    const forestEducationEntries = [];
+    let currentSchool = '';
+    forestEducationLines.forEach((line) => {
+      const normalized = String(line || '').trim();
+      if (!normalized) return;
+
+      const parts = normalized.split(/\s+-\s+/);
+      if (parts.length >= 2) {
+        const school = parts.shift().trim();
+        const parsed = extractEducationDate(parts.join(' - ').trim());
+        currentSchool = school || currentSchool;
+        forestEducationEntries.push({ school: school || currentSchool, degree: parsed.degree, date: parsed.date });
+        return;
+      }
+
+      if (isEducationInstitutionLine(normalized)) {
+        currentSchool = normalized;
+        return;
+      }
+
+      if (currentSchool && isEducationProgramLine(normalized)) {
+        const parsed = extractEducationDate(normalized);
+        forestEducationEntries.push({ school: currentSchool, degree: parsed.degree, date: parsed.date });
+        return;
+      }
+
+      forestEducationEntries.push({ school: normalized, degree: '', date: '' });
     });
     return `
       <div style="background:#fff;border:1px solid #d1d5db;border-radius:14px;overflow:hidden;box-shadow:0 10px 34px rgba(15,23,42,0.08);font-family:${theme.font};">
@@ -2281,11 +2303,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 'smc': ' (2022)',
                 'clssbb': ' (2021)',
                 'pgmp': ' (In Progress)',
-                'google pm': ' (2024)'
+                'google pm': ' (2024)',
+                'google project management': ' (2024)',
+                'project management professional certificate': ' (2024)'
               };
               const certs = model.certifications && model.certifications.length ? model.certifications : model.awards;
               const formatted = (certs || []).map((cert) => {
                 const lower = cert.toLowerCase();
+                if (/\b\d{4}\b|in progress|expected/i.test(cert)) return cert;
                 for (const [key, date] of Object.entries(certDates)) {
                   if (lower.includes(key)) return cert + date;
                 }
