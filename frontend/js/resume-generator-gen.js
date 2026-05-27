@@ -3356,6 +3356,10 @@ document.addEventListener('DOMContentLoaded', function () {
       document.getElementById('resumeJobTitleGen').value.trim() || 'Target Position'
     );
 
+    // Allow PDF/Word export directly from preview when API generation is unavailable.
+    lastStructuredResume = model;
+    lastRawResume = resumeText || model.fullName || 'preview-resume';
+
     if (previewContent) {
       previewContent.innerHTML = renderResumeTemplate(model);
     }
