@@ -2106,14 +2106,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!value) return false;
     const institutionSignals = /(university|college|institute|school|academy|polytechnic|abet|campus)/i;
     const degreeSignals = /(bachelor|master|doctor|associate|ph\.?d|mba|degree|certificate|diploma|expected|\d{2}\/\d{4})/i;
-    // Never bold degree lines, only bold institution names
     return institutionSignals.test(value) && !degreeSignals.test(value);
-  }
-
-  function isDegreeOrCertLine(line) {
-    const value = normalizeBulletText(line);
-    if (!value) return false;
-    return /(bachelor|master|doctor|associate|ph\.?d|mba|degree|certificate|diploma|expected|scrum|project management|pmp|smc|clssbb|lean|six sigma|\d{2}\/\d{4}|\d{4})/i.test(value);
   }
 
   function isEducationProgramLine(line) {
@@ -2237,23 +2230,18 @@ document.addEventListener('DOMContentLoaded', function () {
       .filter(Boolean);
     const forestEducationEntries = forestEducationLines.map((line) => {
       const parts = String(line).split(/\s+-\s+/);
-      if (parts.length >= 2 && isEducationInstitutionLine(parts[0])) {
-        // School - Degree format
-        return {
-          school: parts.shift().trim(),
-          degree: parts.join(' - ').trim()
-        };
+      if (parts.length < 2) return { school: line, degree: '', date: '' };
+      const school = parts.shift().trim();
+      const remaining = parts.join(' - ').trim();
+      let degree = remaining;
+      let date = '';
+      const dateMatch = remaining.match(/(?:\((\d{4}|present|expected)\)|(\d{4}|present|expected))$/i);
+      if (dateMatch) {
+        date = dateMatch[1] || dateMatch[2];
+        degree = remaining.substring(0, remaining.lastIndexOf(dateMatch[0])).trim();
       }
-      // Check if this line is just a degree/certificate
-      if (isDegreeOrCertLine(line) && !isEducationInstitutionLine(line)) {
-        return {
-          school: '',
-          degree: line.trim()
-        };
-      }
-      // Otherwise treat as school
-      return { school: line, degree: '' };
-    }).filter((e) => e.school || e.degree);
+      return { school, degree, date };
+    });
     return `
       <div style="background:#fff;border:1px solid #d1d5db;border-radius:14px;overflow:hidden;box-shadow:0 10px 34px rgba(15,23,42,0.08);font-family:${theme.font};">
         <div style="background:${theme.primary};padding:24px 28px;color:${theme.headerText};display:flex;gap:18px;align-items:center;">
@@ -2276,31 +2264,17 @@ document.addEventListener('DOMContentLoaded', function () {
                 'smc': ' (2022)',
                 'clssbb': ' (2021)',
                 'pgmp': ' (In Progress)',
-                'google pm': ' (2024)',
-                'scrum': ' (2021)',
-                'project management professional': ' (2023)',
-                'master of science in engineering management': ' (2015)',
-                'bachelor of science in mechanical engineering': ' (2015)',
-                'supply chain management': ' (2021)',
-                'google project management': ' (2021)',
-                'certified lean six sigma black belt': ' (2020)',
-                'rutgers university': ' (2021)',
-                'rmit': ' (2021)'
+                'google pm': ' (2024)'
               };
               const certs = model.certifications && model.certifications.length ? model.certifications : model.awards;
               const formatted = (certs || []).map((cert) => {
                 const lower = cert.toLowerCase();
-                // First check if cert already has a date
-                if (/\(\d{4}\)|-\s*\d{4}|present|in progress/i.test(cert)) {
-                  return cert;
-                }
-                // Then try to match against our known certs
                 for (const [key, date] of Object.entries(certDates)) {
                   if (lower.includes(key)) return cert + date;
                 }
                 return cert;
               }).slice(0, 5);
-              return renderBulletListHtml(formatted.length ? formatted : ['N/A'], '9.8pt', '#1f2937', '4px');
+              return renderBulletListHtml(formatted.length ? formatted : ['N/A'], '10.5pt', '#1f2937', '5px');
             })()}
           </aside>
           <section style="padding:24px 28px 28px 28px;">
@@ -2309,8 +2283,8 @@ document.addEventListener('DOMContentLoaded', function () {
             ${renderSectionHeading('EDUCATION', theme, '15px', 'margin-top:10px;')}
             ${forestEducationEntries.map((entry) => `
               <div style="margin-bottom:6px;">
-                ${entry.school ? `<div style="font-size:10.8pt;line-height:1.32;color:#1f2937;font-weight:700;">${escapeHtml(entry.school)}</div>` : ''}
-                ${entry.degree ? `<div style="font-size:10.6pt;line-height:1.32;color:#374151;font-weight:400 !important;"><span style="font-weight:400 !important;">${escapeHtml(entry.degree)}</span></div>` : ''}
+                <div style="font-size:10.8pt;line-height:1.32;color:#1f2937;font-weight:700;">${escapeHtml(entry.school)}</div>
+                ${entry.degree ? `<div style="font-size:10.2pt;line-height:1.3;color:#374151;font-weight:400;">${escapeHtml(entry.degree)}${entry.date ? ` <span style="color:#6b7280;">(${escapeHtml(entry.date)})</span>` : ''}</div>` : ''}
               </div>
             `).join('')}
             <hr style="border:none;border-top:1px solid #d1d5db;margin:12px 0;" />
