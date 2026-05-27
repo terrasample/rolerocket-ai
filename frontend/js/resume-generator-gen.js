@@ -2011,6 +2011,23 @@ document.addEventListener('DOMContentLoaded', function () {
 
     structured.certifications = actualCertifications;
 
+    // Keep supply-chain credential content in certifications (not education).
+    const educationLines = (structured.education || []).map((line) => normalizeBulletText(line)).filter(Boolean);
+    const certLines = (structured.certifications || []).map((line) => normalizeBulletText(line)).filter(Boolean);
+    const nextEducation = [];
+    const movedToCerts = [];
+
+    educationLines.forEach((line) => {
+      if (/\bsupply\s*chain\b/i.test(line)) {
+        movedToCerts.push(line);
+        return;
+      }
+      nextEducation.push(line);
+    });
+
+    structured.education = nextEducation;
+    structured.certifications = mergeUniqueLines(certLines, movedToCerts);
+
     const rawSkillsLines = between(sectionIndex.SKILLS, nextSectionStart('SKILLS'));
     const skillsText = rawSkillsLines.join(', ');
     const parsedSkills = skillsText
@@ -2116,7 +2133,9 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function formatEducationEntries(lines) {
-    const entries = (lines || []).map((line) => normalizeBulletText(line)).filter(Boolean);
+    const entries = (lines || [])
+      .map((line) => normalizeBulletText(line))
+      .filter((line) => line && !/^professional$/i.test(line));
     const formatted = [];
     const expandCombinedEducationLine = (line) => {
       const tripleMatch = String(line || '').match(/^(.+?)\s+-\s+(.+?)\s+-\s+(.+)$/);
@@ -2190,8 +2209,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function renderLineListHtml(items, fontSize, color, marginBottom) {
     return (items || []).map((item) => normalizeBulletText(item)).filter(Boolean).map((item) => `
-      <div style="font-size:${fontSize};line-height:1.6;color:${color};margin-bottom:${marginBottom};font-weight:${isEducationInstitutionLine(item) ? 700 : 400};">
-        <span style="font-weight:${isEducationInstitutionLine(item) ? 700 : 400};">${escapeHtml(item)}</span>
+      <div style="font-size:${fontSize};line-height:1.6;color:${color};margin-bottom:${marginBottom};font-weight:400;">
+        <span style="font-weight:400;">${escapeHtml(item)}</span>
       </div>
     `).join('');
   }
@@ -3093,9 +3112,81 @@ document.addEventListener('DOMContentLoaded', function () {
     parsed.education = formatEducationEntries(mergeUniqueLines(parsed.education || [], inlineEducation));
     parsed.profile = sanitizeProfileText(parsed.profile);
 
-    const normalizedStructured = normalizeStateAbbreviationsInStructured(
+    function extractBulletSkillsFromSection(sourceText) {
+      const lines = String(sourceText || '').replace(/\r/g, '').split('\n').map((line) => line.trim());
+      const sectionStarts = lines.reduce((indexes, line, index) => {
+        if (/^(SKILLS|CORE SKILLS)\b/i.test(line)) indexes.push(index);
+        return indexes;
+      }, []);
+
+      for (const startIndex of sectionStarts) {
+        const collected = [];
+        for (let index = startIndex + 1; index < lines.length; index += 1) {
+          const current = lines[index];
+          if (!current) continue;
+          if (/^(PROFESSIONAL\s+)?(EXPERIENCE|EDUCATION|CERTIFICATION|CERTIFICATIONS|PROFILE|SUMMARY|AWARDS|PROJECTS|ADDITIONAL INFORMATION)\b/i.test(current)) break;
+          const bulletMatch = current.match(/^[-•]\s*(.+)$/);
+          if (bulletMatch && bulletMatch[1]) {
+            collected.push(normalizeBulletText(bulletMatch[1]));
+          }
+        }
+        if (collected.length) return filterAndCleanSkills(collected);
+      }
+
+      return [];
+    }
+
+    function extractStackedSkillsFromSection(sourceText) {
+      const lines = String(sourceText || '').replace(/\r/g, '').split('\n').map((line) => line.trim());
+      const sectionStarts = lines.reduce((indexes, line, index) => {
+        if (/^(SKILLS|CORE COMPETENCIES|CORE SKILLS|KEY SKILLS)\b/i.test(line)) indexes.push(index);
+        return indexes;
+      }, []);
+
+      for (const startIndex of sectionStarts) {
+        const collected = [];
+        for (let index = startIndex + 1; index < lines.length; index += 1) {
+          const current = lines[index];
+          if (!current) continue;
+          if (/^(PROFESSIONAL\s+)?(EXPERIENCE|EDUCATION|CERTIFICATION|CERTIFICATIONS|PROFILE|SUMMARY|AWARDS|PROJECTS|ADDITIONAL INFORMATION)\b/i.test(current)) break;
+          if (/^(SKILLS|CORE COMPETENCIES|CORE SKILLS|KEY SKILLS)\b/i.test(current)) continue;
+          // Strip bullet prefix and trim; skip lines that look like job titles or company lines
+          const cleaned = normalizeBulletText(current);
+          if (!cleaned || cleaned.length < 2 || cleaned.length > 80) continue;
+          // Skip lines with pipe separators (likely inline skill lists — handled elsewhere)
+          if (/\|/.test(cleaned)) continue;
+          collected.push(cleaned);
+        }
+        if (collected.length) {
+          // Deduplicate and return directly — these came from an explicit SKILLS section
+          const seen = new Set();
+          return collected.filter((s) => {
+            const key = s.toLowerCase();
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          }).slice(0, 20);
+        }
+      }
+
+      return [];
+    }
+
+    let normalizedStructured = normalizeStateAbbreviationsInStructured(
       repairExperienceBoundaries(cleanSectionBleed(relocateSkillStatementsFromExperience(parsed)))
     );
+
+    // Preserve the explicit skills section if present, preferring stacked source text or bullet-style source text.
+    const explicitSourceSkills = extractBulletSkillsFromSection(raw);
+    const stackedSourceSkills = extractStackedSkillsFromSection(raw);
+    const inlineSourceSkills = filterAndCleanSkills(extractInlineSkillsFromResumeText(raw));
+    const sourceSkills = explicitSourceSkills.length ? explicitSourceSkills : stackedSourceSkills.length ? stackedSourceSkills : inlineSourceSkills;
+    if (sourceSkills.length) {
+      normalizedStructured = {
+        ...normalizedStructured,
+        skills: sourceSkills
+      };
+    }
 
     let model = buildResumeModel(
       {
@@ -3131,6 +3222,14 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   async function exportTemplatePdfFromRawResume(rawResume, targetRole, layoutId, options = {}) {
+    // Handle flexible parameter passing: (rawResume, targetRole, optionsObj) or (rawResume, targetRole, layoutId, optionsObj)
+    if (layoutId && typeof layoutId === 'object' && !String(layoutId).includes('-')) {
+      // Third param is an options object (not a layout ID like "forest-ribbon")
+      options = { ...layoutId, ...options };
+      layoutId = options.layoutId || 'forest-ribbon';
+      targetRole = options.targetRole || targetRole || '';
+    }
+    
     const model = buildModelFromRawResume(rawResume, targetRole, layoutId, options);
     await exportResumePdfTemplate(model, options);
     return model;
