@@ -3704,6 +3704,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   const incoming = normalizeIncomingWhatsAppText(body);
   const hasInboundAudio = !!inboundAudioMedia?.mediaUrl;
   const hasInboundDocument = !!inboundDocumentMedia?.mediaUrl;
+  const rawTextCanonical = String(incoming || '').toLowerCase().replace(/&/g, ' and ').replace(/\s+/g, ' ').trim();
   let text = incoming.toLowerCase();
   let textCanonical = text.replace(/&/g, ' and ').replace(/\s+/g, ' ').trim();
   const forcedRoute = getWhatsAppForcedIntent(textCanonical);
@@ -4486,6 +4487,29 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       'Or reply UPLOAD or TYPE to continue here.',
       getWhatsAppMainMenuReturnText(String(convo.metadata?.context?.language || 'english'))
     ].join('\n');
+    convo.lastOutboundMessage = reply;
+    convo.lastOutboundAt = new Date();
+    await Promise.all([user.save(), convo.save()]);
+    return reply;
+  }
+
+  const isDirectCoverLetterAsk = convo.currentStep === 'menu'
+    && (forcedIntent === 'coverLetter' || detectedIntent.intent === 'coverLetter')
+    && /\b(create|write|make|draft|generate|tailor|help me)\b/.test(rawTextCanonical)
+    && /\bcover\s*letter\b/.test(rawTextCanonical);
+
+  if (isDirectCoverLetterAsk) {
+    user.lastIntent = 'cover_letter';
+    convo.lastIntent = 'cover_letter';
+    const requestedTarget = normalizeIncomingWhatsAppText(incoming);
+    const coverLetter = await generateCoverLetterForWhatsApp(
+      requestedTarget,
+      user.resumeText || convo.metadata?.context?.lastFullResumeDraft || ''
+    );
+    convo.currentStep = 'cover_letter_followup';
+    convo.metadata.context.lastCoverLetterTarget = requestedTarget;
+    convo.metadata.context.lastCoverLetterDraft = coverLetter;
+    const reply = `${coverLetter}\n\nUse the action buttons to save/export this cover letter or return to menu options.`;
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
     await Promise.all([user.save(), convo.save()]);
