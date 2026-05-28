@@ -1964,27 +1964,33 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
   const languageContentSid = String(process.env.TWILIO_WHATSAPP_LANGUAGE_CONTENT_SID || '').trim();
   const menuContentSid = String(process.env.TWILIO_WHATSAPP_MENU_CONTENT_SID || '').trim();
   const resumeActionsContentSid = String(process.env.TWILIO_WHATSAPP_RESUME_ACTIONS_CONTENT_SID || '').trim();
+  const resumeActionsPlusContentSid = String(process.env.TWILIO_WHATSAPP_RESUME_ACTIONS_PLUS_CONTENT_SID || '').trim();
   const resumeInputChoiceContentSid = String(process.env.TWILIO_WHATSAPP_RESUME_INPUT_CHOICE_CONTENT_SID || '').trim();
   const coverActionsContentSid = String(process.env.TWILIO_WHATSAPP_COVER_ACTIONS_CONTENT_SID || '').trim();
+  const coverActionsPlusContentSid = String(process.env.TWILIO_WHATSAPP_COVER_ACTIONS_PLUS_CONTENT_SID || '').trim();
   const tailorsContentSid = String(process.env.TWILIO_WHATSAPP_TAILOR_CHOICES_CONTENT_SID || '').trim();
   const jobsMenuContentSid = String(process.env.TWILIO_WHATSAPP_JOBS_MENU_CONTENT_SID || '').trim();
   const jobsParishContentSid = String(process.env.TWILIO_WHATSAPP_JOBS_PARISH_CONTENT_SID || '').trim();
   const jobsActionContentSid = String(process.env.TWILIO_WHATSAPP_JOBS_ACTION_CONTENT_SID || '').trim();
   const backMenuContentSid = String(process.env.TWILIO_WHATSAPP_BACK_MENU_CONTENT_SID || '').trim();
   const paidFeaturesContentSid = String(process.env.TWILIO_WHATSAPP_PAID_FEATURES_CONTENT_SID || '').trim();
+  const accountLinkPromptContentSid = String(process.env.TWILIO_WHATSAPP_ACCOUNT_LINK_PROMPT_CONTENT_SID || '').trim();
 
   const hasInteractiveTemplates = [
     languageContentSid,
     menuContentSid,
     resumeActionsContentSid,
+    resumeActionsPlusContentSid,
     resumeInputChoiceContentSid,
     coverActionsContentSid,
+    coverActionsPlusContentSid,
     tailorsContentSid,
     jobsMenuContentSid,
     jobsParishContentSid,
     jobsActionContentSid,
     backMenuContentSid,
-    paidFeaturesContentSid
+    paidFeaturesContentSid,
+    accountLinkPromptContentSid
   ].some(Boolean);
 
   const interactiveEnabled = interactiveToggle === '1' || interactiveToggle === 'true' || (interactiveToggle === '' && hasInteractiveTemplates);
@@ -2061,11 +2067,13 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
 
   // For resume_followup and cover_letter_followup, send buttons ALONGSIDE the text
   // reply (not instead of it), so the user still sees the resume/cover content.
-  if (step === 'resume_followup' && resumeActionsContentSid) {
+  if (step === 'resume_followup' && (resumeActionsContentSid || resumeActionsPlusContentSid)) {
+    const selectedResumeActionsSid = resumeActionsPlusContentSid || resumeActionsContentSid;
     const hasDraft = !!String(convo?.metadata?.context?.lastFullResumeDraft || '').trim() ||
+                     !!String(convo?.metadata?.context?.lastResumeRewriteDraft || '').trim() ||
                      !!String(convo?.metadata?.context?.pendingFullResume?.source || '').trim();
-    if (hasDraft) {
-      const result = await sendWhatsAppContentTemplate({ to: from, contentSid: resumeActionsContentSid });
+    if (hasDraft && selectedResumeActionsSid) {
+      const result = await sendWhatsAppContentTemplate({ to: from, contentSid: selectedResumeActionsSid });
       if (result?.success && backMenuContentSid) {
         await sendWhatsAppContentTemplate({ to: from, contentSid: backMenuContentSid });
       }
@@ -2083,20 +2091,29 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
   }
 
   // Input-capture steps: append a 'Main Menu' back button so users can exit without typing
-  if (['jobs_query', 'jobs_role_input', 'jobs_parish_select', 'resume_capture', 'cover_letter_capture', 'interview_target'].includes(step) && backMenuContentSid) {
+  if (['jobs_query', 'jobs_role_input', 'jobs_parish_select', 'resume_capture', 'cover_letter_capture', 'interview_target', 'plan_link_email_capture', 'plan_link_verify'].includes(step) && backMenuContentSid) {
     const result = await sendWhatsAppContentTemplate({ to: from, contentSid: backMenuContentSid });
     return result?.success ? 'keep' : false;
   }
 
-  if (step === 'cover_letter_followup' && coverActionsContentSid) {
+  if (step === 'cover_letter_followup' && (coverActionsContentSid || coverActionsPlusContentSid)) {
+    const selectedCoverActionsSid = coverActionsPlusContentSid || coverActionsContentSid;
     const hasDraft = !!String(convo?.metadata?.context?.lastCoverLetterDraft || '').trim();
-    if (hasDraft) {
-      const result = await sendWhatsAppContentTemplate({ to: from, contentSid: coverActionsContentSid });
+    if (hasDraft && selectedCoverActionsSid) {
+      const result = await sendWhatsAppContentTemplate({ to: from, contentSid: selectedCoverActionsSid });
       if (result?.success && backMenuContentSid) {
         await sendWhatsAppContentTemplate({ to: from, contentSid: backMenuContentSid });
       }
       return result?.success ? 'keep' : false;
     }
+  }
+
+  if (step === 'plan_link_email_capture' && accountLinkPromptContentSid) {
+    const result = await sendWhatsAppContentTemplate({ to: from, contentSid: accountLinkPromptContentSid });
+    if (result?.success && backMenuContentSid) {
+      await sendWhatsAppContentTemplate({ to: from, contentSid: backMenuContentSid }).catch(() => {});
+    }
+    return result?.success ? 'keep' : false;
   }
 
   return false;
@@ -2519,6 +2536,8 @@ function getWhatsAppForcedIntent(textCanonical = '') {
   if (/\bcover\s*letter\b/.test(text) && /\b(create|write|make|draft|generate|tailor|help me)\b/.test(text)) return 'coverLetter';
   if (/\bresume\b/.test(text) && /\b(create|write|make|draft|generate|tailor|help me)\b/.test(text)) return 'resume';
   if (/\b(resume\s*optimizer|resume\s*analysis)\b/.test(text) || /^optimi[sz]e(\s+it|\s+resume)?$/.test(text) || /^analy[sz]e\s+resume$/.test(text)) return 'resumeOptimize';
+  if (/^(link\s+account|link\s+my\s+account|connect\s+account)$/.test(text)) return 'linkAccount';
+  if (/^(verify\s+\d{6}|verify\s+code\s+\d{6})$/.test(text)) return 'verifyAccount';
 
   const exact = new Map([
     ['start', 'start'],
@@ -2604,6 +2623,9 @@ function getWhatsAppForcedIntent(textCanonical = '') {
     ['optimise it', 'resumeOptimize'],
     ['resume optimizer', 'resumeOptimize'],
     ['resume analysis', 'resumeOptimize'],
+    ['link account', 'linkAccount'],
+    ['link my account', 'linkAccount'],
+    ['connect account', 'linkAccount'],
     ['save cover', 'coverSave'],
     ['save letter', 'coverSave'],
     ['export cover', 'coverExport'],
@@ -2683,6 +2705,8 @@ function getWhatsAppForcedIntent(textCanonical = '') {
   if (/^save\s+resume$/.test(text)) return 'resumeSave';
   if (/^export\s+(resume|cv)$/.test(text)) return 'resumeExport';
   if (/^email\s+(resume|cv)$/.test(text)) return 'resumeEmail';
+  if (/^(link\s+account|link\s+my\s+account|connect\s+account)$/.test(text)) return 'linkAccount';
+  if (/^(verify\s+\d{6}|verify\s+code\s+\d{6})$/.test(text)) return 'verifyAccount';
   if (/^save\s+(cover|letter)$/.test(text)) return 'coverSave';
   if (/^export\s+(cover|letter|cover\s+letter)$/.test(text)) return 'coverExport';
   if (/^email\s+(cover|letter|cover\s+letter)$/.test(text)) return 'coverEmail';
@@ -2736,6 +2760,8 @@ function getWhatsAppForcedCommandText(route = '') {
     resumeExport: 'export resume',
     resumeEmail: 'email resume',
     resumeOptimize: 'optimize resume',
+    linkAccount: 'link account',
+    verifyAccount: 'verify account',
     resumeEdit: 'edit',
     coverSave: 'save cover',
     coverExport: 'export cover',
@@ -2752,6 +2778,36 @@ function getWhatsAppForcedCommandText(route = '') {
 
 async function resolveEffectiveWhatsAppPlan(user, phone = '') {
   const profilePlan = normalizeWhatsAppPlanValue(user?.plan || 'free');
+  const buildPlanInfoFromAccount = (account = null, source = 'linked_account', linkedUserId = '') => {
+    if (!account) return null;
+    const email = String(account.email || '').toLowerCase();
+    const isAdmin = isAdminUser(email, account.isAdmin === true);
+    const trialEntitlements = applyInstitutionTrialEntitlements(account);
+    const linkedPlan = isAdmin
+      ? 'lifetime'
+      : normalizeWhatsAppPlanValue((trialEntitlements && trialEntitlements.plan) || account.plan || profilePlan);
+    return {
+      plan: linkedPlan,
+      source,
+      isAdmin,
+      linkedEmail: email,
+      linkedUserId: String(linkedUserId || account._id || '')
+    };
+  };
+
+  const linkedUserIdFromConversation = String(user?.linkedUserId || '').trim();
+  if (linkedUserIdFromConversation) {
+    try {
+      const linkedAccount = await User.findById(linkedUserIdFromConversation)
+        .select('email plan isAdmin isSubscribed accountType institutionAccessType institutionLicensedPlan institutionTrialEndsAt')
+        .lean();
+      const planInfo = buildPlanInfoFromAccount(linkedAccount, 'wa_linked_email', linkedUserIdFromConversation);
+      if (planInfo) return planInfo;
+    } catch (_) {
+      // Fall through to phone-based lookup.
+    }
+  }
+
   const normalizedPhone = normalizeWhatsAppPhone(phone || user?.phone || '');
   const digits = String(normalizedPhone || '').replace(/[^0-9]/g, '');
   const last10 = digits.slice(-10);
@@ -2778,24 +2834,12 @@ async function resolveEffectiveWhatsAppPlan(user, phone = '') {
       .select('email plan isAdmin isSubscribed accountType institutionAccessType institutionLicensedPlan institutionTrialEndsAt')
       .lean();
 
-    if (!account) {
+    const planInfo = buildPlanInfoFromAccount(account, 'linked_account', linkedAlert.userId);
+    if (!planInfo) {
       return { plan: profilePlan, source: 'profile', isAdmin: false };
     }
 
-    const email = String(account.email || '').toLowerCase();
-    const isAdmin = isAdminUser(email, account.isAdmin === true);
-    const trialEntitlements = applyInstitutionTrialEntitlements(account);
-    const linkedPlan = isAdmin
-      ? 'lifetime'
-      : normalizeWhatsAppPlanValue((trialEntitlements && trialEntitlements.plan) || account.plan || profilePlan);
-
-    return {
-      plan: linkedPlan,
-      source: 'linked_account',
-      isAdmin,
-      linkedEmail: email,
-      linkedUserId: String(linkedAlert.userId || '')
-    };
+    return planInfo;
   } catch (_) {
     return { plan: profilePlan, source: 'profile', isAdmin: false };
   }
@@ -3689,6 +3733,28 @@ function getWhatsAppRecipientEmail(effectivePlanInfo = {}, user = null) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(candidate) ? candidate : '';
 }
 
+function extractWhatsAppSixDigitCode(input = '') {
+  const raw = String(input || '').trim();
+  const match = raw.match(/(\d{6})/);
+  return match ? match[1] : '';
+}
+
+async function sendWhatsAppAccountLinkCodeEmail({ recipientEmail, code }) {
+  const to = String(recipientEmail || '').trim().toLowerCase();
+  if (!to || !code) return;
+  const subject = 'Your RoleRocket WhatsApp verification code';
+  const html = `
+    <div style="font-family:Segoe UI,Arial,sans-serif;color:#0f172a;line-height:1.6;max-width:640px;">
+      <h2 style="margin:0 0 10px;">Verify your WhatsApp account</h2>
+      <p style="margin:0 0 10px;">Use this code in WhatsApp to link your RoleRocket account:</p>
+      <div style="display:inline-block;padding:10px 14px;border:1px solid #cbd5e1;border-radius:8px;font-size:22px;letter-spacing:2px;font-weight:700;">${escapeHtml(code)}</div>
+      <p style="margin:12px 0 0;color:#475569;font-size:12px;">Code expires in 10 minutes.</p>
+    </div>
+  `;
+  const text = `Your RoleRocket WhatsApp verification code is: ${code}. It expires in 10 minutes.`;
+  await sendEmail({ to, subject, html, text });
+}
+
 async function sendWhatsAppDraftToEmail({ recipientEmail, featureLabel, title, draftText }) {
   const to = String(recipientEmail || '').trim().toLowerCase();
   const content = String(draftText || '').trim();
@@ -3857,7 +3923,11 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
 
   const user = profile || await WhatsAppRecruitingUser.create({ phone, optedIn: true, optedInAt: new Date() });
   const convo = conversation || await WhatsAppConversation.create({ phone, currentStep: 'menu', lastIntent: 'menu', metadata: {} });
-  const effectivePlanInfo = await resolveEffectiveWhatsAppPlan(user, phone);
+  const effectivePlanInfo = await resolveEffectiveWhatsAppPlan({
+    plan: user.plan,
+    phone: user.phone,
+    linkedUserId: String(convo?.metadata?.context?.linkedUserId || '')
+  }, phone);
   const effectivePlan = normalizeWhatsAppPlanValue(effectivePlanInfo.plan || user.plan || 'free');
   if (user.plan !== effectivePlan) {
     user.plan = effectivePlan;
@@ -4032,12 +4102,166 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     const reply = [
       'Quick commands:',
       'START | 1 Watch Demo Features | 2 Jobs | 3 Resume | 4 Cover Letter',
-      '5 Explore | STATUS | INTERVIEW | 0 Technical Support',
+      '5 Explore | STATUS | PLAN | INTERVIEW | OPTIMIZE | LINK ACCOUNT | 0 Technical Support',
       'STOP to opt out'
     ].join('\n');
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
     await trackWhatsAppTelemetry(phone, 'whatsapp_help_shown', {});
+    await convo.save();
+    return reply;
+  }
+
+  if (text === 'plan' || text === 'my plan' || text === 'tier') {
+    const planName = getWhatsAppPlanDisplayName(effectivePlan || 'free');
+    const sourceLabel = effectivePlanInfo?.source === 'linked_account'
+      ? 'verified phone link'
+      : effectivePlanInfo?.source === 'wa_linked_email'
+        ? 'email verification link'
+        : 'profile fallback';
+    const linkHint = sourceLabel === 'profile fallback'
+      ? 'Reply LINK ACCOUNT to connect your email and unlock the right tier.'
+      : 'Your tier is linked correctly for feature access checks.';
+    const reply = [
+      `Detected plan: ${planName}`,
+      `Source: ${sourceLabel}`,
+      linkHint
+    ].join('\n');
+    convo.lastOutboundMessage = reply;
+    convo.lastOutboundAt = new Date();
+    await convo.save();
+    return reply;
+  }
+
+  if (['link account', 'link my account', 'connect account'].includes(text)) {
+    convo.currentStep = 'plan_link_email_capture';
+    const reply = [
+      'To link your RoleRocket plan, reply with your account email.',
+      'Example: prince@example.com',
+      'I will send a 6-digit verification code to that email.'
+    ].join('\n');
+    convo.lastOutboundMessage = reply;
+    convo.lastOutboundAt = new Date();
+    await convo.save();
+    return reply;
+  }
+
+  if (convo.currentStep === 'plan_link_email_capture') {
+    const emailInput = String(incoming || '').trim().toLowerCase();
+    const emailLooksValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput);
+    if (!emailLooksValid) {
+      const reply = 'Please send a valid email address to continue account linking.';
+      convo.lastOutboundMessage = reply;
+      convo.lastOutboundAt = new Date();
+      await convo.save();
+      return reply;
+    }
+
+    const account = await User.findOne({ email: emailInput })
+      .select('email plan isAdmin isSubscribed accountType institutionAccessType institutionLicensedPlan institutionTrialEndsAt')
+      .lean();
+    if (!account?._id) {
+      const reply = 'No RoleRocket account was found for that email. Reply with another email or type Main Menu.';
+      convo.lastOutboundMessage = reply;
+      convo.lastOutboundAt = new Date();
+      await convo.save();
+      return reply;
+    }
+
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    convo.metadata.context.pendingPlanLink = {
+      userId: String(account._id),
+      email: emailInput,
+      code,
+      attempts: 0,
+      expiresAt: new Date(Date.now() + (10 * 60 * 1000)).toISOString()
+    };
+    convo.currentStep = 'plan_link_verify';
+    convo.markModified('metadata');
+
+    await sendWhatsAppAccountLinkCodeEmail({ recipientEmail: emailInput, code });
+    const reply = [
+      `Verification code sent to ${emailInput}.`,
+      'Reply VERIFY 123456 (use your 6-digit code).'
+    ].join('\n');
+    convo.lastOutboundMessage = reply;
+    convo.lastOutboundAt = new Date();
+    await convo.save();
+    return reply;
+  }
+
+  if (convo.currentStep === 'plan_link_verify' || text === 'verify account' || /^\d{6}$/.test(textCanonical) || /^verify\b/.test(textCanonical)) {
+    const pending = convo.metadata?.context?.pendingPlanLink;
+    if (!pending?.code || !pending?.userId) {
+      const reply = 'No pending verification found. Reply LINK ACCOUNT to start account linking.';
+      convo.lastOutboundMessage = reply;
+      convo.lastOutboundAt = new Date();
+      await convo.save();
+      return reply;
+    }
+
+    const now = Date.now();
+    const expiry = new Date(pending.expiresAt || 0).getTime();
+    if (!expiry || now > expiry) {
+      convo.metadata.context.pendingPlanLink = null;
+      convo.currentStep = 'plan_link_email_capture';
+      convo.markModified('metadata');
+      const reply = 'That verification code expired. Reply with your account email again to get a new code.';
+      convo.lastOutboundMessage = reply;
+      convo.lastOutboundAt = new Date();
+      await convo.save();
+      return reply;
+    }
+
+    const providedCode = extractWhatsAppSixDigitCode(incoming || textCanonical);
+    if (!providedCode || providedCode !== String(pending.code)) {
+      const attempts = Number(pending.attempts || 0) + 1;
+      convo.metadata.context.pendingPlanLink = {
+        ...pending,
+        attempts
+      };
+      convo.markModified('metadata');
+      if (attempts >= 5) {
+        convo.metadata.context.pendingPlanLink = null;
+        convo.currentStep = 'plan_link_email_capture';
+        const reply = 'Too many failed attempts. Reply with your account email to request a new verification code.';
+        convo.lastOutboundMessage = reply;
+        convo.lastOutboundAt = new Date();
+        await convo.save();
+        return reply;
+      }
+
+      const reply = 'Invalid code. Reply VERIFY 123456 using the 6-digit code from your email.';
+      convo.lastOutboundMessage = reply;
+      convo.lastOutboundAt = new Date();
+      await convo.save();
+      return reply;
+    }
+
+    convo.metadata.context.linkedUserId = String(pending.userId);
+    convo.metadata.context.linkedEmail = String(pending.email || '').toLowerCase();
+    convo.metadata.context.pendingPlanLink = null;
+    convo.metadata.context.planLinkedAt = new Date().toISOString();
+    convo.currentStep = 'menu';
+    convo.lastIntent = 'menu';
+    convo.markModified('metadata');
+
+    const linkedPlanInfo = await resolveEffectiveWhatsAppPlan({
+      plan: user.plan,
+      phone: user.phone,
+      linkedUserId: String(pending.userId)
+    }, phone);
+    user.plan = normalizeWhatsAppPlanValue(linkedPlanInfo.plan || user.plan || 'free');
+    await user.save();
+
+    const language = String(convo.metadata?.context?.language || 'english');
+    const planName = getWhatsAppPlanDisplayName(linkedPlanInfo.plan || user.plan);
+    const reply = [
+      `Account linked successfully. Detected plan: ${planName}.`,
+      getWhatsAppMenuText(language)
+    ].join('\n\n');
+    convo.lastOutboundMessage = reply;
+    convo.lastOutboundAt = new Date();
     await convo.save();
     return reply;
   }
@@ -4166,7 +4390,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
 
     const recipientEmail = getWhatsAppRecipientEmail(effectivePlanInfo, user);
     if (!recipientEmail) {
-      const reply = 'No linked email found for this number. Link your RoleRocket account first, then try EMAIL COVER again.';
+      const reply = 'No linked email found for this number. Reply LINK ACCOUNT to connect your email, then try EMAIL COVER again.';
       convo.lastOutboundMessage = reply;
       convo.lastOutboundAt = new Date();
       await convo.save();
@@ -4243,7 +4467,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
 
     const recipientEmail = getWhatsAppRecipientEmail(effectivePlanInfo, user);
     if (!recipientEmail) {
-      const reply = 'No linked email found for this number. Link your RoleRocket account first, then try EMAIL RESUME again.';
+      const reply = 'No linked email found for this number. Reply LINK ACCOUNT to connect your email, then try EMAIL RESUME again.';
       convo.lastOutboundMessage = reply;
       convo.lastOutboundAt = new Date();
       await convo.save();
@@ -5569,7 +5793,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
 
       const recipientEmail = getWhatsAppRecipientEmail(effectivePlanInfo, user);
       if (!recipientEmail) {
-        const reply = 'No linked email found for this number. Link your RoleRocket account first, then try EMAIL COVER again.';
+        const reply = 'No linked email found for this number. Reply LINK ACCOUNT to connect your email, then try EMAIL COVER again.';
         convo.lastOutboundMessage = reply;
         convo.lastOutboundAt = new Date();
         await convo.save();
@@ -5696,7 +5920,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
 
       const recipientEmail = getWhatsAppRecipientEmail(effectivePlanInfo, user);
       if (!recipientEmail) {
-        const reply = 'No linked email found for this number. Link your RoleRocket account first, then try EMAIL RESUME again.';
+        const reply = 'No linked email found for this number. Reply LINK ACCOUNT to connect your email, then try EMAIL RESUME again.';
         convo.lastOutboundMessage = reply;
         convo.lastOutboundAt = new Date();
         await convo.save();
@@ -5728,9 +5952,9 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   }
 
   const fallback = convo.currentStep === 'resume_followup'
-    ? 'Please use the resume action buttons (Full Draft, Save, Export, Apply Ready) or menu buttons.'
+    ? 'Please use the resume action buttons (Full Draft, Save, Export, Email, Optimize, Apply Ready) or menu buttons.'
     : convo.currentStep === 'cover_letter_followup'
-      ? 'Please use the cover letter action buttons (Save, Export) or menu buttons.'
+      ? 'Please use the cover letter action buttons (Save, Export, Email) or menu buttons.'
       : 'I did not catch that. Please use the interactive buttons shown.';
   await trackWhatsAppTelemetry(phone, 'whatsapp_fallback_prompt', {
     step: convo.currentStep || 'menu'
@@ -6761,6 +6985,10 @@ app.get('/whatsapp-live-tester', (req, res) => {
       <div class="chips">
         <button data-msg="create me a cover letter for a customer service job in Kingston">Quick: cover letter prompt</button>
         <button data-msg="Job Description: We are seeking a Customer Service Representative in Kingston to handle inbound calls, resolve billing issues, log tickets in CRM, and meet quality KPIs.">Quick: paste job description</button>
+        <button data-msg="OPTIMIZE">Quick: optimize resume (tier check)</button>
+        <button data-msg="EMAIL RESUME">Quick: email resume</button>
+        <button data-msg="EMAIL COVER">Quick: email cover letter</button>
+        <button data-msg="LINK ACCOUNT">Quick: link account</button>
       </div>
 
       <div class="row">
