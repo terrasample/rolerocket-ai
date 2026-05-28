@@ -7452,21 +7452,21 @@ app.get('/whatsapp-live-tester', (req, res) => {
   <style>
     :root {
       color-scheme: dark;
-      --bg: #071018;
-      --panel: #0f1d2a;
-      --muted: #8aa1b4;
-      --ink: #e6f0f8;
-      --accent: #22d3ee;
-      --accent-2: #34d399;
-      --danger: #f97373;
+      --bg: #050507;
+      --panel: #101113;
+      --muted: #cfd3d7;
+      --ink: #f7f8f9;
+      --accent: #009b3a;
+      --accent-2: #fed100;
+      --danger: #be1e2d;
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      font-family: "Trebuchet MS", "Segoe UI", Tahoma, sans-serif;
       background:
-        radial-gradient(900px 420px at 8% -5%, rgba(34,211,238,.18), transparent 70%),
-        radial-gradient(900px 420px at 100% 0%, rgba(52,211,153,.14), transparent 66%),
+        radial-gradient(900px 420px at 8% -5%, rgba(0,155,58,.30), transparent 70%),
+        radial-gradient(900px 420px at 100% 0%, rgba(254,209,0,.22), transparent 66%),
         var(--bg);
       color: var(--ink);
       min-height: 100vh;
@@ -7481,7 +7481,7 @@ app.get('/whatsapp-live-tester', (req, res) => {
     }
     .panel {
       border: 1px solid rgba(138,161,180,.25);
-      background: linear-gradient(180deg, rgba(15,29,42,.98), rgba(10,20,29,.98));
+      background: linear-gradient(180deg, rgba(22,23,25,.98), rgba(10,10,11,.98));
       border-radius: 14px;
       box-shadow: 0 18px 44px rgba(0,0,0,.35);
     }
@@ -7492,8 +7492,8 @@ app.get('/whatsapp-live-tester', (req, res) => {
     input, textarea, button {
       width: 100%;
       border-radius: 10px;
-      border: 1px solid rgba(138,161,180,.35);
-      background: #0b1622;
+      border: 1px solid rgba(254,209,0,.28);
+      background: #17181a;
       color: var(--ink);
       font: inherit;
     }
@@ -7504,12 +7504,12 @@ app.get('/whatsapp-live-tester', (req, res) => {
       cursor: pointer;
       padding: 10px;
       font-weight: 700;
-      background: linear-gradient(120deg, #17324a, #1d3f5c);
+      background: linear-gradient(120deg, #1c5724, #2a7a34);
     }
     button.primary {
-      border-color: rgba(34,211,238,.6);
-      background: linear-gradient(120deg, #0891b2, #0ea5a2);
-      color: #001019;
+      border-color: rgba(254,209,0,.8);
+      background: linear-gradient(120deg, #fed100, #f7bc00);
+      color: #1b1d1f;
     }
     button.warn {
       border-color: rgba(249,115,115,.6);
@@ -7537,8 +7537,8 @@ app.get('/whatsapp-live-tester', (req, res) => {
       border: 1px solid rgba(138,161,180,.2);
       font-size: .95rem;
     }
-    .msg.user { margin-left: 22%; background: rgba(34,211,238,.1); border-color: rgba(34,211,238,.45); }
-    .msg.bot { margin-right: 16%; background: rgba(52,211,153,.1); border-color: rgba(52,211,153,.45); }
+    .msg.user { margin-left: 22%; background: rgba(254,209,0,.10); border-color: rgba(254,209,0,.50); }
+    .msg.bot { margin-right: 16%; background: rgba(0,155,58,.12); border-color: rgba(0,155,58,.50); }
     .meta { margin-top: 5px; color: var(--muted); font-size: .75rem; }
     .composer { border-top: 1px solid rgba(138,161,180,.2); padding: 12px; display: grid; gap: 8px; }
     .status { font-size: .82rem; color: var(--muted); min-height: 1.1em; }
@@ -7551,24 +7551,24 @@ app.get('/whatsapp-live-tester', (req, res) => {
 <body>
   <main class="shell">
     <section class="panel controls">
-      <h1>RoleRocket WhatsApp Live Tester 🌴</h1>
-      <p class="sub">Run prompts together on-screen. Jamaican-themed WhatsApp flow preview with the same backend logic.</p>
+      <h1>RoleRocket Jamaica Live Tester 🇯🇲</h1>
+      <p class="sub">Run prompts together on-screen. Yard-style WhatsApp preview using the same backend logic.</p>
 
       <label for="from">Test Phone</label>
       <input id="from" value="whatsapp:+18765550000" />
 
       <div class="row">
-        <button id="sendStart">START</button>
-        <button id="sendEnglish">English</button>
+        <button id="sendStart">Start Di Chat</button>
+        <button id="sendEnglish">English 🇯🇲</button>
       </div>
       <div class="row">
-        <button id="sendResume">Option 1 (Resume)</button>
-        <button id="sendCover">Option 2 (Cover Letter)</button>
+        <button id="sendResume">1. Build Resume</button>
+        <button id="sendCover">2. Cover Letter</button>
       </div>
       <div class="row">
-        <button id="sendJobs">Option 3 (Jobs)</button>
-        <button id="sendInterview">Option 4 (Interview)</button>
-        <button id="sendCoach">Option 5 (Career Coach)</button>
+        <button id="sendJobs">3. Find Jobs</button>
+        <button id="sendInterview">4. Interview Prep</button>
+        <button id="sendCoach">5. Career Coach</button>
       </div>
 
       <div class="chips">
@@ -7701,7 +7701,7 @@ app.get('/whatsapp-live-tester', (req, res) => {
       chip.addEventListener('click', () => sendPrompt(chip.getAttribute('data-msg') || ''));
     }
 
-    addMessage('bot', 'Live tester ready 🌴. Use START, then English or Patois, then 1 to 5 from the launch menu.', 'system');
+    addMessage('bot', 'Jamaica tester ready 🇯🇲. Use START, then English or Patois, then 1 to 5 from the launch menu.', 'system');
   </script>
 </body>
 </html>`);
