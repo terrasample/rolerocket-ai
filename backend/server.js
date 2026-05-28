@@ -2675,6 +2675,7 @@ function getWhatsAppCleanActionHint(type = 'menu') {
 
 function getWhatsAppLanguagePrompt() {
   return [
+    'Welcome to RoleRocket AI Jamaica 🌴',
     'Choose your language / Choosy yuh language:',
     '1. English',
     '2. Spanish / Español',

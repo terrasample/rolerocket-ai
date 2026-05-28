@@ -32,21 +32,21 @@ services:
 
       # ── Twilio WhatsApp interactive templates ────────────────────────────
       - key: TWILIO_WHATSAPP_LANGUAGE_PATOIS_CONTENT_SID
-        value: HX22291e33832a9330c9295f9a0392986a
+        value: HX4a78c65324e40b0f8f32ee50d1c4f1d9
       - key: TWILIO_WHATSAPP_PATOIS_QUICK_CONTENT_SID
-        value: HX536ba2d54c0da14cee5c9f19d5a3202d
+        value: HX20b5be9929169f490bb51dcc4a9a6a3d
       - key: TWILIO_WHATSAPP_JOBS_ROLE_CONTENT_SID
-        value: HX601562906d2aaa5e84723e7affc54549
+        value: HXf8a6f2b0453f7b4263110df7e34e325c
       - key: TWILIO_WHATSAPP_RESUME_CAPTURE_CONTENT_SID
-        value: HXe735a4a5391af8cf3ed1c6507faa09ca
+        value: HX242a7fc4f3318fd4568e990c7488a294
       - key: TWILIO_WHATSAPP_COVER_CAPTURE_CONTENT_SID
-        value: HX4de1922197bff4fc9996ff05f50e98c9
+        value: HX37b1689edfaa86bcb8e9c22448ecc098
       - key: TWILIO_WHATSAPP_INTERVIEW_TARGET_CONTENT_SID
-        value: HX211d3912757490b96e53dffa4dd01bb7
+        value: HXa3b8923649b28acc1d1bd36aee78f109
       - key: TWILIO_WHATSAPP_COACH_CAPTURE_CONTENT_SID
-        value: HX96e98a7a1114a5ca5f2e261b3adeeff5
+        value: HX1c30204fd8ed6ed000f94b31f602b61f
       - key: TWILIO_WHATSAPP_HUMAN_CAPTURE_CONTENT_SID
-        value: HX5dc1ec738f54881dbddf94516c93d2fa
+        value: HX90b7afb6a822c857294c12349f14471b
 
       # ── Stripe ─────────────────────────────────────────────────────────────
       - key: STRIPE_SECRET_KEY
