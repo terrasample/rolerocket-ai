@@ -2302,7 +2302,8 @@ function detectWhatsAppIntent(text = '') {
   if (/(watch\s+demo|demo\s+features|feature\s+demo|show\s+demo|how\s+it\s+works|first\s+glance|quick\s+tour|walkthrough)/.test(normalized)) score.demo += 5;
   if (/\bjob|jobs|apply|vacanc|hiring|position\b/.test(normalized)) score.jobs += 3;
   if (/\bresume|cv|experience|work history|rewrite\b/.test(normalized)) score.resume += 3;
-  if (/\bcover\s*letter|coverletter|letter\b/.test(normalized)) score.coverLetter += 3;
+  if (/\bcover\s*letter|coverletter\b/.test(normalized)) score.coverLetter += 7;
+  if (/\bletter\b/.test(normalized)) score.coverLetter += 1;
   if (/\bexplore|features|other\s*features|upgrade|plan|paid\b/.test(normalized)) score.explore += 3;
   if (/\binterview|prep|question|mock\b/.test(normalized)) score.interview += 3;
   if (/\bstatus|tracked|application\b/.test(normalized)) score.status += 3;
@@ -2505,6 +2506,10 @@ function getWhatsAppForcedIntent(textCanonical = '') {
 
   if (/\b(option|menu|choice|action)\s*3\b/.test(text)) return 'resume';
   if (/\b(option|menu|choice|action)\s*4\b/.test(text)) return 'coverLetter';
+
+  // Natural-language shortcuts: allow direct asks from the main menu.
+  if (/\bcover\s*letter\b/.test(text) && /\b(create|write|make|draft|generate|tailor|help me)\b/.test(text)) return 'coverLetter';
+  if (/\bresume\b/.test(text) && /\b(create|write|make|draft|generate|tailor|help me)\b/.test(text)) return 'resume';
 
   const exact = new Map([
     ['start', 'start'],
@@ -4078,7 +4083,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   const isStatusIntent = (forcedIntent === 'status') || (!lockMenuIntentRouting && !hasForcedIntent && (text === 'status' || detectedIntent.intent === 'status'));
   const isHumanIntent = strictHumanIntent || forcedIntent === 'human';
 
-  if (convo.currentStep === 'menu' && incoming && !hasInboundAudio && detectedIntent.intent === 'unclear') {
+  if (convo.currentStep === 'menu' && incoming && !hasInboundAudio && !hasForcedIntent && detectedIntent.intent === 'unclear') {
     await trackWhatsAppTelemetry(phone, 'whatsapp_intent_clarification_prompt', {
       confidence: detectedIntent.confidence,
       topScore: detectedIntent.topScore,
@@ -4235,7 +4240,15 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       return reply;
     }
 
-    convo.metadata.context.pendingJobRole = parsed.title || roleText;
+    const context = {
+      ...((convo.metadata && convo.metadata.context && typeof convo.metadata.context === 'object') ? convo.metadata.context : {}),
+      pendingJobRole: parsed.title || roleText
+    };
+    convo.metadata = {
+      ...((convo.metadata && typeof convo.metadata === 'object') ? convo.metadata : {}),
+      context
+    };
+    convo.markModified('metadata');
     convo.currentStep = 'jobs_parish_select';
     const reply = buildWhatsAppExperiencePrompt(resolveWhatsAppExperienceCountry({ user, convo }), convo.metadata.context.pendingJobRole);
     convo.lastOutboundMessage = reply;
@@ -4277,7 +4290,10 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
         countryCode,
         source: 'jobs_location_select'
       });
-      delete convo.metadata.context.pendingJobRole;
+      if (convo.metadata?.context && typeof convo.metadata.context === 'object') {
+        delete convo.metadata.context.pendingJobRole;
+        convo.markModified('metadata');
+      }
       convo.lastOutboundMessage = reply;
       convo.lastOutboundAt = new Date();
       await Promise.all([user.save(), convo.save()]);
@@ -4305,7 +4321,10 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       countryCode,
       source: 'jobs_parish_select'
     });
-    delete convo.metadata.context.pendingJobRole;
+    if (convo.metadata?.context && typeof convo.metadata.context === 'object') {
+      delete convo.metadata.context.pendingJobRole;
+      convo.markModified('metadata');
+    }
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
     await Promise.all([user.save(), convo.save()]);
@@ -6200,6 +6219,328 @@ app.post('/api/whatsapp/jobs/import-public', async (req, res) => {
     console.error('WhatsApp public import error:', err);
     return res.status(500).json({ error: 'Could not import this job right now. Please try again.' });
   }
+});
+
+function isWhatsAppLiveTesterEnabled() {
+  const configured = String(process.env.ENABLE_WHATSAPP_LIVE_TESTER || '').trim().toLowerCase();
+  if (configured === '1' || configured === 'true' || configured === 'yes') return true;
+  if (configured === '0' || configured === 'false' || configured === 'no') return false;
+  return process.env.NODE_ENV !== 'production';
+}
+
+app.post('/api/whatsapp/live-test', express.json({ limit: '32kb' }), async (req, res) => {
+  try {
+    if (!isWhatsAppLiveTesterEnabled()) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+
+    let from = String(req.body?.from || '').trim();
+    const body = String(req.body?.body || '').trim();
+    if (!body) {
+      return res.status(400).json({ error: 'Message body is required' });
+    }
+
+    if (!from) {
+      from = 'whatsapp:+15550001234';
+    }
+    if (!/^whatsapp:/i.test(from)) {
+      from = `whatsapp:${from}`;
+    }
+
+    const reply = await handleWhatsAppRecruitingMessage(from, body, '', null, null);
+    const phone = normalizeWhatsAppPhone(from);
+    const convo = phone ? await WhatsAppConversation.findOne({ phone }).lean() : null;
+    return res.json({
+      ok: true,
+      reply,
+      step: convo?.currentStep || null,
+      phone
+    });
+  } catch (error) {
+    console.error('WhatsApp live-test route error:', error);
+    return res.status(500).json({ error: 'Live test failed. Check server logs.' });
+  }
+});
+
+app.post('/api/whatsapp/live-test/reset', express.json({ limit: '8kb' }), async (req, res) => {
+  try {
+    if (!isWhatsAppLiveTesterEnabled()) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+
+    let from = String(req.body?.from || '').trim();
+    if (!from) {
+      from = 'whatsapp:+15550001234';
+    }
+    if (!/^whatsapp:/i.test(from)) {
+      from = `whatsapp:${from}`;
+    }
+
+    const phone = normalizeWhatsAppPhone(from);
+    if (phone) {
+      await WhatsAppConversation.deleteOne({ phone });
+    }
+
+    return res.json({ ok: true, phone });
+  } catch (error) {
+    console.error('WhatsApp live-test reset error:', error);
+    return res.status(500).json({ error: 'Could not reset conversation.' });
+  }
+});
+
+app.get('/whatsapp-live-tester', (req, res) => {
+  if (!isWhatsAppLiveTesterEnabled()) {
+    return res.status(404).send('Not found');
+  }
+
+  return res.status(200).send(`<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RoleRocket WhatsApp Live Tester</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #071018;
+      --panel: #0f1d2a;
+      --muted: #8aa1b4;
+      --ink: #e6f0f8;
+      --accent: #22d3ee;
+      --accent-2: #34d399;
+      --danger: #f97373;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background:
+        radial-gradient(900px 420px at 8% -5%, rgba(34,211,238,.18), transparent 70%),
+        radial-gradient(900px 420px at 100% 0%, rgba(52,211,153,.14), transparent 66%),
+        var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .shell {
+      width: min(1100px, 100%);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 14px;
+    }
+    .panel {
+      border: 1px solid rgba(138,161,180,.25);
+      background: linear-gradient(180deg, rgba(15,29,42,.98), rgba(10,20,29,.98));
+      border-radius: 14px;
+      box-shadow: 0 18px 44px rgba(0,0,0,.35);
+    }
+    .controls { padding: 14px; }
+    .controls h1 { margin: 0 0 6px; font-size: 1.03rem; }
+    .sub { margin: 0 0 12px; color: var(--muted); font-size: .9rem; line-height: 1.4; }
+    label { display: block; font-size: .8rem; color: var(--muted); margin: 8px 0 6px; }
+    input, textarea, button {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid rgba(138,161,180,.35);
+      background: #0b1622;
+      color: var(--ink);
+      font: inherit;
+    }
+    input, textarea { padding: 10px; }
+    textarea { min-height: 112px; resize: vertical; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+    button {
+      cursor: pointer;
+      padding: 10px;
+      font-weight: 700;
+      background: linear-gradient(120deg, #17324a, #1d3f5c);
+    }
+    button.primary {
+      border-color: rgba(34,211,238,.6);
+      background: linear-gradient(120deg, #0891b2, #0ea5a2);
+      color: #001019;
+    }
+    button.warn {
+      border-color: rgba(249,115,115,.6);
+      background: linear-gradient(120deg, #7f1d1d, #991b1b);
+      color: #fee2e2;
+    }
+    .chips { display: grid; gap: 8px; margin-top: 10px; }
+    .chips button { text-align: left; font-weight: 600; }
+    .chat { display: flex; flex-direction: column; min-height: 70vh; }
+    .chat-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(138,161,180,.2);
+      color: var(--muted);
+      font-size: .88rem;
+    }
+    .stream { flex: 1; overflow: auto; padding: 14px; display: grid; gap: 10px; }
+    .msg {
+      white-space: pre-wrap;
+      line-height: 1.45;
+      border-radius: 12px;
+      padding: 11px 12px;
+      border: 1px solid rgba(138,161,180,.2);
+      font-size: .95rem;
+    }
+    .msg.user { margin-left: 22%; background: rgba(34,211,238,.1); border-color: rgba(34,211,238,.45); }
+    .msg.bot { margin-right: 16%; background: rgba(52,211,153,.1); border-color: rgba(52,211,153,.45); }
+    .meta { margin-top: 5px; color: var(--muted); font-size: .75rem; }
+    .composer { border-top: 1px solid rgba(138,161,180,.2); padding: 12px; display: grid; gap: 8px; }
+    .status { font-size: .82rem; color: var(--muted); min-height: 1.1em; }
+    @media (max-width: 900px) {
+      .shell { grid-template-columns: 1fr; }
+      .chat { min-height: 62vh; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="panel controls">
+      <h1>RoleRocket WhatsApp Live Tester</h1>
+      <p class="sub">Run prompts together on-screen. This simulates inbound WhatsApp messages against the same backend logic.</p>
+
+      <label for="from">Test Phone</label>
+      <input id="from" value="whatsapp:+18765550000" />
+
+      <div class="row">
+        <button id="sendStart">START</button>
+        <button id="sendEnglish">English</button>
+      </div>
+      <div class="row">
+        <button id="sendResume">Option 3 (Resume)</button>
+        <button id="sendCover">Option 4 (Cover Letter)</button>
+      </div>
+
+      <div class="chips">
+        <button data-msg="create me a cover letter for a customer service job in Kingston">Quick: cover letter prompt</button>
+        <button data-msg="Job Description: We are seeking a Customer Service Representative in Kingston to handle inbound calls, resolve billing issues, log tickets in CRM, and meet quality KPIs.">Quick: paste job description</button>
+      </div>
+
+      <div class="row">
+        <button id="reset" class="warn">Reset Conversation</button>
+        <button id="clear">Clear Screen</button>
+      </div>
+    </section>
+
+    <section class="panel chat">
+      <div class="chat-head">
+        <span>Live prompt stream</span>
+        <span id="step">step: -</span>
+      </div>
+      <div id="stream" class="stream"></div>
+      <div class="composer">
+        <textarea id="message" placeholder="Type a prompt and press Send..."></textarea>
+        <div class="row">
+          <button id="send" class="primary">Send Prompt</button>
+          <button id="sendMain">Main Menu</button>
+        </div>
+        <div id="status" class="status"></div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const fromInput = document.getElementById('from');
+    const messageInput = document.getElementById('message');
+    const stream = document.getElementById('stream');
+    const statusEl = document.getElementById('status');
+    const stepEl = document.getElementById('step');
+
+    function addMessage(role, text, meta) {
+      const wrap = document.createElement('div');
+      wrap.className = 'msg ' + role;
+      wrap.textContent = text;
+      if (meta) {
+        const foot = document.createElement('div');
+        foot.className = 'meta';
+        foot.textContent = meta;
+        wrap.appendChild(foot);
+      }
+      stream.appendChild(wrap);
+      stream.scrollTop = stream.scrollHeight;
+    }
+
+    async function sendPrompt(rawMessage) {
+      const body = String(rawMessage || '').trim();
+      if (!body) return;
+
+      const from = String(fromInput.value || '').trim() || 'whatsapp:+18765550000';
+      addMessage('user', body, from);
+      statusEl.textContent = 'Sending...';
+
+      try {
+        const response = await fetch('/api/whatsapp/live-test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ from, body })
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || 'Request failed');
+        }
+
+        addMessage('bot', String(data.reply || '(empty response)'), data.phone || 'bot');
+        stepEl.textContent = 'step: ' + (data.step || '-');
+        statusEl.textContent = 'Sent';
+      } catch (err) {
+        statusEl.textContent = 'Error: ' + (err.message || err);
+      }
+    }
+
+    async function resetConversation() {
+      const from = String(fromInput.value || '').trim() || 'whatsapp:+18765550000';
+      statusEl.textContent = 'Resetting...';
+      try {
+        await fetch('/api/whatsapp/live-test/reset', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ from })
+        });
+        statusEl.textContent = 'Conversation reset';
+        stepEl.textContent = 'step: -';
+      } catch (err) {
+        statusEl.textContent = 'Reset failed: ' + (err.message || err);
+      }
+    }
+
+    document.getElementById('send').addEventListener('click', () => {
+      const text = messageInput.value;
+      messageInput.value = '';
+      sendPrompt(text);
+    });
+
+    messageInput.addEventListener('keydown', (event) => {
+      if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+        const text = messageInput.value;
+        messageInput.value = '';
+        sendPrompt(text);
+      }
+    });
+
+    document.getElementById('sendStart').addEventListener('click', () => sendPrompt('START'));
+    document.getElementById('sendEnglish').addEventListener('click', () => sendPrompt('English'));
+    document.getElementById('sendResume').addEventListener('click', () => sendPrompt('3'));
+    document.getElementById('sendCover').addEventListener('click', () => sendPrompt('4'));
+    document.getElementById('sendMain').addEventListener('click', () => sendPrompt('Main Menu'));
+    document.getElementById('reset').addEventListener('click', resetConversation);
+    document.getElementById('clear').addEventListener('click', () => {
+      stream.innerHTML = '';
+      statusEl.textContent = 'Cleared';
+    });
+
+    for (const chip of document.querySelectorAll('[data-msg]')) {
+      chip.addEventListener('click', () => sendPrompt(chip.getAttribute('data-msg') || ''));
+    }
+
+    addMessage('bot', 'Live tester ready. Use START, then English, then 4 for cover letters.', 'system');
+  </script>
+</body>
+</html>`);
 });
 
 app.get('/whatsapp-start', (req, res) => {
