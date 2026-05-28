@@ -2557,7 +2557,7 @@ function getWhatsAppLanguageValue(input = '') {
 function getWhatsAppMenuText(language = 'english') {
   if (language === 'spanish') {
     return [
-      'Bienvenido a RoleRocket AI Jamaica 🚀',
+      'Bienvenido a RoleRocket AI Jamaica 🚀🌴',
       'Que te gustaria hacer hoy?',
       '1. Crear mi curriculo',
       '2. Crear carta de presentacion',
@@ -2570,7 +2570,7 @@ function getWhatsAppMenuText(language = 'english') {
 
   if (language === 'patois') {
     return [
-      'Welcome to RoleRocket AI Jamaica 🚀',
+      'Welcome to RoleRocket AI Jamaica 🚀🌴',
       'Wah yuh need help wid today?',
       '1. Build Mi Resume',
       '2. Write Cover Letter',
@@ -2582,7 +2582,7 @@ function getWhatsAppMenuText(language = 'english') {
   }
 
   return [
-    'Welcome to RoleRocket AI Jamaica 🚀',
+    'Welcome to RoleRocket AI Jamaica 🚀🌴',
     'What would you like help with today?',
     '1. Build My Resume',
     '2. Create Cover Letter',
@@ -3218,7 +3218,7 @@ function getWhatsAppStepPrompt(step = '', user = {}, convo = {}) {
   }
   if (safeStep === 'patois_quick_confirm') {
     return [
-      'Deh ya! Yuh want a job?',
+      'Deh ya under di coconut tree 🌴! Yuh want a job?',
       'Reply YES or NO.',
       getWhatsAppMainMenuReturnText(language)
     ].join('\n');
@@ -4341,7 +4341,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       return reply;
     }
     convo.currentStep = 'patois_quick_confirm';
-    const reply = 'Deh ya! Yuh want a job?';
+    const reply = 'Deh ya under di coconut tree 🌴! Yuh want a job?';
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
     await convo.save();
@@ -7221,7 +7221,7 @@ app.get('/whatsapp-live-tester', (req, res) => {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>RoleRocket WhatsApp Live Tester</title>
+  <title>RoleRocket WhatsApp Live Tester 🌴</title>
   <style>
     :root {
       color-scheme: dark;
@@ -7324,8 +7324,8 @@ app.get('/whatsapp-live-tester', (req, res) => {
 <body>
   <main class="shell">
     <section class="panel controls">
-      <h1>RoleRocket WhatsApp Live Tester</h1>
-      <p class="sub">Run prompts together on-screen. This simulates inbound WhatsApp messages against the same backend logic.</p>
+      <h1>RoleRocket WhatsApp Live Tester 🌴</h1>
+      <p class="sub">Run prompts together on-screen. Jamaican-themed WhatsApp flow preview with the same backend logic.</p>
 
       <label for="from">Test Phone</label>
       <input id="from" value="whatsapp:+18765550000" />
@@ -7345,6 +7345,7 @@ app.get('/whatsapp-live-tester', (req, res) => {
       </div>
 
       <div class="chips">
+        <button data-msg="wah gwaan?">Quick: wah gwaan?</button>
         <button data-msg="create me a cover letter for a customer service job in Kingston">Quick: cover letter prompt</button>
         <button data-msg="Job Description: We are seeking a Customer Service Representative in Kingston to handle inbound calls, resolve billing issues, log tickets in CRM, and meet quality KPIs.">Quick: paste job description</button>
         <button data-msg="OPTIMIZE">Quick: optimize resume (tier check)</button>
@@ -7473,7 +7474,7 @@ app.get('/whatsapp-live-tester', (req, res) => {
       chip.addEventListener('click', () => sendPrompt(chip.getAttribute('data-msg') || ''));
     }
 
-    addMessage('bot', 'Live tester ready. Use START, then English, then 1 to 5 from the launch menu.', 'system');
+    addMessage('bot', 'Live tester ready 🌴. Use START, then English or Patois, then 1 to 5 from the launch menu.', 'system');
   </script>
 </body>
 </html>`);
