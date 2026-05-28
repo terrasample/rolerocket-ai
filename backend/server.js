@@ -1961,6 +1961,7 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
   if (!from || !convo) return false;
 
   const interactiveToggle = String(process.env.TWILIO_WHATSAPP_INTERACTIVE_ENABLED || '').trim().toLowerCase();
+  const languageThreeContentSid = String(process.env.TWILIO_WHATSAPP_LANGUAGE_3_CONTENT_SID || '').trim();
   const languageContentSid = String(process.env.TWILIO_WHATSAPP_LANGUAGE_CONTENT_SID || '').trim();
   const languagePatoisContentSid = String(process.env.TWILIO_WHATSAPP_LANGUAGE_PATOIS_CONTENT_SID || '').trim();
   const patoisQuickContentSid = String(process.env.TWILIO_WHATSAPP_PATOIS_QUICK_CONTENT_SID || '').trim();
@@ -1985,6 +1986,7 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
   const accountLinkPromptContentSid = String(process.env.TWILIO_WHATSAPP_ACCOUNT_LINK_PROMPT_CONTENT_SID || '').trim();
 
   const hasInteractiveTemplates = [
+    languageThreeContentSid,
     languageContentSid,
     languagePatoisContentSid,
     patoisQuickContentSid,
@@ -2018,8 +2020,9 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
   // 'keep'     = template sends buttons alongside the text reply (content pages + nav, resume, cover, jobs)
   // false      = no template sent
 
-  if (step === 'language_select' && languageContentSid) {
-    const selectedLanguageSid = languagePatoisContentSid || languageContentSid;
+  const selectedLanguageSid = languageThreeContentSid || languagePatoisContentSid || languageContentSid;
+
+  if (step === 'language_select' && selectedLanguageSid) {
     const result = await sendWhatsAppContentTemplate({ to: from, contentSid: selectedLanguageSid });
     return result?.success ? 'suppress' : false;
   }

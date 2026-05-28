@@ -31,6 +31,8 @@ services:
         sync: false
 
       # ── Twilio WhatsApp interactive templates ────────────────────────────
+      - key: TWILIO_WHATSAPP_LANGUAGE_3_CONTENT_SID
+        value: HX80aeaec38c72a7d544e046d286eee82e
       - key: TWILIO_WHATSAPP_LANGUAGE_CONTENT_SID
         value: HX80aeaec38c72a7d544e046d286eee82e
       - key: TWILIO_WHATSAPP_LANGUAGE_PATOIS_CONTENT_SID
