@@ -32,7 +32,7 @@ services:
 
       # ── Twilio WhatsApp interactive templates ────────────────────────────
       - key: TWILIO_WHATSAPP_LANGUAGE_PATOIS_CONTENT_SID
-        sync: false
+        value: HX22291e33832a9330c9295f9a0392986a
 
       # ── Stripe ─────────────────────────────────────────────────────────────
       - key: STRIPE_SECRET_KEY
