@@ -2091,7 +2091,7 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
   }
 
   // Input-capture steps: append a 'Main Menu' back button so users can exit without typing
-  if (['jobs_query', 'jobs_role_input', 'jobs_parish_select', 'resume_capture', 'cover_letter_capture', 'interview_target', 'plan_link_email_capture', 'plan_link_verify'].includes(step) && backMenuContentSid) {
+  if (['jobs_query', 'jobs_role_input', 'jobs_parish_select', 'resume_capture', 'cover_letter_capture', 'interview_target', 'career_coach_capture', 'plan_link_email_capture', 'plan_link_verify'].includes(step) && backMenuContentSid) {
     const result = await sendWhatsAppContentTemplate({ to: from, contentSid: backMenuContentSid });
     return result?.success ? 'keep' : false;
   }
@@ -2298,31 +2298,29 @@ function detectWhatsAppIntent(text = '') {
   if (!normalized) return { intent: 'unclear', confidence: 0, topScore: 0, tie: false };
 
   const score = {
-    demo: 0,
-    jobs: 0,
     resume: 0,
     coverLetter: 0,
-    explore: 0,
+    jobs: 0,
     interview: 0,
+    careerCoach: 0,
     status: 0,
     human: 0
   };
 
-  if (normalized === '1') score.demo += 10;
-  if (normalized === '2') score.jobs += 10;
-  if (normalized === '3') score.resume += 10;
-  if (normalized === '4') score.coverLetter += 10;
-  if (normalized === '5') score.explore += 10;
+  if (normalized === '1') score.resume += 10;
+  if (normalized === '2') score.coverLetter += 10;
+  if (normalized === '3') score.jobs += 10;
+  if (normalized === '4') score.interview += 10;
+  if (normalized === '5') score.careerCoach += 10;
   if (normalized === '0') score.human += 10;
   if (normalized === 'status') score.status += 10;
 
-  if (/(watch\s+demo|demo\s+features|feature\s+demo|show\s+demo|how\s+it\s+works|first\s+glance|quick\s+tour|walkthrough)/.test(normalized)) score.demo += 5;
-  if (/\bjob|jobs|apply|vacanc|hiring|position\b/.test(normalized)) score.jobs += 3;
   if (/\bresume|cv|experience|work history|rewrite\b/.test(normalized)) score.resume += 3;
   if (/\bcover\s*letter|coverletter\b/.test(normalized)) score.coverLetter += 7;
   if (/\bletter\b/.test(normalized)) score.coverLetter += 1;
-  if (/\bexplore|features|other\s*features|upgrade|plan|paid\b/.test(normalized)) score.explore += 3;
+  if (/\bjob|jobs|apply|vacanc|hiring|position\b/.test(normalized)) score.jobs += 3;
   if (/\binterview|prep|question|mock\b/.test(normalized)) score.interview += 3;
+  if (/\bcareer\s*coach|career\s*advice|career\s*help|what\s*career|what\s*job\s*fits|coach\b/.test(normalized)) score.careerCoach += 4;
   if (/\bstatus|tracked|application\b/.test(normalized)) score.status += 3;
   if (/\bhuman|agent|support|live\b/.test(normalized)) score.human += 3;
 
@@ -2339,8 +2337,8 @@ function detectWhatsAppIntent(text = '') {
 function getWhatsAppClarificationPrompt() {
   return [
     'I can help with one of these now:',
-    '1 Watch Demo Features | 2 Jobs | 3 Resume | 4 Cover Letter',
-    '5 Explore Features | STATUS | 0 Technical Support',
+    '1 Resume | 2 Cover Letter | 3 Jobs | 4 Interview Prep | 5 Career Coach',
+    'You can also type STATUS, PLAN, OPTIMIZE, LINK ACCOUNT, or HUMAN SUPPORT.',
     'Reply with one option.'
   ].join('\n');
 }
@@ -2442,7 +2440,7 @@ async function sendWhatsAppHumanSupportAlert({ phone, incoming, user, convo }) {
 }
 
 function getWhatsAppNextStepPrompt() {
-  return 'Next: Jobs, Resume, or Cover Letter. Use Main Menu anytime.';
+  return 'Next: Resume, Cover Letter, Jobs, Interview Prep, or Career Coach. Use Main Menu anytime.';
 }
 
 function getWhatsAppCleanActionHint(type = 'menu') {
@@ -2457,10 +2455,11 @@ function getWhatsAppCleanActionHint(type = 'menu') {
 
 function getWhatsAppLanguagePrompt() {
   return [
-    'Choose your language:',
-    'English',
-    'Spanish',
-    'Use the language buttons below.'
+    'Choose your language / Choosy yuh language:',
+    '1. English',
+    '2. Spanish / Español',
+    '3. Patois',
+    'Reply with 1, 2, or 3.'
   ].join('\n');
 }
 
@@ -2478,37 +2477,52 @@ function getWhatsAppLanguageValue(input = '') {
 
   if (/^(1|en|english)$/.test(compact) || /\benglish\b/.test(compact)) return 'english';
   if (/^(2|es|spanish|espanol)$/.test(compact) || /\b(spanish|espanol)\b/.test(compact) || /\bespañol\b/.test(normalized)) return 'spanish';
+  if (/^(3|patois|patwa|creole|dialect|jamaican creole)$/.test(compact) || /\b(patois|patwa|creole)\b/.test(compact)) return 'patois';
   return '';
 }
 
 function getWhatsAppMenuText(language = 'english') {
   if (language === 'spanish') {
     return [
-      'RoleRocket AI Recruit: Lets Land Your Dream Career 🚀',
-      '1. Ver demo de funciones',
-      '2. Buscar y guardar empleos',
-      '3. Crear y guardar/exportar curriculo',
-      '4. Crear y guardar/exportar carta de presentacion',
-      '5. Explorar otras funciones',
-      '0. Soporte tecnico',
-      'Usa los botones interactivos para continuar.'
+      'Bienvenido a RoleRocket AI Jamaica 🚀',
+      'Que te gustaria hacer hoy?',
+      '1. Crear mi curriculo',
+      '2. Crear carta de presentacion',
+      '3. Buscar empleos',
+      '4. Preparacion de entrevista',
+      '5. Career Coach',
+      'Responde con 1 al 5.'
+    ].join('\n');
+  }
+
+  if (language === 'patois') {
+    return [
+      'Welcome to RoleRocket AI Jamaica 🚀',
+      'Wah yuh need help wid today?',
+      '1. Build Mi Resume',
+      '2. Write Cover Letter',
+      '3. Find Work',
+      '4. Interview Prep',
+      '5. Career Coach',
+      'Reply wid 1 to 5.'
     ].join('\n');
   }
 
   return [
-    'RoleRocket AI Recruit: Lets Land Your Dream Career 🚀',
-    '1. Watch Demo Features',
-    '2. Search & Save Jobs',
-    '3. Create and Save/Export Resume',
-    '4. Create and Save/Export Cover Letter',
-    '5. Explore other features',
-    '0. Technical Support',
-    'Use the interactive buttons to continue.'
+    'Welcome to RoleRocket AI Jamaica 🚀',
+    'What would you like help with today?',
+    '1. Build My Resume',
+    '2. Create Cover Letter',
+    '3. Find Jobs',
+    '4. Interview Prep',
+    '5. Career Coach',
+    'Reply with 1 to 5.'
   ].join('\n');
 }
 
 function getWhatsAppMainMenuReturnText(language = 'english') {
   if (language === 'spanish') return 'Escribe Main Menu en cualquier momento para volver.';
+  if (language === 'patois') return 'Type Main Menu anytime fi go back.';
   return 'Type Main Menu at anytime to return.';
 }
 
@@ -2539,12 +2553,16 @@ function getWhatsAppForcedIntent(textCanonical = '') {
     .trim();
   if (!text) return '';
 
-  if (/\b(option|menu|choice|action)\s*3\b/.test(text)) return 'resume';
-  if (/\b(option|menu|choice|action)\s*4\b/.test(text)) return 'coverLetter';
+  if (/\b(option|menu|choice|action)\s*1\b/.test(text)) return 'resume';
+  if (/\b(option|menu|choice|action)\s*2\b/.test(text)) return 'coverLetter';
+  if (/\b(option|menu|choice|action)\s*3\b/.test(text)) return 'jobs';
+  if (/\b(option|menu|choice|action)\s*4\b/.test(text)) return 'interview';
+  if (/\b(option|menu|choice|action)\s*5\b/.test(text)) return 'careerCoach';
 
   // Natural-language shortcuts: allow direct asks from the main menu.
   if (/\bcover\s*letter\b/.test(text) && /\b(create|write|make|draft|generate|tailor|help me)\b/.test(text)) return 'coverLetter';
   if (/\bresume\b/.test(text) && /\b(create|write|make|draft|generate|tailor|help me)\b/.test(text)) return 'resume';
+  if (/\b(career\s*coach|career\s*advice|career\s*help|what\s*career|what\s*job\s*fits|coach)\b/.test(text)) return 'careerCoach';
   if (/\b(resume\s*optimizer|resume\s*analysis)\b/.test(text) || /^optimi[sz]e(\s+it|\s+resume)?$/.test(text) || /^analy[sz]e\s+resume$/.test(text)) return 'resumeOptimize';
   if (/^(link\s+account|link\s+my\s+account|connect\s+account)$/.test(text)) return 'linkAccount';
   if (/^(verify\s+\d{6}|verify\s+code\s+\d{6})$/.test(text)) return 'verifyAccount';
@@ -2575,12 +2593,19 @@ function getWhatsAppForcedIntent(textCanonical = '') {
     ['es', 'spanish'],
     ['espanol', 'spanish'],
     ['español', 'spanish'],
-    ['1', 'demo'],
-    ['2', 'jobs'],
-    ['3', 'resume'],
-    ['4', 'coverLetter'],
-    ['5', 'explore'],
+    ['1', 'resume'],
+    ['2', 'coverLetter'],
+    ['3', 'jobs'],
+    ['4', 'interview'],
+    ['5', 'careerCoach'],
     ['0', 'human'],
+    ['build my resume', 'resume'],
+    ['resume builder', 'resume'],
+    ['create cover letter', 'coverLetter'],
+    ['find jobs', 'jobs'],
+    ['interview prep', 'interview'],
+    ['career coach', 'careerCoach'],
+    ['career advice', 'careerCoach'],
     ['watch demo features', 'demo'],
     ['watch demo feature', 'demo'],
     ['watch demo', 'demo'],
@@ -2633,6 +2658,8 @@ function getWhatsAppForcedIntent(textCanonical = '') {
     ['optimise it', 'resumeOptimize'],
     ['resume optimizer', 'resumeOptimize'],
     ['resume analysis', 'resumeOptimize'],
+    ['ats resume check', 'resumeOptimize'],
+    ['ats check', 'resumeOptimize'],
     ['link account', 'linkAccount'],
     ['link my account', 'linkAccount'],
     ['connect account', 'linkAccount'],
@@ -2654,6 +2681,7 @@ function getWhatsAppForcedIntent(textCanonical = '') {
     ['search and import and track', 'demoJobs'],
     ['all demos', 'demoBoth'],
     ['show both demos', 'demoBoth'],
+    ['career coach ai', 'careerCoach'],
     ['tailor resume', 'tailorResume'],
     ['tailor cover', 'tailorCover'],
     ['tailor cover letter', 'tailorCover']
@@ -2701,14 +2729,19 @@ function getWhatsAppForcedIntent(textCanonical = '') {
   // title + description in one message (for example: "Generate Resume ...").
   if (/\bwatch\s+demo(\s+features?)?\b/.test(text) || /\bdemo\s+features?\b/.test(text)) return 'demo';
   if (/\b(search|find)\s*(and|&)\s*save\s+jobs\b/.test(text)) return 'jobs';
+  if (/\bfind\s+jobs\b/.test(text)) return 'jobs';
   if (/\bcreate\s+and\s+save\/?export\s+resume\b/.test(text)) return 'resume';
   if (/\bgenerate\s+resume\b/.test(text)) return 'resume';
+  if (/\bbuild\s+my\s+resume\b/.test(text)) return 'resume';
   if (/\bresume\s+menu\b/.test(text)) return 'resume';
   if (/\b(generate|create)\s+and\s+export\s+your\s+resume\b/.test(text)) return 'resume';
   if (/\bcreate\s+and\s+save\/?export\s+cover\s+letter\b/.test(text)) return 'coverLetter';
   if (/\bgenerate\s+cover\s+letter\b/.test(text)) return 'coverLetter';
+  if (/\bcreate\s+cover\s+letter\b/.test(text)) return 'coverLetter';
   if (/\bcover\s+letter\s+menu\b/.test(text)) return 'coverLetter';
   if (/\bcover\s+letter\s+options\b/.test(text)) return 'coverLetter';
+  if (/\binterview\s+prep\b/.test(text)) return 'interview';
+  if (/\bcareer\s*coach|career\s*advice|career\s*help|what\s*career|what\s*job\s*fits\b/.test(text)) return 'careerCoach';
   if (/\bexplore\s+other\s+features\b/.test(text) || /\bexplore\s+features\b/.test(text)) return 'explore';
   if (/\btechnical\s+support\b/.test(text) || /\blive\s+support\b/.test(text) || /\bhuman\s+support\b/.test(text)) return 'human';
   if (/^apply\s+ready$/.test(text)) return 'jobsApplyReady';
@@ -2725,10 +2758,11 @@ function getWhatsAppForcedIntent(textCanonical = '') {
   if (/^apply\b/.test(text)) return 'jobsApply';
   if (/^tailor\b/.test(text)) return 'jobsTailor';
 
-  if (map.demo.has(text)) return 'demo';
   if (map.jobs.has(text)) return 'jobs';
   if (map.resume.has(text)) return 'resume';
   if (map.coverLetter.has(text)) return 'coverLetter';
+  if (text === 'career coach' || text === 'career advice') return 'careerCoach';
+  if (map.demo.has(text)) return 'demo';
   if (map.explore.has(text)) return 'explore';
   if (map.human.has(text)) return 'human';
   if (map.status.has(text)) return 'status';
@@ -2742,9 +2776,11 @@ function getWhatsAppForcedCommandText(route = '') {
   const command = {
     start: 'start',
     demo: 'watch demo features',
-    jobs: 'search and save jobs',
-    resume: 'resume',
-    coverLetter: 'cover letter',
+    jobs: 'find jobs',
+    resume: 'build my resume',
+    coverLetter: 'create cover letter',
+    interview: 'interview prep',
+    careerCoach: 'career coach',
     explore: 'explore other features',
     human: 'technical support',
     status: 'status',
@@ -3006,6 +3042,7 @@ function getWhatsAppPreviousStep(currentStep = '') {
     cover_letter_capture: 'menu',
     cover_letter_followup: 'cover_letter_capture',
     interview_target: 'menu',
+    career_coach_capture: 'menu',
     job_tailor_choice: 'jobs_action',
     human_handoff: 'menu',
     explore_features: 'menu',
@@ -3058,12 +3095,23 @@ function getWhatsAppStepPrompt(step = '', user = {}, convo = {}) {
       `Open: ${resumeUrl}`,
       'Use the web form to generate and export your resume quickly.',
       'Or continue here: reply UPLOAD to send a resume file, or TYPE to send your work history.',
+      'After your draft is ready, reply OPTIMIZE for an ATS check.',
       getWhatsAppMainMenuReturnText(language)
     ].join('\n');
   }
-  if (safeStep === 'resume_capture') return 'Send your resume as a PDF/Word file or share your recent work history (text/voice).';
+  if (safeStep === 'resume_capture') return language === 'patois'
+    ? 'Sen yuh resume as PDF/Word file or share yuh work history (text).'
+    : 'Send your resume as a PDF/Word file or share your recent work history (text/voice).';
   if (safeStep === 'cover_letter_capture') {
     const coverLetterUrl = `${getPublicAppBaseUrl()}/cover-letter-generator.html?source=whatsapp`;
+    if (language === 'patois') {
+      return [
+        'Cover Letter Generator ready.',
+        `Open: ${coverLetterUrl}`,
+        'Or sen di role and company right here (example: Customer Service Rep at GraceKennedy).',
+        getWhatsAppMainMenuReturnText(language)
+      ].join('\n');
+    }
     return [
       'Cover Letter Generator is ready.',
       `Open: ${coverLetterUrl}`,
@@ -3073,10 +3121,24 @@ function getWhatsAppStepPrompt(step = '', user = {}, convo = {}) {
     ].join('\n');
   }
   if (safeStep === 'interview_target') {
+    if (language === 'patois') {
+      return [
+        'Step 1: Sen di role or company.',
+        'Example: GraceKennedy Customer Service Rep',
+        'Mi wi give yuh di likely questions and best answers.'
+      ].join('\n');
+    }
     return [
       'Step 1: Send role or company.',
       'Example: GraceKennedy Customer Service Rep',
       'I will give likely questions + best answers.'
+    ].join('\n');
+  }
+  if (safeStep === 'career_coach_capture') {
+    return [
+      language === 'patois' ? 'Tell mi wah yuh need help wid.' : 'Tell me what you need help figuring out.',
+      language === 'patois' ? 'Example: Mi have customer service experience and want a better-paying job in Kingston.' : 'Example: I have customer service experience and want a better-paying role in Kingston.',
+      getWhatsAppMainMenuReturnText(language)
     ].join('\n');
   }
   if (safeStep === 'demo_features') return getWhatsAppDemoFeaturesText(language);
@@ -3100,11 +3162,12 @@ function getWhatsAppCoverLetterFallback(jobTarget = '') {
   ].join('\n');
 }
 
-async function generateCoverLetterForWhatsApp(jobTarget = '', resumeContext = '', jobContext = '') {
+async function generateCoverLetterForWhatsApp(jobTarget = '', resumeContext = '', jobContext = '', language = 'english') {
   const target = normalizeIncomingWhatsAppText(jobTarget) || 'Customer Service Representative in Jamaica';
   const resumeText = normalizeIncomingWhatsAppText(resumeContext);
   const jdContext = normalizeIncomingWhatsAppText(jobContext);
   const fallback = getWhatsAppCoverLetterFallback(target);
+  const patoisNote = language === 'patois' ? ' Respond in Jamaican Patois (Creole) — warm and natural, how Jamaicans really talk, but keep the letter professional and easy to understand.' : '';
 
   if (!process.env.OPENAI_API_KEY) return fallback;
 
@@ -3115,7 +3178,7 @@ async function generateCoverLetterForWhatsApp(jobTarget = '', resumeContext = ''
       messages: [
         {
           role: 'system',
-          content: 'You are RoleRocket AI. Write a concise, tailored, WhatsApp-friendly cover letter in plain text with no markdown. Keep under 1700 characters and avoid fabricated facts.'
+          content: `You are RoleRocket AI. Write a concise, tailored, WhatsApp-friendly cover letter in plain text with no markdown. Keep under 1700 characters and avoid fabricated facts.${patoisNote}`
         },
         {
           role: 'user',
@@ -3506,9 +3569,10 @@ function formatWhatsAppJobListItem(job = {}, index = 0) {
     : `${index + 1}) ${title} @ ${company}`;
 }
 
-async function generateResumeRewriteForWhatsApp(userInput = '', contextNote = '') {
+async function generateResumeRewriteForWhatsApp(userInput = '', contextNote = '', language = 'english') {
   const source = normalizeIncomingWhatsAppText(userInput);
   if (!source) return 'Please send your work background first so I can rewrite it.';
+  const patoisNote = language === 'patois' ? ' Respond in Jamaican Patois (Creole) — warm and natural, how Jamaicans really talk, but keep the resume bullets professional and clear.' : '';
 
   const fallback = [
     'Here is a stronger resume version:',
@@ -3527,7 +3591,7 @@ async function generateResumeRewriteForWhatsApp(userInput = '', contextNote = ''
       messages: [
         {
           role: 'system',
-          content: 'You are RoleRocket AI, a business-specific recruiting assistant. Rewrite user experience into concise, ATS-friendly resume bullets. Keep output WhatsApp-friendly and under 1200 characters.'
+          content: `You are RoleRocket AI, a business-specific recruiting assistant. Rewrite user experience into concise, ATS-friendly resume bullets. Keep output WhatsApp-friendly and under 1200 characters.${language === 'patois' ? ' Respond in Jamaican Patois (Creole) — warm and natural, how Jamaicans really talk, but keep the resume bullets professional and clear.' : ''}`
         },
         {
           role: 'user',
@@ -3545,7 +3609,7 @@ async function generateResumeRewriteForWhatsApp(userInput = '', contextNote = ''
   }
 }
 
-async function generateFullTargetedResumeForWhatsApp(userInput = '', targetRole = '', location = 'Jamaica') {
+async function generateFullTargetedResumeForWhatsApp(userInput = '', targetRole = '', location = 'Jamaica', language = 'english') {
   const source = normalizeIncomingWhatsAppText(userInput);
   const role = normalizeIncomingWhatsAppText(targetRole) || 'Customer Service Representative';
   const region = normalizeIncomingWhatsAppText(location) || 'Jamaica';
@@ -3591,7 +3655,7 @@ async function generateFullTargetedResumeForWhatsApp(userInput = '', targetRole 
       messages: [
         {
           role: 'system',
-          content: 'You are RoleRocket AI resume writer. Produce a full, ATS-friendly resume in plain text with these headings exactly and in order: Name, Contact, Target Role, Professional Summary, Experience, Education, Certifications, Skills. Use concise bullet points for Experience, Education, Certifications, and Skills. If name/contact details are missing from source, use placeholders [Your Full Name], [Phone], [Email], [City]. Do not fabricate employers, schools, dates, or certifications. Keep under 2600 characters.'
+          content: `You are RoleRocket AI resume writer. Produce a full, ATS-friendly resume in plain text with these headings exactly and in order: Name, Contact, Target Role, Professional Summary, Experience, Education, Certifications, Skills. Use concise bullet points for Experience, Education, Certifications, and Skills. If name/contact details are missing from source, use placeholders [Your Full Name], [Phone], [Email], [City]. Do not fabricate employers, schools, dates, or certifications. Keep under 2600 characters.${language === 'patois' ? ' Respond in Jamaican Patois (Creole) — warm and natural, but keep the resume headings and bullets professional.' : ''}`
         },
         {
           role: 'user',
@@ -3609,7 +3673,7 @@ async function generateFullTargetedResumeForWhatsApp(userInput = '', targetRole 
   }
 }
 
-async function generateEditedTargetedResumeForWhatsApp(existingResume = '', editRequest = '', targetRole = '', location = 'Jamaica') {
+async function generateEditedTargetedResumeForWhatsApp(existingResume = '', editRequest = '', targetRole = '', location = 'Jamaica', language = 'english') {
   const current = String(existingResume || '').trim();
   const editNote = normalizeIncomingWhatsAppText(editRequest);
   const role = normalizeIncomingWhatsAppText(targetRole) || 'Customer Service Representative';
@@ -3632,7 +3696,7 @@ async function generateEditedTargetedResumeForWhatsApp(existingResume = '', edit
       messages: [
         {
           role: 'system',
-          content: 'You are RoleRocket AI resume writer. Revise the provided resume draft using the requested edits. Keep plain-text WhatsApp-friendly format and preserve these headings exactly and in order: Name, Contact, Target Role, Professional Summary, Experience, Education, Certifications, Skills. Keep under 2600 characters and do not fabricate credentials.'
+          content: `You are RoleRocket AI resume writer. Revise the provided resume draft using the requested edits. Keep plain-text WhatsApp-friendly format and preserve these headings exactly and in order: Name, Contact, Target Role, Professional Summary, Experience, Education, Certifications, Skills. Keep under 2600 characters and do not fabricate credentials.${language === 'patois' ? ' Respond in Jamaican Patois (Creole) — warm and natural, but keep the resume headings and bullets professional.' : ''}`
         },
         {
           role: 'user',
@@ -3643,15 +3707,16 @@ async function generateEditedTargetedResumeForWhatsApp(existingResume = '', edit
 
     const content = String(completion?.choices?.[0]?.message?.content || '').trim();
     if (!content) return fallback;
-    return `${content}\n\nReply EDIT + more changes, APPLY READY, or 1 for jobs.`.slice(0, 2200);
+    return `${content}\n\nReply EDIT + more changes, APPLY READY, or FIND JOBS.`.slice(0, 2200);
   } catch (error) {
     console.warn('WhatsApp resume edit fallback:', error.message);
     return fallback;
   }
 }
 
-async function generateInterviewPrepForWhatsApp(targetRole = '', contextNote = '') {
+async function generateInterviewPrepForWhatsApp(targetRole = '', contextNote = '', language = 'english') {
   const topic = normalizeIncomingWhatsAppText(targetRole) || 'Customer Service Representative in Jamaica';
+  const patoisNote = language === 'patois' ? ' Respond in Jamaican Patois (Creole) — warm and natural, how Jamaicans really talk, but keep the interview tips clear and practical.' : '';
 
   const fallback = [
     `Interview Prep for: ${topic}`,
@@ -3675,7 +3740,7 @@ async function generateInterviewPrepForWhatsApp(targetRole = '', contextNote = '
       messages: [
         {
           role: 'system',
-          content: 'You are RoleRocket AI interview coach. Output exactly 3 interview questions with one short coaching tip per question. Keep concise and WhatsApp friendly.'
+          content: `You are RoleRocket AI interview coach. Output exactly 3 interview questions with one short coaching tip per question. Keep concise and WhatsApp friendly.${language === 'patois' ? ' Respond in Jamaican Patois (Creole) — warm and natural, how Jamaicans really talk, but keep the interview tips clear and practical.' : ''}`
         },
         {
           role: 'user',
@@ -3692,7 +3757,53 @@ async function generateInterviewPrepForWhatsApp(targetRole = '', contextNote = '
   }
 }
 
-async function generateResumeOptimizationForWhatsApp(resumeText = '', targetRole = '') {
+async function generateCareerCoachForWhatsApp(goals = '', resumeText = '', contextNote = '', language = 'english') {
+  const goal = normalizeIncomingWhatsAppText(goals);
+  const resume = normalizeIncomingWhatsAppText(resumeText);
+  const patoisNote = language === 'patois' ? ' Respond in Jamaican Patois (Creole) — warm and natural, how Jamaicans really talk, but keep the career advice clear and actionable.' : '';
+
+  if (!goal) {
+    return 'Tell me what you need help with first. Example: I want a better-paying customer service role in Kingston.';
+  }
+
+  const fallback = [
+    'Career Coach',
+    '',
+    `Goal: ${goal}`,
+    'Best-fit roles: customer support, admin support, or coordinator roles that build on communication and execution skills.',
+    'Skill gaps: stronger metrics, better resume targeting, and sharper interview examples.',
+    'Next steps: update one resume for a target role, apply to 5 matching jobs this week, and practice 3 interview answers.',
+    '',
+    'Type MAIN MENU for more.'
+  ].join('\n');
+
+  if (!process.env.OPENAI_API_KEY) return fallback;
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+      temperature: 0.45,
+      messages: [
+        {
+          role: 'system',
+          content: `You are RoleRocket AI Career Coach for WhatsApp. Keep it concise, practical, and conversational without sounding gimmicky. Return plain text only with short sections: Best-fit roles, Skill gaps, Next steps. Keep under 1400 characters.${language === 'patois' ? ' Respond in Jamaican Patois (Creole) — warm and natural, how Jamaicans really talk, but keep the career advice clear and actionable.' : ''}`
+        },
+        {
+          role: 'user',
+          content: `Goal:\n${goal}\n\nResume context:\n${resume || 'Not provided'}\n\nExtra context:\n${contextNote || 'None'}`
+        }
+      ]
+    });
+
+    const content = String(completion?.choices?.[0]?.message?.content || '').trim();
+    return content ? `${content}\n\nType MAIN MENU for more.` : fallback;
+  } catch (error) {
+    console.warn('WhatsApp career coach fallback:', error.message);
+    return fallback;
+  }
+}
+
+async function generateResumeOptimizationForWhatsApp(resumeText = '', targetRole = '', language = 'english') {
   const source = normalizeIncomingWhatsAppText(resumeText);
   const role = normalizeIncomingWhatsAppText(targetRole) || 'your target role';
   if (!source) {
@@ -3720,7 +3831,7 @@ async function generateResumeOptimizationForWhatsApp(resumeText = '', targetRole
       messages: [
         {
           role: 'system',
-          content: 'You are RoleRocket AI Resume Optimizer. Return concise plain text only with headings: ATS Score Direction, Strengths, Gaps, Priority Fixes, Optimized Bullet Examples, Next Step. Keep under 1700 characters. Do not invent experience.'
+          content: `You are RoleRocket AI Resume Optimizer. Return concise plain text only with headings: ATS Score Direction, Strengths, Gaps, Priority Fixes, Optimized Bullet Examples, Next Step. Keep under 1700 characters. Do not invent experience.${language === 'patois' ? ' Respond in Jamaican Patois (Creole) — warm and natural, how Jamaicans really talk, but keep the feedback clear and practical.' : ''}`
         },
         {
           role: 'user',
@@ -3948,12 +4059,13 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
 
   const metadata = (convo.metadata && typeof convo.metadata === 'object') ? convo.metadata : {};
   metadata.context = (metadata.context && typeof metadata.context === 'object') ? metadata.context : {};
-  metadata.context.language = ['english', 'spanish'].includes(String(metadata.context.language || '').toLowerCase())
+  metadata.context.language = ['english', 'spanish', 'patois'].includes(String(metadata.context.language || '').toLowerCase())
     ? String(metadata.context.language || '').toLowerCase()
     : 'english';
   metadata.context.recentSearches = Array.isArray(metadata.context.recentSearches) ? metadata.context.recentSearches : [];
   metadata.context.lastSeenAt = new Date().toISOString();
   convo.metadata = metadata;
+  const convoLanguage = String(convo.metadata?.context?.language || 'english');
 
   const messageSid = String(inboundMessageSid || '').trim();
   const priorMessageSids = Array.isArray(convo.metadata?.processedInboundSids)
@@ -4060,7 +4172,8 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   }
 
   if (convo.currentStep === 'language_select') {
-    const languageValue = getWhatsAppLanguageValue(text);
+    // Use rawTextCanonical so bare numbers like '3' aren't overridden by forcedIntent routing
+    const languageValue = getWhatsAppLanguageValue(rawTextCanonical || text);
     if (!languageValue) {
       const reply = getWhatsAppLanguagePrompt();
       convo.lastOutboundMessage = reply;
@@ -4111,8 +4224,8 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   if (text === 'help') {
     const reply = [
       'Quick commands:',
-      'START | 1 Watch Demo Features | 2 Jobs | 3 Resume | 4 Cover Letter',
-      '5 Explore | STATUS | PLAN | INTERVIEW | OPTIMIZE | LINK ACCOUNT | 0 Technical Support',
+      'START | 1 Resume | 2 Cover Letter | 3 Jobs | 4 Interview Prep | 5 Career Coach',
+      'STATUS | PLAN | OPTIMIZE | LINK ACCOUNT | HUMAN SUPPORT',
       'STOP to opt out'
     ].join('\n');
     convo.lastOutboundMessage = reply;
@@ -4532,7 +4645,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     }
 
     const role = String(user.targetJob || convo.metadata?.context?.lastJobTitle || 'your target role').trim();
-    const optimization = await generateResumeOptimizationForWhatsApp(source, role);
+    const optimization = await generateResumeOptimizationForWhatsApp(source, role, convoLanguage);
     convo.currentStep = 'resume_followup';
     convo.lastIntent = 'resume';
     convo.metadata.context.lastResumeOptimization = optimization;
@@ -4550,20 +4663,20 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   const strictHumanIntent = ['0', 'human', 'agent', 'support', 'human support', 'live agent', 'live support'].includes(text);
   // jobs_menu is a navigation step — not a data-capture step — so resume/cover/explore intents can break out of it freely.
   // Only true data-capture steps (where a typed response is expected) should be locked.
-  const lockMenuIntentRouting = ['resume_capture', 'cover_letter_capture', 'job_tailor_choice', 'interview_target', 'jobs_import', 'jobs_role_input', 'jobs_parish_select', 'demo_features'].includes(String(convo.currentStep || ''));
+  const lockMenuIntentRouting = ['resume_capture', 'cover_letter_capture', 'job_tailor_choice', 'interview_target', 'career_coach_capture', 'jobs_import', 'jobs_role_input', 'jobs_parish_select', 'demo_features'].includes(String(convo.currentStep || ''));
     const hasForcedIntent = Boolean(forcedIntent);
     const forceDemoIntent = forcedIntent === 'demo'
       || /\bwatch\s+demo\s+features\b/.test(textCanonical)
       || /^demo\s+features$/.test(textCanonical)
       || /^watch_demo_features$/.test(textCanonical)
       || /^demo_features$/.test(textCanonical);
-    const isDemoIntent = forceDemoIntent || (!lockMenuIntentRouting && !hasForcedIntent && (text === '1' || detectedIntent.intent === 'demo'));
-    const isJobsIntent = (forcedIntent === 'jobs') || (!lockMenuIntentRouting && !hasForcedIntent && (text === '2' || (detectedIntent.intent === 'jobs' && !text.startsWith('apply'))));
-    const isResumeIntent = (forcedIntent === 'resume') || (!lockMenuIntentRouting && !hasForcedIntent && !isFollowupSaveExportCommand && (text === '3' || detectedIntent.intent === 'resume'));
-    const isCoverLetterIntent = (forcedIntent === 'coverLetter') || (!lockMenuIntentRouting && !hasForcedIntent && !isFollowupSaveExportCommand && (text === '4' || detectedIntent.intent === 'coverLetter'));
-  // Explore intent: match '5', detected explore, or button text containing 'explore' + 'features'/'paid' (for interactive template buttons)
-  const isExploreIntent = (forcedIntent === 'explore') || (!lockMenuIntentRouting && !hasForcedIntent && (text === '5' || detectedIntent.intent === 'explore' || (/\bexplore\b/.test(String(text).toLowerCase()) && /\b(features|paid|upgrade)\b/.test(String(text).toLowerCase()))));
-  const isInterviewIntent = (forcedIntent === 'interview') || (!lockMenuIntentRouting && !hasForcedIntent && (text === 'interview' || detectedIntent.intent === 'interview'));
+    const isDemoIntent = forceDemoIntent || (!lockMenuIntentRouting && !hasForcedIntent && detectedIntent.intent === 'demo');
+    const isResumeIntent = (forcedIntent === 'resume') || (!lockMenuIntentRouting && !hasForcedIntent && !isFollowupSaveExportCommand && (text === '1' || detectedIntent.intent === 'resume'));
+    const isCoverLetterIntent = (forcedIntent === 'coverLetter') || (!lockMenuIntentRouting && !hasForcedIntent && !isFollowupSaveExportCommand && (text === '2' || detectedIntent.intent === 'coverLetter'));
+    const isJobsIntent = (forcedIntent === 'jobs') || (!lockMenuIntentRouting && !hasForcedIntent && (text === '3' || (detectedIntent.intent === 'jobs' && !text.startsWith('apply'))));
+  const isInterviewIntent = (forcedIntent === 'interview') || (!lockMenuIntentRouting && !hasForcedIntent && (text === '4' || detectedIntent.intent === 'interview'));
+  const isCareerCoachIntent = (forcedIntent === 'careerCoach') || (!lockMenuIntentRouting && !hasForcedIntent && (text === '5' || detectedIntent.intent === 'careerCoach'));
+  const isExploreIntent = (forcedIntent === 'explore') || (!lockMenuIntentRouting && !hasForcedIntent && (detectedIntent.intent === 'explore' || (/\bexplore\b/.test(String(text).toLowerCase()) && /\b(features|paid|upgrade)\b/.test(String(text).toLowerCase()))));
   const isStatusIntent = (forcedIntent === 'status') || (!lockMenuIntentRouting && !hasForcedIntent && (text === 'status' || detectedIntent.intent === 'status'));
   const isHumanIntent = strictHumanIntent || forcedIntent === 'human';
 
@@ -4987,7 +5100,9 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     const requestedTarget = normalizeIncomingWhatsAppText(incoming);
     const coverLetter = await generateCoverLetterForWhatsApp(
       requestedTarget,
-      user.resumeText || convo.metadata?.context?.lastFullResumeDraft || ''
+      user.resumeText || convo.metadata?.context?.lastFullResumeDraft || '',
+      '',
+      convoLanguage
     );
     convo.currentStep = 'cover_letter_followup';
     convo.metadata.context.lastCoverLetterTarget = requestedTarget;
@@ -5127,6 +5242,21 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       'Step 1: Send role or company.',
       'Example: GraceKennedy Customer Service Rep',
       'I will give likely questions + best answers.'
+    ].join('\n');
+    convo.lastOutboundMessage = reply;
+    convo.lastOutboundAt = new Date();
+    await Promise.all([user.save(), convo.save()]);
+    return reply;
+  }
+
+  if (isCareerCoachIntent) {
+    user.lastIntent = 'career_coach';
+    convo.lastIntent = 'career_coach';
+    convo.currentStep = 'career_coach_capture';
+    const reply = [
+      'Tell me what you need help figuring out.',
+      'Example: I have customer service experience and want a better-paying role in Kingston.',
+      getWhatsAppMainMenuReturnText(String(convo.metadata?.context?.language || 'english'))
     ].join('\n');
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
@@ -5401,7 +5531,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
             await Promise.all([user.save(), convo.save()]);
             return rlReply;
           }
-          const rewrite = await generateResumeRewriteForWhatsApp(docText, buildWhatsAppContextNote(user, convo));
+          const rewrite = await generateResumeRewriteForWhatsApp(docText, buildWhatsAppContextNote(user, convo), convoLanguage);
           convo.metadata.context.pendingFullResume = { source: docText.slice(0, 12000) };
           const reply = [
             '✅ Resume received and extracted.',
@@ -5530,7 +5660,8 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
         const tailoredCover = await generateCoverLetterForWhatsApp(
           jobTarget,
           user.resumeText,
-          pendingTailorJob.summary || ''
+          pendingTailorJob.summary || '',
+          convoLanguage
         );
         convo.metadata.context.lastCoverLetterTarget = jobTarget;
         convo.metadata.context.lastCoverLetterDraft = tailoredCover;
@@ -5584,7 +5715,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       channel: convo.metadata.context.lastResumeChannel,
       chars: resumeSource.length
     });
-    const rewrite = await generateResumeRewriteForWhatsApp(resumeSource, buildWhatsAppContextNote(user, convo));
+    const rewrite = await generateResumeRewriteForWhatsApp(resumeSource, buildWhatsAppContextNote(user, convo), convoLanguage);
     const rewriteClean = String(rewrite || '')
       .split(/\r?\n/)
       .filter((line) => !/reply\s*yes/i.test(String(line || '')))
@@ -5646,7 +5777,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
 
     if (wantsCover || wantsBoth) {
       const jobTarget = `${selectedJob.title || 'Role'} at ${selectedJob.company || 'Company'}`;
-      const tailoredCover = await generateCoverLetterForWhatsApp(jobTarget, baseResume, selectedJob.summary || '');
+      const tailoredCover = await generateCoverLetterForWhatsApp(jobTarget, baseResume, selectedJob.summary || '', convoLanguage);
       convo.metadata.context.lastCoverLetterTarget = jobTarget;
       convo.metadata.context.lastCoverLetterDraft = tailoredCover;
     }
@@ -5702,13 +5833,38 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     convo.currentStep = 'menu';
     convo.metadata.context.lastInterviewTarget = incoming;
     await trackWhatsAppTelemetry(phone, 'whatsapp_interview_target_submitted', { target: incoming.slice(0, 140) });
-    const prep = await generateInterviewPrepForWhatsApp(incoming, buildWhatsAppContextNote(user, convo));
+    const prep = await generateInterviewPrepForWhatsApp(incoming, buildWhatsAppContextNote(user, convo), convoLanguage);
     await trackWhatsAppTelemetry(phone, 'whatsapp_interview_prep_completed', {});
-    const reply = `${prep}\n\nUse the interactive menu buttons for Jobs, Resume, Cover Letter, Explore, Referrals, or Support.`;
+    const reply = `${prep}\n\n${getWhatsAppNextStepPrompt()}`;
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
     await Promise.all([user.save(), convo.save()]);
     return reply;
+  }
+
+  if (convo.currentStep === 'career_coach_capture') {
+    const request = normalizeIncomingWhatsAppText(incoming);
+    if (!request) {
+      const reply = convoLanguage === 'patois' ? 'Tell mi wah yuh need help wid. Example: Mi want a better-paying job in Kingston.' : 'Tell me what you need help with. Example: I want a better-paying role in Kingston.';
+      convo.lastOutboundMessage = reply;
+      convo.lastOutboundAt = new Date();
+      await convo.save();
+      return reply;
+    }
+
+    const coachReply = await generateCareerCoachForWhatsApp(
+      request,
+      String(convo.metadata?.context?.lastFullResumeDraft || user.resumeText || '').trim(),
+      buildWhatsAppContextNote(user, convo),
+      convoLanguage
+    );
+    convo.currentStep = 'menu';
+    convo.metadata.context.lastCareerCoachRequest = request;
+    convo.metadata.context.lastCareerCoachReply = coachReply;
+    convo.lastOutboundMessage = coachReply;
+    convo.lastOutboundAt = new Date();
+    await convo.save();
+    return coachReply;
   }
 
   if (convo.currentStep === 'cover_letter_capture') {
@@ -5739,7 +5895,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     if (['save cover', 'save letter'].includes(text)) {
       const draft = getLatestCoverDraft(convo);
       if (!draft) {
-        const reply = 'No cover letter draft found yet. Reply 3 to create one first.';
+        const reply = 'No cover letter draft found yet. Reply 2 to create one first.';
         convo.lastOutboundMessage = reply;
         convo.lastOutboundAt = new Date();
         await convo.save();
@@ -5769,7 +5925,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     if (['export cover', 'export letter', 'export cover letter'].includes(text)) {
       const draft = getLatestCoverDraft(convo);
       if (!draft) {
-        const reply = 'No cover letter draft available to export yet. Reply 3 to create one.';
+        const reply = 'No cover letter draft available to export yet. Reply 2 to create one.';
         convo.lastOutboundMessage = reply;
         convo.lastOutboundAt = new Date();
         await convo.save();
@@ -5792,7 +5948,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     if (['email cover', 'email cover letter', 'email letter'].includes(text)) {
       const draft = getLatestCoverDraft(convo);
       if (!draft) {
-        const reply = 'No cover letter draft found yet. Reply 3 to create one first.';
+        const reply = 'No cover letter draft found yet. Reply 2 to create one first.';
         convo.lastOutboundMessage = reply;
         convo.lastOutboundAt = new Date();
         await convo.save();
@@ -5829,7 +5985,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       const role = String(pending?.role || user.targetJob || convo.metadata?.context?.lastJobTitle || 'Customer Service Representative').trim();
       const location = String(pending?.location || user.location || convo.metadata?.context?.lastLocation || 'Jamaica').trim();
 
-      const fullResume = await generateFullTargetedResumeForWhatsApp(source, role, location);
+      const fullResume = await generateFullTargetedResumeForWhatsApp(source, role, location, convoLanguage);
       convo.currentStep = 'resume_followup';
       convo.metadata.context.pendingFullResume = null;
       convo.metadata.context.lastFullResumeDraft = fullResume;
@@ -5854,10 +6010,10 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
 
       let currentDraft = String(convo.metadata?.context?.lastFullResumeDraft || '').trim();
       if (!currentDraft) {
-        currentDraft = await generateFullTargetedResumeForWhatsApp(source, role, location);
+        currentDraft = await generateFullTargetedResumeForWhatsApp(source, role, location, convoLanguage);
       }
 
-      const editedDraft = await generateEditedTargetedResumeForWhatsApp(currentDraft, requestedEdit, role, location);
+      const editedDraft = await generateEditedTargetedResumeForWhatsApp(currentDraft, requestedEdit, role, location, convoLanguage);
       convo.currentStep = 'resume_followup';
       convo.metadata.context.lastFullResumeDraft = editedDraft;
       await trackWhatsAppTelemetry(phone, 'whatsapp_resume_edit_applied', {
@@ -5951,7 +6107,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     if (['no', 'n', 'skip'].includes(text)) {
       convo.currentStep = 'menu';
       convo.metadata.context.pendingFullResume = null;
-      const reply = 'No problem. Use the interactive menu buttons anytime to continue.';
+      const reply = 'No problem. Type MAIN MENU anytime to continue.';
       convo.lastOutboundMessage = reply;
       convo.lastOutboundAt = new Date();
       await convo.save();
@@ -6986,14 +7142,20 @@ app.get('/whatsapp-live-tester', (req, res) => {
         <button id="sendEnglish">English</button>
       </div>
       <div class="row">
-        <button id="sendResume">Option 3 (Resume)</button>
-        <button id="sendCover">Option 4 (Cover Letter)</button>
+        <button id="sendResume">Option 1 (Resume)</button>
+        <button id="sendCover">Option 2 (Cover Letter)</button>
+      </div>
+      <div class="row">
+        <button id="sendJobs">Option 3 (Jobs)</button>
+        <button id="sendInterview">Option 4 (Interview)</button>
+        <button id="sendCoach">Option 5 (Career Coach)</button>
       </div>
 
       <div class="chips">
         <button data-msg="create me a cover letter for a customer service job in Kingston">Quick: cover letter prompt</button>
         <button data-msg="Job Description: We are seeking a Customer Service Representative in Kingston to handle inbound calls, resolve billing issues, log tickets in CRM, and meet quality KPIs.">Quick: paste job description</button>
         <button data-msg="OPTIMIZE">Quick: optimize resume (tier check)</button>
+        <button data-msg="I have customer service experience and want a better-paying role in Kingston">Quick: career coach</button>
         <button data-msg="EMAIL RESUME">Quick: email resume</button>
         <button data-msg="EMAIL COVER">Quick: email cover letter</button>
         <button data-msg="LINK ACCOUNT">Quick: link account</button>
@@ -7102,8 +7264,11 @@ app.get('/whatsapp-live-tester', (req, res) => {
 
     document.getElementById('sendStart').addEventListener('click', () => sendPrompt('START'));
     document.getElementById('sendEnglish').addEventListener('click', () => sendPrompt('English'));
-    document.getElementById('sendResume').addEventListener('click', () => sendPrompt('3'));
-    document.getElementById('sendCover').addEventListener('click', () => sendPrompt('4'));
+    document.getElementById('sendResume').addEventListener('click', () => sendPrompt('1'));
+    document.getElementById('sendCover').addEventListener('click', () => sendPrompt('2'));
+    document.getElementById('sendJobs').addEventListener('click', () => sendPrompt('3'));
+    document.getElementById('sendInterview').addEventListener('click', () => sendPrompt('4'));
+    document.getElementById('sendCoach').addEventListener('click', () => sendPrompt('5'));
     document.getElementById('sendMain').addEventListener('click', () => sendPrompt('Main Menu'));
     document.getElementById('reset').addEventListener('click', resetConversation);
     document.getElementById('clear').addEventListener('click', () => {
@@ -7115,7 +7280,7 @@ app.get('/whatsapp-live-tester', (req, res) => {
       chip.addEventListener('click', () => sendPrompt(chip.getAttribute('data-msg') || ''));
     }
 
-    addMessage('bot', 'Live tester ready. Use START, then English, then 4 for cover letters.', 'system');
+    addMessage('bot', 'Live tester ready. Use START, then English, then 1 to 5 from the launch menu.', 'system');
   </script>
 </body>
 </html>`);
