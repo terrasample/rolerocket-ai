@@ -2442,7 +2442,17 @@ async function sendWhatsAppHumanSupportAlert({ phone, incoming, user, convo }) {
 }
 
 function getWhatsAppNextStepPrompt() {
-  return 'Next: choose Demo Features, Jobs, Resume, Cover Letter, Explore, or Technical Support.';
+  return 'Next: Jobs, Resume, or Cover Letter. Use Main Menu anytime.';
+}
+
+function getWhatsAppCleanActionHint(type = 'menu') {
+  const map = {
+    resume: 'Actions: Export Resume | Email Resume | Optimize Resume\nType MAIN MENU for more.',
+    cover: 'Actions: Export Cover | Email Cover | Save Cover\nType MAIN MENU for more.',
+    jobs: 'Actions: Apply Ready | Save Jobs | Search Again\nType MAIN MENU for more.',
+    menu: 'Type MAIN MENU for more.'
+  };
+  return map[type] || map.menu;
 }
 
 function getWhatsAppLanguagePrompt() {
@@ -4371,7 +4381,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       title: String(convo.metadata?.context?.lastCoverLetterTarget || 'RoleRocket Cover Letter').trim() || 'RoleRocket Cover Letter',
       textContent: draft
     });
-    const reply = `${exportResult.ack}\n\nUse action buttons: Save Cover, Email Cover, Jobs, Resume, Explore, or Technical Support.`;
+    const reply = `${exportResult.ack}\n\n${getWhatsAppCleanActionHint('cover')}`;
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
     await convo.save();
@@ -4448,7 +4458,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       title: String(convo.metadata?.context?.lastJobTitle || user.targetJob || 'RoleRocket Resume').trim() || 'RoleRocket Resume',
       textContent: draft
     });
-    const reply = `${exportResult.ack}\n\nUse action buttons: Save Resume, Email Resume, Apply Ready, Jobs, Cover Letter, Explore, or Technical Support.`;
+    const reply = `${exportResult.ack}\n\n${getWhatsAppCleanActionHint('resume')}`;
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
     await convo.save();
@@ -4492,9 +4502,8 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     if (planLevel < 1) {
       const planName = getWhatsAppPlanDisplayName(effectivePlan || 'free');
       const reply = [
-        `Resume Optimizer is locked on your current ${planName} plan.`,
-        `Upgrade to Pro to unlock it: ${getPublicAppBaseUrl()}/pricing.html`,
-        'After upgrading, send OPTIMIZE again and I will run it instantly.'
+        `Resume Optimizer is on Pro. You are on ${planName}.`,
+        `Upgrade: ${getPublicAppBaseUrl()}/pricing.html`
       ].join('\n');
       convo.lastOutboundMessage = reply;
       convo.lastOutboundAt = new Date();
@@ -4528,7 +4537,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     convo.lastIntent = 'resume';
     convo.metadata.context.lastResumeOptimization = optimization;
     convo.metadata.context.lastResumeOptimizationAt = new Date().toISOString();
-    const reply = `${optimization}\n\nUse action buttons: Full Draft, Save Resume, Export Resume, Email Resume, Apply Ready, Jobs, or Cover Letter.`;
+    const reply = `${optimization}\n\n${getWhatsAppCleanActionHint('resume')}`;
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
     await convo.save();
@@ -4984,7 +4993,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     convo.metadata.context.lastCoverLetterTarget = requestedTarget;
     convo.metadata.context.lastCoverLetterDraft = coverLetter;
     convo.markModified('metadata');
-    const reply = `${coverLetter}\n\nUse the action buttons to save/export this cover letter or return to menu options.`;
+    const reply = `${coverLetter}\n\n${getWhatsAppCleanActionHint('cover')}`;
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
     await Promise.all([user.save(), convo.save()]);
@@ -5081,9 +5090,8 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       if (userPlanLevel < neededLevel) {
         const neededPlanName = neededLevel === 1 ? 'Pro' : neededLevel === 2 ? 'Premium' : 'Elite';
         const reply = [
-          `That feature is locked on your current ${userPlan} plan.`,
-          `Upgrade to ${neededPlanName} to unlock it: ${getPublicAppBaseUrl()}/pricing.html`,
-          getWhatsAppMainMenuReturnText(language)
+          `This feature is on ${neededPlanName}. You are on ${getWhatsAppPlanDisplayName(userPlan)}.`,
+          `Upgrade: ${getPublicAppBaseUrl()}/pricing.html`
         ].join('\n');
         convo.lastOutboundMessage = reply;
         convo.lastOutboundAt = new Date();
@@ -5540,7 +5548,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       }
 
       convo.currentStep = 'resume_followup';
-      const reply = `${tailoredResume}\n\nUse action buttons: Save Resume, Export Resume, Email Resume, Apply Ready, Jobs, Cover Letter, Explore, or Technical Support.`;
+      const reply = `${tailoredResume}\n\n${getWhatsAppCleanActionHint('resume')}`;
       convo.lastOutboundMessage = reply;
       convo.lastOutboundAt = new Date();
       await Promise.all([user.save(), convo.save()]);
@@ -5589,7 +5597,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       channel: convo.metadata.context.lastResumeChannel
     });
     const prefix = usedVoiceTranscription ? 'Voice note transcribed.\n' : '';
-    const reply = `${prefix}${rewriteClean}\n\nUse action buttons: Full Draft, Save Resume, Export Resume, Email Resume, Optimize Resume, Apply Ready, Jobs, Cover Letter, or Explore.`;
+    const reply = `${prefix}${rewriteClean}\n\n${getWhatsAppCleanActionHint('resume')}`;
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
     await Promise.all([user.save(), convo.save()]);
@@ -5659,7 +5667,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     if (wantsResume) {
       convo.currentStep = 'resume_followup';
       const draft = String(convo.metadata?.context?.lastFullResumeDraft || '').trim();
-      const reply = `${draft}\n\nUse action buttons: Save Resume, Export Resume, Email Resume, Apply Ready, Jobs, Cover Letter, Explore, or Technical Support.`;
+      const reply = `${draft}\n\n${getWhatsAppCleanActionHint('resume')}`;
       convo.lastOutboundMessage = reply;
       convo.lastOutboundAt = new Date();
       await convo.save();
@@ -5668,7 +5676,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
 
     convo.currentStep = 'cover_letter_followup';
     const coverDraft = String(convo.metadata?.context?.lastCoverLetterDraft || '').trim();
-    const reply = `${coverDraft}\n\nUse action buttons: Save Cover, Export Cover, Email Cover, Jobs, Resume, Explore, or Technical Support.`;
+    const reply = `${coverDraft}\n\n${getWhatsAppCleanActionHint('cover')}`;
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
     await convo.save();
@@ -5720,7 +5728,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     convo.currentStep = 'cover_letter_followup';
     convo.metadata.context.lastCoverLetterTarget = requestedTarget;
     convo.metadata.context.lastCoverLetterDraft = coverLetter;
-    const reply = `${coverLetter}\n\nUse the action buttons to save/export this cover letter or return to menu options.`;
+    const reply = `${coverLetter}\n\n${getWhatsAppCleanActionHint('cover')}`;
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
     await convo.save();
@@ -5774,7 +5782,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
         title: String(convo.metadata?.context?.lastCoverLetterTarget || 'RoleRocket Cover Letter').trim() || 'RoleRocket Cover Letter',
         textContent: draft
       });
-      const reply = `${exportResult.ack}\n\nUse the action buttons to continue.`;
+      const reply = `${exportResult.ack}\n\n${getWhatsAppCleanActionHint('cover')}`;
       convo.lastOutboundMessage = reply;
       convo.lastOutboundAt = new Date();
       await convo.save();
@@ -5830,7 +5838,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
         location,
         sourceChars: source.length
       });
-      const reply = `${fullResume}\n\nUse the resume action buttons to save/export/apply, or return through menu buttons.`;
+      const reply = `${fullResume}\n\n${getWhatsAppCleanActionHint('resume')}`;
       convo.lastOutboundMessage = reply;
       convo.lastOutboundAt = new Date();
       await convo.save();
@@ -5857,7 +5865,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
         location,
         editChars: requestedEdit.length
       });
-      const reply = `${editedDraft}\n\nUse the resume action buttons to save/export/apply, or return through menu buttons.`;
+      const reply = `${editedDraft}\n\n${getWhatsAppCleanActionHint('resume')}`;
       convo.lastOutboundMessage = reply;
       convo.lastOutboundAt = new Date();
       await convo.save();
@@ -5901,7 +5909,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
         title: String(convo.metadata?.context?.lastJobTitle || user.targetJob || 'RoleRocket Resume').trim() || 'RoleRocket Resume',
         textContent: draft
       });
-      const reply = `${exportResult.ack}\n\nUse the action/menu buttons to continue.`;
+      const reply = `${exportResult.ack}\n\n${getWhatsAppCleanActionHint('resume')}`;
       convo.lastOutboundMessage = reply;
       convo.lastOutboundAt = new Date();
       await convo.save();
@@ -5952,9 +5960,9 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   }
 
   const fallback = convo.currentStep === 'resume_followup'
-    ? 'Please use the resume action buttons (Full Draft, Save, Export, Email, Optimize, Apply Ready) or menu buttons.'
+    ? 'Use: Export Resume, Email Resume, or Optimize Resume. Type MAIN MENU for more.'
     : convo.currentStep === 'cover_letter_followup'
-      ? 'Please use the cover letter action buttons (Save, Export, Email) or menu buttons.'
+      ? 'Use: Export Cover, Email Cover, or Save Cover. Type MAIN MENU for more.'
       : 'I did not catch that. Please use the interactive buttons shown.';
   await trackWhatsAppTelemetry(phone, 'whatsapp_fallback_prompt', {
     step: convo.currentStep || 'menu'
