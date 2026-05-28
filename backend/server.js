@@ -7779,6 +7779,7 @@ app.get('/start', (req, res) => {
   const escapedWaLink = String(waLink || '').replace(/"/g, '&quot;');
   const fallbackBase = String(process.env.CLIENT_URL || 'https://www.rolerocketai.com').replace(/\/$/, '');
   const destination = waLink || `${fallbackBase}/login.html`;
+  const escapedDestination = String(destination || '').replace(/"/g, '&quot;');
   return res.status(200).send(`<!doctype html>
 <html lang="en">
 <head>
@@ -7798,22 +7799,87 @@ app.get('/start', (req, res) => {
   <meta name="twitter:description" content="Your AI job-search assistant on WhatsApp. Import jobs, organize applications, and execute your plan faster." />
   <meta name="twitter:image" content="https://www.rolerocketai.com/assets/og-whatsapp-card.png" />
   <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{min-height:100vh;display:grid;place-items:center;font-family:'Segoe UI',sans-serif;
-      background:linear-gradient(135deg,#000000 0%,#007847 50%,#fdb714 100%);}
-    .wrap{text-align:center;padding:32px 20px;}
-    span{font-size:3.5rem;display:block;margin-bottom:16px;}
-    h1{color:#fff;font-size:clamp(1.4rem,4vw,2rem);font-weight:800;margin-bottom:10px;}
-    p{color:rgba(255,255,255,.88);font-size:1rem;}
+    :root {
+      --bg: #050507;
+      --panel: #101113;
+      --muted: #cfd3d7;
+      --ink: #f7f8f9;
+      --accent: #009b3a;
+      --accent-2: #fed100;
+      --line: rgba(138, 161, 180, 0.25);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      font-family: "Trebuchet MS", "Segoe UI", Tahoma, sans-serif;
+      background:
+        radial-gradient(900px 420px at 8% -5%, rgba(0,155,58,.30), transparent 70%),
+        radial-gradient(900px 420px at 100% 0%, rgba(254,209,0,.22), transparent 66%),
+        var(--bg);
+      color: var(--ink);
+      padding: 20px;
+    }
+    .wrap {
+      width: min(620px, 100%);
+      text-align: center;
+      padding: 28px 24px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(22,23,25,.98), rgba(10,10,11,.98));
+      box-shadow: 0 18px 44px rgba(0,0,0,.35);
+    }
+    .badge {
+      display: inline-block;
+      margin-bottom: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(254,209,0,.45);
+      background: rgba(11, 18, 12, 0.55);
+      color: var(--accent-2);
+      font-size: 0.76rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    h1 {
+      font-size: clamp(1.35rem, 4vw, 2rem);
+      line-height: 1.15;
+      margin-bottom: 10px;
+    }
+    p {
+      color: var(--muted);
+      font-size: 1rem;
+    }
+    .cta {
+      display: inline-flex;
+      margin-top: 14px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(254,209,0,.8);
+      text-decoration: none;
+      font-weight: 700;
+      color: #1b1d1f;
+      background: linear-gradient(120deg, #fed100, #f7bc00);
+    }
+    .mini {
+      margin-top: 10px;
+      font-size: .86rem;
+      color: #b8c2ca;
+    }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <span>💬</span>
-    <h1>RoleRocket AI WhatsApp Assistant</h1>
-    <p>Opening WhatsApp…</p>
+    <div class="badge">RoleRocket Jamaica WhatsApp 🇯🇲</div>
+    <h1>RoleRocket AI Jamaica<br />WhatsApp Assistant</h1>
+    <p>Opening WhatsApp with START for your Jamaica assistant flow.</p>
+    <a class="cta" href="${escapedWaLink || escapedDestination}">Open WhatsApp Assistant</a>
+    <div class="mini">If it does not open automatically, tap the button above.</div>
   </div>
-  <script>window.location.href="${destination}";<\/script>
+  <script>
+    setTimeout(function () { window.location.href = "${escapedDestination}"; }, 650);
+  <\/script>
 </body>
 </html>`);
 });
