@@ -2375,6 +2375,38 @@ function getWhatsAppCareerScopePrompt(language = 'english') {
   ].join('\n');
 }
 
+function normalizeWhatsAppRolloutPhone(phone = '') {
+  return String(phone || '').replace(/[^0-9]/g, '');
+}
+
+function getWhatsAppPatoisRolloutPercent() {
+  const raw = Number(process.env.WHATSAPP_PATOIS_FLOW_ROLLOUT_PERCENT || '100');
+  if (!Number.isFinite(raw)) return 100;
+  return Math.max(0, Math.min(100, Math.floor(raw)));
+}
+
+function isWhatsAppPatoisFlowEnabledForPhone(phone = '') {
+  const globalToggle = String(process.env.WHATSAPP_PATOIS_FLOW_ENABLED || 'true').trim().toLowerCase();
+  if (['false', '0', 'off', 'no'].includes(globalToggle)) return false;
+
+  const normalizedPhone = normalizeWhatsAppRolloutPhone(phone);
+  if (!normalizedPhone) return false;
+
+  const qaNumbers = String(process.env.WHATSAPP_PATOIS_FLOW_QA_NUMBERS || '')
+    .split(',')
+    .map((item) => normalizeWhatsAppRolloutPhone(item))
+    .filter(Boolean);
+  if (qaNumbers.includes(normalizedPhone)) return true;
+
+  const rolloutPercent = getWhatsAppPatoisRolloutPercent();
+  if (rolloutPercent >= 100) return true;
+  if (rolloutPercent <= 0) return false;
+
+  const hashHex = crypto.createHash('sha1').update(normalizedPhone).digest('hex').slice(0, 8);
+  const bucket = parseInt(hashHex, 16) % 100;
+  return bucket < rolloutPercent;
+}
+
 function getWhatsAppClarificationPrompt() {
   return [
     'I can help with one of these now:',
@@ -4294,6 +4326,20 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   }
 
   if (convo.currentStep === 'menu' && isWhatsAppPatoisGreeting(rawTextCanonical)) {
+    const inPatoisRollout = isWhatsAppPatoisFlowEnabledForPhone(phone);
+    const rolloutPercent = getWhatsAppPatoisRolloutPercent();
+    await trackWhatsAppTelemetry(phone, 'whatsapp_patois_opener_seen', {
+      rolloutEnabled: inPatoisRollout,
+      rolloutPercent
+    });
+    if (!inPatoisRollout) {
+      const language = String(convo.metadata?.context?.language || 'english');
+      const reply = getWhatsAppMenuText(language);
+      convo.lastOutboundMessage = reply;
+      convo.lastOutboundAt = new Date();
+      await convo.save();
+      return reply;
+    }
     convo.currentStep = 'patois_quick_confirm';
     const reply = 'Deh ya! Yuh want a job?';
     convo.lastOutboundMessage = reply;
@@ -4310,6 +4356,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
 
       if (quickIndex === 1) {
         convo.currentStep = 'resume_capture';
+        await trackWhatsAppTelemetry(phone, 'whatsapp_patois_quick_branch_selected', { branch: 'resume' });
         const reply = 'Wah mi build yuh one resume? Sen yuh work history (text/voice) or upload yuh resume file.';
         convo.lastOutboundMessage = reply;
         convo.lastOutboundAt = new Date();
@@ -4319,6 +4366,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
 
       if (quickIndex === 2) {
         convo.currentStep = 'cover_letter_capture';
+        await trackWhatsAppTelemetry(phone, 'whatsapp_patois_quick_branch_selected', { branch: 'cover_letter' });
         const reply = 'Wah mi write yuh one cover letter? Sen di role and company.';
         convo.lastOutboundMessage = reply;
         convo.lastOutboundAt = new Date();
@@ -4327,6 +4375,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       }
 
       convo.currentStep = 'jobs_role_input';
+      await trackWhatsAppTelemetry(phone, 'whatsapp_patois_quick_branch_selected', { branch: 'jobs' });
       const reply = 'Wa kinda job and which part? Example: Customer service in Kingston.';
       convo.lastOutboundMessage = reply;
       convo.lastOutboundAt = new Date();
