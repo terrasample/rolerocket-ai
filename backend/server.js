@@ -1721,26 +1721,36 @@ async function sendWhatsAppInteractiveButtons({ to, bodyText, buttonChoices = []
       return { success: false, reason: 'WhatsApp sender not configured' };
     }
 
-    // Build button list - WhatsApp supports up to 10 buttons, but we'll limit to 3
+    // Build button list - WhatsApp supports up to 3 buttons
     const buttons = buttonChoices
       .slice(0, 3)
-      .map((choice, idx) => ({
+      .map((choice) => ({
         type: 'reply',
         reply: {
-          id: String(choice.id || idx + 1),
-          title: String(choice.title || choice.label).substring(0, 20)
+          id: String(choice.id || ''),
+          title: String(choice.title || choice.label || '').substring(0, 20)
         }
       }));
 
-    // Use form-encoded payload for Twilio Messages API with JSON body
+    // Construct interactive message for Twilio WhatsApp
+    const interactivePayload = {
+      type: 'button',
+      body: {
+        text: String(bodyText || 'Choose an option:')
+      },
+      action: {
+        buttons: buttons
+      }
+    };
+
+    // Send via Twilio Messages API with interactive content
     const payload = new URLSearchParams({
       From: normalizeWhatsAppAddress(configuredSender),
       To: normalizeWhatsAppAddress(to),
-      Body: String(bodyText || 'Choose an option:')
+      ContentType: 'application/json',
+      Content: JSON.stringify(interactivePayload)
     });
 
-    // Twilio WhatsApp doesn't support direct interactive payloads via REST API
-    // This will send as a text message - buttons require pre-configured templates
     const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
       method: 'POST',
       headers: {
@@ -1759,10 +1769,11 @@ async function sendWhatsAppInteractiveButtons({ to, bodyText, buttonChoices = []
     }
 
     if (!response.ok) {
-      console.warn('Twilio WhatsApp message failed:', {
+      console.warn('Twilio WhatsApp interactive message failed:', {
         status: response.status,
         errorCode: data.code,
-        errorMessage: data.message
+        errorMessage: data.message,
+        content: JSON.stringify(interactivePayload)
       });
     }
 
@@ -1773,7 +1784,7 @@ async function sendWhatsAppInteractiveButtons({ to, bodyText, buttonChoices = []
       status: response.status
     };
   } catch (error) {
-    console.error('WhatsApp buttons send error:', error);
+    console.error('WhatsApp interactive buttons send error:', error);
     return { success: false, reason: error.message };
   }
 }
@@ -2108,8 +2119,19 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
       const result = await sendWhatsAppContentTemplate({ to: from, contentSid: selectedLanguageSid });
       if (result?.success) return 'suppress';
     }
-    // No template or template failed - let the text reply with all 3 languages go through
-    return false;
+    
+    // Send interactive buttons with all 3 languages
+    const buttonResult = await sendWhatsAppInteractiveButtons({
+      to: from,
+      bodyText: '🇯🇲 Welcome to RoleRocket AI Jamaica\n\nChoose your language:',
+      buttonChoices: [
+        { id: '1', title: '🇺🇸 English', label: 'English' },
+        { id: '2', title: '🇪🇸 Español', label: 'Spanish' },
+        { id: '3', title: '🇯🇲 Patois', label: 'Patois' }
+      ]
+    });
+    
+    return buttonResult?.success ? 'suppress' : false;
   }
 
   // menu step: suppress for pure menu display; keep when returning from content (explore/status/interview)
