@@ -1698,6 +1698,100 @@ async function sendWhatsAppMessage({ to, message, mediaUrls = [] }) {
   }
 }
 
+// Send interactive buttons directly via Twilio API when templates aren't available
+async function sendWhatsAppInteractiveButtons({ to, bodyText, buttonChoices = [] }) {
+  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN) {
+    return { success: false, reason: 'WhatsApp not configured' };
+  }
+
+  try {
+    const normalizeWhatsAppAddress = (value = '') => {
+      const raw = String(value || '').trim();
+      if (!raw) return '';
+      if (raw.toLowerCase().startsWith('whatsapp:')) return raw;
+      return `whatsapp:${raw}`;
+    };
+
+    const accountSid = TWILIO_ACCOUNT_SID;
+    const authToken = TWILIO_AUTH_TOKEN;
+    const auth = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
+    const configuredSender = String(process.env.TWILIO_WHATSAPP_NUMBER || process.env.TWILIO_PHONE_NUMBER || '').trim();
+    
+    if (!configuredSender) {
+      return { success: false, reason: 'WhatsApp sender not configured' };
+    }
+
+    // Build button choices - max 3 buttons for WhatsApp
+    const buttons = buttonChoices
+      .slice(0, 3)
+      .map((choice, idx) => ({
+        type: 'reply',
+        reply: {
+          id: String(choice.id || idx + 1),
+          title: String(choice.title || choice.label).slice(0, 20)
+        }
+      }));
+
+    const interactive = {
+      type: 'button',
+      body: {
+        text: String(bodyText || 'Choose an option:')
+      },
+      action: {
+        buttons: buttons
+      }
+    };
+
+    const payload = {
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to: String(to || '').replace(/\D/g, ''),
+      type: 'interactive',
+      interactive: interactive
+    };
+
+    const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${auth}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        From: normalizeWhatsAppAddress(configuredSender),
+        To: normalizeWhatsAppAddress(to),
+        ContentType: 'application/json',
+        Content: JSON.stringify(payload)
+      })
+    });
+
+    const rawBody = await response.text();
+    let data = {};
+    try {
+      data = JSON.parse(rawBody || '{}');
+    } catch (_parseError) {
+      data = { message: rawBody || 'Unknown Twilio response' };
+    }
+
+    if (!response.ok) {
+      console.warn('Twilio WhatsApp interactive buttons failed:', {
+        status: response.status,
+        errorCode: data.code,
+        errorMessage: data.message
+      });
+    }
+
+    return {
+      success: response.ok,
+      sid: data.sid,
+      error: data.message,
+      status: response.status
+    };
+  } catch (error) {
+    console.error('WhatsApp interactive buttons error:', error);
+    return { success: false, reason: error.message };
+  }
+}
+
 async function sendWhatsAppContentTemplate({ to, contentSid, contentVariables = {} }) {
   if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN) {
     return { success: false, reason: 'WhatsApp not configured' };
@@ -2022,9 +2116,25 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
 
   const selectedLanguageSid = languageThreeContentSid || languagePatoisContentSid || languageContentSid;
 
-  if (step === 'language_select' && selectedLanguageSid) {
-    const result = await sendWhatsAppContentTemplate({ to: from, contentSid: selectedLanguageSid });
-    return result?.success ? 'suppress' : false;
+  if (step === 'language_select') {
+    // Try template first; fallback to interactive buttons if no template SID
+    if (selectedLanguageSid) {
+      const result = await sendWhatsAppContentTemplate({ to: from, contentSid: selectedLanguageSid });
+      if (result?.success) return 'suppress';
+    }
+    
+    // Fallback: send interactive buttons directly
+    const buttonResult = await sendWhatsAppInteractiveButtons({
+      to: from,
+      bodyText: 'Welcome to RoleRocket AI Jamaica 🌴\n\nChoose your language / Choosy yuh language:',
+      buttonChoices: [
+        { id: '1', title: '🇺🇸 English', label: 'English' },
+        { id: '2', title: '🇪🇸 Spanish', label: 'Spanish' },
+        { id: '3', title: '🇯🇲 Patois', label: 'Patois' }
+      ]
+    });
+    
+    return buttonResult?.success ? 'suppress' : false;
   }
 
   // menu step: suppress for pure menu display; keep when returning from content (explore/status/interview)
