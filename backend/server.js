@@ -2019,11 +2019,7 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
   // false      = no template sent
 
   if (step === 'language_select' && languageContentSid) {
-    const phone = normalizeWhatsAppPhone(from);
-    const patoisRolloutActive = isWhatsAppPatoisFlowEnabledForPhone(phone);
-    const selectedLanguageSid = patoisRolloutActive
-      ? (languagePatoisContentSid || languageContentSid)
-      : languageContentSid;
+    const selectedLanguageSid = languagePatoisContentSid || languageContentSid;
     const result = await sendWhatsAppContentTemplate({ to: from, contentSid: selectedLanguageSid });
     return result?.success ? 'suppress' : false;
   }
