@@ -30,6 +30,10 @@ services:
       - key: OPENAI_API_KEY
         sync: false
 
+      # ── Twilio WhatsApp interactive templates ────────────────────────────
+      - key: TWILIO_WHATSAPP_LANGUAGE_PATOIS_CONTENT_SID
+        sync: false
+
       # ── Stripe ─────────────────────────────────────────────────────────────
       - key: STRIPE_SECRET_KEY
         sync: false

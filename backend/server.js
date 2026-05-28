@@ -1962,6 +1962,7 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
 
   const interactiveToggle = String(process.env.TWILIO_WHATSAPP_INTERACTIVE_ENABLED || '').trim().toLowerCase();
   const languageContentSid = String(process.env.TWILIO_WHATSAPP_LANGUAGE_CONTENT_SID || '').trim();
+  const languagePatoisContentSid = String(process.env.TWILIO_WHATSAPP_LANGUAGE_PATOIS_CONTENT_SID || '').trim();
   const menuContentSid = String(process.env.TWILIO_WHATSAPP_MENU_CONTENT_SID || '').trim();
   const resumeActionsContentSid = String(process.env.TWILIO_WHATSAPP_RESUME_ACTIONS_CONTENT_SID || '').trim();
   const resumeActionsPlusContentSid = String(process.env.TWILIO_WHATSAPP_RESUME_ACTIONS_PLUS_CONTENT_SID || '').trim();
@@ -1978,6 +1979,7 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
 
   const hasInteractiveTemplates = [
     languageContentSid,
+    languagePatoisContentSid,
     menuContentSid,
     resumeActionsContentSid,
     resumeActionsPlusContentSid,
@@ -2003,7 +2005,12 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
   // false      = no template sent
 
   if (step === 'language_select' && languageContentSid) {
-    const result = await sendWhatsAppContentTemplate({ to: from, contentSid: languageContentSid });
+    const phone = normalizeWhatsAppPhone(from);
+    const patoisRolloutActive = isWhatsAppPatoisFlowEnabledForPhone(phone);
+    const selectedLanguageSid = patoisRolloutActive
+      ? (languagePatoisContentSid || languageContentSid)
+      : languageContentSid;
+    const result = await sendWhatsAppContentTemplate({ to: from, contentSid: selectedLanguageSid });
     return result?.success ? 'suppress' : false;
   }
 
@@ -2373,6 +2380,76 @@ function getWhatsAppCareerScopePrompt(language = 'english') {
     'Try: find jobs, build resume, cover letter, or interview prep.',
     'You can also type HUMAN SUPPORT if you need a recruiter.'
   ].join('\n');
+}
+
+function getWhatsAppPatoisVariants(seed = '', variants = []) {
+  const list = Array.isArray(variants) ? variants.map((item) => String(item || '').trim()).filter(Boolean) : [];
+  if (!list.length) return '';
+  const normalizedSeed = String(seed || '').trim().toLowerCase();
+  let hash = 0;
+  for (let i = 0; i < normalizedSeed.length; i += 1) {
+    hash = ((hash << 5) - hash) + normalizedSeed.charCodeAt(i);
+    hash |= 0;
+  }
+  return list[Math.abs(hash) % list.length];
+}
+
+async function generateWhatsAppPatoisReasonedReply({ purpose = 'general', userText = '', language = 'patois', context = '' } = {}) {
+  const seed = [purpose, userText, context].join('|');
+  const fallbackByPurpose = {
+    opener: [
+      'Deh ya under di coconut tree 🌴! Yuh want a job, resume, or cover letter?',
+      'Wah gwaan, bredrin? Mi can help wid jobs, resume, cover letter, or interview prep.',
+      'Mi deh ya fi career tingz 🌴. Yuh lookin fi work, resume, or cover letter?'
+    ],
+    clarify: [
+      'Mi nuh fully catch dat. Yuh can tell mi if yuh need jobs, resume, cover letter, interview prep, or career coach?',
+      'Talk to mi straight: what yuh want help wid — job, resume, cover letter, or interview?',
+      'Mi can reason wid yuh, but mi need fi know if yuh after work, resume, or cover letter.'
+    ],
+    scope: [
+      'Mi keep it pon jobs and career. Try say if yuh want work, resume, cover letter, or interview prep.',
+      'If yuh after a next step, tell mi which one: jobs, resume, cover letter, or interview prep.',
+      'Mi can help yuh move forward, but mi need know which career ting yuh want fi fix first.'
+    ],
+    handoff_ack: [
+      'Mi hear yuh. Mi sending dat through now so support can follow up.',
+      'Good, mi get it. Support soon reach out wid dat request.',
+      'Mi understand. Mi pass it on now and keep it clear fi support.'
+    ]
+  };
+  const fallback = getWhatsAppPatoisVariants(seed, fallbackByPurpose[purpose] || fallbackByPurpose.clarify);
+
+  if (!process.env.OPENAI_API_KEY || language !== 'patois') return fallback;
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+      temperature: 0.7,
+      messages: [
+        {
+          role: 'system',
+          content: [
+            'You are RoleRocket AI speaking Jamaican Patois for WhatsApp.',
+            'Keep it natural, warm, and easy to understand.',
+            'Do not overuse slang; sound like a helpful local career assistant.',
+            'Use the user text to reason about what follow-up question or answer makes sense.',
+            'Return plain text only, 1-2 short sentences, max 220 characters.'
+          ].join(' ')
+        },
+        {
+          role: 'user',
+          content: `Purpose: ${purpose}\nUser text: ${userText || 'none'}\nContext: ${context || 'none'}\nWrite the best Patois reply.`
+        }
+      ]
+    });
+
+    const content = String(completion?.choices?.[0]?.message?.content || '').trim();
+    return content || fallback;
+  } catch (error) {
+    console.warn('WhatsApp patois reasoned reply fallback:', error.message);
+    return fallback;
+  }
 }
 
 function normalizeWhatsAppRolloutPhone(phone = '') {
@@ -3217,11 +3294,11 @@ function getWhatsAppStepPrompt(step = '', user = {}, convo = {}) {
     ].join('\n');
   }
   if (safeStep === 'patois_quick_confirm') {
-    return [
-      'Deh ya under di coconut tree 🌴! Yuh want a job?',
-      'Reply YES or NO.',
-      getWhatsAppMainMenuReturnText(language)
-    ].join('\n');
+    return getWhatsAppPatoisVariants(safeStep, [
+      'Deh ya under di coconut tree 🌴! Yuh want a job, resume, or cover letter?',
+      'Wah gwaan, bredrin? Mi can help wid jobs, resume, cover letter, or interview prep.',
+      'Mi deh ya fi career tingz 🌴. Yuh lookin fi work, resume, or cover letter?'
+    ]);
   }
   if (safeStep === 'human_handoff_capture') {
     return [
@@ -4341,7 +4418,12 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       return reply;
     }
     convo.currentStep = 'patois_quick_confirm';
-    const reply = 'Deh ya under di coconut tree 🌴! Yuh want a job?';
+    const reply = await generateWhatsAppPatoisReasonedReply({
+      purpose: 'opener',
+      userText: incoming,
+      language: 'patois',
+      context: buildWhatsAppContextNote(user, convo)
+    });
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
     await convo.save();
@@ -4357,7 +4439,12 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       if (quickIndex === 1) {
         convo.currentStep = 'resume_capture';
         await trackWhatsAppTelemetry(phone, 'whatsapp_patois_quick_branch_selected', { branch: 'resume' });
-        const reply = 'Wah mi build yuh one resume? Sen yuh work history (text/voice) or upload yuh resume file.';
+        const reply = await generateWhatsAppPatoisReasonedReply({
+          purpose: 'clarify',
+          userText: incoming,
+          language: 'patois',
+          context: 'resume branch'
+        });
         convo.lastOutboundMessage = reply;
         convo.lastOutboundAt = new Date();
         await convo.save();
@@ -4367,7 +4454,12 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       if (quickIndex === 2) {
         convo.currentStep = 'cover_letter_capture';
         await trackWhatsAppTelemetry(phone, 'whatsapp_patois_quick_branch_selected', { branch: 'cover_letter' });
-        const reply = 'Wah mi write yuh one cover letter? Sen di role and company.';
+        const reply = await generateWhatsAppPatoisReasonedReply({
+          purpose: 'clarify',
+          userText: incoming,
+          language: 'patois',
+          context: 'cover letter branch'
+        });
         convo.lastOutboundMessage = reply;
         convo.lastOutboundAt = new Date();
         await convo.save();
@@ -4376,7 +4468,12 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
 
       convo.currentStep = 'jobs_role_input';
       await trackWhatsAppTelemetry(phone, 'whatsapp_patois_quick_branch_selected', { branch: 'jobs' });
-      const reply = 'Wa kinda job and which part? Example: Customer service in Kingston.';
+      const reply = await generateWhatsAppPatoisReasonedReply({
+        purpose: 'clarify',
+        userText: incoming,
+        language: 'patois',
+        context: 'jobs branch'
+      });
       convo.lastOutboundMessage = reply;
       convo.lastOutboundAt = new Date();
       await convo.save();
@@ -4402,10 +4499,10 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
 
   if (convo.currentStep === 'human_handoff_capture') {
     const request = normalizeIncomingWhatsAppText(incoming);
+    const convoLanguage = String(convo.metadata?.context?.language || 'english');
     const isGenericSupportWord = /^(human|agent|support|live support|human support|help|0)$/i.test(textCanonical);
     if (!request || request.length < 10 || isGenericSupportWord) {
-      const language = String(convo.metadata?.context?.language || 'english');
-      const reply = language === 'patois'
+      const reply = convoLanguage === 'patois'
         ? 'Before mi hand yuh off, type wah yuh request is about. Example: Need accounting jobs in Montego Bay, 2 years experience.'
         : 'Before handoff, type what your request is about. Example: Need accounting jobs in Montego Bay, 2 years experience.';
       convo.lastOutboundMessage = reply;
@@ -4424,11 +4521,19 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     convo.metadata.pendingHumanAlert = !alertDelivered;
     convo.metadata.lastHumanAlertAt = new Date().toISOString();
 
+    const handoffAck = convoLanguage === 'patois'
+      ? await generateWhatsAppPatoisReasonedReply({
+        purpose: 'handoff_ack',
+        userText: request,
+        language: 'patois',
+        context: buildWhatsAppContextNote(user, convo)
+      })
+      : 'Request captured and sent to support.';
     const reply = [
-      'Request captured and sent to support.',
+      handoffAck,
       alertDelivered
-        ? 'A recruiter will follow up shortly.'
-        : 'Alert queued for support. Use HUMAN SUPPORT again if urgent.'
+        ? (convoLanguage === 'patois' ? 'A recruiter soon link up wid yuh.' : 'A recruiter will follow up shortly.')
+        : (convoLanguage === 'patois' ? 'Alert queued. Use HUMAN SUPPORT again if urgent.' : 'Alert queued for support. Use HUMAN SUPPORT again if urgent.')
     ].join('\n');
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
