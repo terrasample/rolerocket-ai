@@ -2091,7 +2091,7 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
   }
 
   // Input-capture steps: append a 'Main Menu' back button so users can exit without typing
-  if (['jobs_query', 'jobs_role_input', 'jobs_parish_select', 'resume_capture', 'cover_letter_capture', 'interview_target', 'career_coach_capture', 'plan_link_email_capture', 'plan_link_verify'].includes(step) && backMenuContentSid) {
+  if (['jobs_query', 'jobs_role_input', 'jobs_parish_select', 'resume_capture', 'cover_letter_capture', 'interview_target', 'career_coach_capture', 'plan_link_email_capture', 'plan_link_verify', 'human_handoff_capture', 'patois_quick_confirm'].includes(step) && backMenuContentSid) {
     const result = await sendWhatsAppContentTemplate({ to: from, contentSid: backMenuContentSid });
     return result?.success ? 'keep' : false;
   }
@@ -2332,6 +2332,47 @@ function detectWhatsAppIntent(text = '') {
 
   if (topScore < 3 || tie) return { intent: 'unclear', confidence, topScore, tie };
   return { intent: topIntent, confidence, topScore, tie };
+}
+
+function isWhatsAppPatoisGreeting(text = '') {
+  const normalized = String(text || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!normalized) return false;
+  return /\b(wah\s*gwaan|wa\s*gwaan|wagwan|wha\s*gwaan|gwaan)\b/.test(normalized);
+}
+
+function isWhatsAppPatoisAffirmative(text = '') {
+  const normalized = String(text || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!normalized) return false;
+  return /^(yes|yeah|yea|yep|ok|okay|alright|sure)$/.test(normalized)
+    || /\b(yeah\s*mon|yea\s*mon|yes\s*mon|yeh\s*man|yea\s*man)\b/.test(normalized);
+}
+
+function isWhatsAppCareerScopedMessage(text = '') {
+  const normalized = String(text || '').toLowerCase().replace(/\s+/g, ' ').trim();
+  if (!normalized) return false;
+  return /\b(job|jobs|work|career|resume|cv|cover\s*letter|interview|apply|application|hiring|vacancy|role|position|salary|coach|skills?)\b/.test(normalized);
+}
+
+function getWhatsAppCareerScopePrompt(language = 'english') {
+  if (language === 'patois') {
+    return [
+      'Mi only handle job and career questions.',
+      'Try: find jobs, build mi resume, write cover letter, or interview prep.',
+      'Yuh can also type HUMAN SUPPORT if yuh need a recruiter.'
+    ].join('\n');
+  }
+  if (language === 'spanish') {
+    return [
+      'Solo ayudo con preguntas de empleo y carrera.',
+      'Prueba: buscar empleos, crear curriculo, carta de presentacion, o preparacion de entrevista.',
+      'Tambien puedes escribir HUMAN SUPPORT si necesitas un reclutador.'
+    ].join('\n');
+  }
+  return [
+    'I only handle job and career questions.',
+    'Try: find jobs, build resume, cover letter, or interview prep.',
+    'You can also type HUMAN SUPPORT if you need a recruiter.'
+  ].join('\n');
 }
 
 function getWhatsAppClarificationPrompt() {
@@ -3043,6 +3084,8 @@ function getWhatsAppPreviousStep(currentStep = '') {
     cover_letter_followup: 'cover_letter_capture',
     interview_target: 'menu',
     career_coach_capture: 'menu',
+    patois_quick_confirm: 'menu',
+    human_handoff_capture: 'menu',
     job_tailor_choice: 'jobs_action',
     human_handoff: 'menu',
     explore_features: 'menu',
@@ -3138,6 +3181,21 @@ function getWhatsAppStepPrompt(step = '', user = {}, convo = {}) {
     return [
       language === 'patois' ? 'Tell mi wah yuh need help wid.' : 'Tell me what you need help figuring out.',
       language === 'patois' ? 'Example: Mi have customer service experience and want a better-paying job in Kingston.' : 'Example: I have customer service experience and want a better-paying role in Kingston.',
+      getWhatsAppMainMenuReturnText(language)
+    ].join('\n');
+  }
+  if (safeStep === 'patois_quick_confirm') {
+    return [
+      'Deh ya! Yuh want a job?',
+      'Reply YES or NO.',
+      getWhatsAppMainMenuReturnText(language)
+    ].join('\n');
+  }
+  if (safeStep === 'human_handoff_capture') {
+    return [
+      language === 'patois'
+        ? 'Type wah yuh request is about before mi pass yuh to human support. Example: Need customer service jobs in Kingston, 3 years experience.'
+        : 'Type what your request is about before I hand you to human support. Example: Need customer service jobs in Kingston, 3 years experience.',
       getWhatsAppMainMenuReturnText(language)
     ].join('\n');
   }
@@ -4221,7 +4279,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     return reply;
   }
 
-  if (text === 'help') {
+  if (text === 'help' && convo.currentStep !== 'human_handoff_capture') {
     const reply = [
       'Quick commands:',
       'START | 1 Resume | 2 Cover Letter | 3 Jobs | 4 Interview Prep | 5 Career Coach',
@@ -4232,6 +4290,100 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     convo.lastOutboundAt = new Date();
     await trackWhatsAppTelemetry(phone, 'whatsapp_help_shown', {});
     await convo.save();
+    return reply;
+  }
+
+  if (convo.currentStep === 'menu' && isWhatsAppPatoisGreeting(rawTextCanonical)) {
+    convo.currentStep = 'patois_quick_confirm';
+    const reply = 'Deh ya! Yuh want a job?';
+    convo.lastOutboundMessage = reply;
+    convo.lastOutboundAt = new Date();
+    await convo.save();
+    return reply;
+  }
+
+  if (convo.currentStep === 'patois_quick_confirm') {
+    if (isWhatsAppPatoisAffirmative(rawTextCanonical || textCanonical)) {
+      const quickIndex = Number(convo.metadata?.context?.patoisQuickFlowIndex || 0) % 3;
+      convo.metadata.context.patoisQuickFlowIndex = (quickIndex + 1) % 3;
+      convo.markModified('metadata');
+
+      if (quickIndex === 1) {
+        convo.currentStep = 'resume_capture';
+        const reply = 'Wah mi build yuh one resume? Sen yuh work history (text/voice) or upload yuh resume file.';
+        convo.lastOutboundMessage = reply;
+        convo.lastOutboundAt = new Date();
+        await convo.save();
+        return reply;
+      }
+
+      if (quickIndex === 2) {
+        convo.currentStep = 'cover_letter_capture';
+        const reply = 'Wah mi write yuh one cover letter? Sen di role and company.';
+        convo.lastOutboundMessage = reply;
+        convo.lastOutboundAt = new Date();
+        await convo.save();
+        return reply;
+      }
+
+      convo.currentStep = 'jobs_role_input';
+      const reply = 'Wa kinda job and which part? Example: Customer service in Kingston.';
+      convo.lastOutboundMessage = reply;
+      convo.lastOutboundAt = new Date();
+      await convo.save();
+      return reply;
+    }
+
+    if (/^(no|nah|n|not now)$/i.test(rawTextCanonical || textCanonical)) {
+      convo.currentStep = 'menu';
+      const language = String(convo.metadata?.context?.language || 'english');
+      const reply = getWhatsAppCareerScopePrompt(language);
+      convo.lastOutboundMessage = reply;
+      convo.lastOutboundAt = new Date();
+      await convo.save();
+      return reply;
+    }
+
+    const reply = 'Reply YES if yuh want job/career help, or NO if not now.';
+    convo.lastOutboundMessage = reply;
+    convo.lastOutboundAt = new Date();
+    await convo.save();
+    return reply;
+  }
+
+  if (convo.currentStep === 'human_handoff_capture') {
+    const request = normalizeIncomingWhatsAppText(incoming);
+    const isGenericSupportWord = /^(human|agent|support|live support|human support|help|0)$/i.test(textCanonical);
+    if (!request || request.length < 10 || isGenericSupportWord) {
+      const language = String(convo.metadata?.context?.language || 'english');
+      const reply = language === 'patois'
+        ? 'Before mi hand yuh off, type wah yuh request is about. Example: Need accounting jobs in Montego Bay, 2 years experience.'
+        : 'Before handoff, type what your request is about. Example: Need accounting jobs in Montego Bay, 2 years experience.';
+      convo.lastOutboundMessage = reply;
+      convo.lastOutboundAt = new Date();
+      await convo.save();
+      return reply;
+    }
+
+    user.lastIntent = 'human';
+    convo.lastIntent = 'human';
+    convo.currentStep = 'menu';
+    convo.metadata.context.lastHumanRequest = request;
+    await trackWhatsAppTelemetry(phone, 'whatsapp_human_handoff_requested', { typedRequest: true });
+
+    const alertDelivered = await sendWhatsAppHumanSupportAlert({ phone, incoming: request, user, convo });
+    convo.metadata.pendingHumanAlert = !alertDelivered;
+    convo.metadata.lastHumanAlertAt = new Date().toISOString();
+
+    const reply = [
+      'Request captured and sent to support.',
+      alertDelivered
+        ? 'A recruiter will follow up shortly.'
+        : 'Alert queued for support. Use HUMAN SUPPORT again if urgent.'
+    ].join('\n');
+    convo.lastOutboundMessage = reply;
+    convo.lastOutboundAt = new Date();
+    await Promise.all([user.save(), convo.save()]);
     return reply;
   }
 
@@ -4663,7 +4815,7 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   const strictHumanIntent = ['0', 'human', 'agent', 'support', 'human support', 'live agent', 'live support'].includes(text);
   // jobs_menu is a navigation step — not a data-capture step — so resume/cover/explore intents can break out of it freely.
   // Only true data-capture steps (where a typed response is expected) should be locked.
-  const lockMenuIntentRouting = ['resume_capture', 'cover_letter_capture', 'job_tailor_choice', 'interview_target', 'career_coach_capture', 'jobs_import', 'jobs_role_input', 'jobs_parish_select', 'demo_features'].includes(String(convo.currentStep || ''));
+  const lockMenuIntentRouting = ['resume_capture', 'cover_letter_capture', 'job_tailor_choice', 'interview_target', 'career_coach_capture', 'jobs_import', 'jobs_role_input', 'jobs_parish_select', 'demo_features', 'patois_quick_confirm', 'human_handoff_capture'].includes(String(convo.currentStep || ''));
     const hasForcedIntent = Boolean(forcedIntent);
     const forceDemoIntent = forcedIntent === 'demo'
       || /\bwatch\s+demo\s+features\b/.test(textCanonical)
@@ -4686,7 +4838,10 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
       topScore: detectedIntent.topScore,
       tie: detectedIntent.tie
     });
-    const reply = getWhatsAppClarificationPrompt();
+    const language = String(convo.metadata?.context?.language || 'english');
+    const reply = isWhatsAppCareerScopedMessage(rawTextCanonical)
+      ? getWhatsAppClarificationPrompt()
+      : getWhatsAppCareerScopePrompt(language);
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
     await convo.save();
@@ -4721,25 +4876,14 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   }
 
   if (isHumanIntent) {
-    user.lastIntent = 'human';
-    convo.lastIntent = 'human';
-    convo.currentStep = 'human_handoff';
-    await trackWhatsAppTelemetry(phone, 'whatsapp_human_handoff_requested', {});
-
-    const alertDelivered = await sendWhatsAppHumanSupportAlert({ phone, incoming, user, convo });
-    convo.metadata.pendingHumanAlert = !alertDelivered;
-    convo.metadata.lastHumanAlertAt = new Date().toISOString();
-
-    const reply = [
-      'You are connected to human support.',
-      'Share: target job, location, years exp.',
-      alertDelivered
-        ? 'Alert sent to support. A recruiter will follow up shortly.'
-        : 'Alert queued for support. Use the Human Support button again if urgent.'
-    ].join('\n');
+    convo.currentStep = 'human_handoff_capture';
+    const language = String(convo.metadata?.context?.language || 'english');
+    const reply = language === 'patois'
+      ? 'Mi can connect yuh to human support. First, type wah yuh request is about (target job, location, years experience).'
+      : 'I can connect you to human support. First, type what your request is about (target job, location, years experience).';
     convo.lastOutboundMessage = reply;
     convo.lastOutboundAt = new Date();
-    await Promise.all([user.save(), convo.save()]);
+    await convo.save();
     return reply;
   }
 
