@@ -1963,6 +1963,13 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
   const interactiveToggle = String(process.env.TWILIO_WHATSAPP_INTERACTIVE_ENABLED || '').trim().toLowerCase();
   const languageContentSid = String(process.env.TWILIO_WHATSAPP_LANGUAGE_CONTENT_SID || '').trim();
   const languagePatoisContentSid = String(process.env.TWILIO_WHATSAPP_LANGUAGE_PATOIS_CONTENT_SID || '').trim();
+  const patoisQuickContentSid = String(process.env.TWILIO_WHATSAPP_PATOIS_QUICK_CONTENT_SID || '').trim();
+  const jobsRoleContentSid = String(process.env.TWILIO_WHATSAPP_JOBS_ROLE_CONTENT_SID || '').trim();
+  const resumeCaptureContentSid = String(process.env.TWILIO_WHATSAPP_RESUME_CAPTURE_CONTENT_SID || '').trim();
+  const coverCaptureContentSid = String(process.env.TWILIO_WHATSAPP_COVER_CAPTURE_CONTENT_SID || '').trim();
+  const interviewTargetContentSid = String(process.env.TWILIO_WHATSAPP_INTERVIEW_TARGET_CONTENT_SID || '').trim();
+  const coachCaptureContentSid = String(process.env.TWILIO_WHATSAPP_COACH_CAPTURE_CONTENT_SID || '').trim();
+  const humanCaptureContentSid = String(process.env.TWILIO_WHATSAPP_HUMAN_CAPTURE_CONTENT_SID || '').trim();
   const menuContentSid = String(process.env.TWILIO_WHATSAPP_MENU_CONTENT_SID || '').trim();
   const resumeActionsContentSid = String(process.env.TWILIO_WHATSAPP_RESUME_ACTIONS_CONTENT_SID || '').trim();
   const resumeActionsPlusContentSid = String(process.env.TWILIO_WHATSAPP_RESUME_ACTIONS_PLUS_CONTENT_SID || '').trim();
@@ -1980,6 +1987,13 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
   const hasInteractiveTemplates = [
     languageContentSid,
     languagePatoisContentSid,
+    patoisQuickContentSid,
+    jobsRoleContentSid,
+    resumeCaptureContentSid,
+    coverCaptureContentSid,
+    interviewTargetContentSid,
+    coachCaptureContentSid,
+    humanCaptureContentSid,
     menuContentSid,
     resumeActionsContentSid,
     resumeActionsPlusContentSid,
@@ -2070,6 +2084,62 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
       await sendWhatsAppContentTemplate({ to: from, contentSid: backMenuContentSid });
     }
     return result?.success ? 'keep' : false;
+  }
+
+  if ((step === 'jobs_role_input' || step === 'jobs_query') && jobsRoleContentSid) {
+    const result = await sendWhatsAppContentTemplate({ to: from, contentSid: jobsRoleContentSid });
+    if (result?.success && backMenuContentSid) {
+      await sendWhatsAppContentTemplate({ to: from, contentSid: backMenuContentSid }).catch(() => {});
+    }
+    return result?.success ? 'suppress' : false;
+  }
+
+  if (step === 'resume_capture' && resumeCaptureContentSid) {
+    const result = await sendWhatsAppContentTemplate({ to: from, contentSid: resumeCaptureContentSid });
+    if (result?.success && backMenuContentSid) {
+      await sendWhatsAppContentTemplate({ to: from, contentSid: backMenuContentSid }).catch(() => {});
+    }
+    return result?.success ? 'suppress' : false;
+  }
+
+  if (step === 'cover_letter_capture' && coverCaptureContentSid) {
+    const result = await sendWhatsAppContentTemplate({ to: from, contentSid: coverCaptureContentSid });
+    if (result?.success && backMenuContentSid) {
+      await sendWhatsAppContentTemplate({ to: from, contentSid: backMenuContentSid }).catch(() => {});
+    }
+    return result?.success ? 'suppress' : false;
+  }
+
+  if (step === 'interview_target' && interviewTargetContentSid) {
+    const result = await sendWhatsAppContentTemplate({ to: from, contentSid: interviewTargetContentSid });
+    if (result?.success && backMenuContentSid) {
+      await sendWhatsAppContentTemplate({ to: from, contentSid: backMenuContentSid }).catch(() => {});
+    }
+    return result?.success ? 'suppress' : false;
+  }
+
+  if (step === 'career_coach_capture' && coachCaptureContentSid) {
+    const result = await sendWhatsAppContentTemplate({ to: from, contentSid: coachCaptureContentSid });
+    if (result?.success && backMenuContentSid) {
+      await sendWhatsAppContentTemplate({ to: from, contentSid: backMenuContentSid }).catch(() => {});
+    }
+    return result?.success ? 'suppress' : false;
+  }
+
+  if (step === 'human_handoff_capture' && humanCaptureContentSid) {
+    const result = await sendWhatsAppContentTemplate({ to: from, contentSid: humanCaptureContentSid });
+    if (result?.success && backMenuContentSid) {
+      await sendWhatsAppContentTemplate({ to: from, contentSid: backMenuContentSid }).catch(() => {});
+    }
+    return result?.success ? 'suppress' : false;
+  }
+
+  if (step === 'patois_quick_confirm' && patoisQuickContentSid) {
+    const result = await sendWhatsAppContentTemplate({ to: from, contentSid: patoisQuickContentSid });
+    if (result?.success && backMenuContentSid) {
+      await sendWhatsAppContentTemplate({ to: from, contentSid: backMenuContentSid }).catch(() => {});
+    }
+    return result?.success ? 'suppress' : false;
   }
 
   // For resume_followup and cover_letter_followup, send buttons ALONGSIDE the text
@@ -4498,7 +4568,13 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   }
 
   if (convo.currentStep === 'human_handoff_capture') {
-    const request = normalizeIncomingWhatsAppText(incoming);
+    const interactiveHumanRequests = {
+      'jobs support': 'Need recruiter support for job search and matching in Jamaica.',
+      'resume support': 'Need recruiter support to improve and finalize my resume.',
+      'cover letter support': 'Need recruiter support to improve a cover letter for applications.',
+      'billing support': 'Need support with account plan, billing, or subscription questions.'
+    };
+    const request = interactiveHumanRequests[text] || normalizeIncomingWhatsAppText(incoming);
     const convoLanguage = String(convo.metadata?.context?.language || 'english');
     const isGenericSupportWord = /^(human|agent|support|live support|human support|help|0)$/i.test(textCanonical);
     if (!request || request.length < 10 || isGenericSupportWord) {
@@ -5884,6 +5960,37 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     let resumeSource = incoming;
     let usedVoiceTranscription = false;
     const isUploadMode = !!convo.metadata?.context?.resumeUploadMode;
+    const wantsProfileResume = ['use profile resume', 'use saved resume', 'profile resume'].includes(text);
+    const wantsUploadResume = ['upload resume', 'upload file', 'send file'].includes(text);
+    const wantsVoiceResume = ['voice note', 'send voice', 'use voice note'].includes(text);
+
+    if (wantsProfileResume) {
+      const profileResume = String(user.resumeText || convo.metadata?.context?.lastFullResumeDraft || '').trim();
+      if (!profileResume) {
+        const reply = 'No saved resume found yet. Use Upload Resume or Voice Note to continue.';
+        convo.lastOutboundMessage = reply;
+        convo.lastOutboundAt = new Date();
+        await convo.save();
+        return reply;
+      }
+      resumeSource = profileResume;
+    }
+
+    if (wantsUploadResume) {
+      const reply = 'Send your resume as a PDF or Word (.docx) file and I will process it right away.';
+      convo.lastOutboundMessage = reply;
+      convo.lastOutboundAt = new Date();
+      await convo.save();
+      return reply;
+    }
+
+    if (wantsVoiceResume) {
+      const reply = 'Send a short voice note with your work history and I will convert it to resume bullets.';
+      convo.lastOutboundMessage = reply;
+      convo.lastOutboundAt = new Date();
+      await convo.save();
+      return reply;
+    }
 
     // Document upload path
     if (!resumeSource && !hasInboundAudio && hasInboundDocument) {
@@ -6113,6 +6220,13 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   }
 
   if (convo.currentStep === 'interview_target') {
+    const interactiveTargets = {
+      'customer service role': 'Customer Service Representative in Jamaica',
+      'sales role': 'Sales Associate in Jamaica',
+      'admin role': 'Administrative Assistant in Jamaica',
+      'operations role': 'Operations Coordinator in Jamaica'
+    };
+    const normalizedInterviewTarget = interactiveTargets[text] || incoming;
     const prepCredit = consumeWhatsAppAiCredit(phone, 'interview_prep');
     if (!prepCredit.ok) {
       await trackWhatsAppTelemetry(phone, 'whatsapp_ai_rate_limited', {
@@ -6129,9 +6243,9 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
     user.lastIntent = 'interview';
     convo.lastIntent = 'interview';
     convo.currentStep = 'menu';
-    convo.metadata.context.lastInterviewTarget = incoming;
-    await trackWhatsAppTelemetry(phone, 'whatsapp_interview_target_submitted', { target: incoming.slice(0, 140) });
-    const prep = await generateInterviewPrepForWhatsApp(incoming, buildWhatsAppContextNote(user, convo), convoLanguage);
+    convo.metadata.context.lastInterviewTarget = normalizedInterviewTarget;
+    await trackWhatsAppTelemetry(phone, 'whatsapp_interview_target_submitted', { target: normalizedInterviewTarget.slice(0, 140) });
+    const prep = await generateInterviewPrepForWhatsApp(normalizedInterviewTarget, buildWhatsAppContextNote(user, convo), convoLanguage);
     await trackWhatsAppTelemetry(phone, 'whatsapp_interview_prep_completed', {});
     const reply = `${prep}\n\n${getWhatsAppNextStepPrompt()}`;
     convo.lastOutboundMessage = reply;
@@ -6141,7 +6255,13 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   }
 
   if (convo.currentStep === 'career_coach_capture') {
-    const request = normalizeIncomingWhatsAppText(incoming);
+    const interactiveCoachRequests = {
+      'better paying job': 'I want a better-paying job based on my current experience in Jamaica.',
+      'career switch': 'I want to switch career paths and need a step-by-step transition plan.',
+      'promotion plan': 'I want to move up into a leadership role in my field.',
+      'interview confidence': 'I need practical coaching to become confident in interviews.'
+    };
+    const request = interactiveCoachRequests[text] || normalizeIncomingWhatsAppText(incoming);
     if (!request) {
       const reply = convoLanguage === 'patois' ? 'Tell mi wah yuh need help wid. Example: Mi want a better-paying job in Kingston.' : 'Tell me what you need help with. Example: I want a better-paying role in Kingston.';
       convo.lastOutboundMessage = reply;
@@ -6166,7 +6286,12 @@ async function handleWhatsAppRecruitingMessage(from, body, inboundMessageSid = '
   }
 
   if (convo.currentStep === 'cover_letter_capture') {
-    const requestedTarget = normalizeIncomingWhatsAppText(incoming);
+    const interactiveCoverTargets = {
+      'customer service at digicel': 'Customer Service Representative at Digicel',
+      'sales associate at kfc': 'Sales Associate at KFC',
+      'admin assistant at grace': 'Administrative Assistant at GraceKennedy'
+    };
+    const requestedTarget = interactiveCoverTargets[text] || normalizeIncomingWhatsAppText(incoming);
     if (!requestedTarget) {
       const reply = 'Send your target role and company. Example: Sales Associate at Digicel.';
       convo.lastOutboundMessage = reply;

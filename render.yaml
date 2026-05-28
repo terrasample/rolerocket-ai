@@ -33,6 +33,20 @@ services:
       # ── Twilio WhatsApp interactive templates ────────────────────────────
       - key: TWILIO_WHATSAPP_LANGUAGE_PATOIS_CONTENT_SID
         value: HX22291e33832a9330c9295f9a0392986a
+      - key: TWILIO_WHATSAPP_PATOIS_QUICK_CONTENT_SID
+        value: HX536ba2d54c0da14cee5c9f19d5a3202d
+      - key: TWILIO_WHATSAPP_JOBS_ROLE_CONTENT_SID
+        value: HX601562906d2aaa5e84723e7affc54549
+      - key: TWILIO_WHATSAPP_RESUME_CAPTURE_CONTENT_SID
+        value: HXe735a4a5391af8cf3ed1c6507faa09ca
+      - key: TWILIO_WHATSAPP_COVER_CAPTURE_CONTENT_SID
+        value: HX4de1922197bff4fc9996ff05f50e98c9
+      - key: TWILIO_WHATSAPP_INTERVIEW_TARGET_CONTENT_SID
+        value: HX211d3912757490b96e53dffa4dd01bb7
+      - key: TWILIO_WHATSAPP_COACH_CAPTURE_CONTENT_SID
+        value: HX96e98a7a1114a5ca5f2e261b3adeeff5
+      - key: TWILIO_WHATSAPP_HUMAN_CAPTURE_CONTENT_SID
+        value: HX5dc1ec738f54881dbddf94516c93d2fa
 
       # ── Stripe ─────────────────────────────────────────────────────────────
       - key: STRIPE_SECRET_KEY
