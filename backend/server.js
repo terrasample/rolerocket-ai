@@ -2132,7 +2132,7 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
       const result = await sendWhatsAppContentTemplate({ to: from, contentSid: selectedLanguageSid });
       if (result?.success && templateHasAllLanguages) return 'suppress';
     }
-    // Always send interactive buttons with all 3 languages as fallback
+    // Always send interactive buttons with all 3 languages for language selection
     const buttonResult = await sendWhatsAppInteractiveButtons({
       to: from,
       bodyText: '🇯🇲 Welcome to RoleRocket AI Jamaica\n\nChoose your language:',
@@ -2142,10 +2142,10 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
         { id: '3', title: '🇯🇲 Patois', label: 'Patois' }
       ]
     });
-    // If buttons sent successfully, suppress any further fallback text
-    if (buttonResult?.success) return 'suppress';
-    // If buttons fail, allow fallback (rare)
-    return false;
+    // Log the result for debugging
+    console.log('[WhatsApp] Language selection interactive button result:', buttonResult);
+    // Never send plain text fallback for language selection
+    return 'suppress';
   }
 
   // menu step: suppress for pure menu display; keep when returning from content (explore/status/interview)
