@@ -2114,13 +2114,25 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
   const selectedLanguageSid = languageThreeContentSid || languagePatoisContentSid || languageContentSid;
 
   if (step === 'language_select') {
-    // Try template first if available
+    // Only use template if it contains all three languages (English, Spanish, Patois)
+    let templateHasAllLanguages = false;
     if (selectedLanguageSid) {
+      // Try to detect if the template contains all three languages in the variables (best effort)
+      // If not, fallback to interactive buttons
+      // NOTE: This is a best-effort check. If you want to be 100% sure, you must check the template content in Twilio Console.
+      const templateVars = Object.values(convo?.metadata?.context || {}).join(' ').toLowerCase();
+      if (
+        templateVars.includes('english') &&
+        (templateVars.includes('spanish') || templateVars.includes('español')) &&
+        (templateVars.includes('patois') || templateVars.includes('patwa'))
+      ) {
+        templateHasAllLanguages = true;
+      }
+      // If we can't confirm, still try the template, but fallback to buttons if not all present
       const result = await sendWhatsAppContentTemplate({ to: from, contentSid: selectedLanguageSid });
-      if (result?.success) return 'suppress';
+      if (result?.success && templateHasAllLanguages) return 'suppress';
     }
-    
-    // Send interactive buttons with all 3 languages
+    // Always send interactive buttons with all 3 languages as fallback
     const buttonResult = await sendWhatsAppInteractiveButtons({
       to: from,
       bodyText: '🇯🇲 Welcome to RoleRocket AI Jamaica\n\nChoose your language:',
@@ -2130,7 +2142,6 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
         { id: '3', title: '🇯🇲 Patois', label: 'Patois' }
       ]
     });
-    
     return buttonResult?.success ? 'suppress' : false;
   }
 
