@@ -2142,7 +2142,10 @@ async function maybeSendWhatsAppInteractivePrompt({ from, normalizedInboundText 
         { id: '3', title: '🇯🇲 Patois', label: 'Patois' }
       ]
     });
-    return buttonResult?.success ? 'suppress' : false;
+    // If buttons sent successfully, suppress any further fallback text
+    if (buttonResult?.success) return 'suppress';
+    // If buttons fail, allow fallback (rare)
+    return false;
   }
 
   // menu step: suppress for pure menu display; keep when returning from content (explore/status/interview)
