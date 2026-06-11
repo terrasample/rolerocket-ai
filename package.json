@@ -9,13 +9,18 @@
     "start:cohort": "bash ./scripts/start-local.sh --cohort",
     "mobile:sync": "npx cap sync",
     "mobile:ios:add": "npx cap add ios",
-    "mobile:ios:open": "npx cap open ios"
+    "mobile:ios:open": "npx cap open ios",
+    "mobile:ios:archive": "bash ./scripts/ios-appstore-build.sh archive",
+    "mobile:ios:export": "bash ./scripts/ios-appstore-build.sh export",
+    "mobile:ios:build": "bash ./scripts/ios-appstore-build.sh all"
   },
   "engines": {
     "node": ">=20.19.0 <21"
   },
   "dependencies": {
     "@capacitor/core": "^8.3.0",
+    "@capacitor/local-notifications": "^8.2.0",
+    "@capacitor/share": "^8.0.1",
     "jspdf": "^4.2.1",
     "mammoth": "^1.12.0",
     "multer": "^2.1.1",

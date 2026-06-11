@@ -342,6 +342,72 @@
       .rr-shot-tools { grid-template-columns: 1fr; }
     }
 
+    .native-tools-card {
+      margin: 18px 0 0;
+      border: 1px solid rgba(191, 10, 48, .26);
+      background: linear-gradient(180deg, rgba(30, 64, 175, .08), rgba(15, 23, 42, .06));
+      border-radius: 14px;
+      padding: 16px;
+    }
+    .native-tools-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    .native-tools-head h3 {
+      margin: 0;
+      font-size: 1.06rem;
+      color: #f8fafc;
+    }
+    .native-tools-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .native-tool-btn {
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(191, 10, 48, .42);
+      background: linear-gradient(180deg, rgba(191, 10, 48, .9), rgba(153, 27, 27, .95));
+      color: #fff;
+      font-weight: 800;
+      cursor: pointer;
+      width: 100%;
+    }
+    .native-tool-btn.secondary {
+      border-color: rgba(147, 197, 253, .45);
+      background: linear-gradient(180deg, rgba(30, 64, 175, .75), rgba(30, 64, 175, .92));
+    }
+    .native-tools-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items: center;
+    }
+    .native-tools-row input[type="datetime-local"] {
+      width: 100%;
+      border: 1px solid rgba(147, 197, 253, .45);
+      border-radius: 10px;
+      padding: 9px 10px;
+      background: rgba(15, 23, 42, .3);
+      color: #f8fafc;
+    }
+    .native-tools-status {
+      margin-top: 8px;
+      min-height: 20px;
+      color: #bfdbfe;
+      font-size: .9rem;
+      line-height: 1.4;
+    }
+    @media (max-width: 700px) {
+      .native-tools-grid { grid-template-columns: 1fr; }
+      .native-tools-row { grid-template-columns: 1fr; }
+    }
+
     /* Match home-tab chrome in US experience only. */
     #dashboardBusinessBar { display: none; }
     body.dashboard-us-chrome #dashboardBusinessBar {
@@ -479,6 +545,22 @@
             <div class="rr-shot-tool-sub">Train eye contact, posture, body language, and executive communication with live camera analytics.</div>
           </a>
         </div>
+
+        <section id="nativeToolsCard" class="native-tools-card" style="display:none;" aria-label="iOS Native Tools">
+          <div class="native-tools-head">
+            <h3>📱 iOS Native Tools</h3>
+            <small style="color:#bfdbfe;">Visible only in the app</small>
+          </div>
+          <div class="native-tools-grid">
+            <button id="nativeShareProfileBtn" class="native-tool-btn" type="button">Share My Career Profile</button>
+            <button id="nativeDailyReminderBtn" class="native-tool-btn secondary" type="button">Set Daily Job Reminder</button>
+          </div>
+          <div class="native-tools-row">
+            <input id="nativeInterviewReminderAt" type="datetime-local" aria-label="Interview reminder time" />
+            <button id="nativeInterviewReminderBtn" class="native-tool-btn secondary" type="button">Schedule Interview Reminder</button>
+          </div>
+          <div id="nativeToolsStatus" class="native-tools-status" role="status" aria-live="polite"></div>
+        </section>
       </section>
       <div class="grid dashboard-grid">
         <div id="learningProgressDashboardCard" class="marketing-card" style="margin-bottom:18px;grid-column:1 / -1;" hidden>

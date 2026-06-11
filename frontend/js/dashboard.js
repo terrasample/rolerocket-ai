@@ -3671,6 +3671,152 @@ function isIosNativeAppRuntime() {
   );
 }
 
+function getCapacitorPlugin(pluginName) {
+  if (!window.Capacitor || !window.Capacitor.Plugins) return null;
+  return window.Capacitor.Plugins[pluginName] || null;
+}
+
+function setNativeToolsStatus(message, tone) {
+  const statusEl = document.getElementById('nativeToolsStatus');
+  if (!statusEl) return;
+  statusEl.textContent = message || '';
+  if (tone === 'error') {
+    statusEl.style.color = '#fca5a5';
+  } else if (tone === 'success') {
+    statusEl.style.color = '#86efac';
+  } else {
+    statusEl.style.color = '#bfdbfe';
+  }
+}
+
+async function ensureLocalNotificationPermission() {
+  const localNotifications = getCapacitorPlugin('LocalNotifications');
+  if (!localNotifications) {
+    throw new Error('Local notifications plugin is not available in this build.');
+  }
+
+  const checked = await localNotifications.checkPermissions();
+  if (checked && checked.display === 'granted') return localNotifications;
+
+  const requested = await localNotifications.requestPermissions();
+  if (!requested || requested.display !== 'granted') {
+    throw new Error('Notification permission was not granted.');
+  }
+
+  return localNotifications;
+}
+
+function formatLocalDateTimeInput(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  const h = String(date.getHours()).padStart(2, '0');
+  const min = String(date.getMinutes()).padStart(2, '0');
+  return `${y}-${m}-${d}T${h}:${min}`;
+}
+
+function buildShareMessage() {
+  const welcomeText = (document.getElementById('rrShotWelcome')?.textContent || '').trim();
+  const matchScore = (document.getElementById('rrShotMatchScore')?.textContent || '--').trim();
+  const profileStrength = (document.getElementById('rrShotProfile')?.textContent || '--').trim();
+  const summary = welcomeText || 'I am using RoleRocket AI to manage my job search.';
+  return `${summary}\n\nCurrent metrics:\n• Job Match Score: ${matchScore}\n• Profile Strength: ${profileStrength}\n\nExplore RoleRocket AI:`;
+}
+
+function initNativeToolsPanel() {
+  const panel = document.getElementById('nativeToolsCard');
+  if (!panel || !isIosNativeAppRuntime()) return;
+
+  panel.style.display = 'block';
+
+  const shareBtn = document.getElementById('nativeShareProfileBtn');
+  const dailyReminderBtn = document.getElementById('nativeDailyReminderBtn');
+  const interviewReminderBtn = document.getElementById('nativeInterviewReminderBtn');
+  const interviewReminderInput = document.getElementById('nativeInterviewReminderAt');
+
+  if (interviewReminderInput && !interviewReminderInput.value) {
+    const defaultReminder = new Date(Date.now() + 60 * 60 * 1000);
+    interviewReminderInput.value = formatLocalDateTimeInput(defaultReminder);
+  }
+
+  shareBtn?.addEventListener('click', async () => {
+    try {
+      const sharePlugin = getCapacitorPlugin('Share');
+      const sharePayload = {
+        title: 'My RoleRocket AI Progress',
+        text: buildShareMessage(),
+        url: 'https://www.rolerocketai.com/'
+      };
+
+      if (sharePlugin && typeof sharePlugin.share === 'function') {
+        await sharePlugin.share(sharePayload);
+        setNativeToolsStatus('Profile share sheet opened.', 'success');
+      } else if (navigator.share) {
+        await navigator.share(sharePayload);
+        setNativeToolsStatus('Profile share sheet opened.', 'success');
+      } else {
+        throw new Error('Share is unavailable on this device.');
+      }
+    } catch (error) {
+      setNativeToolsStatus(error.message || 'Unable to open share sheet.', 'error');
+    }
+  });
+
+  dailyReminderBtn?.addEventListener('click', async () => {
+    try {
+      const localNotifications = await ensureLocalNotificationPermission();
+      await localNotifications.schedule({
+        notifications: [
+          {
+            id: 92001,
+            title: 'RoleRocket AI Reminder',
+            body: 'Open your dashboard and complete at least one job-search action today.',
+            schedule: {
+              on: { hour: 18, minute: 0 },
+              repeats: true,
+              allowWhileIdle: true
+            }
+          }
+        ]
+      });
+
+      setNativeToolsStatus('Daily reminder set for 6:00 PM local time.', 'success');
+    } catch (error) {
+      setNativeToolsStatus(error.message || 'Could not set daily reminder.', 'error');
+    }
+  });
+
+  interviewReminderBtn?.addEventListener('click', async () => {
+    try {
+      const when = new Date(interviewReminderInput?.value || '');
+      if (!interviewReminderInput?.value || Number.isNaN(when.getTime())) {
+        throw new Error('Select a valid date and time first.');
+      }
+      if (when.getTime() <= Date.now()) {
+        throw new Error('Reminder time must be in the future.');
+      }
+
+      const localNotifications = await ensureLocalNotificationPermission();
+      await localNotifications.schedule({
+        notifications: [
+          {
+            id: 92002,
+            title: 'Interview Prep Reminder',
+            body: 'Your interview reminder from RoleRocket AI. Time to practice and review your answers.',
+            schedule: { at: when, allowWhileIdle: true }
+          }
+        ]
+      });
+
+      setNativeToolsStatus('Interview reminder scheduled successfully.', 'success');
+    } catch (error) {
+      setNativeToolsStatus(error.message || 'Could not schedule interview reminder.', 'error');
+    }
+  });
+}
+
+initNativeToolsPanel();
+
 window.upgrade = async function upgrade(plan, triggerBtn) {
   const btn = triggerBtn || null;
   if (isIosNativeAppRuntime()) {
